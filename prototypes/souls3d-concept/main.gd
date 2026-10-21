@@ -62,6 +62,7 @@ const MOVES := {
 	"roll_atk": {"anim": "x_roll_atk", "speed": 1.0, "hit": 0.28, "end": 0.7, "dmg": 38, "poise": 20, "stamina": 20, "reach": 2.6, "arc": 1.2, "lunge": 4.0},
 	"kick": {"anim": "x_bash", "speed": 1.0, "hit": 0.36, "end": 0.65, "dmg": 12, "poise": 45, "stamina": 14, "reach": 2.0, "arc": 0.9, "lunge": 1.2},
 	"riposte": {"anim": "x_riposte", "speed": 1.0, "hit": 0.72, "end": 1.4, "dmg": 140, "poise": 0, "stamina": 10, "reach": 2.8, "arc": 1.4, "lunge": 2.5},
+	"c6": {"anim": "x_roll_atk", "speed": 1.0, "hit": 0.28, "end": 0.7, "dmg": 34, "poise": 18, "stamina": 18, "reach": 2.6, "arc": 1.2, "lunge": 2.5},
 	"c5": {"anim": "x_spin", "speed": 1.0, "hit": 0.46, "end": 1.0, "dmg": 40, "poise": 22, "stamina": 18, "reach": 2.6, "arc": 3.2, "lunge": 2.2},
 	# great sword: slower, wider, more damage and poise, more stamina
 	"g1": {"anim": "slash", "speed": 1.3, "hit": 0.53, "end": 1.15, "dmg": 44, "poise": 24, "stamina": 24, "reach": 3.0, "arc": 1.4, "lunge": 1.6},
@@ -75,6 +76,9 @@ const MOVES := {
 	"g_riposte": {"anim": "attack", "speed": 1.2, "hit": 0.47, "end": 1.15, "dmg": 190, "poise": 0, "stamina": 12, "reach": 3.0, "arc": 1.4, "lunge": 2.5},
 }
 const COMBO := ["c1", "c2", "c3", "c4", "c5"]
+# after the last hit, every swing that LANDED lets the next press keep going with a different move
+const CHAIN := ["c1", "c2", "c3", "c4", "c5", "c6"]
+const CHAIN_G := ["g1", "g2", "g3", "g4"]
 const COMBO_G := ["g1", "g2", "g3", "g4"]
 const ENEMY_SPAWNS := [
 	[Vector3(-4, 0, 4), "warrior"], [Vector3(4, 0, 0), "minion"], [Vector3(-2, 0, -6), "warrior"],
@@ -112,7 +116,7 @@ const ITEMS := {
 	"sword": {"names": ["Espada Enferrujada", "Lâmina do Juramento", "Fio da Cinza", "Presa do Dragão"], "base": 6.0, "fmt": "+%d%% dano (espada)"},
 	"great": {"names": ["Espadão Rachado", "Montante do Guardião", "Cutelo das Brasas", "Ira do Wyrm"], "base": 6.0, "fmt": "+%d%% dano (espadão)"},
 	"ring": {"names": ["Anel de Osso", "Anel do Cavaleiro", "Anel da Seiva", "Anel do Primeiro Fogo"], "base": 12.0, "fmt": "+%d vida máxima"},
-	"amulet": {"names": ["Amuleto Gasto", "Amuleto Rúnico", "Coração de Brasa", "Olho do Dragão"], "base": 20.0, "fmt": "+%d%% Fúria do Dragão"},
+	"amulet": {"names": ["Amuleto Gasto", "Amuleto Rúnico", "Coração de Brasa", "Olho do Dragão"], "base": 10.0, "fmt": "+%d%% dano das Sementes"},
 }
 const SHARD_SPOTS := [Vector3(-17, 0.6, -9), Vector3(16, 0.6, 22)]
 
@@ -159,6 +163,8 @@ var embers := 0
 var state := "free"  # free, attack, roll, hit, drink, cast, dead
 var state_t := 0.0
 var combo_queued := false
+var landed := false  # did the current swing hit something
+var chain := 0  # moves chained past the scripted combo
 var combo_step := 0
 var hit_done := false
 var roll_dir := Vector3.ZERO
@@ -187,14 +193,7 @@ var banner_col := Color.WHITE
 var cam_touch := -1
 var shake := 0.0
 var autoplay := OS.get_environment("SEMENTES_AUTOPLAY") == "1"  # playtest robot for screenshots only
-var dragon_seed := OS.get_environment("SEMENTES_DRAGON") == "1"  # env: start with it, for showcase videos
-var rage := 100.0 if OS.get_environment("SEMENTES_DRAGON") == "1" else 0.0  # Dragon's Fury, filled by damage dealt
-var dragon_form := false
-var dragon_t := 0.0
-var dragon_node: Node3D
-var dragon_ap: AnimationPlayer
-var breath: CPUParticles3D
-var breath_t := 0.0
+var dragon_seed := false
 var seeds := ["fogo"]
 var seed_i := 0
 var seed_marks: Array = []  # [node, spot]
@@ -245,7 +244,7 @@ func _save() -> void:
 	var d := {
 		"level": level, "max_hp": max_hp, "max_stamina": max_stamina, "dmg_mult": dmg_mult, "max_flasks": max_flasks,
 		"embers": embers, "dropped_embers": dropped_embers, "seeds": seeds, "seed_i": seed_i, "dragon_seed": dragon_seed,
-		"rage": rage, "gear": gear, "lit": lit.keys(),
+		"gear": gear, "lit": lit.keys(),
 		"bonfire": [bonfire_pos.x, bonfire_pos.y, bonfire_pos.z],
 		"dropped_at": [dropped_marker.position.x, dropped_marker.position.y, dropped_marker.position.z] if dropped_marker != null else [],
 		"bosses_dead": bosses.filter(func(b): return b.dead).map(func(b): return b.kind),
@@ -271,7 +270,6 @@ func _load() -> void:
 	seeds = d.seeds
 	seed_i = clampi(int(d.seed_i), 0, seeds.size() - 1)
 	dragon_seed = d.dragon_seed
-	rage = d.rage
 	weapon = "sword"
 	gear = {}
 	for slot in d.gear:
@@ -936,12 +934,6 @@ func _update_player(dt: float) -> void:
 	var v := _input_vec()
 	var dir := _input_dir()
 	state_t += dt
-	if dragon_form:
-		_update_dragon(dt, dir)
-		return
-	if _pressed("dragon") and dragon_seed and rage >= 100.0 and state == "free":
-		_become_dragon(true)
-		return
 	# heavy attack: hold ATTACK
 	if _held("attack") and state == "free":
 		attack_hold += dt
@@ -1031,8 +1023,17 @@ func _update_player(dt: float) -> void:
 				_player_hit_check(move)
 			var end_at: float = mv.end / mv.speed
 			var combo: Array = COMBO_G if weapon == "great" else COMBO
+			var pool: Array = CHAIN_G if weapon == "great" else CHAIN
 			if state_t > hit_at + 0.12 and combo_queued and stamina > 5 and move in combo and move != combo[-1]:
 				_start_move(combo[combo.find(move) + 1])
+			elif state_t > hit_at + 0.12 and combo_queued and stamina > 5 and landed and move in pool:
+				# endless chain while you keep connecting: a different swing each time, half stamina
+				var next: String = pool.filter(func(m): return m != move).pick_random()
+				chain += 1
+				_start_move(next)
+				stamina += MOVES[next].stamina * 0.5
+				if chain % 4 == 0:
+					_float("%d GOLPES!" % (chain + combo.size()), player.position + Vector3(0, 2.6, 0), Color(1, 0.8, 0.3))
 			elif state_t > hit_at + 0.15 and _pressed("roll") and stamina > 5:
 				_start_roll(dir)
 			elif state_t > end_at:
@@ -1127,110 +1128,6 @@ func _update_player(dt: float) -> void:
 		dropped_marker.queue_free()
 		dropped_marker = null
 		_save()
-
-func _become_dragon(on: bool) -> void:
-	dragon_form = on
-	model.visible = not on
-	if on:
-		if dragon_node == null:
-			var dr := _dragon_model(3.4, "dragon_black")
-			dragon_node = dr[0]
-			dragon_ap = dr[1]
-			player.add_child(dragon_node)
-			breath = CPUParticles3D.new()
-			var q := QuadMesh.new()
-			q.size = Vector2(0.5, 0.5)
-			var bm := StandardMaterial3D.new()
-			bm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			bm.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-			bm.albedo_color = Color(1, 0.5, 0.1)
-			bm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-			bm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			var puff := GradientTexture2D.new()  # soft round flame instead of a square
-			puff.fill = GradientTexture2D.FILL_RADIAL
-			puff.fill_from = Vector2(0.5, 0.5)
-			puff.fill_to = Vector2(1.0, 0.5)
-			puff.gradient = Gradient.new()
-			puff.gradient.set_color(0, Color(1, 1, 1, 1))
-			puff.gradient.set_color(1, Color(1, 1, 1, 0))
-			bm.albedo_texture = puff
-			q.material = bm
-			breath.mesh = q
-			breath.amount = 90
-			breath.lifetime = 0.55
-			breath.direction = Vector3(0, 0, 1)
-			breath.spread = 14
-			breath.initial_velocity_min = 11
-			breath.initial_velocity_max = 15
-			breath.gravity = Vector3(0, 1.5, 0)
-			breath.scale_amount_min = 0.5
-			breath.scale_amount_max = 1.4
-			var grow := Curve.new()  # flames swell as they travel
-			grow.add_point(Vector2(0, 0.3))
-			grow.add_point(Vector2(1, 1.0))
-			breath.scale_amount_curve = grow
-			breath.emitting = false
-			breath.position = Vector3(0, 1.7, 1.6)
-			player.add_child(breath)
-		dragon_node.visible = true
-		dragon_t = 15.0
-		rage = 0.0
-		lock_target = null
-		spring.spring_length = 7.5
-		_sfx("dragon_roar", 4)
-		shake = 0.8
-		_show_banner("FORMA DE DRAGÃO", "ATACAR cospe fogo · ROLAR investida · FOGO bola gigante", Color(1, 0.45, 0.1), 2.5)
-	else:
-		dragon_node.visible = false
-		breath.emitting = false
-		spring.spring_length = 4.2
-		_set_state("free")
-		_sfx("cloth3", 0)
-
-func _update_dragon(dt: float, dir: Vector3) -> void:
-	dragon_t -= dt
-	breath_t -= dt
-	var dash := state == "roll"
-	var speed := 16.0 if dash else (2.0 if breath_t > 0 else 8.0)
-	var mv := (model.global_transform.basis.z if dash else dir) * speed
-	player.velocity.x = mv.x
-	player.velocity.z = mv.z
-	if dir.length() > 0.1 and not dash:
-		_face(dir)
-	dragon_node.rotation.y = model.rotation.y + PI
-	breath.rotation.y = model.rotation.y
-	breath.position = Vector3(sin(model.rotation.y), 0, cos(model.rotation.y)) * 2.6 + Vector3(0, 2.4, 0)
-	if dash and state_t > 0.45:
-		_set_state("free")
-	if breath_t > 0:
-		dragon_ap.play("d/attack")
-		if int(breath_t * 8.0) != int((breath_t + dt) * 8.0):  # 8 burns a second
-			for e in enemies:
-				var to: Vector3 = e.root.position - player.position
-				if not e.dead and to.length() < 8.0 and _fwd().angle_to(to.normalized()) < 0.45:
-					_damage_enemy(e, {"dmg": 9.0, "poise": 6.0})
-			if boss != null and not boss.dead and boss.root.position.distance_to(player.position) < 11.0:
-				_damage_boss(12.0)
-	else:
-		breath.emitting = false
-		dragon_ap.play("d/walk" if dir.length() > 0.1 or dash else "d/idle")
-	if _pressed("attack"):
-		breath_t = 1.0
-		breath.emitting = true
-		_sfx("fire_breath", 0)
-	elif _pressed("roll") and not dash:
-		_set_state("roll")
-		invuln_t = 0.5
-		_sfx("cloth3", 2)
-	elif _pressed("seed") and seed_cd <= 0:
-		seed_cd = 1.5
-		_throw_fireball()
-		fireballs[-1].node.scale = Vector3.ONE * 2.5
-		fireballs[-1].big = true
-	player.move_and_slide()
-	_update_pickups()
-	if dragon_t <= 0:
-		_become_dragon(false)
 
 func _fast_travel() -> void:
 	var here = _near_bonfire(3.0)
@@ -1328,6 +1225,9 @@ func _start_attack() -> void:
 
 func _start_move(name: String) -> void:
 	var mv: Dictionary = MOVES[name]
+	if name == COMBO[0] or name == COMBO_G[0] or not (name in CHAIN or name in CHAIN_G):
+		chain = 0
+	landed = false
 	move = name
 	_set_state("attack")
 	hit_done = false
@@ -1390,9 +1290,11 @@ func _player_hit_check(name: String) -> void:
 		var to: Vector3 = e.root.position - player.position
 		if to.length() < mv.reach and fwd.angle_to(to.normalized()) < mv.arc:
 			_damage_enemy(e, mv)
+			landed = true
 	if boss != null and not boss.dead:
 		var tb: Vector3 = boss.root.position - player.position
 		if tb.length() < mv.reach + 2.6 and fwd.angle_to(tb.normalized()) < 1.0:
+			landed = true
 			_damage_boss(mv.dmg * dmg_mult * (1.0 + (gear[weapon].val / 100.0 if gear.has(weapon) else 0.0)))
 
 func _damage_enemy(e: Dictionary, mv: Dictionary) -> void:
@@ -1414,8 +1316,8 @@ func _damage_enemy(e: Dictionary, mv: Dictionary) -> void:
 		_sfx("impactPlate_heavy_002", -2)
 		_float("bloqueou", e.root.position + Vector3(0, 2.3, 0), Color(0.7, 0.7, 0.8))
 	e.hp -= dmg
-	if dragon_seed and not dragon_form:
-		rage = minf(100.0, rage + dmg * 0.35 * (1.0 + (gear.amulet.val / 100.0 if gear.has("amulet") else 0.0)))
+	if not mv.has("anim") and gear.has("amulet"):  # spells: the amulet's bonus
+		dmg *= 1.0 + gear.amulet.val / 100.0
 	shake = max(shake, 0.25)
 	_sfx(["impactWood_heavy_000", "impactPlate_heavy_000"], -2)
 	_float(str(int(dmg)), e.root.position + Vector3(0, 2.1, 0), Color.WHITE)
@@ -1506,13 +1408,6 @@ func _damage_boss(dmg: float) -> void:
 
 func _hurt_player(dmg: float, src: String, attacker: Dictionary = {}) -> void:
 	if invuln_t > 0 or state == "dead":
-		return
-	if dragon_form:  # scales take half and nothing staggers a dragon
-		hp -= dmg * 0.5
-		_float("-%d" % int(dmg * 0.5), player.position + Vector3(0, 3, 0), Color(1, 0.3, 0.3))
-		if hp <= 0:
-			_become_dragon(false)
-			hp = 1.0
 		return
 	if state == "block":
 		if block_t < 0.22 and not attacker.is_empty():
@@ -2344,7 +2239,6 @@ func _autoplay_press(action: String) -> bool:
 		"flask": return hp < 60 and randf() < 0.05
 		"lock": return lock_target == null and randf() < 0.01
 		"weapon": return randf() < 0.004
-		"dragon": return true
 		"block":
 			if randf() < 0.01:
 				auto_block = 1.0
@@ -2405,7 +2299,7 @@ func _build_ui() -> void:
 	joystick.set("joystick_size", 230)
 	joystick.set("tip_size", 100)
 	ui.add_child(joystick)
-	for a in ["attack", "roll", "lock", "seed", "flask", "block", "level", "weapon", "seed_next", "travel", "dragon"]:
+	for a in ["attack", "roll", "lock", "seed", "flask", "block", "level", "weapon", "seed_next", "travel"]:
 		var b := TouchScreenButton.new()
 		var s := CircleShape2D.new()
 		s.radius = _button_r(a)
@@ -2421,7 +2315,6 @@ func _button_r(a: String) -> float:
 	match a:
 		"attack": return 115.0
 		"lock", "level", "weapon", "seed_next", "travel": return 62.0
-		"dragon": return 85.0
 	return 78.0
 
 func _button_pos(a: String, vs: Vector2) -> Vector2:
@@ -2435,7 +2328,6 @@ func _button_pos(a: String, vs: Vector2) -> Vector2:
 		"weapon": return Vector2(vs.x - 260, vs.y - 640)
 		"seed_next": return Vector2(vs.x - 470, vs.y - 500)
 		"travel": return Vector2(vs.x * 0.5 + 160, vs.y - 120)
-		"dragon": return Vector2(vs.x - 620, vs.y - 160)
 		"level": return Vector2(vs.x * 0.5, vs.y - 120)
 	return Vector2.ZERO
 
@@ -2477,10 +2369,6 @@ func _draw_ui() -> void:
 	ui_draw.draw_rect(Rect2(40, 84, essence * 2.4, 10), Color(0.25, 0.45, 0.95))
 	_text("Nível %d   Frascos %d/%d" % [level, flasks, max_flasks], Vector2(40, 132), 28, Color(0.9, 0.8, 0.6))
 	_text("%d FPS" % Engine.get_frames_per_second(), Vector2(vs.x * 0.5 - 40, 30), 20, Color(0.6, 0.6, 0.6))
-	if dragon_seed:
-		ui_draw.draw_rect(Rect2(40, 98, 240, 10), Color(0.1, 0.03, 0, 0.7))
-		var fill := dragon_t / 15.0 if dragon_form else rage / 100.0
-		ui_draw.draw_rect(Rect2(40, 98, 240 * fill, 10), Color(1, 0.35, 0.05) if rage >= 100.0 or dragon_form else Color(0.6, 0.2, 0.05))
 	var gy := 170.0
 	for slot in ["sword", "great", "ring", "amulet"]:
 		if gear.has(slot):
@@ -2524,12 +2412,10 @@ func _draw_ui() -> void:
 			continue
 		if a == "seed_next" and seeds.size() < 2:
 			continue
-		if a == "dragon" and not (dragon_seed and rage >= 100.0 and not dragon_form):
-			continue
 		if a == "travel" and (_near_bonfire(3.0) == null or lit.size() < 2):
 			continue
 		var label: String = {"attack": "ATACAR", "roll": "ROLAR", "lock": "MIRA", "seed": SEEDS[seeds[seed_i]].name, "flask": "FRASCO", "block": "DEFESA",
-			"level": "NÍVEL", "weapon": "ARMA", "seed_next": "TROCAR", "travel": "VIAJAR", "dragon": "DRAGÃO"}[a]
+			"level": "NÍVEL", "weapon": "ARMA", "seed_next": "TROCAR", "travel": "VIAJAR"}[a]
 		var col: Color = SEEDS[seeds[seed_i]].col if a == "seed" else Color(1, 1, 1)
 		ui_draw.draw_circle(pos, r, Color(col, 0.28 if Input.is_action_pressed(a) else 0.12))
 		ui_draw.draw_arc(pos, r, 0, TAU, 48, Color(col, 0.6), 3)

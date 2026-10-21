@@ -11,7 +11,7 @@
 
 ## Mechanics (v3)
 
-- Sword and shield: 5-hit combo (the 5th is a backhand), each hit a different animation; hold ATTACK for a heavy; attacking while sprinting or right after a roll uses dedicated moves.
+- Sword and shield: 5-hit combo, then an endless chain while your swings keep landing (a different move each press, half stamina; a miss ends it), each hit a different animation; hold ATTACK for a heavy; attacking while sprinting or right after a roll uses dedicated moves.
 - Shield block (stamina), parry in the first 0.22 s of a block, shield + attack = kick that breaks guard.
 - Poise: enemies get stunned when their poise bar empties; attack a stunned enemy for a critical riposte.
 - Sprint (full stick for 0.6 s), lock-on strafing, Fire Seed costs Essence (blue bar).
@@ -26,8 +26,7 @@
 - More enemies (KayKit Skeletons CC0, same rig): Skeleton Mage (the caster, hat hidden), Skeleton Rogue (dual blades, fast, dodges) and Skeleton Crossbowman (straight fast bolts). Skull keys are scaled to 0.66 to tone down the chibi look. Ash Wolves (Quaternius CC0, `assets/beasts`) hunt in packs: run, circle and pounce; the pounce is procedural since the model only has idle/walk.
 - Seeds of power: Fire (fireball), Ice (slows for 3 s, heavy poise damage; found in the cemetery) and Lightning (instant strike that jumps to two more enemies; deep in the Dead Forest). SEED casts the current one, TROCAR (T) cycles.
 - HUD map of the island (lit bonfires, Seeds, player arrow), region names on entry, fast travel between lit bonfires (VIAJAR / Y).
-- Dragon form: after the first dragon falls you hold the Dragon Seed; damage you deal fills the Fury bar, and when it is full DRAGÃO (G) turns you into a black dragon for 15 s (fire breath cone, wing dash with i-frames, giant fireball, half damage taken). `SEMENTES_DRAGON=1` starts with the Seed for showcase runs.
-- Loot: enemies drop items (35%, wolves 25%; bosses a guaranteed Legendary) in 4 rarities (Comum 70%, Raro 22%, Épico 7%, Lendário 1%) with a light beam in the rarity colour. Slots: sword and great sword (+% melee damage), ring (+max HP), amulet (+% Fury gain). Better items equip themselves; worse ones melt into Embers. Equipped gear is listed under the bars.
+- Loot: enemies drop items (35%, wolves 25%; bosses a guaranteed Legendary) in 4 rarities (Comum 70%, Raro 22%, Épico 7%, Lendário 1%) with a light beam in the rarity colour. Slots: sword and great sword (+% melee damage), ring (+max HP), amulet (+% Seed damage). Better items equip themselves; worse ones melt into Embers. Equipped gear is listed under the bars.
 - Save: `user://sementes_save.json`, written on bonfire rest, level up, item/Seed/shard pickup, boss kill, death, Ember recovery and when the app is paused or closed; loaded at start (back at the last bonfire). The autoplay robot neither loads nor saves.
 - Title card (CONTINUAR when a save exists, NOVO JOGO wipes it) over the paused world; app icon `icon.png` made from the hero portrait.
 - Bosses: Guardian Dragon in the ruins (phase 2 at 50% HP, portcullis closes behind you; drops the Dragon Seed) and the Ancient Wyrm on the summit of Dragon's Peak (bigger, red, 2400 HP, adds a fire rain with ground warning rings; +5000 Embers and +50 max HP). Bosses share one AI; the nearest living one is the target for every other system.
