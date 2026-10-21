@@ -57,6 +57,11 @@ var cam_touch := -1
 var shake := 0.0
 var autoplay := OS.get_environment("SEMENTES_AUTOPLAY") == "1"  # playtest robot for screenshots only
 var dragon_seed := false
+var sfx_players: Array = []
+var sfx_cache := {}
+var music_amb: AudioStreamPlayer
+var music_boss: AudioStreamPlayer
+var step_t := 0.0
 
 func _ready() -> void:
 	randomize()
@@ -71,6 +76,7 @@ func _ready() -> void:
 		_spawn_enemy(p)
 	_spawn_boss()
 	_build_ui()
+	_build_audio()
 	_show_banner("RUÍNAS DO GUARDIÃO", "Atrás do portão espera o Dragão", Color(0.95, 0.85, 0.65), 4.0)
 
 # ------------------------------------------------------------------ world
@@ -245,42 +251,40 @@ func _dark_cloth() -> StandardMaterial3D:
 	m.roughness = 0.9
 	return m
 
-func _knight_model(dark: bool) -> Node3D:
-	var k: Node3D = load("res://assets/knight/KnightCharacter.fbx").instantiate()
-	k.scale = Vector3(0.3, 0.3, 0.3)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.08, 0.08, 0.09) if dark else Color.WHITE
-	mat.metallic = 0.6
-	mat.roughness = 0.5
+func _skeleton_model() -> Node3D:
+	var k: Node3D = load("res://assets/skeletons/Skeleton_Warrior.glb").instantiate()
+	k.scale = Vector3.ONE * 1.25
 	for m in k.find_children("*", "MeshInstance3D", true, false):
-		m.material_override = mat
-	var skel: Skeleton3D = k.find_child("Skeleton3D", true, false)
-	for pair in [["Helmet2", "Head"], ["Club", "Palm.R"]]:
-		var acc: Node3D = load("res://assets/knight/%s.fbx" % pair[0]).instantiate()
-		var ba := BoneAttachment3D.new()
-		ba.bone_name = pair[1]
-		skel.add_child(ba)
-		ba.add_child(acc)
-		acc.transform = skel.get_bone_global_rest(skel.find_bone(pair[1])).affine_inverse() * (skel.get_parent() as Node3D).transform.affine_inverse()
-		for m in acc.find_children("*", "MeshInstance3D", true, false):
-			m.material_override = mat
+		for i in m.mesh.get_surface_count():
+			var mt = m.mesh.surface_get_material(i)
+			if mt is StandardMaterial3D:
+				var d: StandardMaterial3D = mt.duplicate()
+				d.albedo_color = Color(0.72, 0.68, 0.62)  # aged bone, less toy-like
+				d.roughness = 0.85
+				m.set_surface_override_material(i, d)
+	var skel: Skeleton3D = k.find_children("*", "Skeleton3D", true, false)[0]
+	var ba := BoneAttachment3D.new()
+	ba.bone_name = "handslot.r"
+	skel.add_child(ba)
+	ba.add_child(load("res://assets/skeletons/Skeleton_Blade.gltf").instantiate())
 	return k
 
 func _spawn_enemy(pos: Vector3) -> void:
 	var root := Node3D.new()
 	root.position = pos
+	root.rotation.y = randf() * TAU
 	add_child(root)
-	var k := _knight_model(true)
+	var k := _skeleton_model()
 	root.add_child(k)
 	var eye := OmniLight3D.new()
-	eye.position = Vector3(0, 1.5, 0.25)
+	eye.position = Vector3(0, 1.7, 0.25)
 	eye.light_color = Color(1, 0.1, 0.05)
-	eye.light_energy = 0.4
-	eye.omni_range = 1.5
+	eye.light_energy = 0.0
+	eye.omni_range = 1.8
 	root.add_child(eye)
-	var ap: AnimationPlayer = k.get_node("AnimationPlayer")
-	ap.play("HumanArmature|Idle_swordRight")
-	enemies.append({"root": root, "ap": ap, "eye": eye, "hp": 90.0, "max": 90.0, "home": pos, "state": "idle", "t": 0.0, "hit": false, "dead": false})
+	var ap: AnimationPlayer = k.find_children("*", "AnimationPlayer", true, false)[0]
+	ap.play("Skeletons_Inactive_Floor_Pose")
+	enemies.append({"root": root, "ap": ap, "eye": eye, "hp": 90.0, "max": 90.0, "home": pos, "state": "dormant", "t": 0.0, "hit": false, "dead": false})
 
 func _spawn_boss() -> void:
 	var root := Node3D.new()
@@ -367,6 +371,10 @@ func _update_player(dt: float) -> void:
 			elif dir.length() > 0.1:
 				_face(dir)
 			_play("p/run" if dir.length() > 0.1 else "p/idle", 0.15)
+			step_t -= dt
+			if dir.length() > 0.1 and step_t <= 0:
+				step_t = 0.36
+				_sfx(["footstep_concrete_000", "footstep_concrete_001", "footstep_concrete_002", "footstep_concrete_003", "footstep_concrete_004"], -10)
 			if _pressed("attack") and stamina > 5:
 				_start_attack()
 			elif _pressed("roll") and stamina > 5:
@@ -377,6 +385,7 @@ func _update_player(dt: float) -> void:
 				state = "drink"
 				state_t = 0.0
 				_play("p/drink", 0.1)
+				_sfx("metalPot1", -6)
 		"attack":
 			player.velocity.x = 0
 			player.velocity.z = 0
@@ -473,6 +482,7 @@ func _begin_swing(name: String) -> void:
 	combo_queued = false
 	_spend(22.0)
 	anim.play(name, 0.08, 1.45)
+	_sfx(["knifeSlice", "knifeSlice2", "drawKnife1"], -3)
 
 func _start_roll(dir: Vector3) -> void:
 	state = "roll"
@@ -482,6 +492,7 @@ func _start_roll(dir: Vector3) -> void:
 	model.rotation.y = atan2(roll_dir.x, roll_dir.z)
 	invuln_t = 0.45
 	anim.play("p/roll", 0.05, 1.7)
+	_sfx(["cloth1", "cloth3"], -2)
 
 func _start_cast() -> void:
 	state = "cast"
@@ -505,28 +516,36 @@ func _player_hit_check(dmg: float) -> void:
 func _damage_enemy(e: Dictionary, dmg: float) -> void:
 	e.hp -= dmg
 	shake = 0.25
+	_sfx(["impactWood_heavy_000", "impactPlate_heavy_000"], -2)
 	_float(str(int(dmg)), e.root.position + Vector3(0, 2.1, 0), Color.WHITE)
 	if e.hp <= 0:
 		e.dead = true
-		e.ap.play("HumanArmature|Death")
+		e.ap.play("Death_A")
+		e.eye.light_energy = 0.0
 		embers += 60
 		_float("+60 brasas", e.root.position + Vector3(0, 2.6, 0), Color(1, 0.7, 0.3))
 		if lock_target == e:
 			lock_target = null
-	else:
+	elif e.state not in ["dormant", "awaken"]:
 		e.state = "stagger"
 		e.t = 0.0
+		e.ap.play("Hit_A", 0.05, 1.4)
 
 func _damage_boss(dmg: float) -> void:
 	boss.hp -= dmg
 	boss.awake = true
 	shake = 0.3
+	_sfx(["impactPlate_heavy_001", "impactPlate_heavy_002"], -1)
 	_float(str(int(dmg)), boss.root.position + Vector3(0, 5, 0), Color(1, 0.9, 0.6))
 	if boss.hp <= 0 and not boss.dead:
 		boss.dead = true
 		boss.ap.play("d/die")
 		embers += 2000
 		dragon_seed = true
+		_sfx("dragon_roar", 2)
+		_sfx("jingle_win", -2)
+		_fade(music_boss, -80.0, 4.0)
+		_fade(music_amb, -8.0, 4.0)
 		_show_banner("DRAGÃO DERROTADO", "Você obteve a SEMENTE DO DRAGÃO  ·  +2000 brasas", Color(1, 0.6, 0.15), 6.0)
 
 func _hurt_player(dmg: float, src: String) -> void:
@@ -534,12 +553,14 @@ func _hurt_player(dmg: float, src: String) -> void:
 		return
 	hp -= dmg
 	shake = 0.5
+	_sfx(["impactPunch_heavy_000", "impactPunch_heavy_001"], 0)
 	_float("-%d" % int(dmg), player.position + Vector3(0, 2, 0), Color(1, 0.3, 0.3))
 	if hp <= 0:
 		hp = 0
 		state = "dead"
 		state_t = 0.0
 		anim.play("p/death", 0.1)
+		_sfx("jingle_death", -2)
 		if dropped_marker != null:
 			dropped_marker.queue_free()
 		dropped_embers = embers
@@ -585,6 +606,8 @@ func _respawn() -> void:
 		boss.awake = false
 		boss.root.position = BOSS_HOME
 		boss.state = "idle"
+		_fade(music_boss, -80.0, 2.0)
+		_fade(music_amb, -8.0, 2.0)
 
 func _respawn_enemies() -> void:
 	for e in enemies:
@@ -619,6 +642,16 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 	var dist := to.length()
 	var ap: AnimationPlayer = e.ap
 	match e.state:
+		"dormant":
+			if dist < 9 and state != "dead":
+				e.state = "awaken"
+				e.t = 0.0
+				e.eye.light_energy = 0.5
+				ap.play("Skeletons_Awaken_Floor", 0.1, 1.3)
+				_sfx("impactWood_heavy_000", -6)
+		"awaken":
+			if e.t > 1.9:
+				e.state = "chase"
 		"idle":
 			if dist < 11 and state != "dead":
 				e.state = "chase"
@@ -626,34 +659,36 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 			e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.15)
 			if dist > 1.9:
 				e.root.position += to.normalized() * 3.0 * dt
-				if ap.current_animation != "HumanArmature|Run":
-					ap.play("HumanArmature|Run", 0.2)
+				if ap.current_animation != "Running_A":
+					ap.play("Running_A", 0.2)
 			else:
 				e.state = "windup"
 				e.t = 0.0
-				ap.play("HumanArmature|Run_swordAttack", 0.1, 0.0)
+				ap.play("1H_Melee_Attack_Chop", 0.1, 0.35)
 			if dist > 16 or state == "dead":
 				e.state = "idle"
-				ap.play("HumanArmature|Idle_swordRight", 0.2)
+				ap.play("Idle_Combat", 0.2)
 		"windup":
-			e.eye.light_energy = 0.4 + 6.0 * e.t
+			e.eye.light_energy = 0.5 + 6.0 * e.t
 			if e.t > 0.55:
 				e.state = "strike"
 				e.t = 0.0
 				e.hit = false
-				ap.play("HumanArmature|Run_swordAttack", 0.0, 1.6)
+				ap.speed_scale = 1.0
+				ap.play("1H_Melee_Attack_Chop", 0.0, 1.5)
+				_sfx(["knifeSlice", "knifeSlice2"], -4)
 		"strike":
-			e.eye.light_energy = 0.4
-			if not e.hit and e.t > 0.25:
+			e.eye.light_energy = 0.5
+			if not e.hit and e.t > 0.2:
 				e.hit = true
 				var fwd := Vector3(sin(e.root.rotation.y), 0, cos(e.root.rotation.y))
 				if dist < 2.5 and fwd.angle_to(to.normalized()) < 1.0:
-					_hurt_player(28.0, "Cavaleiro Oco")
+					_hurt_player(28.0, "Esqueleto Guerreiro")
 			if e.t > 1.3:
 				e.state = "chase"
 				e.t = 0.0
 		"stagger":
-			e.eye.light_energy = 0.4
+			e.eye.light_energy = 0.5
 			e.root.position -= to.normalized() * 1.5 * dt
 			if e.t > 0.45:
 				e.state = "chase"
@@ -671,6 +706,9 @@ func _update_boss(dt: float) -> void:
 		if player.position.z < -15 and state != "dead":
 			boss.awake = true
 			_show_banner("DRAGÃO GUARDIÃO", "", Color(1, 0.45, 0.15), 3.0)
+			_sfx("dragon_roar", 3)
+			_fade(music_amb, -80.0, 2.0)
+			_fade(music_boss, -4.0, 2.0)
 		return
 	match boss.state:
 		"idle", "chase":
@@ -695,6 +733,7 @@ func _update_boss(dt: float) -> void:
 				boss.state = boss.next
 				boss.t = 0.0
 				boss.hit = false
+				_sfx("fire_breath" if boss.next == "breath" else "dragon_roar", 0 if boss.next == "breath" else -6)
 		"bite":
 			boss.mouth.light_energy = 0.5
 			if not boss.hit and boss.t > 0.15:
@@ -737,6 +776,7 @@ func _throw_fireball() -> void:
 	ball.position = player.position + Vector3(0, 1.3, 0) + fwd * 0.8
 	add_child(ball)
 	fireballs.append({"node": ball, "vel": fwd * 14.0, "t": 1.5})
+	_sfx("fireball", 0)
 
 func _update_fireballs(dt: float) -> void:
 	for f in fireballs.duplicate():
@@ -814,6 +854,42 @@ func _autoplay_press(action: String) -> bool:
 		"flask": return hp < 60 and randf() < 0.05
 		"lock": return lock_target == null and randf() < 0.01
 	return false
+
+# ------------------------------------------------------------------ audio
+func _build_audio() -> void:
+	for i in 8:
+		var p := AudioStreamPlayer.new()
+		add_child(p)
+		sfx_players.append(p)
+	music_amb = _music("dungeon_ambience.ogg", -8.0)
+	music_boss = _music("boss_battle_metal.mp3", -80.0)
+	music_amb.play()
+
+func _music(file: String, db: float) -> AudioStreamPlayer:
+	var st = load("res://assets/music/" + file)
+	st.loop = true
+	var p := AudioStreamPlayer.new()
+	p.stream = st
+	p.volume_db = db
+	add_child(p)
+	return p
+
+func _fade(p: AudioStreamPlayer, db: float, sec: float) -> void:
+	if db > -60 and not p.playing:
+		p.play()
+	create_tween().tween_property(p, "volume_db", db, sec)
+
+func _sfx(name, db := 0.0) -> void:
+	var n: String = name.pick_random() if name is Array else name
+	if not sfx_cache.has(n):
+		sfx_cache[n] = load("res://assets/sfx/%s.ogg" % n)
+	for p in sfx_players:
+		if not p.playing:
+			p.stream = sfx_cache[n]
+			p.volume_db = db
+			p.pitch_scale = randf_range(0.93, 1.07)
+			p.play()
+			return
 
 # ------------------------------------------------------------------ UI
 func _build_ui() -> void:

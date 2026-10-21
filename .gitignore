@@ -183,3 +183,5 @@ $RECYCLE.BIN/
 
 # Mixamo assets: usable in the game, but not redistributable as raw files in a public repo
 prototypes/*/assets/mixamo/
+
+# KayKit Skeletons (CC0) and audio are committed; Mixamo stays ignored
