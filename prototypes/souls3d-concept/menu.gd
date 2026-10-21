@@ -11,7 +11,7 @@ var main: Node
 var tab := "status"
 var body: VBoxContainer
 var tab_buttons := {}
-var options := {"shadows": true, "res": 0.7, "fps": 60, "show_fps": true, "sens": 1.0}
+var options := {"shadows": true, "res": 0.7, "fps": 60, "show_fps": true, "sens": 1.0, "api_key": "", "ai_model": "claude-opus-5-5"}
 
 func setup(m: Node) -> void:
 	main = m
@@ -60,6 +60,7 @@ func open(which := "status") -> void:
 	_show(which)
 
 func close_menu() -> void:
+	main.smith_open = false
 	visible = false
 	main.get_tree().paused = false
 	main.ui.visible = true
@@ -105,7 +106,7 @@ func _row() -> HBoxContainer:
 	return r
 
 func _at_bonfire() -> bool:
-	return main._near_bonfire(3.0) != null
+	return main._near_bonfire(3.0) != null or main.smith_open
 
 # ------------------------------------------------------------------ tabs
 func _tab_status() -> void:
@@ -237,6 +238,18 @@ func _tab_options() -> void:
 	_choice("Limite de FPS", "fps", [[30, "30"], [60, "60"]])
 	_choice("Mostrar FPS", "show_fps", [[true, "SIM"], [false, "NÃO"]])
 	_choice("Sensibilidade da câmera", "sens", [[0.6, "BAIXA"], [1.0, "MÉDIA"], [1.5, "ALTA"]])
+	body.add_child(_label("Conversa com IA: os NPCs respondem qualquer pergunta usando a API do Claude (Anthropic). Precisa de internet e da SUA chave de API (console.anthropic.com); cada conversa é cobrada na sua conta. A chave fica só neste aparelho.", 28, Color(0.8, 0.8, 0.8)))
+	var r := _row()
+	var key := LineEdit.new()
+	key.secret = true
+	key.placeholder_text = "sk-ant-..."
+	key.text = options.api_key
+	key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	key.custom_minimum_size = Vector2(0, 80)
+	key.text_changed.connect(func(t): options.api_key = t.strip_edges())
+	r.add_child(_label("Chave da API", 34))
+	r.add_child(key)
+	_choice("Modelo da IA", "ai_model", [["claude-opus-5-5", "OPUS 5.5 (melhor)"], ["claude-haiku-5-5", "HAIKU 5.5 (mais barato)"]])
 
 func _choice(title: String, key: String, values: Array) -> void:
 	var r := _row()

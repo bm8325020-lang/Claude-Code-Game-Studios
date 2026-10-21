@@ -56,6 +56,13 @@ const FOES := {
 	"executioner": {"name": "Carrasco", "ai": "sentinel", "model": "Executioner", "gear": [["handslot.r", "greataxe"]], "scale": 1.35, "hp": 260.0, "poise": 80.0, "reward": 220, "dmg": 48.0, "speed": 2.9},
 	"sorceress": {"name": "Feiticeira da Torre", "ai": "caster", "model": "Sorceress", "gear": [["handslot.r", "staff"]], "scale": 1.0, "hp": 70.0, "poise": 18.0, "reward": 90, "dmg": 24.0, "speed": 3.0},
 	"plague": {"name": "Andarilho da Peste", "ai": "rogue", "model": "Plague", "gear": [["handslot.r", "cleaver"]], "scale": 1.0, "hp": 80.0, "poise": 28.0, "reward": 75, "dmg": 18.0, "speed": 4.0, "poison": 1.0},
+	# Quaternius models (rig "q": qrig.gd, Universal Animation Library clips)
+	"bandit": {"name": "Salteador", "ai": "rogue", "rig": "q", "model": "Male_Ranger.gltf", "head": "Male", "gear": [["hand_r", "sword"]], "scale": 1.0, "hp": 85.0, "poise": 30.0, "reward": 70, "dmg": 22.0, "speed": 4.2},
+	"knifethrower": {"name": "Atiradora de Facas", "ai": "archer", "rig": "q", "model": "Female_Ranger.gltf", "head": "Female", "gear": [["hand_r", "dagger"]], "scale": 1.0, "hp": 60.0, "poise": 20.0, "reward": 65, "dmg": 20.0, "speed": 3.6},
+	"possessed": {"name": "Aldeão Possuído", "ai": "minion", "rig": "q", "shamble": true, "model": "Male_Peasant.gltf", "head": "Male", "hair": "Hair_Beard", "gear": [], "scale": 1.0, "hp": 60.0, "poise": 20.0, "reward": 40, "dmg": 18.0, "speed": 2.6},
+	"possessed_f": {"name": "Aldeã Possuída", "ai": "minion", "rig": "q", "shamble": true, "model": "Female_Peasant.gltf", "head": "Female", "hair": "Hair_Long", "gear": [], "scale": 1.0, "hp": 55.0, "poise": 18.0, "reward": 40, "dmg": 16.0, "speed": 2.8},
+	"imp": {"name": "Diabrete", "ai": "minion", "rig": "q", "model": "Imp.glb", "gear": [], "scale": 1.0, "hp": 50.0, "poise": 15.0, "reward": 50, "dmg": 18.0, "speed": 4.6},
+	"puglin": {"name": "Puglin Saqueador", "ai": "warrior", "rig": "q", "model": "Puglin.glb", "gear": [["hand_r", "cleaver"]], "scale": 1.0, "hp": 95.0, "poise": 35.0, "reward": 75, "dmg": 26.0, "speed": 3.4},
 	"blackknight": {"name": "Cavaleiro Negro", "ai": "warrior", "model": "BlackKnight", "gear": [["handslot.r", "sword"], ["handslot.l", "shield"]], "scale": 1.3, "hp": 520.0, "poise": 110.0, "reward": 800, "dmg": 45.0, "speed": 3.2},
 }
 
@@ -74,6 +81,12 @@ const WEAK := {
 	"sorceress": {"fis": 1.3, "raio": 0.6},
 	"plague": {"fogo": 1.6, "gelo": 0.7},
 	"blackknight": {"raio": 1.3, "fogo": 0.7, "fis": 0.85},
+	"bandit": {"gelo": 1.3},
+	"knifethrower": {"gelo": 1.3},
+	"possessed": {"fogo": 1.6},
+	"possessed_f": {"fogo": 1.6},
+	"imp": {"gelo": 1.6, "fogo": 0.3},
+	"puglin": {"raio": 1.4},
 }
 const MAX_UPGRADE := 5
 

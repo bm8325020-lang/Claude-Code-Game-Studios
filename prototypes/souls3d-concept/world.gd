@@ -316,7 +316,7 @@ func _build_town(t: Dictionary) -> void:
 				Level.collider_rot(node, Vector3(p.x, y + floors * Level.KS / 2.0, p.y), Vector3(w * Level.KS, floors * Level.KS, 2 * Level.KS), rot)
 				if rng.randf() < 0.45:
 					var sp: Vector2 = c + Vector2(cos(a + span * 0.5), sin(a + span * 0.5)) * (rr - 6.0)
-					spawns.append([Vector3(sp.x, y, sp.y), (["guard", "guard", "plague", "sorceress"] if t.city else ["minion", "plague", "guard", "minion"]).pick_random()])
+					spawns.append([Vector3(sp.x, y, sp.y), (["guard", "guard", "plague", "sorceress", "bandit", "knifethrower"] if t.city else ["possessed", "possessed_f", "bandit", "imp", "puglin", "possessed"]).pick_random()])
 			a += span
 	# market, lamps and the town bonfire by the main gate
 	Level.place("fantasy-town/fountain-round", Vector3(c.x + (20.0 if t.city else 0.0), y, c.y + (0.0 if t.city else 8.0)), Vector3.ONE * 4.0)
@@ -349,6 +349,8 @@ func _build_town(t: Dictionary) -> void:
 	Level._flush(node)
 	t.spawns = spawns
 	_spawn_town(t)
+	var inward: Vector3 = Vector3(c.x, y, c.y) - bf
+	main.npcs.populate_town(t, rng, [bf + inward.normalized() * 6.0 + Vector3(2.5, 0, 0), bf + inward.normalized() * 9.0 - Vector3(2.5, 0, 0)])
 
 func _tower(node: Node3D, bottom: Vector3, n: int, rot: float) -> float:
 	var y := bottom.y
@@ -376,6 +378,7 @@ func _despawn_town(t: Dictionary) -> void:
 
 func _free_town(t: Dictionary) -> void:
 	_despawn_town(t)
+	main.npcs.remove_town(t)
 	t.node.queue_free()
 	t.node = null
 

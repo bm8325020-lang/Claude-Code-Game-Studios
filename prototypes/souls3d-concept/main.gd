@@ -10,6 +10,9 @@ const Level = preload("res://level.gd")
 const Rpg = preload("res://rpg.gd")
 const Menu = preload("res://menu.gd")
 const World = preload("res://world.gd")
+const QRig = preload("res://qrig.gd")
+const Npcs = preload("res://npcs.gd")
+const Dialog = preload("res://dialog.gd")
 const BOSS_HOME := Vector3(0, 0, -26)
 const ANIMS := {
 	"idle": "sword_and_shield_idle", "idle2": "sword_and_shield_idle_2", "run": "sword_and_shield_run",
@@ -112,6 +115,9 @@ var poison_t := 0.0
 var buff_t := 0.0  # Esquiva Perfeita
 var menu: Control
 var world: Node3D  # world.gd: the streamed 10 km world around the valley
+var npcs: Node  # npcs.gd: people you can talk to
+var dialog: Control
+var smith_open := false  # talking to the smith: reinforce without a bonfire
 var free_points := 0  # attribute points returned by a respec
 var move := ""
 var attack_hold := 0.0
@@ -209,7 +215,10 @@ func _ready() -> void:
 		shards[-1].set_meta("spot", i)
 	_spawn_breakables()
 	_build_elevator()
+	npcs = Npcs.new()
+	add_child(npcs)
 	_build_ui()
+	npcs.setup(self)
 	_build_audio()
 	for l in find_children("*", "OmniLight3D", true, false):
 		l.distance_fade_enabled = true
@@ -641,6 +650,8 @@ func _skeleton_model(kind: String) -> Node3D:
 	if Rpg.FOES[kind].ai == "wolf":
 		return _wolf_model()
 	var f: Dictionary = Rpg.FOES[kind]
+	if f.get("rig", "") == "q":
+		return _q_model(f)
 	var k: Node3D = load("res://assets/foes/%s.glb" % f.model).instantiate()
 	k.scale = Vector3.ONE * f.scale
 	var skel: Skeleton3D = k.find_children("*", "Skeleton3D", true, false)[0]
@@ -655,6 +666,28 @@ func _skeleton_model(kind: String) -> Node3D:
 		foe_mat.roughness = 0.8
 	for m in k.find_children("*", "MeshInstance3D", true, false):
 		m.material_override = foe_mat
+	return k
+
+# a Quaternius character (qrig.gd) with its weapons in the right hand bone
+var Q_HAND := Transform3D(Basis.from_euler(Vector3(PI / 2.0, 0, 0)), Vector3(0.0, 0.08, 0.0))  # weapon in the mannequin hand_r frame
+func _q_model(f: Dictionary) -> Node3D:
+	var r: Array = QRig.instance("res://assets/qchars/" + f.model, f.get("shamble", false), f.get("head", ""), f.get("hair", ""))
+	var k: Node3D = r[0]
+	k.scale = Vector3.ONE * f.scale
+	var skel: Skeleton3D = k.find_children("*", "Skeleton3D", true, false)[0]
+	for g in f.gear:
+		var ba := BoneAttachment3D.new()
+		ba.bone_name = g[0]
+		skel.add_child(ba)
+		var w: Node3D = load("res://assets/foes/w_%s.glb" % g[1]).instantiate()
+		w.transform = Q_HAND
+		ba.add_child(w)
+		if foe_mat == null:
+			foe_mat = StandardMaterial3D.new()
+			foe_mat.vertex_color_use_as_albedo = true
+			foe_mat.roughness = 0.8
+		for m in w.find_children("*", "MeshInstance3D", true, false):
+			m.material_override = foe_mat
 	return k
 
 # Quaternius wolf (CC0), recoloured ash-grey, scaled to 0.85 m at the shoulder
@@ -756,6 +789,7 @@ func _cull() -> void:
 
 func _physics_process(dt: float) -> void:
 	world.update(player.position)
+	npcs.update(dt)
 	_cull()
 	_update_player(dt)
 	for e in enemies:
@@ -1327,7 +1361,7 @@ func _place_point(a: String) -> bool:
 
 func _reinforce() -> bool:
 	var lv: int = upgrades[weapon]
-	if lv >= Rpg.MAX_UPGRADE or _near_bonfire(3.0) == null:
+	if lv >= Rpg.MAX_UPGRADE or (_near_bonfire(3.0) == null and not smith_open):
 		return false
 	var c: Array = Rpg.upgrade_cost(lv)
 	if titanite < c[0] or embers < c[1]:
@@ -1799,7 +1833,8 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 	var speed: float = Rpg.FOES[e.kind].speed
 	match e.state:
 		"dormant":
-			if dist < 9 and state != "dead":
+			if (dist < 9 or e.get("alerted", false)) and state != "dead":
+				_alert(e)
 				e.state = "awaken"
 				e.t = 0.0
 				e.eye.light_energy = 0.5
@@ -1809,7 +1844,8 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 			if e.t > 1.9:
 				e.state = "chase"
 		"idle":
-			if dist < 11 and state != "dead":
+			if (dist < 11 or e.get("alerted", false)) and state != "dead":
+				_alert(e)
 				e.state = "chase"
 		"chase" when e.ai in ["caster", "archer"]:
 			# keeps its distance and throws ghost fire
@@ -1857,6 +1893,14 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				e.t = 0.0
 		"chase":
 			e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.15)
+			e.root.position += _separation(e) * dt  # a pack spreads out instead of stacking on one spot
+			# hurt and alone at the front: back off and wait for the others
+			if e.hp < e.max * 0.3 and dist < 3.0 and randf() < 0.01:
+				e.state = "dodge"
+				e.t = 0.0
+				e.dodge = -to.normalized() * 6.0
+				ap.play("Dodge_Backward", 0.05)
+				return
 			# minions are quick: they hop out of the way of a swing
 			if e.ai in ["minion", "rogue"] and state == "attack" and state_t < 0.1 and dist < 3.2 and randf() < 0.3:
 				e.state = "dodge"
@@ -1888,6 +1932,12 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				e.root.position += to.normalized() * speed * dt
 				if ap.current_animation != "Running_A":
 					ap.play("Running_A", 0.2)
+			elif _attackers_near() >= 2:
+				# only two strike at once (souls-style attack tokens); the rest circle and wait their turn
+				e.state = "circle"
+				e.t = 0.0
+				e.side = [-1.0, 1.0].pick_random()
+				ap.play("Running_Strafe_Left" if e.side > 0 else "Running_Strafe_Right", 0.2)
 			else:
 				_enemy_attack(e, (["Dualwield_Melee_Attack_Chop", "Dualwield_Melee_Attack_Slice", "Dualwield_Melee_Attack_Stab"] if e.kind == "rogue" else
 					["1H_Melee_Attack_Chop", "1H_Melee_Attack_Slice_Diagonal", "1H_Melee_Attack_Slice_Horizontal", "1H_Melee_Attack_Stab"]).pick_random())
@@ -1943,6 +1993,31 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 			if e.t > 2.5:
 				e.state = "chase"
 				e.t = 0.0
+
+# an enemy that notices you wakes the others around it
+func _alert(e: Dictionary) -> void:
+	for o in enemies:
+		if o != e and not o.dead and o.state in ["dormant", "idle"] and o.root.position.distance_squared_to(e.root.position) < 144.0:
+			o.alerted = true
+
+func _attackers_near() -> int:
+	var n := 0
+	for o in enemies:
+		if not o.dead and o.state in ["windup", "strike"] and o.root.position.distance_squared_to(player.position) < 25.0:
+			n += 1
+	return n
+
+func _separation(e: Dictionary) -> Vector3:
+	var push := Vector3.ZERO
+	for o in enemies:
+		if o == e or o.dead:
+			continue
+		var d: Vector3 = e.root.position - o.root.position
+		d.y = 0.0
+		var l := d.length()
+		if l < 1.3 and l > 0.01:
+			push += d / l * (1.3 - l) * 3.0
+	return push
 
 # wolves have only idle/walk clips: the pounce is done by moving and tilting the model
 func _update_wolf(e: Dictionary, dt: float) -> void:
@@ -2434,6 +2509,9 @@ func _build_ui() -> void:
 	ml.add_child(menu)
 	menu.setup(self)
 	menu.apply_options()
+	dialog = Dialog.new()
+	ml.add_child(dialog)
+	dialog.setup(self)
 
 func _button_r(a: String) -> float:
 	match a:
