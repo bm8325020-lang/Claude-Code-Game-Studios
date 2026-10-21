@@ -4,6 +4,7 @@
 extends Node3D
 
 const HeroLook = preload("res://hero_look.gd")
+const HeroAnims = preload("res://hero_anims.gd")
 
 const BONFIRE_POS := Vector3(0, 0, 14)
 const BOSS_HOME := Vector3(0, 0, -26)
@@ -11,14 +12,10 @@ const ANIMS := {
 	"idle": "sword_and_shield_idle", "idle2": "sword_and_shield_idle_2", "run": "sword_and_shield_run",
 	"walk": "sword_and_shield_walk", "walk_back": "sword_and_shield_walk_2",
 	"strafe_r": "sword_and_shield_strafe", "strafe_l": "sword_and_shield_strafe_2",
-	"slash": "sword_and_shield_slash", "slash3": "sword_and_shield_slash_3", "slash5": "sword_and_shield_slash_5",
-	"slash4": "sword_and_shield_slash_4", "heavy": "sword_and_shield_attack_4", "heavy2": "sword_and_shield_attack_3",
-	"run_atk": "sword_and_shield_attack", "roll_atk": "sword_and_shield_attack_2", "kick": "sword_and_shield_kick",
 	"roll": "stand_to_roll", "hit1": "sword_and_shield_impact", "hit2": "sword_and_shield_impact_2",
 	"hit3": "sword_and_shield_impact_3", "death": "sword_and_shield_death", "death2": "sword_and_shield_death_2",
-	"cast": "sword_and_shield_casting_2", "drink": "sword_and_shield_power_up",
-	"block_idle": "sword_and_shield_block_idle", "block_hit": "sword_and_shield_block", "parry": "sword_and_shield_block_2",
-	"backhand": "sword_and_shield_backhand", "draw": "sheath_sword_1",
+	"block_idle": "sword_and_shield_block_idle", "block_hit": "sword_and_shield_block",
+	"draw": "sheath_sword_1",
 	# great sword (two hands): same keys with a g_ prefix, picked by _a() when the great sword is out
 	"g_idle": "gs_great_sword_idle", "g_idle2": "gs_great_sword_idle_2", "g_run": "gs_great_sword_run",
 	"g_walk": "gs_great_sword_walk", "g_walk_back": "gs_great_sword_walk_2",
@@ -36,17 +33,18 @@ const ANIMS := {
 const LOOPING := ["idle", "idle2", "run", "walk", "walk_back", "strafe_r", "strafe_l", "block_idle",
 	"g_idle", "g_idle2", "g_run", "g_walk", "g_walk_back", "g_strafe_r", "g_strafe_l", "g_block_idle"]
 # hit/end are seconds into the clip; speed is the playback rate; lunge is m/s before the hit
+# x_* clips are hand-made in hero_anims.gd (same hit times there); g* moves still use Mixamo clips
 const MOVES := {
-	"c1": {"anim": "slash", "speed": 1.5, "hit": 0.55, "end": 1.1, "dmg": 28, "poise": 12, "stamina": 16, "reach": 2.4, "arc": 1.2, "lunge": 1.8},
-	"c2": {"anim": "slash3", "speed": 1.55, "hit": 0.6, "end": 1.2, "dmg": 30, "poise": 12, "stamina": 16, "reach": 2.4, "arc": 1.2, "lunge": 1.8},
-	"c3": {"anim": "slash5", "speed": 1.5, "hit": 0.5, "end": 1.05, "dmg": 32, "poise": 14, "stamina": 17, "reach": 2.5, "arc": 1.3, "lunge": 2.0},
-	"c4": {"anim": "slash4", "speed": 1.6, "hit": 0.95, "end": 1.9, "dmg": 46, "poise": 26, "stamina": 22, "reach": 2.8, "arc": 1.6, "lunge": 3.0},
-	"heavy": {"anim": "heavy", "speed": 1.0, "hit": 0.55, "end": 0.95, "dmg": 58, "poise": 36, "stamina": 30, "reach": 2.6, "arc": 1.0, "lunge": 1.0},
-	"run_atk": {"anim": "run_atk", "speed": 1.8, "hit": 1.0, "end": 2.0, "dmg": 48, "poise": 30, "stamina": 24, "reach": 2.8, "arc": 1.1, "lunge": 5.0},
-	"roll_atk": {"anim": "roll_atk", "speed": 1.4, "hit": 0.55, "end": 1.15, "dmg": 38, "poise": 20, "stamina": 20, "reach": 2.6, "arc": 1.2, "lunge": 4.0},
-	"kick": {"anim": "kick", "speed": 1.4, "hit": 0.45, "end": 1.0, "dmg": 12, "poise": 45, "stamina": 14, "reach": 2.0, "arc": 0.9, "lunge": 1.2},
-	"riposte": {"anim": "heavy2", "speed": 1.3, "hit": 0.75, "end": 1.6, "dmg": 140, "poise": 0, "stamina": 10, "reach": 2.8, "arc": 1.4, "lunge": 2.5},
-	"c5": {"anim": "backhand", "speed": 1.5, "hit": 0.87, "end": 1.6, "dmg": 40, "poise": 22, "stamina": 18, "reach": 2.5, "arc": 1.5, "lunge": 2.2},
+	"c1": {"anim": "x_slash1", "speed": 1.0, "hit": 0.4, "end": 0.8, "dmg": 28, "poise": 12, "stamina": 16, "reach": 2.4, "arc": 1.2, "lunge": 1.8},
+	"c2": {"anim": "x_slash2", "speed": 1.0, "hit": 0.36, "end": 0.75, "dmg": 30, "poise": 12, "stamina": 16, "reach": 2.4, "arc": 1.2, "lunge": 1.8},
+	"c3": {"anim": "x_slash3", "speed": 1.0, "hit": 0.42, "end": 0.85, "dmg": 32, "poise": 14, "stamina": 17, "reach": 2.5, "arc": 1.3, "lunge": 2.0},
+	"c4": {"anim": "x_thrust", "speed": 1.0, "hit": 0.48, "end": 1.0, "dmg": 46, "poise": 26, "stamina": 22, "reach": 2.8, "arc": 1.6, "lunge": 3.5},
+	"heavy": {"anim": "x_heavy", "speed": 1.0, "hit": 0.7, "end": 1.25, "dmg": 58, "poise": 36, "stamina": 30, "reach": 2.6, "arc": 1.0, "lunge": 1.0},
+	"run_atk": {"anim": "x_run_atk", "speed": 1.0, "hit": 0.44, "end": 1.0, "dmg": 48, "poise": 30, "stamina": 24, "reach": 2.8, "arc": 1.1, "lunge": 5.0},
+	"roll_atk": {"anim": "x_roll_atk", "speed": 1.0, "hit": 0.28, "end": 0.7, "dmg": 38, "poise": 20, "stamina": 20, "reach": 2.6, "arc": 1.2, "lunge": 4.0},
+	"kick": {"anim": "x_bash", "speed": 1.0, "hit": 0.36, "end": 0.65, "dmg": 12, "poise": 45, "stamina": 14, "reach": 2.0, "arc": 0.9, "lunge": 1.2},
+	"riposte": {"anim": "x_riposte", "speed": 1.0, "hit": 0.72, "end": 1.4, "dmg": 140, "poise": 0, "stamina": 10, "reach": 2.8, "arc": 1.4, "lunge": 2.5},
+	"c5": {"anim": "x_spin", "speed": 1.0, "hit": 0.46, "end": 1.0, "dmg": 40, "poise": 22, "stamina": 18, "reach": 2.6, "arc": 3.2, "lunge": 2.2},
 	# great sword: slower, wider, more damage and poise, more stamina
 	"g1": {"anim": "slash", "speed": 1.3, "hit": 0.53, "end": 1.15, "dmg": 44, "poise": 24, "stamina": 24, "reach": 3.0, "arc": 1.4, "lunge": 1.6},
 	"g2": {"anim": "slash2", "speed": 1.3, "hit": 0.63, "end": 1.3, "dmg": 46, "poise": 24, "stamina": 24, "reach": 3.0, "arc": 1.4, "lunge": 1.6},
@@ -439,6 +437,7 @@ func _load_anims(ap: AnimationPlayer) -> void:
 					a.track_set_key_value(t, k, Vector3(k0.x, v.y, k0.z))
 		a.loop_mode = Animation.LOOP_LINEAR if key in LOOPING else Animation.LOOP_NONE
 		lib.add_animation(key, a)
+	HeroAnims.add_to(lib, ap.get_node(ap.root_node).get_node("Skeleton3D"))
 	ap.add_animation_library("p", lib)
 
 func _attach(skel: Skeleton3D, bone: String, prop_name: String, xf: Transform3D) -> Node3D:
