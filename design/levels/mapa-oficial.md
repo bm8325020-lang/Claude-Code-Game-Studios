@@ -1,74 +1,80 @@
-# Mapa oficial — Ilha de Cinzarra
+# Mapa oficial — Cinzarra
 
-> Status: **proposta, aguardando aprovação do dono do jogo** (2026-10-21).
+> Status: **proposta v2, aguardando aprovação do dono do jogo** (2026-10-21).
+> A v1, uma ilha aberta com estradas, foi recusada: o dono quer um mundo "mais parecido com o mapa de Dark Souls".
 > Dados: `prototypes/souls3d-concept/map/official_map.json` (a mesma fonte alimenta o desenho e o construtor do mundo).
 > Desenho: `design/levels/mapa-oficial.png` (gerado por `prototypes/souls3d-concept/tools/draw_map.py`).
 
 ![Mapa](mapa-oficial.png)
 
-## Visão
+## Ideia
 
-Um RPG clássico e enorme no estilo souls: uma ilha única de **2 km × 2 km** (cerca de 20 vezes a ilha atual), com
-9 regiões ligadas por estradas, atalhos que voltam para a vila, e uma ilhota secreta. O mundo é aberto desde o início,
-mas o **nível de perigo** de cada região guia a ordem natural, e dois portões travam o caminho principal.
+Copiamos a **estrutura** do mapa de Dark Souls, não os nomes nem os lugares:
 
-## Ordem da aventura (caminho principal)
+- **Um santuário no centro.** O Santuário da Chama é a fogueira principal, com NPCs e o Altar das Sementes.
+  Todo o resto se liga a ele.
+- **Mundo em camadas.** Áreas ficam **acima** (Burgo, Igreja, Fortaleza, Cidade Alta) e **abaixo**
+  (Cemitério, Catacumbas, Abismo, Ruínas Afundadas, Profundezas, Vale Podre, Lago de Cinzas) do santuário.
+  Dá para ver lugares de cima e de baixo antes de chegar neles.
+- **Tudo interligado.** O jogador descobre o caminho de volta abrindo atalhos por trás:
+  - o elevador da Igreja desce até o Santuário;
+  - uma porta escondida liga o Jardim Morto à Igreja;
+  - uma trilha secreta liga o Vale Podre ao Jardim.
+- **Poucas fogueiras, bem espaçadas.** O atalho aberto vale mais que a fogueira.
+- **Portões e chaves:**
+  - os 2 Sinos do Despertar (um no alto, na Igreja; outro no fundo, no Vale Podre) abrem a Fortaleza;
+  - a porta das Profundezas abre com chave;
+  - o elevador das Ruínas Afundadas está trancado;
+  - o portal final pede as 7 Sementes.
+- **Aviso cedo:** o Cemitério fica logo ao lado do Santuário, com esqueletos fortes demais para o começo.
+  Ele mostra que há outro caminho, como em Dark Souls.
 
-1. **Praia das Cinzas** (perigo 1). Você acorda no naufrágio e aprende o combate. Chefe: **Cavaleiro Afogado**.
-   Recompensa: Semente do Fogo e a chave da ponte levadiça do castelo.
-2. **Vila de Brasalume** (segura). É a base: ferreiro, mercador, curandeira, Guardiã das Fogueiras, quadro de missões.
-3. Duas regiões de perigo 2, em qualquer ordem:
-   - **Floresta Morta**, com lobos e a cabana da bruxa. Chefe **Alfa da Cinza**, Semente do Raio.
-   - **Pântano Enegrecido**, com água que envenena e passarelas. Chefe **Mãe-Lodo**, Semente do Veneno.
-4. **Ruínas do Guardião** (perigo 3). O castelo no centro da ilha; a ponte levadiça abre com a chave da praia.
-   Chefe **Dragão Guardião**, Semente do Dragão.
-5. **Cemitério dos Juramentados** e as Catacumbas, a primeira masmorra (perigo 3). Chefe **Rei dos Juramentados**,
-   Semente da Sombra.
-6. Duas regiões de perigo 4:
-   - **Minas de Ferro Vivo**, com elevadores, trilhos e golens. Chefe **Golem de Ferro Vivo**, Semente da Terra.
-   - **Picos Gelados**, com nevasca e um mosteiro. Chefe **Cavaleira do Gelo Eterno**, Semente do Gelo.
-7. **Portão das Sementes**: só abre com as 7 Sementes.
-8. **Pico do Dragão** (perigo 6): lava e rocha negra. Chefe final **Wyrm Ancião**.
-9. Segredo: **Ilha do Farol** (perigo 5). Chega-se por um barco escondido no Pântano. Superchefe **O Faroleiro**.
+## Ordem da aventura
 
-## Regiões
+1. **Santuário da Chama**: você chega, acende a fogueira e conhece a Guardiã.
+2. **Burgo dos Esquecidos**: subindo a escadaria. Chefe **Javali de Ferro**, Semente do Fogo.
+3. **Ponte do Dragão**: o dragão queima quem atravessa. Você passa correndo e volta mais tarde.
+4. **Igreja do Juramento**: chefe **Sentinelas de Pedra**, 1º Sino. Abre o elevador para o Santuário.
+5. **Profundezas** e depois **Vale Podre**: a descida ao fundo. Chefes **Açougueiro** e **Mãe-Lodo**,
+   Semente do Veneno e 2º Sino.
+6. **Fortaleza das Lâminas**: armadilhas. Chefe **Golem de Ferro Vivo**, Semente da Terra.
+7. **Cidade Alta de Auren**: o ponto mais alto. Chefe **Dupla Real**, Semente do Raio.
+8. **Jardim Morto**: em qualquer momento; é mais fácil cedo. Chefe **Alfa da Cinza**, Semente do Gelo.
+9. **Catacumbas** e depois **Abismo dos Ossos**: escuridão. Chefe **Rei dos Juramentados**, Semente da Sombra.
+10. **Ruínas Afundadas**: fantasmas que só a Semente da Sombra fere. Chefe **Os Quatro Afogados**.
+11. **Coração do Vulcão**: o portal abre com as 7 Sementes. Chefe final **Wyrm Ancião**, Semente do Dragão.
+12. Segredo: **Lago de Cinzas**, no fundo do mundo, por uma raiz gigante a partir do Vale Podre.
 
-| Região | Perigo | Mecânica própria | Inimigos | Fogueiras |
-|---|---|---|---|---|
-| Praia das Cinzas | 1 | Maré: a areia molhada deixa você mais lento | caranguejos de osso, afogados | Praia, Destroços do Navio |
-| Vila de Brasalume | 0 | Lojas, missões, melhorar armas no ferreiro | nenhum | Vila |
-| Floresta Morta | 2 | Névoa que esconde inimigos; lobos caçam em bando | lobos, esqueletos, bruxa | Trilha da Floresta, Cabana da Bruxa |
-| Pântano Enegrecido | 2 | Água rasa envenena (barra de veneno); passarelas estreitas | sapos-lodo, afogados | Passarelas, Aldeia Afundada |
-| Ruínas do Guardião | 3 | Castelo com andares, ponte levadiça e atalhos | guerreiros, besteiros, magos | Portões do Castelo, Salão do Trono |
-| Cemitério + Catacumbas | 3 | Masmorra escura: só a tocha ilumina; mortos que ressurgem | esqueletos de todos os tipos | Capela, Catacumbas |
-| Minas de Ferro Vivo | 4 | Elevadores e carrinhos de mina; túneis escuros | golens, mineiros mortos | Elevador, Fundo da Mina |
-| Picos Gelados | 4 | Frio: sem fogueira por perto, a estamina cai; nevasca esconde o caminho | cavaleiros de gelo, lobos brancos | Mosteiro, Passo da Nevasca |
-| Pico do Dragão | 6 | Chão de lava, chuva de fogo do Wyrm | dragonetes, cultistas | Portão das Sementes, Cratera |
-| Ilha do Farol | 5 | Luz giratória do farol revela inimigos invisíveis | sombras | Farol |
+## Áreas
 
-## Regras de desenho
-
-- **Toda região tem:** 2 fogueiras, um chefe, uma Semente (menos a Vila, o Pico e o Farol), um atalho que volta para
-  a estrada principal, e pelo menos um segredo (baú, NPC ou parede falsa).
-- **Estradas** ligam as fogueiras. Fora delas ficam os tesouros e os perigos maiores.
-- **Marcos visíveis de longe** para orientar sem bússola: o castelo no centro, o farol, o vulcão do Pico,
-  o mosteiro nos Picos e a torre da mina.
-- **Viagem rápida** entre fogueiras acesas, como já funciona hoje.
-- **Clássico, sem transformação em dragão:** os dragões são só inimigos e chefes. A força do jogador vem do nível,
-  do equipamento e das 7 Sementes de poder.
+| Área | Altura | Mecânica | Ligações |
+|---|---|---|---|
+| Santuário da Chama | 0 | Fogueira central, ferreiro, Altar das Sementes | quase tudo |
+| Burgo dos Esquecidos | +1 | Escadarias, telhados, inimigos emboscados | Santuário, Ponte, Profundezas (porta) |
+| Ponte do Dragão | +1.5 | Dragão que varre a ponte com fogo; correr de abrigo em abrigo | Burgo, Igreja |
+| Igreja do Juramento | +2 | Sino no telhado; elevador-atalho | Ponte, Santuário, Jardim, Fortaleza |
+| Fortaleza das Lâminas | +3 | Pêndulos, bolas de pedra, pisos falsos | Igreja (2 sinos), Cidade |
+| Cidade Alta de Auren | +4 | Arqueiros gigantes, telhados altos | Fortaleza, Coração do Vulcão |
+| Jardim Morto | 0 | Floresta, névoa, lobos | Santuário, Igreja, Vale Podre |
+| Cemitério dos Juramentados | −0.5 | Esqueletos fortes (aviso cedo) | Santuário, Catacumbas |
+| Catacumbas | −2 | Ossos que ressurgem; só o fogo os mata de vez | Cemitério, Abismo |
+| Abismo dos Ossos | −3.5 | Escuridão total; tocha ou Semente para ver | Catacumbas |
+| Ruínas Afundadas | −1.5 | Cidade inundada, fantasmas | Santuário (elevador trancado) |
+| Profundezas | −1 | Esgotos, ratos gigantes | Burgo, Vale Podre |
+| Vale Podre | −2.5 | Favela de madeira num poço; água envenena | Profundezas, Jardim, Lago |
+| Lago de Cinzas | −4.5 | Segredo calmo, dragão ancestral pacífico | Vale Podre |
+| Coração do Vulcão | +2 | Lava, chuva de fogo | Cidade (7 Sementes) |
 
 ## Plano técnico (celular)
 
-- **Terreno em pedaços (chunks)** de 250 m × 250 m (8 × 8). Só os pedaços em volta do jogador ficam carregados,
-  com menos detalhe quanto mais longe.
-- **Objetos espalhados** em MultiMesh por pedaço, com distância de visão de até 110 m (a névoa esconde o resto).
-- **Limites por quadro no celular:** até 200 mil triângulos, 250 chamadas de desenho e 12 luzes ligadas
-  (a otimização de 2026-10-21 já chegou a 161 mil, 239 e 18).
-- **Inimigos** só existem nos pedaços carregados e voltam a nascer ao descansar na fogueira.
+- Cada área é uma **cena separada**, carregada quando o jogador chega perto e descarregada quando ele se afasta.
+  As ligações (escadas, elevadores, portas) são os pontos de troca.
+- Nas bordas, uma versão leve das áreas vizinhas fica visível, para dar a sensação de mundo contínuo
+  (ver a Igreja lá em cima, o Vale lá embaixo).
+- Limites por quadro: até 200 mil triângulos, 250 chamadas de desenho e 12 luzes ligadas.
 
 ## Ordem de construção proposta
 
-1. Terreno de 2 km em pedaços, a partir deste arquivo de dados: costa, relevo por região, estradas e fogueiras.
-2. Cada região ganha o seu bioma (cor do chão, árvores ou pedras próprias, céu e névoa) e os seus marcos.
-3. Vila de Brasalume com os NPCs e as lojas.
-4. Uma região completa por vez, na ordem da aventura: inimigos, chefe, Semente e segredo.
+1. Santuário da Chama, Burgo e Igreja, com o elevador-atalho funcionando: é o primeiro "loop" ao estilo Dark Souls.
+2. Ponte do Dragão; depois Profundezas e Vale Podre (a descida e o 2º Sino).
+3. As áreas restantes, uma por vez, cada uma com seu chefe, sua Semente e seu segredo.
