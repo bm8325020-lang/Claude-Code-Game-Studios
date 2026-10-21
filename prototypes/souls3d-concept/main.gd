@@ -177,7 +177,7 @@ var cam_touch := -1
 var shake := 0.0
 var autoplay := OS.get_environment("SEMENTES_AUTOPLAY") == "1"  # playtest robot for screenshots only
 var dragon_seed := OS.get_environment("SEMENTES_DRAGON") == "1"  # env: start with it, for showcase videos
-var rage := 0.0  # Dragon's Fury, filled by damage dealt
+var rage := 100.0 if OS.get_environment("SEMENTES_DRAGON") == "1" else 0.0  # Dragon's Fury, filled by damage dealt
 var dragon_form := false
 var dragon_t := 0.0
 var dragon_node: Node3D
