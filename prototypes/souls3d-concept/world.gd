@@ -306,14 +306,14 @@ func _build_town(t: Dictionary) -> void:
 		var a0 := rng.randf() * TAU
 		var a := a0
 		while a < a0 + TAU - 0.3:
-			var w := rng.randi_range(2, 3)
-			var span: float = (w * Level.KS + 3.0) / rr
+			var w := rng.randi_range(2, 4)
+			var span: float = (w * 2.0 + 3.0) / rr
 			if not _gate_near(t, a, 0.16):
 				var p: Vector2 = c + Vector2(cos(a), sin(a)) * rr
 				var rot := -a - PI / 2.0  # local +z (the door) faces the centre
 				var floors := 3 if rng.randf() < 0.25 else 2
-				Level.kit_house(node, Vector3(p.x, y, p.y), w, 2, floors, rot, rng.randi())
-				Level.collider_rot(node, Vector3(p.x, y + floors * Level.KS / 2.0, p.y), Vector3(w * Level.KS, floors * Level.KS, 2 * Level.KS), rot)
+				var fp: Vector3 = Level.mvk_house(node, Vector3(p.x, y, p.y), w, rng.randi_range(3, 4), floors, rot, rng.randi())
+				Level.collider_rot(node, Vector3(p.x, y + fp.y / 2.0, p.y), fp, rot)
 				if rng.randf() < 0.45:
 					var sp: Vector2 = c + Vector2(cos(a + span * 0.5), sin(a + span * 0.5)) * (rr - 6.0)
 					spawns.append([Vector3(sp.x, y, sp.y), (["guard", "guard", "plague", "sorceress", "bandit", "knifethrower"] if t.city else ["possessed", "possessed_f", "bandit", "imp", "puglin", "possessed"]).pick_random()])

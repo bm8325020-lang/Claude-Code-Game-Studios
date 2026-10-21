@@ -22,6 +22,11 @@ const ANIMS := {
 	"hit3": "sword_and_shield_impact_3", "death": "sword_and_shield_death", "death2": "sword_and_shield_death_2",
 	"block_idle": "sword_and_shield_block_idle", "block_hit": "sword_and_shield_block", "jump": "sword_and_shield_jump",
 	"draw": "sheath_sword_1",
+	# Mixamo sword-and-shield mocap attacks
+	"m_slash1": "sword_and_shield_slash", "m_slash2": "sword_and_shield_slash_2", "m_slash3": "sword_and_shield_slash_3",
+	"m_slash4": "sword_and_shield_slash_4", "m_slash5": "sword_and_shield_slash_5", "m_attack1": "sword_and_shield_attack",
+	"m_attack2": "sword_and_shield_attack_2", "m_attack3": "sword_and_shield_attack_3", "m_attack4": "sword_and_shield_attack_4",
+	"m_backhand": "sword_and_shield_backhand", "m_kick": "sword_and_shield_kick",
 	# great sword (two hands): same keys with a g_ prefix, picked by _a() when the great sword is out
 	"g_idle": "gs_great_sword_idle", "g_idle2": "gs_great_sword_idle_2", "g_run": "gs_great_sword_run",
 	"g_walk": "gs_great_sword_walk", "g_walk_back": "gs_great_sword_walk_2",
@@ -39,19 +44,19 @@ const ANIMS := {
 const LOOPING := ["idle", "idle2", "run", "walk", "walk_back", "strafe_r", "strafe_l", "block_idle",
 	"g_idle", "g_idle2", "g_run", "g_walk", "g_walk_back", "g_strafe_r", "g_strafe_l", "g_block_idle"]
 # hit/end are seconds into the clip; speed is the playback rate; lunge is m/s before the hit
-# x_* clips are hand-made in hero_anims.gd (same hit times there); g* moves still use Mixamo clips
+# m_* are Mixamo mocap, played faster and cut after the blow; x_* are hand-made in hero_anims.gd (run, roll, bash, riposte)
 const MOVES := {
-	"c1": {"anim": "x_slash1", "speed": 1.0, "hit": 0.4, "end": 0.8, "dmg": 28, "poise": 12, "stamina": 16, "reach": 2.4, "arc": 1.2, "lunge": 1.8},
-	"c2": {"anim": "x_slash2", "speed": 1.0, "hit": 0.36, "end": 0.75, "dmg": 30, "poise": 12, "stamina": 16, "reach": 2.4, "arc": 1.2, "lunge": 1.8},
-	"c3": {"anim": "x_slash3", "speed": 1.0, "hit": 0.42, "end": 0.85, "dmg": 32, "poise": 14, "stamina": 17, "reach": 2.5, "arc": 1.3, "lunge": 2.0},
-	"c4": {"anim": "x_thrust", "speed": 1.0, "hit": 0.48, "end": 1.0, "dmg": 46, "poise": 26, "stamina": 22, "reach": 2.8, "arc": 1.6, "lunge": 3.5},
-	"heavy": {"anim": "x_heavy", "speed": 1.0, "hit": 0.7, "end": 1.25, "dmg": 58, "poise": 36, "stamina": 30, "reach": 2.6, "arc": 1.0, "lunge": 1.0},
+	"c1": {"anim": "m_attack4", "speed": 1.3, "hit": 0.43, "end": 0.85, "dmg": 28, "poise": 12, "stamina": 16, "reach": 2.4, "arc": 1.2, "lunge": 1.8},
+	"c2": {"anim": "m_slash1", "speed": 1.45, "hit": 0.6, "end": 1.05, "dmg": 30, "poise": 12, "stamina": 16, "reach": 2.4, "arc": 1.3, "lunge": 1.8},
+	"c3": {"anim": "m_attack2", "speed": 1.4, "hit": 0.63, "end": 1.05, "dmg": 32, "poise": 14, "stamina": 17, "reach": 2.5, "arc": 1.3, "lunge": 2.0},
+	"c4": {"anim": "m_slash3", "speed": 1.4, "hit": 0.83, "end": 1.25, "dmg": 46, "poise": 26, "stamina": 22, "reach": 2.8, "arc": 1.6, "lunge": 3.0},
+	"heavy": {"anim": "m_attack1", "speed": 1.35, "hit": 1.17, "end": 1.75, "dmg": 58, "poise": 36, "stamina": 30, "reach": 2.6, "arc": 1.2, "lunge": 1.0},
 	"run_atk": {"anim": "x_run_atk", "speed": 1.0, "hit": 0.44, "end": 1.0, "dmg": 48, "poise": 30, "stamina": 24, "reach": 2.8, "arc": 1.1, "lunge": 5.0},
 	"roll_atk": {"anim": "x_roll_atk", "speed": 1.0, "hit": 0.28, "end": 0.7, "dmg": 38, "poise": 20, "stamina": 20, "reach": 2.6, "arc": 1.2, "lunge": 4.0},
 	"kick": {"anim": "x_bash", "speed": 1.0, "hit": 0.36, "end": 0.65, "dmg": 12, "poise": 45, "stamina": 14, "reach": 2.0, "arc": 0.9, "lunge": 1.2},
 	"riposte": {"anim": "x_riposte", "speed": 1.0, "hit": 0.72, "end": 1.4, "dmg": 140, "poise": 0, "stamina": 10, "reach": 2.8, "arc": 1.4, "lunge": 2.5},
-	"c6": {"anim": "x_roll_atk", "speed": 1.0, "hit": 0.28, "end": 0.7, "dmg": 34, "poise": 18, "stamina": 18, "reach": 2.6, "arc": 1.2, "lunge": 2.5},
-	"c5": {"anim": "x_spin", "speed": 1.0, "hit": 0.46, "end": 1.0, "dmg": 40, "poise": 22, "stamina": 18, "reach": 2.6, "arc": 3.2, "lunge": 2.2},
+	"c6": {"anim": "m_attack3", "speed": 1.4, "hit": 0.78, "end": 1.2, "dmg": 34, "poise": 18, "stamina": 18, "reach": 2.6, "arc": 1.3, "lunge": 2.5},
+	"c5": {"anim": "m_slash5", "speed": 1.3, "hit": 0.59, "end": 1.05, "dmg": 40, "poise": 22, "stamina": 18, "reach": 2.6, "arc": 2.2, "lunge": 2.2},
 	# great sword: slower, wider, more damage and poise, more stamina
 	"g1": {"anim": "slash", "speed": 1.3, "hit": 0.53, "end": 1.15, "dmg": 44, "poise": 24, "stamina": 24, "reach": 3.0, "arc": 1.4, "lunge": 1.6},
 	"g2": {"anim": "slash2", "speed": 1.3, "hit": 0.63, "end": 1.3, "dmg": 46, "poise": 24, "stamina": 24, "reach": 3.0, "arc": 1.4, "lunge": 1.6},
@@ -115,6 +120,11 @@ var poison_t := 0.0
 var buff_t := 0.0  # Esquiva Perfeita
 var menu: Control
 var world: Node3D  # world.gd: the streamed 10 km world around the valley
+var env: Environment
+var sky_mat: ProceduralSkyMaterial
+var moon: DirectionalLight3D  # the sun by day, the moon by night
+var day_t := 0.3  # time of day 0..1 (0 = midnight, 0.5 = noon); a full day lasts DAY_LEN seconds
+const DAY_LEN := 1200.0
 var npcs: Node  # npcs.gd: people you can talk to
 var dialog: Control
 var smith_open := false  # talking to the smith: reinforce without a bonfire
@@ -236,7 +246,7 @@ func _save() -> void:
 	var d := {
 		"level": level, "max_flasks": max_flasks, "cls": cls, "attrs": attrs, "talents": talents.keys(), "upgrades": upgrades,
 		"titanite": titanite, "kills": kills, "sentinels_dead": sentinels_dead, "boss_kills": boss_kills, "bonus_hp": bonus_hp,
-		"shards_found": shards_found, "free_points": free_points, "found": world.found.keys(),
+		"shards_found": shards_found, "free_points": free_points, "found": world.found.keys(), "day_t": day_t,
 		"embers": embers, "dropped_embers": dropped_embers, "seeds": seeds, "seed_i": seed_i, "dragon_seed": dragon_seed,
 		"gear": gear, "lit": lit.keys(), "elevator_open": elevator_open, "bells": bells,
 		"bonfire": [bonfire_pos.x, bonfire_pos.y, bonfire_pos.z],
@@ -277,6 +287,7 @@ func _load() -> void:
 	bonus_hp = float(d.get("bonus_hp", 0.0))
 	shards_found = int(d.get("shards_found", 0))
 	free_points = int(d.get("free_points", 0))
+	day_t = float(d.get("day_t", 0.3))
 	for n in d.get("found", []):
 		world.found[n] = true
 	embers = int(d.embers)
@@ -445,10 +456,11 @@ func _box_collider(pos: Vector3, size: Vector3, mesh_mat: Material = null) -> vo
 func _build_world() -> void:
 	var we := WorldEnvironment.new()
 	var e := Environment.new()
+	env = e
 	we.environment = e
 	add_child(we)
 	# night sky with an ember-lit horizon (the volcano), instead of a black void
-	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat = ProceduralSkyMaterial.new()
 	sky_mat.sky_top_color = Color(0.02, 0.025, 0.05)
 	sky_mat.sky_horizon_color = Color(0.2, 0.11, 0.1)
 	sky_mat.ground_horizon_color = Color(0.12, 0.07, 0.07)
@@ -466,8 +478,15 @@ func _build_world() -> void:
 	e.fog_light_color = Color(0.07, 0.055, 0.07)
 	e.fog_density = 0.007
 	e.fog_sky_affect = 0.4
-	e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	var moon := DirectionalLight3D.new()
+	e.tonemap_mode = Environment.TONE_MAPPER_AGX
+	e.glow_enabled = true  # fire, embers and lamps bloom a little
+	e.glow_intensity = 0.6
+	e.glow_bloom = 0.05
+	e.glow_hdr_threshold = 1.1
+	e.adjustment_enabled = true
+	e.adjustment_contrast = 1.08
+	e.adjustment_saturation = 1.05
+	moon = DirectionalLight3D.new()
 	moon.rotation_degrees = Vector3(-42, 150, 0)
 	moon.light_color = Color(0.55, 0.62, 0.9)
 	moon.light_energy = 0.9
@@ -476,6 +495,26 @@ func _build_world() -> void:
 	moon.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL  # one shadow pass instead of four
 	add_child(moon)
 	Level.build(self)
+
+# sun and moon cross the sky; sky, ambient light and fog follow; lamps matter at night
+func _update_daynight(dt: float) -> void:
+	day_t = fmod(day_t + dt / DAY_LEN, 1.0)
+	var elev := -cos(day_t * TAU)  # -1 midnight .. 1 noon
+	var day := smoothstep(-0.15, 0.25, elev)
+	var dusk := 1.0 - smoothstep(0.0, 0.35, absf(elev))  # warm light near sunrise and sunset
+	var a: float = maxf(absf(elev), 0.12)
+	moon.rotation_degrees = Vector3(-rad_to_deg(asin(a)) , 150.0 + day_t * 360.0, 0)
+	moon.light_color = Color(0.55, 0.62, 0.9).lerp(Color(1.0, 0.92, 0.8), day).lerp(Color(1.0, 0.6, 0.35), dusk * 0.6)
+	moon.light_energy = lerpf(0.8, 1.2, day)
+	sky_mat.sky_top_color = Color(0.02, 0.025, 0.05).lerp(Color(0.22, 0.36, 0.62), day)
+	sky_mat.sky_horizon_color = Color(0.2, 0.11, 0.1).lerp(Color(0.62, 0.62, 0.62), day).lerp(Color(0.85, 0.45, 0.25), dusk * 0.7)
+	sky_mat.ground_horizon_color = sky_mat.sky_horizon_color * 0.7
+	env.ambient_light_color = Color(0.3, 0.32, 0.42).lerp(Color(0.62, 0.6, 0.58), day)
+	env.ambient_light_energy = lerpf(0.8, 0.75, day)
+	env.fog_light_color = Color(0.07, 0.055, 0.07).lerp(Color(0.5, 0.52, 0.56), day).lerp(Color(0.6, 0.38, 0.28), dusk * 0.5)
+
+func is_night() -> bool:
+	return -cos(day_t * TAU) < -0.1
 
 # places a model from assets/<path>.glb scaled to height h; tint darkens its own material, mat replaces it
 func _place(path: String, pos: Vector3, h: float, tint: Color, mat: Material = null, rot_y := -1.0) -> Node3D:
@@ -790,6 +829,7 @@ func _cull() -> void:
 func _physics_process(dt: float) -> void:
 	world.update(player.position)
 	npcs.update(dt)
+	_update_daynight(dt)
 	_cull()
 	_update_player(dt)
 	for e in enemies:
@@ -2580,6 +2620,7 @@ func _draw_ui() -> void:
 		status.append("ESQUIVA +30% dano")
 	if not status.is_empty():
 		_text("  ".join(status), Vector2(40, 192), 30, Color(0.6, 1, 0.4))
+	_text("%02d:%02d %s" % [int(day_t * 24.0), int(fmod(day_t * 1440.0, 60.0)), "Noite" if is_night() else "Dia"], Vector2(vs.x - 260, 172), 26, Color(0.85, 0.85, 0.75))
 	if menu.options.show_fps:
 		_text("%d FPS" % Engine.get_frames_per_second(), Vector2(vs.x * 0.5 - 40, 30), 22, Color(0.6, 0.6, 0.6))
 	_text("Objetivo: " + Rpg.current_objective(_quest_state()), Vector2(vs.x * 0.5 - 330, 66), 28, Color(0.95, 0.85, 0.6))

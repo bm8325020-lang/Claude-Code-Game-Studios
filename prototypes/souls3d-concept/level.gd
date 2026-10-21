@@ -161,20 +161,27 @@ static func _kit_mat(src: Material) -> ShaderMaterial:
 	return kit_mats[src]
 
 static func _kit_mesh(name: String) -> ArrayMesh:
-	var root: Node3D = load("res://assets/kenney/%s.glb" % name).instantiate()
+	var mvk := name.begins_with("mvk/")  # Quaternius Medieval Village MegaKit: keep its own PBR materials
+	var root: Node3D = load("res://assets/%s.gltf" % name).instantiate() if mvk else load("res://assets/kenney/%s.glb" % name).instantiate()
+	var mis := root.find_children("*", "MeshInstance3D", true, false)
+	if mvk and mis.size() == 1 and (mis[0] as MeshInstance3D).transform.is_equal_approx(Transform3D()) and mis[0].get_parent() == root:
+		var lod := _coarse(mis[0].mesh)  # one mesh at the origin: keep it whole
+		root.free()
+		return lod
 	var tools := {}  # source material -> SurfaceTool
-	for mi in root.find_children("*", "MeshInstance3D", true, false):
+	for mi in mis:
 		var xf := Transform3D()
 		var p: Node = mi
 		while p != root:
 			xf = (p as Node3D).transform * xf
 			p = p.get_parent()
-		for i in mi.mesh.get_surface_count():
-			var src: Material = mi.get_surface_override_material(i) if mi.get_surface_override_material(i) else mi.mesh.surface_get_material(i)
+		var src_mesh: Mesh = mi.mesh
+		for i in src_mesh.get_surface_count():
+			var src: Material = mi.get_surface_override_material(i) if mi.get_surface_override_material(i) else src_mesh.surface_get_material(i)
 			if not tools.has(src):
 				tools[src] = SurfaceTool.new()
 				tools[src].begin(Mesh.PRIMITIVE_TRIANGLES)
-			tools[src].append_from(mi.mesh, i, xf)
+			tools[src].append_from(src_mesh, i, xf)
 	var mesh := ArrayMesh.new()
 	# flat-coloured materials (the nature kit has many) become one vertex-coloured surface: one draw call per piece
 	var vv := PackedVector3Array()
@@ -183,9 +190,9 @@ static func _kit_mesh(name: String) -> ArrayMesh:
 	var ii := PackedInt32Array()
 	for src in tools:
 		var std := src as StandardMaterial3D
-		if std != null and std.albedo_texture != null:
+		if mvk or (std != null and std.albedo_texture != null):
 			tools[src].commit(mesh)
-			mesh.surface_set_material(mesh.get_surface_count() - 1, _kit_mat(src))
+			mesh.surface_set_material(mesh.get_surface_count() - 1, src if mvk else _kit_mat(src))
 			continue
 		var arr: Array = tools[src].commit_to_arrays()
 		var base := vv.size()
@@ -210,6 +217,40 @@ static func _kit_mesh(name: String) -> ArrayMesh:
 	root.free()
 	return mesh
 
+# the MegaKit models every roof tile and brick (a corner is 3100 triangles). From the importer's LODs take two: the
+# finest whose edges stay under 30 cm for near houses, the coarsest for far ones (stored in far_pieces)
+static var far_pieces := {}  # near ArrayMesh -> far ArrayMesh
+static var mvk_mats := {}  # every glTF file has its own copy of the kit's few materials: share one per name
+
+static func _coarse(src: Mesh) -> ArrayMesh:
+	var near := ArrayMesh.new()
+	var far := ArrayMesh.new()
+	for i in src.get_surface_count():
+		var arrays := src.surface_get_arrays(i)
+		var far_arrays := arrays.duplicate()
+		var s: Dictionary = RenderingServer.mesh_get_surface(src.get_rid(), i)
+		for l in s.get("lods", []):
+			var data: PackedByteArray = l.index_data
+			var idx := PackedInt32Array()
+			if s.index_data.size() >= s.index_count * 4:  # 32-bit indices
+				idx = data.to_int32_array()
+			else:
+				idx.resize(data.size() / 2)
+				for k in idx.size():
+					idx[k] = data.decode_u16(k * 2)
+			if l.edge_length <= 0.3:
+				arrays[Mesh.ARRAY_INDEX] = idx
+			far_arrays[Mesh.ARRAY_INDEX] = idx
+		var mat: Material = src.surface_get_material(i)
+		if not mvk_mats.has(mat.resource_name):
+			mvk_mats[mat.resource_name] = mat
+		near.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		near.surface_set_material(i, mvk_mats[mat.resource_name])
+		far.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, far_arrays)
+		far.surface_set_material(i, mvk_mats[mat.resource_name])
+	far_pieces[near] = far
+	return near
+
 static func _kit_vc_mat() -> ShaderMaterial:
 	if not kit_mats.has("vc"):
 		var sm := ShaderMaterial.new()
@@ -227,6 +268,9 @@ static func _kit_vc_mat() -> ShaderMaterial:
 static func _piece(name: String) -> ArrayMesh:
 	if not pieces.has(name) and name.contains("/"):
 		pieces[name] = _kit_mesh(name)
+		for plain in ["mvk/Wall_UnevenBrick_Straight", "mvk/Wall_Plaster_Straight"]:  # far away a wall with windows is a plain wall
+			if name != plain and name.begins_with(plain.trim_suffix("Straight")):
+				far_pieces[pieces[name]] = far_pieces[_piece(plain)]
 	if not pieces.has(name):
 		var s: Node3D = load("res://assets/arch/%s.glb" % name).instantiate()
 		var mesh: ArrayMesh = (s.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D).mesh.duplicate()
@@ -238,13 +282,31 @@ static func _piece(name: String) -> ArrayMesh:
 
 # a modelled piece standing on `bottom`, stretched by `scale` (pieces are authored at a nominal size), turned by rot_y
 static func place(name: String, bottom: Vector3, scale: Vector3, rot_y := 0.0) -> void:
-	var key := "%s|%d|%d" % [name, floori(bottom.x / 96.0), floori(bottom.z / 96.0)]
+	var cell := 48.0 if name.begins_with("mvk/") else 96.0  # houses: small blocks, so far ones can switch to the coarse mesh
+	var key := "%s|%d|%d" % [name, floori(bottom.x / cell), floori(bottom.z / cell)]
 	if not batches.has(key):
 		batches[key] = [_piece(name), []]
 	batches[key][1].append(Transform3D(Basis(Vector3.UP, rot_y) * Basis.from_scale(scale), bottom))
 
 static func _flush(m: Node3D) -> void:
+	var blocks := {}  # "cell" -> {material: [near SurfaceTool, far SurfaceTool]}
 	for k in batches:
+		if str(k).begins_with("mvk/"):  # MegaKit houses: merged per block and material, a few draw calls per block
+			var cell := str(k).substr(str(k).find("|"))
+			if not blocks.has(cell):
+				blocks[cell] = {}
+			var near: ArrayMesh = batches[k][0]
+			var far: ArrayMesh = far_pieces.get(near, near)
+			for i in near.get_surface_count():
+				var mat := near.surface_get_material(i)
+				if not blocks[cell].has(mat):
+					blocks[cell][mat] = [SurfaceTool.new(), SurfaceTool.new()]
+					blocks[cell][mat][0].begin(Mesh.PRIMITIVE_TRIANGLES)
+					blocks[cell][mat][1].begin(Mesh.PRIMITIVE_TRIANGLES)
+				for xf in batches[k][1]:
+					blocks[cell][mat][0].append_from(near, i, xf)
+					blocks[cell][mat][1].append_from(far, i, xf)
+			continue
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.mesh = batches[k][0]
@@ -261,6 +323,18 @@ static func _flush(m: Node3D) -> void:
 			mmi.visibility_range_end_margin = 10.0
 			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
 		m.add_child(mmi)
+	for cell in blocks:
+		for v in 2:
+			var mesh := ArrayMesh.new()
+			for mat in blocks[cell]:
+				blocks[cell][mat][v].commit(mesh)
+				mesh.surface_set_material(mesh.get_surface_count() - 1, mat)
+			var mi := MeshInstance3D.new()
+			mi.mesh = mesh
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # a whole town in the shadow pass doubled its cost
+			mi.visibility_range_begin = 0.0 if v == 0 else 60.0
+			mi.visibility_range_end = 60.0 if v == 0 else 170.0
+			m.add_child(mi)
 	batches = {}
 
 static func collider_rot(m: Node3D, center: Vector3, size: Vector3, rot_y: float) -> void:
@@ -526,6 +600,46 @@ static func _in_built(x: float, z: float) -> bool:
 			return true
 	return false
 
+# a Medieval Village MegaKit house (2 m wall modules, 3 m storeys): a stone ground floor with the door on local +z,
+# plastered upper floors with windows, a round-tile roof whose ridge runs along local z, brick gable fronts, a chimney
+const ROOFS := {4: [4, 6, 8], 6: [4, 6, 8, 10, 12, 14], 8: [8, 10, 12, 14]}
+
+static func mvk_house(m: Node3D, origin: Vector3, w: int, d: int, floors: int, rot: float, seed := 0) -> Vector3:
+	var W := w * 2
+	var depths: Array = ROOFS[clampi(W, 4, 8)]
+	var D: int = depths[0]
+	for dd in depths:
+		if absi(dd - d * 2) < absi(D - d * 2):
+			D = dd
+	d = D / 2
+	w = clampi(W, 4, 8) / 2
+	W = w * 2
+	var b := Basis(Vector3.UP, rot)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var low := ["mvk/Wall_UnevenBrick_Straight", "mvk/Wall_UnevenBrick_Window_Thin_Round", "mvk/Wall_UnevenBrick_Straight", "mvk/Wall_UnevenBrick_Window_Wide_Flat"]
+	var high := ["mvk/Wall_Plaster_Window_Wide_Round", "mvk/Wall_Plaster_WoodGrid", "mvk/Wall_Plaster_Window_Thin_Round", "mvk/Wall_Plaster_Straight", "mvk/Wall_Plaster_Window_Wide_Flat"]
+	for f in floors:
+		var y := f * 3.0
+		for i in w:  # front (+z) and back
+			var x := (i - (w - 1) / 2.0) * 2.0
+			var front: String = "mvk/Wall_UnevenBrick_Door_Round" if f == 0 and i == w / 2 else (low if f == 0 else high)[rng.randi() % (low if f == 0 else high).size()]
+			place(front, origin + b * Vector3(x, y, d), Vector3.ONE, rot)
+			place((low if f == 0 else high)[rng.randi() % 4], origin + b * Vector3(-x, y, -d), Vector3.ONE, rot + PI)
+		for i in d:  # sides
+			var z := (i - (d - 1) / 2.0) * 2.0
+			place((low if f == 0 else high)[rng.randi() % 4], origin + b * Vector3(w, y, z), Vector3.ONE, rot + PI / 2.0)
+			place((low if f == 0 else high)[rng.randi() % 4], origin + b * Vector3(-w, y, -z), Vector3.ONE, rot - PI / 2.0)
+		for c in [Vector3(w, y, d), Vector3(-w, y, d), Vector3(w, y, -d), Vector3(-w, y, -d)]:
+			place("mvk/Corner_Exterior_Wood", origin + b * c, Vector3.ONE, rot + atan2(c.x, c.z) - PI / 4.0)
+	var top := floors * 3.0
+	place("mvk/Roof_RoundTiles_%dx%d" % [W, D], origin + b * Vector3(0, top, 0), Vector3.ONE, rot)
+	place("mvk/Roof_Front_Brick%d" % W, origin + b * Vector3(0, top, d), Vector3.ONE, rot)
+	place("mvk/Roof_Front_Brick%d" % W, origin + b * Vector3(0, top, -d), Vector3.ONE, rot + PI)
+	if rng.randf() < 0.6:
+		place("mvk/Prop_Chimney", origin + b * Vector3(w * 0.5, top + 1.0, -d * 0.4), Vector3.ONE, rot)
+	return Vector3(W, top, D)  # footprint for the collider
+
 # a Kenney fantasy-town house: w x d cells of KS metres, stone ground floor and timber upper floors, a door on
 # its local +z side and a gabled roof whose ridge runs along local x; rot turns the whole house
 const KS := 3.0
@@ -724,16 +838,13 @@ static func _burgo(m: Node3D) -> void:
 		if i == 2 or i == 8:  # the two archer perches are castle watch towers
 			_tower(m, Vector3(h[0], BURGO_Y, h[1]), 2)
 			continue
-		# Kenney timber houses facing the square: stone ground floor, timber upper floor, gabled roof
-		var w := clampi(roundi(h[2] / KS), 2, 4)
+		# MegaKit houses facing the square: stone ground floor, plastered upper floors, round-tile roof
 		var floors := 2 if h[4] < 10 else 3
 		var rot := PI if h[1] > -74 else 0.0
-		var size := Vector3(w * KS, floors * KS, 2 * KS)
 		if h[0] > 12:
 			rot = -PI / 2.0
-			size = Vector3(size.z, size.y, size.x)
-		collider(m, Vector3(h[0], BURGO_Y + size.y / 2.0, h[1]), size)
-		kit_house(m, Vector3(h[0], BURGO_Y, h[1]), w, 2, floors, rot, i)
+		var fp := mvk_house(m, Vector3(h[0], BURGO_Y, h[1]), clampi(roundi(h[2] / 2.0), 2, 4), clampi(roundi(h[3] / 2.0), 2, 5), floors, rot, i)
+		collider_rot(m, Vector3(h[0], BURGO_Y + fp.y / 2.0, h[1]), fp, rot)
 	for c in [Vector3(-12, BURGO_Y, -66), Vector3(-36, BURGO_Y, -75), Vector3(-2, BURGO_Y, -84)]:  # street lamps
 		place("graveyard/lightpost-single", c, Vector3.ONE * 3.0)
 	place("fantasy-town/fountain-round", Vector3(-12, BURGO_Y, -76), Vector3.ONE * 4.0)
