@@ -105,6 +105,15 @@ const REGIONS := [  # [x, z, radius, name, subtitle]
 	[0.0, -165.0, 70.0, "PICO DO DRAGÃO", "O ar cheira a enxofre"],
 	[0.0, -6.0, 48.0, "RUÍNAS DO GUARDIÃO", "Atrás do portão espera o Dragão"],
 ]
+# loot: [name, colour, stat factor]; names per slot follow the same rarity order
+const RARITY := [["Comum", Color(0.75, 0.75, 0.75), 1.0], ["Raro", Color(0.35, 0.6, 1.0), 1.6],
+	["Épico", Color(0.75, 0.35, 1.0), 2.4], ["Lendário", Color(1.0, 0.6, 0.1), 3.6]]
+const ITEMS := {
+	"sword": {"names": ["Espada Enferrujada", "Lâmina do Juramento", "Fio da Cinza", "Presa do Dragão"], "base": 6.0, "fmt": "+%d%% dano (espada)"},
+	"great": {"names": ["Espadão Rachado", "Montante do Guardião", "Cutelo das Brasas", "Ira do Wyrm"], "base": 6.0, "fmt": "+%d%% dano (espadão)"},
+	"ring": {"names": ["Anel de Osso", "Anel do Cavaleiro", "Anel da Seiva", "Anel do Primeiro Fogo"], "base": 12.0, "fmt": "+%d vida máxima"},
+	"amulet": {"names": ["Amuleto Gasto", "Amuleto Rúnico", "Coração de Brasa", "Olho do Dragão"], "base": 20.0, "fmt": "+%d%% Fúria do Dragão"},
+}
 const SHARD_SPOTS := [Vector3(-17, 0.6, -9), Vector3(16, 0.6, 22)]
 
 # player
@@ -190,6 +199,8 @@ var seeds := ["fogo"]
 var seed_i := 0
 var seed_marks: Array = []  # [node, spot]
 var region := ""
+var gear := {}  # slot -> item {slot, rarity, name, val}
+var loot: Array = []  # [node, item]
 var map_tex: ImageTexture
 var sfx_players: Array = []
 var sfx_cache := {}
@@ -1240,12 +1251,14 @@ func _player_hit_check(name: String) -> void:
 	if boss != null and not boss.dead:
 		var tb: Vector3 = boss.root.position - player.position
 		if tb.length() < mv.reach + 2.6 and fwd.angle_to(tb.normalized()) < 1.0:
-			_damage_boss(mv.dmg * dmg_mult)
+			_damage_boss(mv.dmg * dmg_mult * (1.0 + (gear[weapon].val / 100.0 if gear.has(weapon) else 0.0)))
 
 func _damage_enemy(e: Dictionary, mv: Dictionary) -> void:
 	if e.state in ["dormant", "awaken"]:
 		return
 	var dmg: float = mv.dmg * dmg_mult
+	if mv.has("anim") and gear.has(weapon):  # melee only: the equipped blade's bonus
+		dmg *= 1.0 + gear[weapon].val / 100.0
 	if e.state == "broken" and move == "riposte":
 		dmg = 140.0 * dmg_mult
 		_float("CRÍTICO!", e.root.position + Vector3(0, 2.6, 0), Color(1, 0.3, 0.2))
@@ -1260,7 +1273,7 @@ func _damage_enemy(e: Dictionary, mv: Dictionary) -> void:
 		_float("bloqueou", e.root.position + Vector3(0, 2.3, 0), Color(0.7, 0.7, 0.8))
 	e.hp -= dmg
 	if dragon_seed and not dragon_form:
-		rage = minf(100.0, rage + dmg * 0.35)
+		rage = minf(100.0, rage + dmg * 0.35 * (1.0 + (gear.amulet.val / 100.0 if gear.has("amulet") else 0.0)))
 	shake = max(shake, 0.25)
 	_sfx(["impactWood_heavy_000", "impactPlate_heavy_000"], -2)
 	_float(str(int(dmg)), e.root.position + Vector3(0, 2.1, 0), Color.WHITE)
@@ -1302,6 +1315,8 @@ func _kill_enemy(e: Dictionary) -> void:
 	else:
 		e.revive_t = -1.0
 		e.ap.play(["Death_A", "Death_B"].pick_random())
+	if randf() < (0.25 if e.kind == "wolf" else 0.35):
+		_drop_item(e.root.position, _roll_rarity())
 	var reward: int = {"warrior": 60, "minion": 35, "caster": 50, "rogue": 45, "archer": 45, "wolf": 40}[e.kind] / (2 if e.revived else 1)
 	embers += reward
 	_float("+%d brasas" % reward, e.root.position + Vector3(0, 2.6, 0), Color(1, 0.7, 0.3))
@@ -1326,6 +1341,7 @@ func _damage_boss(dmg: float) -> void:
 		boss.ap.play("d/die")
 		if boss.kind == "wyrm":
 			embers += 5000
+			_drop_item(boss.root.position + Vector3(0, 0, 4), 3)
 			max_hp += 50.0
 			hp = max_hp
 			_sfx("dragon_roar", 2)
@@ -1335,6 +1351,7 @@ func _damage_boss(dmg: float) -> void:
 			_show_banner("WYRM ANCIÃO DERROTADO", "A ilha é sua  ·  +5000 brasas  ·  +50 vida máxima", Color(1, 0.6, 0.15), 7.0)
 			return
 		embers += 2000
+		_drop_item(boss.root.position + Vector3(0, 0, 3), 3)
 		dragon_seed = true
 		_sfx("dragon_roar", 2)
 		_sfx("jingle_win", -2)
@@ -1415,7 +1432,58 @@ func _glow_marker(pos: Vector3, col: Color) -> Node3D:
 	add_child(n)
 	return n
 
+func _roll_rarity() -> int:
+	var r := randf()
+	return 3 if r < 0.01 else (2 if r < 0.08 else (1 if r < 0.3 else 0))
+
+func _drop_item(pos: Vector3, rarity: int) -> void:
+	var slot: String = ITEMS.keys().pick_random()
+	var f: float = RARITY[rarity][2] * randf_range(0.85, 1.15)
+	var item := {"slot": slot, "rarity": rarity, "name": ITEMS[slot].names[rarity], "val": roundf(ITEMS[slot].base * f)}
+	var col: Color = RARITY[rarity][1]
+	var n := _glow_marker(Vector3(pos.x, world.height(pos.x, pos.z) + 0.2, pos.z), col)
+	if rarity >= 1:  # a beam of light so rare drops are seen from afar
+		var beam := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.06
+		cm.bottom_radius = 0.12
+		cm.height = 4.0 + rarity * 3.0
+		beam.mesh = cm
+		var bm := StandardMaterial3D.new()
+		bm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		bm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		bm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		bm.albedo_color = Color(col, 0.6)
+		beam.material_override = bm
+		beam.position.y = cm.height / 2.0
+		n.add_child(beam)
+	loot.append([n, item])
+
+func _take_item(item: Dictionary) -> void:
+	var col: Color = RARITY[item.rarity][1]
+	var line: String = ITEMS[item.slot].fmt % int(item.val)
+	var old = gear.get(item.slot)
+	if old == null or item.val > old.val:
+		if item.slot == "ring":
+			max_hp += item.val - (old.val if old != null else 0.0)
+			hp = minf(hp, max_hp)
+		gear[item.slot] = item
+		_show_banner(item.name.to_upper(), "%s  ·  %s  ·  equipado" % [RARITY[item.rarity][0], line], col, 3.0 if item.rarity < 3 else 5.0)
+	else:
+		embers += 20 * (item.rarity + 1)
+		_float("%s (%s) → +%d brasas" % [item.name, RARITY[item.rarity][0], 20 * (item.rarity + 1)], player.position + Vector3(0, 2.4, 0), col)
+	_sfx("jingle_win" if item.rarity >= 2 else "metalPot1", -6 if item.rarity >= 2 else -4)
+	if item.rarity == 3:
+		_sfx("dragon_roar", -12)
+		shake = 0.4
+
 func _update_pickups() -> void:
+	for l in loot.duplicate():
+		l[0].rotation.y += 0.04
+		if l[0].position.distance_to(player.position) < 1.6:
+			_take_item(l[1])
+			l[0].queue_free()
+			loot.erase(l)
 	for sm in seed_marks.duplicate():
 		if sm[0].position.distance_to(player.position) < 1.6:
 			seeds.append(sm[1][2])
@@ -2264,6 +2332,11 @@ func _draw_ui() -> void:
 		ui_draw.draw_rect(Rect2(40, 98, 240, 10), Color(0.1, 0.03, 0, 0.7))
 		var fill := dragon_t / 15.0 if dragon_form else rage / 100.0
 		ui_draw.draw_rect(Rect2(40, 98, 240 * fill, 10), Color(1, 0.35, 0.05) if rage >= 100.0 or dragon_form else Color(0.6, 0.2, 0.05))
+	var gy := 170.0
+	for slot in ["sword", "great", "ring", "amulet"]:
+		if gear.has(slot):
+			_text("%s  %s" % [gear[slot].name, ITEMS[slot].fmt % int(gear[slot].val)], Vector2(40, gy), 20, RARITY[gear[slot].rarity][1])
+			gy += 24
 	if _near_bonfire(3.0) != null:
 		_text("Próximo nível: %d brasas" % (150 * level), Vector2(vs.x * 0.5 - 170, vs.y - 200), 28, Color(1, 0.8, 0.5))
 	for e in enemies:
