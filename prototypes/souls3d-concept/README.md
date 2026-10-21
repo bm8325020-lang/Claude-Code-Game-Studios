@@ -24,6 +24,8 @@
 - Breakable pots, jars and barrels (attack, roll or sprint into them): a few Embers, sometimes a flask charge; they come back when you rest at the bonfire.
 - Scenery: Gobkit CC0 nature kit (`assets/nature`: pines, cliffs, rocks) outside the walls and Polygonal Mind CC0 ruins (`assets/pm`, see `SOURCES.md`): arch, columns, broken walls, Seed crystals, webs, cart.
 - More enemies (KayKit Skeletons CC0, same rig): Skeleton Mage (the caster, hat hidden), Skeleton Rogue (dual blades, fast, dodges) and Skeleton Crossbowman (straight fast bolts). Skull keys are scaled to 0.66 to tone down the chibi look. Ash Wolves (Quaternius CC0, `assets/beasts`) hunt in packs: run, circle and pounce; the pounce is procedural since the model only has idle/walk.
+- Seeds of power: Fire (fireball), Ice (slows for 3 s, heavy poise damage; found in the cemetery) and Lightning (instant strike that jumps to two more enemies; deep in the Dead Forest). SEED casts the current one, TROCAR (T) cycles.
+- HUD map of the island (lit bonfires, Seeds, player arrow), region names on entry, fast travel between lit bonfires (VIAJAR / Y).
 - Boss: dragon with phase 2 at 50% HP; a portcullis closes behind the player.
 
 ## Findings

@@ -88,6 +88,23 @@ const BREAKABLE_SPOTS := [
 	[Vector3(19.6, 0, 3.2), "Vase_Broken", 0.8], [Vector3(-19.5, 0, -4), "Jar01_Art", 0.9], [Vector3(-19.4, 0, 18), "Vase_Mid", 0.9],
 	[Vector3(-3.5, 0, -36), "Vase_Large", 1.1], [Vector3(3.6, 0, -36.5), "Jar02_Art", 1.0], [Vector3(15, 0, -41), "SmallBarrel_Art", 0.8],
 ]
+# Seeds of power: FOGO casts the current one, TROCAR cycles
+const SEEDS := {
+	"fogo": {"name": "FOGO", "cost": 30.0, "col": Color(1, 0.55, 0.2)},
+	"gelo": {"name": "GELO", "cost": 25.0, "col": Color(0.55, 0.85, 1.0)},
+	"raio": {"name": "RAIO", "cost": 35.0, "col": Color(1.0, 0.95, 0.5)},
+}
+const SEED_SPOTS := [  # [x, z, seed, title, how it works]
+	[132.0, -46.0, "gelo", "SEMENTE DO GELO", "Lentidão e quebra de guarda. TROCAR escolhe a semente."],
+	[-172.0, 8.0, "raio", "SEMENTE DO RAIO", "Acerta na hora e salta para inimigos próximos. TROCAR escolhe a semente."],
+]
+const REGIONS := [  # [x, z, radius, name, subtitle]
+	[0.0, 150.0, 60.0, "PRAIA DAS CINZAS", "Onde o mar devolve os que caem"],
+	[-130.0, 20.0, 85.0, "FLORESTA MORTA", "Os lobos caçam em bando"],
+	[118.0, -25.0, 50.0, "CEMITÉRIO DOS JURAMENTADOS", "Juraram guardar a Semente, mesmo mortos"],
+	[0.0, -165.0, 70.0, "PICO DO DRAGÃO", "O ar cheira a enxofre"],
+	[0.0, -6.0, 48.0, "RUÍNAS DO GUARDIÃO", "Atrás do portão espera o Dragão"],
+]
 const SHARD_SPOTS := [Vector3(-17, 0.6, -9), Vector3(16, 0.6, 22)]
 
 # player
@@ -160,6 +177,11 @@ var cam_touch := -1
 var shake := 0.0
 var autoplay := OS.get_environment("SEMENTES_AUTOPLAY") == "1"  # playtest robot for screenshots only
 var dragon_seed := false
+var seeds := ["fogo"]
+var seed_i := 0
+var seed_marks: Array = []  # [node, spot]
+var region := ""
+var map_tex: ImageTexture
 var sfx_players: Array = []
 var sfx_cache := {}
 var music_amb: AudioStreamPlayer
@@ -179,7 +201,10 @@ func _ready() -> void:
 	_build_gate()
 	_build_ui()
 	_build_audio()
-	_show_banner("RUÍNAS DO GUARDIÃO", "Atrás do portão espera o Dragão", Color(0.95, 0.85, 0.65), 4.0)
+	for sp in SEED_SPOTS:
+		var y: float = world.height(sp[0], sp[1])
+		seed_marks.append([_glow_marker(Vector3(sp[0], y + 0.3, sp[1]), SEEDS[sp[2]].col), sp])
+	map_tex = _make_map()
 
 # ------------------------------------------------------------------ world
 func _pbr(name: String, uv: float) -> StandardMaterial3D:
@@ -779,8 +804,13 @@ func _update_player(dt: float) -> void:
 					_start_attack()
 			elif _pressed("roll") and stamina > 5:
 				_start_roll(dir)
-			elif _pressed("seed") and seed_cd <= 0 and essence >= 30:
+			elif _pressed("seed") and seed_cd <= 0 and essence >= SEEDS[seeds[seed_i]].cost:
 				_start_cast()
+			elif _pressed("seed_next") and seeds.size() > 1:
+				seed_i = (seed_i + 1) % seeds.size()
+				_float("Semente: " + SEEDS[seeds[seed_i]].name, player.position + Vector3(0, 2.2, 0), SEEDS[seeds[seed_i]].col)
+			elif _pressed("travel") and _near_bonfire(3.0) != null and lit.size() > 1:
+				_fast_travel()
 			elif _pressed("flask") and flasks > 0:
 				_set_state("drink")
 				anim.speed_scale = 1.0
@@ -870,7 +900,10 @@ func _update_player(dt: float) -> void:
 			player.velocity.x = 0
 			player.velocity.z = 0
 			if state_t > 0.45 and state_t - dt <= 0.45:
-				_throw_fireball()
+				match seeds[seed_i]:
+					"fogo": _throw_fireball()
+					"gelo": _throw_fireball(true)
+					"raio": _lightning()
 			if state_t > 0.9:
 				_set_state("free")
 		"dead":
@@ -905,6 +938,35 @@ func _update_player(dt: float) -> void:
 		dropped_embers = 0
 		dropped_marker.queue_free()
 		dropped_marker = null
+
+func _fast_travel() -> void:
+	var here = _near_bonfire(3.0)
+	var names := []
+	for b in bonfires:
+		if lit.has(b[1]):
+			names.append(b)
+	var i: int = names.find(here)
+	var to = names[(i + 1) % names.size()]
+	bonfire_pos = to[0]
+	player.position = to[0] + Vector3(0, 0.5, -2.5)
+	_respawn_enemies()
+	_sfx("fireball", -8)
+	_show_banner(to[1].to_upper(), "Viagem pelas chamas", Color(1, 0.7, 0.3), 2.5)
+
+# top-down island picture for the HUD map (north up)
+func _make_map() -> ImageTexture:
+	var n := 128
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	for j in n:
+		for i in n:
+			var x := -220.0 + 440.0 * i / n
+			var z := -220.0 + 440.0 * j / n
+			var h: float = world.height(x, z)
+			var c := Color(0.05, 0.08, 0.12, 0.85) if h < World.SEA else Color(0.22, 0.2, 0.17, 0.9).lerp(Color(0.6, 0.58, 0.55, 0.9), clampf(h / 40.0, 0.0, 1.0))
+			if World.RUINS.has_point(Vector2(x, z)):
+				c = Color(0.35, 0.33, 0.32, 0.95)
+			img.set_pixel(i, j, c)
+	return ImageTexture.create_from_image(img)
 
 func _near_bonfire(r: float):
 	for b in bonfires:
@@ -994,7 +1056,7 @@ func _start_roll(dir: Vector3) -> void:
 func _start_cast() -> void:
 	_set_state("cast")
 	seed_cd = 1.2
-	essence -= 30.0
+	essence -= SEEDS[seeds[seed_i]].cost
 	anim.play(_a("cast"), 0.1, 1.2)
 
 func _level_up() -> void:
@@ -1194,6 +1256,23 @@ func _glow_marker(pos: Vector3, col: Color) -> Node3D:
 	return n
 
 func _update_pickups() -> void:
+	for sm in seed_marks.duplicate():
+		if sm[0].position.distance_to(player.position) < 1.6:
+			seeds.append(sm[1][2])
+			seed_i = seeds.size() - 1
+			sm[0].queue_free()
+			seed_marks.erase(sm)
+			_sfx("jingle_win", -4)
+			_show_banner(sm[1][3], sm[1][4], SEEDS[sm[1][2]].col, 4.0)
+	var r := ""
+	for rg in REGIONS:
+		if Vector2(player.position.x, player.position.z).distance_to(Vector2(rg[0], rg[1])) < rg[2]:
+			r = rg[3]
+			if r != region and banner_t <= 0.5:
+				_show_banner(rg[3], rg[4], Color(0.95, 0.85, 0.65), 3.5)
+			break
+	if banner_t <= 0.5 or r != "":
+		region = r
 	for s in shards.duplicate():
 		s.rotation.y += 0.03
 		if s.position.distance_to(player.position) < 1.4:
@@ -1297,6 +1376,10 @@ func _wake_boss() -> void:
 func _update_enemy(e: Dictionary, dt: float) -> void:
 	if e.state == "dormant" and e.root.position.distance_squared_to(player.position) > 3600.0:
 		return  # far sleepers cost nothing
+	if e.get("slow", 0.0) > 0.0:  # Ice Seed
+		e.slow -= dt
+		dt *= 0.4
+		e.ap.speed_scale = 0.4 if e.slow > 0.0 else 1.0
 	e.root.position.y = world.height(e.root.position.x, e.root.position.z)
 	if e.dead:
 		# some skeletons pull themselves back together once, unless their bones are burnt (Fire Seed)
@@ -1616,7 +1699,7 @@ func _update_boss(dt: float) -> void:
 				boss.t = 0.0
 
 # ------------------------------------------------------------------ Seed of Fire
-func _throw_fireball() -> void:
+func _throw_fireball(ice := false) -> void:
 	var fwd := Vector3(sin(model.rotation.y), 0, cos(model.rotation.y))
 	var ball := MeshInstance3D.new()
 	var sm := SphereMesh.new()
@@ -1625,19 +1708,76 @@ func _throw_fireball() -> void:
 	ball.mesh = sm
 	var m := StandardMaterial3D.new()
 	m.emission_enabled = true
-	m.emission = Color(1, 0.45, 0.1)
+	m.emission = Color(0.5, 0.85, 1.0) if ice else Color(1, 0.45, 0.1)
 	m.emission_energy_multiplier = 6
-	m.albedo_color = Color(1, 0.6, 0.2)
+	m.albedo_color = Color(0.7, 0.9, 1.0) if ice else Color(1, 0.6, 0.2)
 	ball.material_override = m
 	var l := OmniLight3D.new()
-	l.light_color = Color(1, 0.5, 0.15)
+	l.light_color = Color(0.5, 0.8, 1.0) if ice else Color(1, 0.5, 0.15)
 	l.light_energy = 2.5
 	l.omni_range = 5
 	ball.add_child(l)
 	ball.position = player.position + Vector3(0, 1.3, 0) + fwd * 0.8
 	add_child(ball)
-	fireballs.append({"node": ball, "vel": fwd * 14.0, "t": 1.5})
+	fireballs.append({"node": ball, "vel": fwd * (17.0 if ice else 14.0), "t": 1.5, "ice": ice})
 	_sfx("fireball", 0)
+
+# Lightning Seed: instant strike on the locked/nearest enemy ahead, then jumps to two more
+func _lightning() -> void:
+	var fwd := _fwd()
+	var target = lock_target
+	if target == null or target == boss:
+		var best := 15.0
+		for e in enemies:
+			var to: Vector3 = e.root.position - player.position
+			if not e.dead and to.length() < best and fwd.angle_to(to.normalized()) < 0.9:
+				best = to.length()
+				target = e
+	_sfx("impactPlate_heavy_002", 2)
+	if target == null:
+		_bolt_line(player.position + Vector3(0, 1.4, 0), player.position + Vector3(0, 1.4, 0) + fwd * 12.0)
+		return
+	var from := player.position + Vector3(0, 1.4, 0)
+	var hit := [target]
+	var dmg := 45.0
+	while true:
+		var tp: Vector3 = target.root.position + Vector3(0, 1.1, 0)
+		_bolt_line(from, tp)
+		_damage_enemy(target, {"dmg": dmg, "poise": 25.0})
+		from = tp
+		dmg *= 0.6
+		var next = null
+		for e in enemies:
+			if not e.dead and not e in hit and e.root.position.distance_to(target.root.position) < 6.0:
+				next = e
+				break
+		if next == null or hit.size() >= 3:
+			break
+		hit.append(next)
+		target = next
+
+func _bolt_line(a: Vector3, b: Vector3) -> void:
+	var im := ImmediateMesh.new()
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = Color(1, 0.97, 0.7)
+	im.surface_begin(Mesh.PRIMITIVE_LINE_STRIP, m)
+	for i in 9:  # jagged
+		var p := a.lerp(b, i / 8.0)
+		if i > 0 and i < 8:
+			p += Vector3(randf_range(-0.3, 0.3), randf_range(-0.3, 0.3), randf_range(-0.3, 0.3))
+		im.surface_add_vertex(p)
+	im.surface_end()
+	var mi := MeshInstance3D.new()
+	mi.mesh = im
+	var l := OmniLight3D.new()
+	l.position = b
+	l.light_color = Color(1, 0.95, 0.6)
+	l.light_energy = 4.0
+	l.omni_range = 7
+	mi.add_child(l)
+	add_child(mi)
+	get_tree().create_timer(0.18).timeout.connect(mi.queue_free)
 
 func _update_fireballs(dt: float) -> void:
 	for f in fireballs.duplicate():
@@ -1648,9 +1788,12 @@ func _update_fireballs(dt: float) -> void:
 		for e in enemies:
 			if n.position.distance_to(e.root.position + Vector3(0, 1, 0)) < 1.2:
 				if not e.dead:
-					_damage_enemy(e, {"dmg": 55.0, "poise": 20.0})
+					_damage_enemy(e, {"dmg": 30.0, "poise": 60.0} if f.ice else {"dmg": 55.0, "poise": 20.0})
+					if f.ice:
+						e.slow = 3.0
+						_float("CONGELADO", e.root.position + Vector3(0, 2.4, 0), Color(0.6, 0.9, 1))
 					hit = true
-				elif e.revive_t > 0:
+				elif e.revive_t > 0 and not f.ice:
 					e.revive_t = -1.0
 					e.eye.light_energy = 0.0
 					_float("CINZAS", e.root.position + Vector3(0, 1.8, 0), Color(1, 0.55, 0.2))
@@ -1830,7 +1973,7 @@ func _build_ui() -> void:
 	joystick.set("joystick_size", 230)
 	joystick.set("tip_size", 100)
 	ui.add_child(joystick)
-	for a in ["attack", "roll", "lock", "seed", "flask", "block", "level", "weapon"]:
+	for a in ["attack", "roll", "lock", "seed", "flask", "block", "level", "weapon", "seed_next", "travel"]:
 		var b := TouchScreenButton.new()
 		var s := CircleShape2D.new()
 		s.radius = _button_r(a)
@@ -1845,7 +1988,7 @@ func _build_ui() -> void:
 func _button_r(a: String) -> float:
 	match a:
 		"attack": return 115.0
-		"lock", "level", "weapon": return 62.0
+		"lock", "level", "weapon", "seed_next", "travel": return 62.0
 	return 78.0
 
 func _button_pos(a: String, vs: Vector2) -> Vector2:
@@ -1857,6 +2000,8 @@ func _button_pos(a: String, vs: Vector2) -> Vector2:
 		"flask": return Vector2(vs.x - 140, vs.y - 430)
 		"lock": return Vector2(vs.x - 110, vs.y - 600)
 		"weapon": return Vector2(vs.x - 260, vs.y - 640)
+		"seed_next": return Vector2(vs.x - 470, vs.y - 500)
+		"travel": return Vector2(vs.x * 0.5 + 160, vs.y - 120)
 		"level": return Vector2(vs.x * 0.5, vs.y - 120)
 	return Vector2.ZERO
 
@@ -1908,6 +2053,18 @@ func _draw_ui() -> void:
 		ui_draw.draw_rect(Rect2(ep - Vector2(50, -10), Vector2(100 * e.poise / e.max_poise, 4)), Color(1, 0.8, 0.3) if e.state != "broken" else Color(1, 0.2, 0.2))
 	_text("%d" % embers, Vector2(vs.x - 220, 60), 40, Color(1, 0.75, 0.4))
 	_text("brasas", Vector2(vs.x - 220, 92), 22, Color(0.8, 0.6, 0.4))
+	var ms := 190.0
+	var mp := Vector2(vs.x - ms - 30, 150)
+	ui_draw.draw_texture_rect(map_tex, Rect2(mp, Vector2(ms, ms)), false)
+	ui_draw.draw_rect(Rect2(mp, Vector2(ms, ms)), Color(0.8, 0.7, 0.5, 0.6), false, 2.0)
+	var to_map := func(p: Vector3) -> Vector2: return mp + Vector2((p.x + 220.0) / 440.0, (p.z + 220.0) / 440.0) * ms
+	for b in bonfires:
+		ui_draw.draw_circle(to_map.call(b[0]), 4.0, Color(1, 0.55, 0.15) if lit.has(b[1]) else Color(0.5, 0.5, 0.5))
+	for sm in seed_marks:
+		ui_draw.draw_circle(to_map.call(sm[0].position), 3.0, SEEDS[sm[1][2]].col)
+	var pp: Vector2 = to_map.call(player.position)
+	var dir := Vector2(sin(model.rotation.y), cos(model.rotation.y))
+	ui_draw.draw_colored_polygon(PackedVector2Array([pp + dir * 8.0, pp + dir.rotated(2.5) * 6.0, pp + dir.rotated(-2.5) * 6.0]), Color.WHITE)
 	if dragon_seed:
 		_text("Semente do Dragão", Vector2(vs.x - 330, 130), 26, Color(1, 0.55, 0.15))
 	if boss != null and boss.awake and not boss.dead:
@@ -1921,11 +2078,16 @@ func _draw_ui() -> void:
 		var r := _button_r(a)
 		if a == "level" and _near_bonfire(3.0) == null:
 			continue
-		var label: String = {"attack": "ATACAR", "roll": "ROLAR", "lock": "MIRA", "seed": "FOGO", "flask": "FRASCO", "block": "DEFESA", "level": "NÍVEL", "weapon": "ARMA"}[a]
-		var col := Color(1, 0.55, 0.2) if a == "seed" else Color(1, 1, 1)
+		if a == "seed_next" and seeds.size() < 2:
+			continue
+		if a == "travel" and (_near_bonfire(3.0) == null or lit.size() < 2):
+			continue
+		var label: String = {"attack": "ATACAR", "roll": "ROLAR", "lock": "MIRA", "seed": SEEDS[seeds[seed_i]].name, "flask": "FRASCO", "block": "DEFESA",
+			"level": "NÍVEL", "weapon": "ARMA", "seed_next": "TROCAR", "travel": "VIAJAR"}[a]
+		var col: Color = SEEDS[seeds[seed_i]].col if a == "seed" else Color(1, 1, 1)
 		ui_draw.draw_circle(pos, r, Color(col, 0.28 if Input.is_action_pressed(a) else 0.12))
 		ui_draw.draw_arc(pos, r, 0, TAU, 48, Color(col, 0.6), 3)
-		if a == "seed" and essence < 30:
+		if a == "seed" and essence < SEEDS[seeds[seed_i]].cost:
 			ui_draw.draw_circle(pos, r, Color(0, 0, 0, 0.5))
 		ui_draw.draw_string_outline(font, pos - Vector2(r, -10), label, HORIZONTAL_ALIGNMENT_CENTER, r * 2, 28, 6, Color(0, 0, 0, 0.8))
 		ui_draw.draw_string(font, pos - Vector2(r, -10), label, HORIZONTAL_ALIGNMENT_CENTER, r * 2, 28, Color(1, 1, 1, 0.9))
