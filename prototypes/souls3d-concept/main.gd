@@ -6,25 +6,7 @@ extends Node3D
 const HeroLook = preload("res://hero_look.gd")
 const HeroAnims = preload("res://hero_anims.gd")
 
-const BONFIRES := [  # [x, z, name]; y comes from the terrain
-	[0.0, 14.0, "Ruínas do Guardião"], [12.0, 150.0, "Praia das Cinzas"], [-115.0, 35.0, "Floresta Morta"],
-	[118.0, -25.0, "Cemitério dos Juramentados"], [-30.0, -118.0, "Sopé do Pico"],
-]
-const World = preload("res://world.gd")
-# open-island enemies, by region
-const WORLD_SPAWNS := [
-	[Vector3(-6, 0, 128), "minion"], [Vector3(24, 0, 120), "minion"], [Vector3(4, 0, 92), "warrior"], [Vector3(-14, 0, 70), "minion"],
-	[Vector3(-90, 0, 50), "minion"], [Vector3(-130, 0, 10), "minion"], [Vector3(-100, 0, -10), "caster"], [Vector3(-140, 0, 60), "warrior"],
-	[Vector3(-75, 0, 90), "minion"], [Vector3(100, 0, -10), "warrior"], [Vector3(130, 0, -40), "warrior"], [Vector3(110, 0, -50), "caster"],
-	[Vector3(140, 0, -5), "minion"], [Vector3(95, 0, -35), "minion"], [Vector3(125, 0, 10), "caster"], [Vector3(60, 0, -60), "warrior"],
-	[Vector3(-40, 0, -95), "warrior"], [Vector3(-15, 0, -135), "caster"], [Vector3(20, 0, -110), "minion"],
-	# wolf packs in the Dead Forest and on the beach road
-	[Vector3(-120, 0, 70), "wolf"], [Vector3(-124, 0, 74), "wolf"], [Vector3(-117, 0, 76), "wolf"],
-	[Vector3(-150, 0, -30), "wolf"], [Vector3(-146, 0, -26), "wolf"], [Vector3(30, 0, 60), "wolf"], [Vector3(34, 0, 64), "wolf"],
-	# rogues and crossbowmen in the cemetery and on the mountain path
-	[Vector3(112, 0, -18), "rogue"], [Vector3(128, 0, -32), "rogue"], [Vector3(138, 0, -20), "archer"], [Vector3(102, 0, -38), "archer"],
-	[Vector3(-25, 0, -105), "rogue"], [Vector3(-48, 0, -125), "archer"], [Vector3(15, 0, -9), "archer"],
-]
+const Level = preload("res://level.gd")
 const BOSS_HOME := Vector3(0, 0, -26)
 const ANIMS := {
 	"idle": "sword_and_shield_idle", "idle2": "sword_and_shield_idle_2", "run": "sword_and_shield_run",
@@ -32,7 +14,7 @@ const ANIMS := {
 	"strafe_r": "sword_and_shield_strafe", "strafe_l": "sword_and_shield_strafe_2",
 	"roll": "stand_to_roll", "hit1": "sword_and_shield_impact", "hit2": "sword_and_shield_impact_2",
 	"hit3": "sword_and_shield_impact_3", "death": "sword_and_shield_death", "death2": "sword_and_shield_death_2",
-	"block_idle": "sword_and_shield_block_idle", "block_hit": "sword_and_shield_block",
+	"block_idle": "sword_and_shield_block_idle", "block_hit": "sword_and_shield_block", "jump": "sword_and_shield_jump",
 	"draw": "sheath_sword_1",
 	# great sword (two hands): same keys with a g_ prefix, picked by _a() when the great sword is out
 	"g_idle": "gs_great_sword_idle", "g_idle2": "gs_great_sword_idle_2", "g_run": "gs_great_sword_run",
@@ -80,35 +62,12 @@ const COMBO := ["c1", "c2", "c3", "c4", "c5"]
 const CHAIN := ["c1", "c2", "c3", "c4", "c5", "c6"]
 const CHAIN_G := ["g1", "g2", "g3", "g4"]
 const COMBO_G := ["g1", "g2", "g3", "g4"]
-const ENEMY_SPAWNS := [
-	[Vector3(-4, 0, 4), "warrior"], [Vector3(4, 0, 0), "minion"], [Vector3(-2, 0, -6), "warrior"],
-	[Vector3(5, 0, -10), "minion"], [Vector3(-14, 0, -2), "minion"], [Vector3(12, 0, 6), "warrior"],
-	[Vector3(-8, 0, -9), "caster"], [Vector3(14, 0, -6), "caster"],
-]
-const BREAKABLE_SPOTS := [
-	[Vector3(-13.5, 0, 11.5), "Vase_Large", 1.1], [Vector3(-12.6, 0, 12.3), "Vase_Small", 0.7], [Vector3(-10.8, 0, 8.8), "Jar01_Art", 0.9],
-	[Vector3(11.5, 0, 11.2), "Barrel", 1.1], [Vector3(12.3, 0, 10.2), "SmallBarrel_Art", 0.8], [Vector3(8.8, 0, 11.8), "Vase_Mid", 0.9],
-	[Vector3(-2.6, 0, -12.6), "Jar02_Art", 1.0], [Vector3(2.7, 0, -12.5), "Vase_Large", 1.1], [Vector3(19.5, 0, 2), "Barrel", 1.1],
-	[Vector3(19.6, 0, 3.2), "Vase_Broken", 0.8], [Vector3(-19.5, 0, -4), "Jar01_Art", 0.9], [Vector3(-19.4, 0, 18), "Vase_Mid", 0.9],
-	[Vector3(-3.5, 0, -36), "Vase_Large", 1.1], [Vector3(3.6, 0, -36.5), "Jar02_Art", 1.0], [Vector3(15, 0, -41), "SmallBarrel_Art", 0.8],
-]
 # Seeds of power: FOGO casts the current one, TROCAR cycles
 const SEEDS := {
 	"fogo": {"name": "FOGO", "cost": 30.0, "col": Color(1, 0.55, 0.2)},
 	"gelo": {"name": "GELO", "cost": 25.0, "col": Color(0.55, 0.85, 1.0)},
 	"raio": {"name": "RAIO", "cost": 35.0, "col": Color(1.0, 0.95, 0.5)},
 }
-const SEED_SPOTS := [  # [x, z, seed, title, how it works]
-	[132.0, -46.0, "gelo", "SEMENTE DO GELO", "Lentidão e quebra de guarda. TROCAR escolhe a semente."],
-	[-172.0, 8.0, "raio", "SEMENTE DO RAIO", "Acerta na hora e salta para inimigos próximos. TROCAR escolhe a semente."],
-]
-const REGIONS := [  # [x, z, radius, name, subtitle]
-	[0.0, 150.0, 60.0, "PRAIA DAS CINZAS", "Onde o mar devolve os que caem"],
-	[-130.0, 20.0, 85.0, "FLORESTA MORTA", "Os lobos caçam em bando"],
-	[118.0, -25.0, 50.0, "CEMITÉRIO DOS JURAMENTADOS", "Juraram guardar a Semente, mesmo mortos"],
-	[0.0, -165.0, 70.0, "PICO DO DRAGÃO", "O ar cheira a enxofre"],
-	[0.0, -6.0, 48.0, "RUÍNAS DO GUARDIÃO", "Atrás do portão espera o Dragão"],
-]
 # loot: [name, colour, stat factor]; names per slot follow the same rarity order
 const RARITY := [["Comum", Color(0.75, 0.75, 0.75), 1.0], ["Raro", Color(0.35, 0.6, 1.0), 1.6],
 	["Épico", Color(0.75, 0.35, 1.0), 2.4], ["Lendário", Color(1.0, 0.6, 0.1), 3.6]]
@@ -118,7 +77,6 @@ const ITEMS := {
 	"ring": {"names": ["Anel de Osso", "Anel do Cavaleiro", "Anel da Seiva", "Anel do Primeiro Fogo"], "base": 12.0, "fmt": "+%d vida máxima"},
 	"amulet": {"names": ["Amuleto Gasto", "Amuleto Rúnico", "Coração de Brasa", "Olho do Dragão"], "base": 10.0, "fmt": "+%d%% dano das Sementes"},
 }
-const SHARD_SPOTS := [Vector3(-17, 0.6, -9), Vector3(16, 0.6, 22)]
 
 # player
 var player: CharacterBody3D
@@ -146,7 +104,13 @@ var hit_len := 0.55
 var idle_t := 0.0
 var auto_block := 0.0
 var shards: Array = []
-var world: Node3D
+var interacts: Array = []  # {pos, r, label, do}
+var elevator: AnimatableBody3D
+var elevator_open := false
+var elevator_t := 0.0
+var elevator_moving := false
+var bells := 0
+var climbing := false
 var bonfires: Array = []  # [pos, name]
 var bonfire_pos := Vector3.ZERO  # last bonfire rested at
 var lit := {}  # bonfire names already lit
@@ -200,7 +164,6 @@ var seed_marks: Array = []  # [node, spot]
 var region := ""
 var gear := {}  # slot -> item {slot, rarity, name, val}
 var loot: Array = []  # [node, item]
-var map_tex: ImageTexture
 var sfx_players: Array = []
 var sfx_cache := {}
 var music_amb: AudioStreamPlayer
@@ -212,22 +175,15 @@ func _ready() -> void:
 	stone_mat = _pbr("castle_wall_slates", 1.0)
 	_build_world()
 	_build_player()
-	for sp in ENEMY_SPAWNS + WORLD_SPAWNS:
+	for sp in Level.SPAWNS:
 		_spawn_enemy(sp[0], sp[1])
-	for i in SHARD_SPOTS.size():
-		shards.append(_glow_marker(SHARD_SPOTS[i], Color(0.4, 1.0, 0.5)))
+	for i in Level.SHARDS.size():
+		shards.append(_glow_marker(Level.SHARDS[i], Color(0.4, 1.0, 0.5)))
 		shards[-1].set_meta("spot", i)
-	_spawn_boss(BOSS_HOME, 6.5, Color.WHITE, 1100.0, "Dragão Guardião", "guardian")
-	var peak := Vector3(World.PEAK.x, world.height(World.PEAK.x, World.PEAK.y), World.PEAK.y)
-	_spawn_boss(peak, 9.0, Color(1.0, 0.45, 0.4), 2400.0, "Wyrm Ancião", "wyrm")
-	boss = bosses[0]
-	_build_gate()
+	_spawn_breakables()
+	_build_elevator()
 	_build_ui()
 	_build_audio()
-	for sp in SEED_SPOTS:
-		var y: float = world.height(sp[0], sp[1])
-		seed_marks.append([_glow_marker(Vector3(sp[0], y + 0.3, sp[1]), SEEDS[sp[2]].col), sp])
-	map_tex = _make_map()
 	for l in find_children("*", "OmniLight3D", true, false):
 		l.distance_fade_enabled = true
 		l.distance_fade_begin = 35.0
@@ -244,7 +200,7 @@ func _save() -> void:
 	var d := {
 		"level": level, "max_hp": max_hp, "max_stamina": max_stamina, "dmg_mult": dmg_mult, "max_flasks": max_flasks,
 		"embers": embers, "dropped_embers": dropped_embers, "seeds": seeds, "seed_i": seed_i, "dragon_seed": dragon_seed,
-		"gear": gear, "lit": lit.keys(),
+		"gear": gear, "lit": lit.keys(), "elevator_open": elevator_open, "bells": bells,
 		"bonfire": [bonfire_pos.x, bonfire_pos.y, bonfire_pos.z],
 		"dropped_at": [dropped_marker.position.x, dropped_marker.position.y, dropped_marker.position.z] if dropped_marker != null else [],
 		"bosses_dead": bosses.filter(func(b): return b.dead).map(func(b): return b.kind),
@@ -278,6 +234,8 @@ func _load() -> void:
 		gear[slot] = it
 	for n in d.lit:
 		lit[n] = true
+	elevator_open = d.get("elevator_open", false)
+	bells = int(d.get("bells", 0))
 	bonfire_pos = Vector3(d.bonfire[0], d.bonfire[1], d.bonfire[2])
 	if d.dropped_at.size() == 3 and int(d.dropped_embers) > 0:
 		dropped_embers = int(d.dropped_embers)
@@ -416,119 +374,7 @@ func _build_world() -> void:
 	moon.directional_shadow_max_distance = 25
 	moon.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL  # one shadow pass instead of four
 	add_child(moon)
-	world = World.new()
-	world.flatten(World.PEAK, 20.0)  # the Ancient Wyrm's summit
-	for b in BONFIRES:
-		bonfires.append([Vector3(b[0], world.flatten(Vector2(b[0], b[1]), 5.0), b[1]), b[2]])
-	var ground := ShaderMaterial.new()
-	ground.shader = load("res://terrain.gdshader")
-	for t in [["mud", "brown_mud_leaves_01"], ["rock", "aerial_rocks_02"], ["sand", "coast_sand_rocks_02"]]:
-		ground.set_shader_parameter(t[0], load("res://assets/tex/%s_diff_1k.jpg" % t[1]))
-		ground.set_shader_parameter(t[0] + "_n", load("res://assets/tex/%s_nor_gl_1k.jpg" % t[1]))
-	var sea := StandardMaterial3D.new()
-	sea.albedo_color = Color(0.02, 0.04, 0.06)
-	sea.metallic = 0.6
-	sea.roughness = 0.15
-	world.build(ground, sea)
-	add_child(world)
-	bonfire_pos = bonfires[1][0]
-	var floor_mat := _pbr("cobblestone_floor_08", 18.0)
-	_box_collider(Vector3(0, -0.5, -6), Vector3(44, 1, 76), floor_mat)
-	var wall := _pbr("castle_wall_slates", 4.0)
-	_box_collider(Vector3(-22, 4, -6), Vector3(1, 8, 76), wall)
-	_box_collider(Vector3(22, 4, -6), Vector3(1, 8, 76), wall)
-	_box_collider(Vector3(-12.5, 4, 32), Vector3(19, 8, 1), wall)  # south wall, gate gap in the middle
-	_box_collider(Vector3(12.5, 4, 32), Vector3(19, 8, 1), wall)
-	_box_collider(Vector3(0, 4, -44), Vector3(44, 8, 1), wall)
-	# divider wall with the archway to the boss arena
-	_box_collider(Vector3(-12.6, 3, -14), Vector3(18.8, 6, 1.2), wall)
-	_box_collider(Vector3(12.6, 3, -14), Vector3(18.8, 6, 1.2), wall)
-	var arch := _prop("archway_gate", Vector3(0, 0, -14))
-	arch.get_children()  # keep the gate visual; the bars are decorative and open
-	for b in bonfires:
-		_prop("bonfire", b[0])
-		var fire := OmniLight3D.new()
-		fire.position = b[0] + Vector3(0, 0.9, 0)
-		fire.light_color = Color(1, 0.5, 0.15)
-		fire.light_energy = 3.0
-		fire.omni_range = 9
-		add_child(fire)
-	for i in 4:
-		var side := -1 if i % 2 == 0 else 1
-		_prop("column_broken", Vector3(side * 9, 0, 8 - i * 6), randf() * TAU)
-	_prop("graves", Vector3(-12, 0, 10), 0.3)
-	_prop("graves", Vector3(13, 0, -4), -0.5)
-	_prop("wall_ruin", Vector3(10, 0, 10), 0.4)
-	_prop("wall_ruin", Vector3(-11, 0, -6), -0.2)
-	_prop("seed_shrine", Vector3(0, 0, -38))
-	for x in [-1.7, 1.7]:
-		var t := _prop("torch_sconce", Vector3(x * 1.6, 2.6, -13.3), PI)
-		var l := OmniLight3D.new()
-		l.position = t.position + Vector3(0, 0.6, 0.4)
-		l.light_color = Color(1, 0.55, 0.2)
-		l.light_energy = 2.2
-		l.omni_range = 8
-		add_child(l)
-	for z in [-22.0, -32.0]:
-		for x in [-14.0, 14.0]:
-			_prop("column_broken", Vector3(x, 0, z), randf() * TAU, 1.3)
-			var l2 := OmniLight3D.new()
-			l2.position = Vector3(x * 0.85, 2.0, z)
-			l2.light_color = Color(1, 0.35, 0.1)
-			l2.light_energy = 1.6
-			l2.omni_range = 9
-			add_child(l2)
-	_build_scenery()
-	_build_ruins()
-
-# Gobkit CC0 nature kit (assets/nature), darkened: pines and cliffs over the walls,
-# rubble rocks along the inside of the walls.
-func _build_scenery() -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 7
-	var rock := _pbr("castle_wall_slates", 1.0)
-	rock.uv1_triplanar = true
-	rock.uv1_scale = Vector3(0.08, 0.08, 0.08)
-	rock.albedo_color = Color(0.55, 0.55, 0.6)
-	# pines over the whole island, thick in the Dead Forest (west), none in the ruins or on the camps
-	var keep := func(p: Vector2, _y: float) -> bool:
-		if p.x > World.RUINS.position.x - 6 and p.x < World.RUINS.end.x + 6 and p.y > World.RUINS.position.y - 6 and p.y < World.RUINS.end.y + 6:
-			return false
-		for b in bonfires:
-			if Vector2(b[0].x, b[0].z).distance_to(p) < 9.0:
-				return false
-		return true
-	var forest := Rect2(-210, -90, 150, 220)
-	_scatter_model("nature/dead_tree_1", 150, forest, Vector2(6, 9), Color.WHITE, keep, 3)
-	_scatter_model("nature/dead_tree_2", 110, forest, Vector2(5, 8), Color.WHITE, keep, 13)
-	_scatter_model("nature/dead_tree_3", 50, forest, Vector2(4, 6), Color.WHITE, keep, 23)
-	_scatter_model("nature/pine_1", 140, Rect2(-210, -210, 420, 420), Vector2(9, 14), Color.WHITE, keep, 4)
-	_scatter_model("nature/pine_2", 120, Rect2(-210, -210, 420, 420), Vector2(8, 12), Color.WHITE, keep, 5)
-	_scatter_model("nature/dead_tree_1", 70, Rect2(-210, -210, 420, 420), Vector2(5, 8), Color.WHITE, keep, 8)
-	_scatter_model("nature/Rock002", 140, Rect2(-210, -210, 420, 420), Vector2(1.0, 3.5), Color.WHITE, keep, 6, rock)
-	_scatter_model("nature/Cliff003", 18, Rect2(-60, -215, 120, 90), Vector2(14, 22), Color.WHITE, keep, 7, rock)
-	# the Oathbound Cemetery (east)
-	var grng := RandomNumberGenerator.new()
-	grng.seed = 9
-	for g in 22:
-		var gp := Vector2(118, -25) + Vector2(grng.randf_range(-28, 28), grng.randf_range(-28, 28))
-		if gp.distance_to(Vector2(118, -25)) > 7.0:
-			_prop("graves", Vector3(gp.x, world.height(gp.x, gp.y), gp.y), grng.randf() * TAU)
-	for c in [Vector2(104, -8), Vector2(134, -40), Vector2(100, -45)]:
-		_prop("column_broken", Vector3(c.x, world.height(c.x, c.y), c.y), grng.randf() * TAU, 1.2)
-	for i in 10:
-		var side := -1 if i % 2 == 0 else 1
-		var pos := Vector3(side * rng.randf_range(18.5, 20.5), 0, rng.randf_range(-40, 28))
-		var h := rng.randf_range(0.8, 1.8)
-		_place("nature/Rock00%d" % rng.randi_range(1, 3), pos, h, Color.WHITE, rock)
-		var body := StaticBody3D.new()
-		var cs := CollisionShape3D.new()
-		var sh := SphereShape3D.new()
-		sh.radius = h * 0.6
-		cs.shape = sh
-		body.position = pos + Vector3(0, h * 0.4, 0)
-		body.add_child(cs)
-		add_child(body)
+	Level.build(self)
 
 # places a model from assets/<path>.glb scaled to height h; tint darkens its own material, mat replaces it
 func _place(path: String, pos: Vector3, h: float, tint: Color, mat: Material = null, rot_y := -1.0) -> Node3D:
@@ -564,21 +410,6 @@ func _place(path: String, pos: Vector3, h: float, tint: Color, mat: Material = n
 	holder.rotation.y = randf() * TAU if rot_y < 0 else rot_y
 	return holder
 
-# one model many times (MultiMesh) on the island terrain, scaled to a height range
-func _scatter_model(path: String, count: int, area: Rect2, h: Vector2, tint: Color, keep: Callable, seed: int, mat: Material = null) -> void:
-	var n: Node3D = load("res://assets/%s.glb" % path).instantiate()
-	var mi: MeshInstance3D = n.find_children("*", "MeshInstance3D", true, false)[0]
-	var k: float = 1.0 / mi.get_aabb().size.y
-	var m: Material = mat
-	if m == null:
-		m = mi.mesh.surface_get_material(0).duplicate()
-		m.albedo_color *= tint
-	var mmi: MultiMeshInstance3D = world.scatter(mi.mesh, count, area, h * k, keep, seed)
-	mmi.material_override = m
-	mmi.visibility_range_end = 110.0  # the fog hides them past this anyway
-	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	n.free()
-
 func _static_box(pos: Vector3, size: Vector3) -> void:
 	var body := StaticBody3D.new()
 	var cs := CollisionShape3D.new()
@@ -589,49 +420,13 @@ func _static_box(pos: Vector3, size: Vector3) -> void:
 	body.add_child(cs)
 	add_child(body)
 
-# Polygonal Mind CC0 ruins (assets/pm): arch, columns, broken walls, seed crystals, webs, a cart
-func _build_ruins() -> void:
-	var stone := _pbr("castle_wall_slates", 1.0)
-	stone.uv1_triplanar = true
-	stone.uv1_scale = Vector3(0.2, 0.2, 0.2)
-	_place("pm/Arc", Vector3(-15, 0, 23), 5.0, Color.WHITE, stone, 0.5)
-	_place("pm/Wall_Broken_01", Vector3(16, 0, 25), 3.5, Color.WHITE, stone, -0.3)
-	_static_box(Vector3(16, 0, 25), Vector3(2.2, 3.5, 3.6))
-	_place("pm/Wall_CornerBroken", Vector3(-18.5, 0, -40), 4.0, Color.WHITE, stone, PI * 0.25)
-	for c in [[Vector3(-7, 0, -20), "Column_Regular", 6.0], [Vector3(7, 0, -20), "Column_Regular", 6.0],
-			[Vector3(7, 0, -34), "Column_SmallBroken_01", 2.6], [Vector3(-8, 0, -28), "Column_SmallBroken_01", 2.6]]:
-		_place("pm/" + c[1], c[0], c[2], Color.WHITE, stone, -1.0)
-		_static_box(c[0], Vector3(1.6, c[2], 1.6))
-	# Seed crystals around the shrine: dark glass with an ember core
-	var crystal := StandardMaterial3D.new()
-	crystal.albedo_color = Color(0.25, 0.05, 0.03)
-	crystal.emission_enabled = true
-	crystal.emission = Color(1.0, 0.3, 0.05)
-	crystal.emission_energy_multiplier = 0.35
-	crystal.roughness = 0.2
-	for i in 5:
-		var a := i * TAU / 5 + 0.4
-		_place("pm/Crystal_Small_0%d" % (1 if i % 2 == 0 else 3), Vector3(0, 0, -38) + Vector3(sin(a), 0, cos(a)) * 2.8, randf_range(1.0, 2.0), Color.WHITE, crystal, -1.0)
-	var cl := OmniLight3D.new()
-	cl.position = Vector3(0, 1.2, -38)
-	cl.light_color = Color(1, 0.35, 0.08)
-	cl.light_energy = 1.5
-	cl.omni_range = 6
-	add_child(cl)
-	for w in [[Vector3(-21.3, 3.5, 31.3), PI * 0.75], [Vector3(21.3, 3.5, 31.3), PI * 1.25],
-			[Vector3(-21.3, 3.5, -43.3), PI * 0.25], [Vector3(21.3, 3.5, -43.3), PI * 1.75]]:
-		_place("pm/Spiderweb_Art", w[0], 0.0, Color(0.6, 0.6, 0.6), null, w[1]).rotation.x = PI / 2  # flat model, stood up
-	_place("pm/Cart", Vector3(6, 0, 19), 1.8, Color(0.45, 0.4, 0.38), null, 2.4)
-	_static_box(Vector3(6, 0, 19), Vector3(2.6, 1.6, 2.6))
-	_spawn_breakables()
-
 # pots, jars and barrels: break with an attack or a roll, drop a few embers, back at the bonfire
 func _spawn_breakables() -> void:
 	for b in breakables:
 		if is_instance_valid(b.node):
 			b.node.queue_free()
 	breakables.clear()
-	for sp in BREAKABLE_SPOTS:
+	for sp in Level.BREAKABLES:
 		var n := _place("pm/" + sp[1], sp[0], sp[2], Color(0.5, 0.45, 0.42), null)
 		breakables.append({"node": n, "pos": sp[0], "wood": sp[1].contains("Barrel")})
 
@@ -735,11 +530,11 @@ func _dark_cloth() -> StandardMaterial3D:
 	m.roughness = 0.9
 	return m
 
-const ENEMY_NAME := {"warrior": "Esqueleto Guerreiro", "minion": "Esqueleto Lacaio", "caster": "Esqueleto Mago",
+const ENEMY_NAME := {"sentinel": "Sentinela de Pedra", "warrior": "Esqueleto Guerreiro", "minion": "Esqueleto Lacaio", "caster": "Esqueleto Mago",
 	"rogue": "Esqueleto Ladino", "archer": "Esqueleto Besteiro", "wolf": "Lobo da Cinza"}
-const SKELETON_FILE := {"warrior": "Warrior", "minion": "Minion", "caster": "Mage", "rogue": "Rogue", "archer": "Rogue"}
+const SKELETON_FILE := {"sentinel": "Warrior", "warrior": "Warrior", "minion": "Minion", "caster": "Mage", "rogue": "Rogue", "archer": "Rogue"}
 # weapon props per kind: [bone, gltf]
-const SKELETON_GEAR := {"warrior": [["handslot.r", "Blade"]], "minion": [["handslot.r", "Blade"]], "caster": [["handslot.r", "Staff"]],
+const SKELETON_GEAR := {"sentinel": [["handslot.r", "Blade"]], "warrior": [["handslot.r", "Blade"]], "minion": [["handslot.r", "Blade"]], "caster": [["handslot.r", "Staff"]],
 	"rogue": [["handslot.r", "Blade"], ["handslot.l", "Blade"]], "archer": [["handslot.l", "Crossbow"]]}
 
 func _skeleton_model(kind: String) -> Node3D:
@@ -749,8 +544,8 @@ func _skeleton_model(kind: String) -> Node3D:
 	_shrink_skull(k.find_children("*", "AnimationPlayer", true, false)[0])
 	for hat in k.find_children("*Hat*", "MeshInstance3D", true, false):
 		hat.visible = false  # the pointed wizard hat reads as a cartoon
-	k.scale = Vector3.ONE * (1.0 if kind == "warrior" else 0.92)
-	var bone := Color(0.55, 0.6, 0.72) if kind == "caster" else Color(0.72, 0.68, 0.62)
+	k.scale = Vector3.ONE * {"warrior": 1.0, "sentinel": 1.7}.get(kind, 0.92)
+	var bone: Color = {"caster": Color(0.55, 0.6, 0.72), "sentinel": Color(0.45, 0.45, 0.47)}.get(kind, Color(0.72, 0.68, 0.62))
 	for m in k.find_children("*", "MeshInstance3D", true, false):
 		for i in m.mesh.get_surface_count():
 			var mt = m.mesh.surface_get_material(i)
@@ -803,7 +598,7 @@ func _wolf_model() -> Node3D:
 
 func _spawn_enemy(pos: Vector3, kind := "warrior") -> void:
 	var root := Node3D.new()
-	root.position = Vector3(pos.x, world.height(pos.x, pos.z), pos.z)
+	root.position = pos
 	root.rotation.y = randf() * TAU
 	add_child(root)
 	var k := _skeleton_model(kind)
@@ -819,8 +614,8 @@ func _spawn_enemy(pos: Vector3, kind := "warrior") -> void:
 	root.add_child(eye)
 	var ap: AnimationPlayer = k.find_children("*", "AnimationPlayer", true, false)[0]
 	ap.play("WolfArmature|Idle" if kind == "wolf" else "Skeletons_Inactive_Floor_Pose")
-	var hpv: float = {"warrior": 90.0, "minion": 55.0, "caster": 45.0, "rogue": 60.0, "archer": 50.0, "wolf": 70.0}[kind]
-	var poise: float = {"warrior": 40.0, "minion": 22.0, "caster": 15.0, "rogue": 25.0, "archer": 18.0, "wolf": 30.0}[kind]
+	var hpv: float = {"sentinel": 380.0, "warrior": 90.0, "minion": 55.0, "caster": 45.0, "rogue": 60.0, "archer": 50.0, "wolf": 70.0}[kind]
+	var poise: float = {"sentinel": 90.0, "warrior": 40.0, "minion": 22.0, "caster": 15.0, "rogue": 25.0, "archer": 18.0, "wolf": 30.0}[kind]
 	enemies.append({"root": root, "ap": ap, "eye": eye, "kind": kind, "hp": hpv, "max": hpv, "poise": poise, "max_poise": poise,
 		"home": pos, "state": "dormant", "t": 0.0, "hit": false, "dead": false, "atk": "", "wind_pos": 0.0, "leap": false,
 		"model": k, "combo": false, "side": 1.0, "dodge": Vector3.ZERO, "revive_t": -1.0, "revived": false, "cast_cd": 2.0})
@@ -892,6 +687,7 @@ func _physics_process(dt: float) -> void:
 			near = d
 			boss = b
 	_update_meteors(dt)
+	_update_elevator(dt)
 	_update_fireballs(dt)
 	_update_bolts(dt)
 	_update_pickups()
@@ -995,6 +791,13 @@ func _update_player(dt: float) -> void:
 				anim.speed_scale = 1.0
 				_play(_a("drink"), 0.1)
 				_sfx("metalPot1", -6)
+			elif _pressed("jump") and player.is_on_floor() and stamina > 5:
+				player.velocity.y = 7.6
+				_spend(8.0)
+				anim.play(_a("jump"), 0.1, 1.4)
+				_sfx(["cloth1", "cloth3"], -6)
+			elif _pressed("interact") and _current_interact() != null:
+				_current_interact().do.call()
 			elif _held("block") and stamina > 0:
 				_set_state("block")
 				block_t = 0.0
@@ -1057,6 +860,8 @@ func _update_player(dt: float) -> void:
 				_start_move(_mv("kick"))
 			elif not _held("block"):
 				_set_state("free")
+		"climb":
+			player.velocity = Vector3.ZERO
 		"swap":
 			player.velocity.x = 0
 			player.velocity.z = 0
@@ -1098,9 +903,13 @@ func _update_player(dt: float) -> void:
 			player.velocity = Vector3.ZERO
 			if state_t > 4.0:
 				_respawn()
+	if state == "free" and not player.is_on_floor() and dir.length() > 0.1 and player.velocity.y < 2.0:
+		_try_mantle()
+	if state == "climb":
+		player.velocity = Vector3.ZERO
 	player.move_and_slide()
-	if player.position.y < World.SEA - 0.8 and state != "dead":
-		_hurt_player(9999.0, "Afogado no mar de cinzas")
+	if player.position.y < Level.FALL_DEATH_Y and state != "dead":
+		_hurt_player(9999.0, "Caiu no abismo")
 	if state == "roll" or sprinting:
 		for b in breakables.duplicate():
 			if Vector2(b.pos.x - player.position.x, b.pos.z - player.position.z).length() < 0.9:
@@ -1143,20 +952,111 @@ func _fast_travel() -> void:
 	_sfx("fireball", -8)
 	_show_banner(to[1].to_upper(), "Viagem pelas chamas", Color(1, 0.7, 0.3), 2.5)
 
-# top-down island picture for the HUD map (north up)
-func _make_map() -> ImageTexture:
-	var n := 128
-	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
-	for j in n:
-		for i in n:
-			var x := -220.0 + 440.0 * i / n
-			var z := -220.0 + 440.0 * j / n
-			var h: float = world.height(x, z)
-			var c := Color(0.05, 0.08, 0.12, 0.85) if h < World.SEA else Color(0.22, 0.2, 0.17, 0.9).lerp(Color(0.6, 0.58, 0.55, 0.9), clampf(h / 40.0, 0.0, 1.0))
-			if World.RUINS.has_point(Vector2(x, z)):
-				c = Color(0.35, 0.33, 0.32, 0.95)
-			img.set_pixel(i, j, c)
-	return ImageTexture.create_from_image(img)
+# ground under a point (level geometry), or the fallback when there is none
+func _ground_y(p: Vector3, fallback: float) -> float:
+	var q := PhysicsRayQueryParameters3D.create(p + Vector3(0, 2.5, 0), p - Vector3(0, 6.0, 0))
+	q.exclude = [player.get_rid()]
+	var hit := player.get_world_3d().direct_space_state.intersect_ray(q)
+	return hit.position.y if not hit.is_empty() else fallback
+
+# grab a ledge in front while airborne: chest ray hits a wall, a ray from above finds its top within reach
+func _try_mantle() -> void:
+	var space := player.get_world_3d().direct_space_state
+	var fwd := _fwd()
+	var chest := PhysicsRayQueryParameters3D.create(player.position + Vector3(0, 1.1, 0), player.position + Vector3(0, 1.1, 0) + fwd * 0.9)
+	chest.exclude = [player.get_rid()]
+	if space.intersect_ray(chest).is_empty():
+		return
+	var above := player.position + fwd * 0.75 + Vector3(0, 2.6, 0)
+	var down := PhysicsRayQueryParameters3D.create(above, above - Vector3(0, 2.4, 0))
+	down.exclude = [player.get_rid()]
+	var top := space.intersect_ray(down)
+	if top.is_empty() or top.normal.y < 0.7:
+		return
+	var rise: float = top.position.y - player.position.y
+	if rise < 0.5 or rise > 2.4:
+		return
+	_climb(top.position + fwd * 0.4 + Vector3(0, 0.05, 0), 0.55)
+
+# move the hero to a spot over time (ledge grab, ladder); no control meanwhile
+func _climb(to: Vector3, secs := 2.2) -> void:
+	_set_state("climb")
+	anim.play(_a("jump"), 0.1, 0.8)
+	_sfx("cloth3", -4)
+	var tw := create_tween()
+	tw.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+	tw.tween_property(player, "position", Vector3(player.position.x, to.y, player.position.z), secs * 0.7)
+	tw.tween_property(player, "position", to, secs * 0.3)
+	tw.tween_callback(func(): _set_state("free"))
+
+func _ring_bell(n: int) -> void:
+	_sfx("jingle_win", 0)
+	_sfx("impactPlate_heavy_002", 4)
+	shake = 0.5
+	if bells >= n:
+		_show_banner("O SINO JÁ TOCOU", "", Color(0.8, 0.75, 0.6), 2.0)
+		return
+	bells = n
+	_show_banner("%dº SINO DO DESPERTAR" % n, "Algo se move nas profundezas", Color(1, 0.85, 0.5), 4.0)
+	_save()
+
+func _current_interact():
+	for it in interacts:
+		var d: Vector3 = it.pos - player.position
+		if Vector2(d.x, d.z).length() < it.r and absf(d.y) < 2.2:
+			return it
+	return null
+
+# the church elevator: starts at the top; riding it down the first time opens the shortcut
+func _build_elevator() -> void:
+	elevator = AnimatableBody3D.new()
+	elevator.position = Vector3(Level.ELEVATOR.x, Level.CHURCH_Y - 0.2, Level.ELEVATOR.z)
+	var cs := CollisionShape3D.new()
+	var sh := BoxShape3D.new()
+	sh.size = Vector3(3.6, 0.4, 3.6)
+	cs.shape = sh
+	elevator.add_child(cs)
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = sh.size
+	mi.mesh = bm
+	mi.material_override = Level.mats.wood
+	elevator.add_child(mi)
+	add_child(elevator)
+	var bottom := Vector3(Level.ELEVATOR.x + 2.6, 0, Level.ELEVATOR.z)
+	var top := Vector3(Level.ELEVATOR.x - 1.8, Level.CHURCH_Y, Level.ELEVATOR.z)
+	interacts.append({"pos": bottom, "r": 2.0, "label": "CHAMAR", "do": func(): _call_elevator(0.0)})
+	interacts.append({"pos": top, "r": 2.0, "label": "CHAMAR", "do": func(): _call_elevator(Level.CHURCH_Y)})
+
+func _call_elevator(to_y: float) -> void:
+	if not elevator_open:
+		_show_banner("NÃO RESPONDE", "Algo o trava lá em cima", Color(0.8, 0.7, 0.6), 2.5)
+		return
+	_move_elevator(to_y)
+
+func _move_elevator(to_y: float) -> void:
+	if elevator_moving or absf(elevator.position.y + 0.2 - to_y) < 0.5:
+		return
+	elevator_moving = true
+	_sfx("impactWood_heavy_000", -2)
+	var tw := create_tween()
+	tw.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+	tw.tween_property(elevator, "position:y", to_y - 0.2, 7.0).set_trans(Tween.TRANS_SINE)
+	tw.tween_callback(func(): elevator_moving = false)
+
+func _update_elevator(dt: float) -> void:
+	var p := elevator.position
+	var on := absf(player.position.x - p.x) < 1.8 and absf(player.position.z - p.z) < 1.8 and absf(player.position.y - (p.y + 0.2)) < 0.6
+	elevator_t = elevator_t + dt if on and not elevator_moving else 0.0
+	if elevator_t > 0.6:
+		elevator_t = 0.0
+		var at_top := p.y > Level.CHURCH_Y * 0.5
+		if at_top and not elevator_open:
+			elevator_open = true
+			_show_banner("ATALHO ABERTO", "O elevador liga a Igreja ao Santuário", Color(0.6, 1, 0.6), 3.5)
+			_save()
+		if elevator_open:
+			_move_elevator(0.0 if at_top else Level.CHURCH_Y)
 
 func _near_bonfire(r: float):
 	for b in bonfires:
@@ -1361,7 +1261,7 @@ func _kill_enemy(e: Dictionary) -> void:
 		e.ap.play(["Death_A", "Death_B"].pick_random())
 	if randf() < (0.25 if e.kind == "wolf" else 0.35):
 		_drop_item(e.root.position, _roll_rarity())
-	var reward: int = {"warrior": 60, "minion": 35, "caster": 50, "rogue": 45, "archer": 45, "wolf": 40}[e.kind] / (2 if e.revived else 1)
+	var reward: int = {"sentinel": 300, "warrior": 60, "minion": 35, "caster": 50, "rogue": 45, "archer": 45, "wolf": 40}[e.kind] / (2 if e.revived else 1)
 	embers += reward
 	_float("+%d brasas" % reward, e.root.position + Vector3(0, 2.6, 0), Color(1, 0.7, 0.3))
 	if lock_target == e:
@@ -1481,7 +1381,7 @@ func _drop_item(pos: Vector3, rarity: int) -> void:
 	var f: float = RARITY[rarity][2] * randf_range(0.85, 1.15)
 	var item := {"slot": slot, "rarity": rarity, "name": ITEMS[slot].names[rarity], "val": roundf(ITEMS[slot].base * f)}
 	var col: Color = RARITY[rarity][1]
-	var n := _glow_marker(Vector3(pos.x, world.height(pos.x, pos.z) + 0.2, pos.z), col)
+	var n := _glow_marker(pos + Vector3(0, 0.2, 0), col)
 	if rarity >= 1:  # a beam of light so rare drops are seen from afar
 		var beam := MeshInstance3D.new()
 		var cm := CylinderMesh.new()
@@ -1535,12 +1435,11 @@ func _update_pickups() -> void:
 			_show_banner(sm[1][3], sm[1][4], SEEDS[sm[1][2]].col, 4.0)
 			_save()
 	var r := ""
-	for rg in REGIONS:
-		if Vector2(player.position.x, player.position.z).distance_to(Vector2(rg[0], rg[1])) < rg[2]:
-			r = rg[3]
-			if r != region and banner_t <= 0.5:
-				_show_banner(rg[3], rg[4], Color(0.95, 0.85, 0.65), 3.5)
-			break
+	var ar := Level.area_of(player.position)
+	if not ar.is_empty():
+		r = ar[0]
+		if r != region and banner_t <= 0.5:
+			_show_banner(ar[0], ar[1], Color(0.95, 0.85, 0.65), 3.5)
 	if banner_t <= 0.5 or r != "":
 		region = r
 	for s in shards.duplicate():
@@ -1579,7 +1478,7 @@ func _respawn_enemies() -> void:
 	for e in enemies:
 		e.root.queue_free()
 	enemies.clear()
-	for sp in ENEMY_SPAWNS + WORLD_SPAWNS:
+	for sp in Level.SPAWNS:
 		_spawn_enemy(sp[0], sp[1])
 
 func _toggle_lock() -> void:
@@ -1629,6 +1528,8 @@ func _build_gate() -> void:
 	add_child(gate)
 
 func _set_gate(closed: bool) -> void:
+	if gate == null:
+		return
 	(gate.get_child(0) as CollisionShape3D).disabled = not closed
 	create_tween().tween_property(gate_bars, "position:y", 0.0 if closed else 4.2, 0.5 if closed else 2.0)
 	if closed:
@@ -1653,7 +1554,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 		e.slow -= dt
 		dt *= 0.4
 		e.ap.speed_scale = 0.4 if e.slow > 0.0 else 1.0
-	e.root.position.y = world.height(e.root.position.x, e.root.position.z)
+	e.root.position.y = _ground_y(e.root.position, e.root.position.y)
 	if e.dead:
 		# some skeletons pull themselves back together once, unless their bones are burnt (Fire Seed)
 		if e.revive_t > 0:
@@ -1678,7 +1579,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 	to.y = 0
 	var dist := to.length()
 	var ap: AnimationPlayer = e.ap
-	var speed: float = {"warrior": 3.0, "minion": 3.9, "rogue": 4.4}.get(e.kind, 3.0)
+	var speed: float = {"sentinel": 2.4, "warrior": 3.0, "minion": 3.9, "rogue": 4.4}.get(e.kind, 3.0)
 	match e.state:
 		"dormant":
 			if dist < 9 and state != "dead":
@@ -1754,7 +1655,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				ap.play("Running_Strafe_Left" if e.side > 0 else "Running_Strafe_Right", 0.2)
 				return
 			# warriors raise the shield when the player swings at them
-			if e.kind == "warrior" and state == "attack" and state_t < 0.1 and dist < 3.2 and randf() < 0.35:
+			if e.kind in ["warrior", "sentinel"] and state == "attack" and state_t < 0.1 and dist < 3.2 and randf() < 0.35:
 				e.state = "block"
 				e.t = 0.0
 				ap.play("Blocking", 0.1)
@@ -1778,7 +1679,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				ap.play(["Taunt", "Cheer"].pick_random() if state == "dead" else "Idle_Combat", 0.2)
 		"windup":
 			e.eye.light_energy = 0.5 + 6.0 * e.t
-			if e.t > (0.45 if e.kind == "warrior" else 0.3):
+			if e.t > (0.45 if e.kind in ["warrior", "sentinel"] else 0.3):
 				e.state = "strike"
 				e.t = 0.0
 				e.hit = false
@@ -1795,7 +1696,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				e.hit = true
 				var fwd := Vector3(sin(e.root.rotation.y), 0, cos(e.root.rotation.y))
 				if dist < 2.6 and fwd.angle_to(to.normalized()) < 1.0:
-					_hurt_player({"warrior": 30.0, "minion": 20.0, "rogue": 16.0}.get(e.kind, 20.0), ENEMY_NAME[e.kind], e)
+					_hurt_player({"sentinel": 40.0, "warrior": 30.0, "minion": 20.0, "rogue": 16.0}.get(e.kind, 20.0), ENEMY_NAME[e.kind], e)
 			if ap.current_animation_position > length * 0.92 or e.t > 2.5:
 				e.leap = false
 				# one follow-up swing now and then
@@ -1911,7 +1812,7 @@ func _enemy_attack(e: Dictionary, atk: String) -> void:
 	e.atk = atk
 	e.ap.play(atk, 0.1, 0.35)
 	e.wind_pos = 0.0
-	e.wind_pos = (0.45 if e.kind == "warrior" else 0.3) * 0.35
+	e.wind_pos = (0.45 if e.kind in ["warrior", "sentinel"] else 0.3) * 0.35
 
 func _update_boss(dt: float) -> void:
 	if boss == null or boss.dead:
@@ -1985,7 +1886,6 @@ func _update_boss(dt: float) -> void:
 				boss.t = 0.0
 
 func _meteor(at: Vector3) -> void:
-	at.y = world.height(at.x, at.z)
 	var ring := MeshInstance3D.new()  # warning circle on the ground
 	var tm := TorusMesh.new()
 	tm.inner_radius = 1.7
@@ -2299,7 +2199,7 @@ func _build_ui() -> void:
 	joystick.set("joystick_size", 230)
 	joystick.set("tip_size", 100)
 	ui.add_child(joystick)
-	for a in ["attack", "roll", "lock", "seed", "flask", "block", "level", "weapon", "seed_next", "travel"]:
+	for a in ["attack", "roll", "lock", "seed", "flask", "block", "level", "weapon", "seed_next", "travel", "jump", "interact"]:
 		var b := TouchScreenButton.new()
 		var s := CircleShape2D.new()
 		s.radius = _button_r(a)
@@ -2328,6 +2228,8 @@ func _button_pos(a: String, vs: Vector2) -> Vector2:
 		"weapon": return Vector2(vs.x - 260, vs.y - 640)
 		"seed_next": return Vector2(vs.x - 470, vs.y - 500)
 		"travel": return Vector2(vs.x * 0.5 + 160, vs.y - 120)
+		"jump": return Vector2(vs.x - 600, vs.y - 150)
+		"interact": return Vector2(vs.x - 610, vs.y - 330)
 		"level": return Vector2(vs.x * 0.5, vs.y - 120)
 	return Vector2.ZERO
 
@@ -2385,18 +2287,6 @@ func _draw_ui() -> void:
 		ui_draw.draw_rect(Rect2(ep - Vector2(50, -10), Vector2(100 * e.poise / e.max_poise, 4)), Color(1, 0.8, 0.3) if e.state != "broken" else Color(1, 0.2, 0.2))
 	_text("%d" % embers, Vector2(vs.x - 220, 60), 40, Color(1, 0.75, 0.4))
 	_text("brasas", Vector2(vs.x - 220, 92), 22, Color(0.8, 0.6, 0.4))
-	var ms := 190.0
-	var mp := Vector2(vs.x - ms - 30, 150)
-	ui_draw.draw_texture_rect(map_tex, Rect2(mp, Vector2(ms, ms)), false)
-	ui_draw.draw_rect(Rect2(mp, Vector2(ms, ms)), Color(0.8, 0.7, 0.5, 0.6), false, 2.0)
-	var to_map := func(p: Vector3) -> Vector2: return mp + Vector2((p.x + 220.0) / 440.0, (p.z + 220.0) / 440.0) * ms
-	for b in bonfires:
-		ui_draw.draw_circle(to_map.call(b[0]), 4.0, Color(1, 0.55, 0.15) if lit.has(b[1]) else Color(0.5, 0.5, 0.5))
-	for sm in seed_marks:
-		ui_draw.draw_circle(to_map.call(sm[0].position), 3.0, SEEDS[sm[1][2]].col)
-	var pp: Vector2 = to_map.call(player.position)
-	var dir := Vector2(sin(model.rotation.y), cos(model.rotation.y))
-	ui_draw.draw_colored_polygon(PackedVector2Array([pp + dir * 8.0, pp + dir.rotated(2.5) * 6.0, pp + dir.rotated(-2.5) * 6.0]), Color.WHITE)
 	if dragon_seed:
 		_text("Semente do Dragão", Vector2(vs.x - 330, 130), 26, Color(1, 0.55, 0.15))
 	if boss != null and boss.awake and not boss.dead:
@@ -2412,10 +2302,13 @@ func _draw_ui() -> void:
 			continue
 		if a == "seed_next" and seeds.size() < 2:
 			continue
+		if a == "interact" and _current_interact() == null:
+			continue
 		if a == "travel" and (_near_bonfire(3.0) == null or lit.size() < 2):
 			continue
 		var label: String = {"attack": "ATACAR", "roll": "ROLAR", "lock": "MIRA", "seed": SEEDS[seeds[seed_i]].name, "flask": "FRASCO", "block": "DEFESA",
-			"level": "NÍVEL", "weapon": "ARMA", "seed_next": "TROCAR", "travel": "VIAJAR"}[a]
+			"level": "NÍVEL", "weapon": "ARMA", "seed_next": "TROCAR", "travel": "VIAJAR", "jump": "PULAR",
+			"interact": _current_interact().label if a == "interact" else ""}[a]
 		var col: Color = SEEDS[seeds[seed_i]].col if a == "seed" else Color(1, 1, 1)
 		ui_draw.draw_circle(pos, r, Color(col, 0.28 if Input.is_action_pressed(a) else 0.12))
 		ui_draw.draw_arc(pos, r, 0, TAU, 48, Color(col, 0.6), 3)
