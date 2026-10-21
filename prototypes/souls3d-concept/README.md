@@ -23,6 +23,7 @@
 - Open island (`world.gd`, `terrain.gdshader`): 440 m heightmap terrain with sea, the walled ruins in the middle (gate in the south wall), five bonfires (Praia das Cinzas start, Ruínas do Guardião, Floresta Morta, Cemitério dos Juramentados, Sopé do Pico); resting lights a bonfire and makes it your respawn. Dead trees and pines are made in Blender by `tools/make_trees.py` and scattered with MultiMesh; the sea drowns you. Terrain textures: Poly Haven CC0 `brown_mud_leaves_01`, `aerial_rocks_02`, `coast_sand_rocks_02`.
 - Breakable pots, jars and barrels (attack, roll or sprint into them): a few Embers, sometimes a flask charge; they come back when you rest at the bonfire.
 - Scenery: Gobkit CC0 nature kit (`assets/nature`: pines, cliffs, rocks) outside the walls and Polygonal Mind CC0 ruins (`assets/pm`, see `SOURCES.md`): arch, columns, broken walls, Seed crystals, webs, cart.
+- More enemies (KayKit Skeletons CC0, same rig): Skeleton Mage (the caster, hat hidden), Skeleton Rogue (dual blades, fast, dodges) and Skeleton Crossbowman (straight fast bolts). Skull keys are scaled to 0.66 to tone down the chibi look. Ash Wolves (Quaternius CC0, `assets/beasts`) hunt in packs: run, circle and pounce; the pounce is procedural since the model only has idle/walk.
 - Boss: dragon with phase 2 at 50% HP; a portcullis closes behind the player.
 
 ## Findings

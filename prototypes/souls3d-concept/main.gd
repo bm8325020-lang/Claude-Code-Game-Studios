@@ -18,6 +18,12 @@ const WORLD_SPAWNS := [
 	[Vector3(-75, 0, 90), "minion"], [Vector3(100, 0, -10), "warrior"], [Vector3(130, 0, -40), "warrior"], [Vector3(110, 0, -50), "caster"],
 	[Vector3(140, 0, -5), "minion"], [Vector3(95, 0, -35), "minion"], [Vector3(125, 0, 10), "caster"], [Vector3(60, 0, -60), "warrior"],
 	[Vector3(-40, 0, -95), "warrior"], [Vector3(-15, 0, -135), "caster"], [Vector3(20, 0, -110), "minion"],
+	# wolf packs in the Dead Forest and on the beach road
+	[Vector3(-120, 0, 70), "wolf"], [Vector3(-124, 0, 74), "wolf"], [Vector3(-117, 0, 76), "wolf"],
+	[Vector3(-150, 0, -30), "wolf"], [Vector3(-146, 0, -26), "wolf"], [Vector3(30, 0, 60), "wolf"], [Vector3(34, 0, 64), "wolf"],
+	# rogues and crossbowmen in the cemetery and on the mountain path
+	[Vector3(112, 0, -18), "rogue"], [Vector3(128, 0, -32), "rogue"], [Vector3(138, 0, -20), "archer"], [Vector3(102, 0, -38), "archer"],
+	[Vector3(-25, 0, -105), "rogue"], [Vector3(-48, 0, -125), "archer"], [Vector3(15, 0, -9), "archer"],
 ]
 const BOSS_HOME := Vector3(0, 0, -26)
 const ANIMS := {
@@ -553,8 +559,20 @@ func _dark_cloth() -> StandardMaterial3D:
 	m.roughness = 0.9
 	return m
 
+const ENEMY_NAME := {"warrior": "Esqueleto Guerreiro", "minion": "Esqueleto Lacaio", "caster": "Esqueleto Mago",
+	"rogue": "Esqueleto Ladino", "archer": "Esqueleto Besteiro", "wolf": "Lobo da Cinza"}
+const SKELETON_FILE := {"warrior": "Warrior", "minion": "Minion", "caster": "Mage", "rogue": "Rogue", "archer": "Rogue"}
+# weapon props per kind: [bone, gltf]
+const SKELETON_GEAR := {"warrior": [["handslot.r", "Blade"]], "minion": [["handslot.r", "Blade"]], "caster": [["handslot.r", "Staff"]],
+	"rogue": [["handslot.r", "Blade"], ["handslot.l", "Blade"]], "archer": [["handslot.l", "Crossbow"]]}
+
 func _skeleton_model(kind: String) -> Node3D:
-	var k: Node3D = load("res://assets/skeletons/Skeleton_%s.glb" % ("Warrior" if kind == "warrior" else "Minion")).instantiate()
+	if kind == "wolf":
+		return _wolf_model()
+	var k: Node3D = load("res://assets/skeletons/Skeleton_%s.glb" % SKELETON_FILE[kind]).instantiate()
+	_shrink_skull(k.find_children("*", "AnimationPlayer", true, false)[0])
+	for hat in k.find_children("*Hat*", "MeshInstance3D", true, false):
+		hat.visible = false  # the pointed wizard hat reads as a cartoon
 	k.scale = Vector3.ONE * (1.0 if kind == "warrior" else 0.92)
 	var bone := Color(0.55, 0.6, 0.72) if kind == "caster" else Color(0.72, 0.68, 0.62)
 	for m in k.find_children("*", "MeshInstance3D", true, false):
@@ -565,14 +583,47 @@ func _skeleton_model(kind: String) -> Node3D:
 				d.albedo_color = bone  # aged bone, less toy-like; casters are grave-cold blue
 				d.roughness = 0.85
 				m.set_surface_override_material(i, d)
-	if kind == "caster":
-		return k
 	var skel: Skeleton3D = k.find_children("*", "Skeleton3D", true, false)[0]
-	var ba := BoneAttachment3D.new()
-	ba.bone_name = "handslot.r"
-	skel.add_child(ba)
-	ba.add_child(load("res://assets/skeletons/Skeleton_Blade.gltf").instantiate())
+	for g in SKELETON_GEAR[kind]:
+		var ba := BoneAttachment3D.new()
+		ba.bone_name = g[0]
+		skel.add_child(ba)
+		ba.add_child(load("res://assets/skeletons/Skeleton_%s.gltf" % g[1]).instantiate())
 	return k
+
+# KayKit skeletons are chibi: every clip keys the head scale, so scale those keys down once per shared library
+func _shrink_skull(ap: AnimationPlayer) -> void:
+	var lib: AnimationLibrary = ap.get_animation_library("")
+	if lib.has_meta("skull_shrunk"):
+		return
+	lib.set_meta("skull_shrunk", true)
+	for an in lib.get_animation_list():
+		var a: Animation = lib.get_animation(an)
+		for t in a.get_track_count():
+			if a.track_get_type(t) == Animation.TYPE_SCALE_3D and str(a.track_get_path(t)).ends_with(":head"):
+				for k in a.track_get_key_count(t):
+					a.track_set_key_value(t, k, a.track_get_key_value(t, k) * 0.66)
+
+# Quaternius wolf (CC0), recoloured ash-grey, scaled to 0.85 m at the shoulder
+func _wolf_model() -> Node3D:
+	var holder := Node3D.new()
+	var w: Node3D = load("res://assets/beasts/wolf.fbx").instantiate()
+	holder.add_child(w)
+	var fur := StandardMaterial3D.new()
+	fur.albedo_color = Color(0.16, 0.15, 0.15)
+	fur.roughness = 0.95
+	var box := AABB()
+	for m in w.find_children("*", "MeshInstance3D", true, false):
+		m.material_override = fur
+		var xf := Transform3D()
+		var p: Node = m
+		while p != w:
+			xf = p.transform * xf
+			p = p.get_parent()
+		box = xf * m.get_aabb()
+	# shortcut: the skinned mesh's bind AABB is ~3.4x smaller than the posed wolf; measured by eye, not computed
+	w.scale = Vector3.ONE * 0.85 / box.size.y * 3.4
+	return holder
 
 func _spawn_enemy(pos: Vector3, kind := "warrior") -> void:
 	var root := Node3D.new()
@@ -584,16 +635,18 @@ func _spawn_enemy(pos: Vector3, kind := "warrior") -> void:
 	var eye := OmniLight3D.new()
 	eye.position = Vector3(0, 1.7, 0.25)
 	eye.light_color = Color(0.3, 0.8, 1.0) if kind == "caster" else Color(1, 0.1, 0.05)
+	if kind == "wolf":
+		eye.position = Vector3(0, 0.75, 0.6)
 	eye.light_energy = 0.0
 	eye.omni_range = 1.8
 	root.add_child(eye)
 	var ap: AnimationPlayer = k.find_children("*", "AnimationPlayer", true, false)[0]
-	ap.play("Skeletons_Inactive_Floor_Pose")
-	var hpv: float = {"warrior": 90.0, "minion": 55.0, "caster": 45.0}[kind]
-	var poise: float = {"warrior": 40.0, "minion": 22.0, "caster": 15.0}[kind]
+	ap.play("WolfArmature|Idle" if kind == "wolf" else "Skeletons_Inactive_Floor_Pose")
+	var hpv: float = {"warrior": 90.0, "minion": 55.0, "caster": 45.0, "rogue": 60.0, "archer": 50.0, "wolf": 70.0}[kind]
+	var poise: float = {"warrior": 40.0, "minion": 22.0, "caster": 15.0, "rogue": 25.0, "archer": 18.0, "wolf": 30.0}[kind]
 	enemies.append({"root": root, "ap": ap, "eye": eye, "kind": kind, "hp": hpv, "max": hpv, "poise": poise, "max_poise": poise,
 		"home": pos, "state": "dormant", "t": 0.0, "hit": false, "dead": false, "atk": "", "wind_pos": 0.0, "leap": false,
-		"combo": false, "side": 1.0, "dodge": Vector3.ZERO, "revive_t": -1.0, "revived": false, "cast_cd": 2.0})
+		"model": k, "combo": false, "side": 1.0, "dodge": Vector3.ZERO, "revive_t": -1.0, "revived": false, "cast_cd": 2.0})
 
 func _spawn_boss() -> void:
 	var root := Node3D.new()
@@ -999,7 +1052,7 @@ func _damage_enemy(e: Dictionary, mv: Dictionary) -> void:
 			_break_guard(e)
 			return
 		dmg *= 0.2
-		e.ap.play("Block_Hit", 0.05)
+		_eplay(e, "Block_Hit", 0.05)
 		_sfx("impactPlate_heavy_002", -2)
 		_float("bloqueou", e.root.position + Vector3(0, 2.3, 0), Color(0.7, 0.7, 0.8))
 	e.hp -= dmg
@@ -1017,26 +1070,34 @@ func _damage_enemy(e: Dictionary, mv: Dictionary) -> void:
 	elif e.state != "broken":
 		e.state = "stagger"
 		e.t = 0.0
-		e.ap.play(["Hit_A", "Hit_B"].pick_random(), 0.05, 1.4)
+		_eplay(e, ["Hit_A", "Hit_B"].pick_random(), 0.05, 1.4)
+
+func _eplay(e: Dictionary, anim_name: String, blend := -1.0, speed := 1.0) -> void:
+	if e.ap.has_animation(anim_name):  # the wolf has no hit or death clips
+		e.ap.play(anim_name, blend, speed)
 
 func _break_guard(e: Dictionary) -> void:
 	e.state = "broken"
 	e.t = 0.0
 	e.poise = e.max_poise
-	e.ap.play("Hit_B", 0.05, 0.5)
+	_eplay(e, "Hit_B", 0.05, 0.5)
 	_sfx("impactPlate_heavy_001", 0)
 	_float("ATORDOADO", e.root.position + Vector3(0, 2.4, 0), Color(1, 0.85, 0.3))
 
 func _kill_enemy(e: Dictionary) -> void:
 	e.dead = true
 	e.eye.light_energy = 0.0
-	if not e.revived and e.kind != "caster" and randf() < 0.5:
+	if e.kind == "wolf":
+		e.revive_t = -1.0
+		e.ap.stop()
+		create_tween().tween_property(e.root, "rotation:z", PI / 2, 0.4)  # keels over
+	elif not e.revived and e.kind in ["warrior", "minion", "rogue"] and randf() < 0.5:
 		e.revive_t = 4.0
 		e.ap.play("Death_C_Skeletons")
 	else:
 		e.revive_t = -1.0
 		e.ap.play(["Death_A", "Death_B"].pick_random())
-	var reward: int = {"warrior": 60, "minion": 35, "caster": 50}[e.kind] / (2 if e.revived else 1)
+	var reward: int = {"warrior": 60, "minion": 35, "caster": 50, "rogue": 45, "archer": 45, "wolf": 40}[e.kind] / (2 if e.revived else 1)
 	embers += reward
 	_float("+%d brasas" % reward, e.root.position + Vector3(0, 2.6, 0), Color(1, 0.7, 0.3))
 	if lock_target == e:
@@ -1254,11 +1315,14 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 		return
 	e.t += dt
 	e.cast_cd -= dt
+	if e.kind == "wolf":
+		_update_wolf(e, dt)
+		return
 	var to: Vector3 = player.position - e.root.position
 	to.y = 0
 	var dist := to.length()
 	var ap: AnimationPlayer = e.ap
-	var speed: float = 3.0 if e.kind == "warrior" else 3.9
+	var speed: float = {"warrior": 3.0, "minion": 3.9, "rogue": 4.4}.get(e.kind, 3.0)
 	match e.state:
 		"dormant":
 			if dist < 9 and state != "dead":
@@ -1273,7 +1337,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 		"idle":
 			if dist < 11 and state != "dead":
 				e.state = "chase"
-		"chase" when e.kind == "caster":
+		"chase" when e.kind in ["caster", "archer"]:
 			# keeps its distance and throws ghost fire
 			e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.15)
 			if dist < 5.0:
@@ -1288,10 +1352,10 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				e.state = "cast"
 				e.t = 0.0
 				e.hit = false
-				ap.play("Spellcast_Raise", 0.15, 1.4)
+				ap.play("2H_Ranged_Aiming" if e.kind == "archer" else "Spellcast_Raise", 0.15, 1.4)
 				e.eye.light_energy = 2.0
-			elif ap.current_animation != "Spellcasting":
-				ap.play("Spellcasting", 0.2)
+			elif ap.current_animation != ("2H_Ranged_Aiming" if e.kind == "archer" else "Spellcasting"):
+				ap.play("2H_Ranged_Aiming" if e.kind == "archer" else "Spellcasting", 0.2)
 			if dist > 18 or state == "dead":
 				e.state = "idle"
 				ap.play("Idle_Combat", 0.2)
@@ -1299,7 +1363,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 			e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.2)
 			if not e.hit and e.t > 1.1:
 				e.hit = true
-				ap.play("Spellcast_Shoot", 0.05, 1.2)
+				ap.play("2H_Ranged_Shoot" if e.kind == "archer" else "Spellcast_Shoot", 0.05, 1.2)
 				_cast_bolt(e)
 			if e.t > 1.8:
 				e.state = "chase"
@@ -1320,7 +1384,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 		"chase":
 			e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.15)
 			# minions are quick: they hop out of the way of a swing
-			if e.kind == "minion" and state == "attack" and state_t < 0.1 and dist < 3.2 and randf() < 0.3:
+			if e.kind in ["minion", "rogue"] and state == "attack" and state_t < 0.1 and dist < 3.2 and randf() < 0.3:
 				e.state = "dodge"
 				e.t = 0.0
 				var side := randi() % 3
@@ -1351,7 +1415,8 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				if ap.current_animation != "Running_A":
 					ap.play("Running_A", 0.2)
 			else:
-				_enemy_attack(e, ["1H_Melee_Attack_Chop", "1H_Melee_Attack_Slice_Diagonal", "1H_Melee_Attack_Slice_Horizontal", "1H_Melee_Attack_Stab"].pick_random())
+				_enemy_attack(e, (["Dualwield_Melee_Attack_Chop", "Dualwield_Melee_Attack_Slice", "Dualwield_Melee_Attack_Stab"] if e.kind == "rogue" else
+					["1H_Melee_Attack_Chop", "1H_Melee_Attack_Slice_Diagonal", "1H_Melee_Attack_Slice_Horizontal", "1H_Melee_Attack_Stab"]).pick_random())
 			if dist > 16 or state == "dead":
 				e.state = "idle"
 				ap.play(["Taunt", "Cheer"].pick_random() if state == "dead" else "Idle_Combat", 0.2)
@@ -1374,7 +1439,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				e.hit = true
 				var fwd := Vector3(sin(e.root.rotation.y), 0, cos(e.root.rotation.y))
 				if dist < 2.6 and fwd.angle_to(to.normalized()) < 1.0:
-					_hurt_player(30.0 if e.kind == "warrior" else 20.0, "Esqueleto Guerreiro" if e.kind == "warrior" else "Esqueleto Lacaio", e)
+					_hurt_player({"warrior": 30.0, "minion": 20.0, "rogue": 16.0}.get(e.kind, 20.0), ENEMY_NAME[e.kind], e)
 			if ap.current_animation_position > length * 0.92 or e.t > 2.5:
 				e.leap = false
 				# one follow-up swing now and then
@@ -1401,6 +1466,85 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				e.t = 0.0
 		"broken":
 			e.eye.light_energy = 0.1
+			if e.t > 2.5:
+				e.state = "chase"
+				e.t = 0.0
+
+# wolves have only idle/walk clips: the pounce is done by moving and tilting the model
+func _update_wolf(e: Dictionary, dt: float) -> void:
+	var to: Vector3 = player.position - e.root.position
+	to.y = 0
+	var dist := to.length()
+	var m: Node3D = e.model
+	var walk := "WolfArmature|Walking"
+	match e.state:
+		"dormant", "idle":
+			if dist < 14 and state != "dead":
+				e.state = "chase"
+				e.t = 0.0
+				e.eye.light_energy = 0.6
+				_sfx("dragon_roar", -18)
+		"chase":
+			e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.2)
+			if dist > 3.2:
+				e.root.position += to.normalized() * 6.5 * dt
+				e.ap.play(walk, 0.2, 2.4)
+			elif dist < 6 and e.t > 0.4 and randf() < 0.02:
+				e.state = "circle"
+				e.t = 0.0
+				e.side = [-1.0, 1.0].pick_random()
+			elif e.t > 0.6:
+				e.state = "windup"
+				e.t = 0.0
+				e.eye.light_energy = 3.0
+				e.ap.play("WolfArmature|Idle", 0.1)
+			if dist > 22 or state == "dead":
+				e.state = "idle"
+				e.ap.play("WolfArmature|Idle", 0.2)
+		"circle":
+			e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.2)
+			e.root.position += to.normalized().cross(Vector3.UP) * e.side * 4.0 * dt
+			e.ap.play(walk, 0.2, 1.6)
+			if e.t > 1.0:
+				e.state = "chase"
+				e.t = 0.0
+		"windup":
+			e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.25)
+			m.rotation.x = -0.25 * minf(e.t / 0.3, 1.0)  # haunches down
+			if e.t > 0.45:
+				e.state = "leap"
+				e.t = 0.0
+				e.hit = false
+				e.dodge = to.normalized()
+				_sfx("cloth3", -4)
+		"leap":
+			var k: float = e.t / 0.45
+			e.root.position += e.dodge * 9.0 * dt
+			m.position.y = sin(PI * minf(k, 1.0)) * 0.7
+			m.rotation.x = lerpf(-0.3, 0.35, minf(k, 1.0))
+			if not e.hit and k > 0.55 and dist < 1.7:
+				e.hit = true
+				_hurt_player(18.0, ENEMY_NAME.wolf, e)
+			if k >= 1.0:
+				e.state = "recover"
+				e.t = 0.0
+				m.position.y = 0.0
+				m.rotation.x = 0.0
+				e.eye.light_energy = 0.6
+		"recover":
+			if e.t > 0.6:
+				e.state = "chase"
+				e.t = 0.0
+		"stagger":
+			m.position.y = 0.0
+			m.rotation.x = 0.0
+			e.root.position -= to.normalized() * 2.5 * dt
+			if e.t > 0.35:
+				e.state = "chase"
+				e.t = 0.0
+		"broken":
+			m.rotation.x = 0.0
+			e.ap.play("WolfArmature|Idle", 0.2, 0.3)
 			if e.t > 2.5:
 				e.state = "chase"
 				e.t = 0.0
@@ -1537,19 +1681,32 @@ func _cast_bolt(e: Dictionary) -> void:
 	ball.add_child(l)
 	ball.position = e.root.position + Vector3(0, 1.4, 0)
 	add_child(ball)
-	bolts.append({"node": ball, "vel": (player.position + Vector3(0, 1.0, 0) - ball.position).normalized() * 9.0, "t": 2.5})
-	_sfx("fireball", -6)
+	var arrow: bool = e.kind == "archer"
+	if arrow:  # a crossbow bolt: fast, straight, dark
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.04, 0.04, 0.6)
+		ball.mesh = bm
+		m.emission = Color(0.6, 0.15, 0.05)
+		m.emission_energy_multiplier = 1.0
+		m.albedo_color = Color(0.2, 0.15, 0.1)
+		l.light_energy = 0.0
+		ball.look_at_from_position(ball.position, player.position + Vector3(0, 1.0, 0))
+	var spd := 24.0 if arrow else 9.0
+	bolts.append({"node": ball, "vel": (player.position + Vector3(0, 1.0, 0) - ball.position).normalized() * spd, "t": 2.5,
+		"homing": not arrow, "dmg": 18.0 if arrow else 22.0, "src": ENEMY_NAME[e.kind]})
+	_sfx("knifeSlice" if arrow else "fireball", -6)
 
 func _update_bolts(dt: float) -> void:
 	for b in bolts.duplicate():
 		b.t -= dt
 		var n: Node3D = b.node
-		var want: Vector3 = (player.position + Vector3(0, 1.0, 0) - n.position).normalized() * 9.0
-		b.vel = b.vel.lerp(want, 0.8 * dt)  # slight homing: roll through it, do not outrun it
+		if b.homing:
+			var want: Vector3 = (player.position + Vector3(0, 1.0, 0) - n.position).normalized() * 9.0
+			b.vel = b.vel.lerp(want, 0.8 * dt)  # slight homing: roll through it, do not outrun it
 		n.position += b.vel * dt
 		var hit: bool = n.position.distance_to(player.position + Vector3(0, 1.0, 0)) < 0.8
 		if hit:
-			_hurt_player(22.0, "Esqueleto Conjurador")
+			_hurt_player(b.dmg, b.src)
 		if hit or b.t <= 0:
 			n.queue_free()
 			bolts.erase(b)
