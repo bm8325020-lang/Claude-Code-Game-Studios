@@ -7,6 +7,8 @@ const HeroLook = preload("res://hero_look.gd")
 const HeroAnims = preload("res://hero_anims.gd")
 
 const Level = preload("res://level.gd")
+const Rpg = preload("res://rpg.gd")
+const Menu = preload("res://menu.gd")
 const BOSS_HOME := Vector3(0, 0, -26)
 const ANIMS := {
 	"idle": "sword_and_shield_idle", "idle2": "sword_and_shield_idle_2", "run": "sword_and_shield_run",
@@ -92,8 +94,23 @@ var max_hp := 150.0
 var max_stamina := 100.0
 var essence := 100.0
 var level := 1
-var dmg_mult := 1.0
 var max_flasks := 3
+var cls := "cavaleiro"  # starting class (rpg.gd)
+var attrs := Rpg.class_attrs("cavaleiro")
+var talents := {}  # learnt talent ids
+var stats := {}  # derived from attrs and talents by _recalc()
+var upgrades := {"sword": 0, "great": 0}  # weapon reinforcement +0..+5
+var titanite := 0  # second currency: reinforcement material
+var kills := 0
+var sentinels_dead := false
+var boss_kills := 0
+var bonus_hp := 0.0  # permanent max-HP rewards
+var max_essence := 100.0
+var shards_found := 0
+var poison_t := 0.0
+var buff_t := 0.0  # Esquiva Perfeita
+var menu: Control
+var free_points := 0  # attribute points returned by a respec
 var move := ""
 var attack_hold := 0.0
 var sprinting := false
@@ -175,6 +192,11 @@ func _ready() -> void:
 	stone_mat = _pbr("castle_wall_slates", 1.0)
 	_build_world()
 	_build_player()
+	_update_camera(0.0)
+	_recalc()
+	hp = max_hp
+	stamina = max_stamina
+	essence = max_essence
 	for sp in Level.SPAWNS:
 		_spawn_enemy(sp[0], sp[1])
 	for i in Level.SHARDS.size():
@@ -198,7 +220,9 @@ func _save() -> void:
 	if autoplay:
 		return
 	var d := {
-		"level": level, "max_hp": max_hp, "max_stamina": max_stamina, "dmg_mult": dmg_mult, "max_flasks": max_flasks,
+		"level": level, "max_flasks": max_flasks, "cls": cls, "attrs": attrs, "talents": talents.keys(), "upgrades": upgrades,
+		"titanite": titanite, "kills": kills, "sentinels_dead": sentinels_dead, "boss_kills": boss_kills, "bonus_hp": bonus_hp,
+		"shards_found": shards_found, "free_points": free_points,
 		"embers": embers, "dropped_embers": dropped_embers, "seeds": seeds, "seed_i": seed_i, "dragon_seed": dragon_seed,
 		"gear": gear, "lit": lit.keys(), "elevator_open": elevator_open, "bells": bells,
 		"bonfire": [bonfire_pos.x, bonfire_pos.y, bonfire_pos.z],
@@ -218,10 +242,27 @@ func _load() -> void:
 	if not d is Dictionary:
 		return  # unreadable save: start a new game rather than crash
 	level = int(d.level)
-	max_hp = d.max_hp
-	max_stamina = d.max_stamina
-	dmg_mult = d.dmg_mult
 	max_flasks = int(d.max_flasks)
+	cls = d.get("cls", "cavaleiro")
+	attrs = Rpg.class_attrs(cls)
+	if d.has("attrs"):
+		for a in Rpg.ATTRS:
+			attrs[a] = int(d.attrs[a])
+	else:  # saves from before attributes: spread the levels already bought
+		for i in level - 1:
+			attrs[Rpg.ATTRS[i % Rpg.ATTRS.size()]] += 1
+	talents = {}
+	for t in d.get("talents", []):
+		talents[t] = true
+	for w in d.get("upgrades", {}):
+		upgrades[w] = int(d.upgrades[w])
+	titanite = int(d.get("titanite", 0))
+	kills = int(d.get("kills", 0))
+	sentinels_dead = d.get("sentinels_dead", false)
+	boss_kills = int(d.get("boss_kills", 0))
+	bonus_hp = float(d.get("bonus_hp", 0.0))
+	shards_found = int(d.get("shards_found", 0))
+	free_points = int(d.get("free_points", 0))
 	embers = int(d.embers)
 	seeds = d.seeds
 	seed_i = clampi(int(d.seed_i), 0, seeds.size() - 1)
@@ -252,8 +293,10 @@ func _load() -> void:
 		if not m[1][2] in d.seeds_left:
 			seed_marks.erase(m)
 			m[0].queue_free()
+	_recalc()
 	hp = max_hp
 	stamina = max_stamina
+	essence = max_essence
 	flasks = max_flasks
 	player.position = bonfire_pos + Vector3(0, 0.5, -2.5)
 	_show_banner("BEM-VINDO DE VOLTA", "Nível %d  ·  %d brasas" % [level, embers], Color(0.95, 0.85, 0.65), 3.0)
@@ -300,13 +343,44 @@ func _build_title() -> void:
 		btn.pressed.connect(func():
 			if b[1]:
 				_load()
+				layer.queue_free()
+				ui.visible = true
+				get_tree().paused = false
 			else:
-				DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
-				_show_banner("PRAIA DAS CINZAS", "Onde o mar devolve os que caem", Color(0.95, 0.85, 0.65), 3.5)
+				_class_choice(layer, box))
+		box.add_child(btn)
+
+# new game: pick a starting class, then the world unpauses
+func _class_choice(layer: CanvasLayer, box: VBoxContainer) -> void:
+	for c in box.get_children():
+		if c is Button:
+			c.queue_free()
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 24)
+	box.add_child(row)
+	for k in Rpg.CLASSES:
+		var c: Dictionary = Rpg.CLASSES[k]
+		var btn := Button.new()
+		var a: Dictionary = c.attrs
+		btn.text = "%s\n\n%s\n\nVig %d  Fôl %d  For %d\nDes %d  Int %d" % [c.name.to_upper(), c.desc, a.vig, a.fol, a["for"], a.des, a.int]
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		btn.custom_minimum_size = Vector2(440, 380)
+		btn.add_theme_font_size_override("font_size", 32)
+		btn.pressed.connect(func():
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+			cls = k
+			attrs = Rpg.class_attrs(k)
+			max_flasks = c.flasks
+			flasks = max_flasks
+			_recalc()
+			hp = max_hp
+			stamina = max_stamina
+			essence = max_essence
+			_show_banner("SANTUÁRIO DA CHAMA", "%s · siga a escadaria até o Burgo" % c.name, Color(0.95, 0.85, 0.65), 3.5)
 			layer.queue_free()
 			ui.visible = true
 			get_tree().paused = false)
-		box.add_child(btn)
+		row.add_child(btn)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST:
@@ -357,14 +431,25 @@ func _build_world() -> void:
 	var e := Environment.new()
 	we.environment = e
 	add_child(we)
-	e.background_mode = Environment.BG_COLOR
-	e.background_color = Color(0.03, 0.035, 0.05)
+	# night sky with an ember-lit horizon (the volcano), instead of a black void
+	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = Color(0.02, 0.025, 0.05)
+	sky_mat.sky_horizon_color = Color(0.2, 0.11, 0.1)
+	sky_mat.ground_horizon_color = Color(0.12, 0.07, 0.07)
+	sky_mat.ground_bottom_color = Color(0.01, 0.01, 0.015)
+	sky_mat.sun_angle_max = 3.0
+	sky_mat.sun_curve = 0.3
+	var sky := Sky.new()
+	sky.sky_material = sky_mat
+	e.background_mode = Environment.BG_SKY
+	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	e.ambient_light_color = Color(0.3, 0.32, 0.42)
 	e.ambient_light_energy = 0.8
 	e.fog_enabled = true
-	e.fog_light_color = Color(0.08, 0.09, 0.12)
-	e.fog_density = 0.012
+	e.fog_light_color = Color(0.07, 0.055, 0.07)
+	e.fog_density = 0.007
+	e.fog_sky_affect = 0.4
 	e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	var moon := DirectionalLight3D.new()
 	moon.rotation_degrees = Vector3(-42, 150, 0)
@@ -515,9 +600,21 @@ func _build_player() -> void:
 	anim.play("p/idle")
 	cam_pivot = Node3D.new()
 	add_child(cam_pivot)
+	var fill := OmniLight3D.new()  # from the camera's side, so the dark knight never reads as a black silhouette
+	fill.position = Vector3(0, 0.6, 1.8)
+	fill.light_color = Color(1.0, 0.85, 0.7)
+	fill.light_energy = 0.8
+	fill.omni_range = 5.0
+	cam_pivot.add_child(fill)
 	spring = SpringArm3D.new()
 	spring.spring_length = 4.2
 	spring.margin = 0.2
+	var probe := SphereShape3D.new()
+	probe.radius = 0.3  # a ray slips past wall edges and lets the camera see inside them
+	spring.shape = probe
+	spring.collision_mask = 1 | 2  # layer 2: camera-only colliders (rock masses under the platforms)
+	spring.add_excluded_object(player.get_rid())
+	spring.process_mode = Node.PROCESS_MODE_ALWAYS  # the title card pauses the world: still frame the shrine behind it
 	cam_pivot.add_child(spring)
 	camera = Camera3D.new()
 	camera.fov = 65
@@ -675,6 +772,8 @@ func _physics_process(dt: float) -> void:
 	_update_bolts(dt)
 	_update_pickups()
 	_update_camera(dt)
+	if Input.is_action_just_pressed("menu") and not menu.visible and state != "dead":
+		menu.open()
 	banner_t = max(0.0, banner_t - dt)
 	shake = max(0.0, shake - dt * 3.0)
 	for f in floaters:
@@ -701,6 +800,12 @@ func _fwd() -> Vector3:
 
 func _update_player(dt: float) -> void:
 	invuln_t = max(0.0, invuln_t - dt)
+	buff_t = maxf(0.0, buff_t - dt)
+	if poison_t > 0.0 and state != "dead":
+		poison_t -= dt
+		hp = maxf(1.0, hp - 3.0 * dt)  # poison wears you down but never kills on its own
+	if talents.has("essencia"):
+		essence = minf(max_essence, essence + 2.0 * dt)
 	seed_cd = max(0.0, seed_cd - dt)
 	since_roll += dt
 	stamina_delay -= dt
@@ -762,7 +867,7 @@ func _update_player(dt: float) -> void:
 					_start_attack()
 			elif _pressed("roll") and stamina > 5:
 				_start_roll(dir)
-			elif _pressed("seed") and seed_cd <= 0 and essence >= SEEDS[seeds[seed_i]].cost:
+			elif _pressed("seed") and seed_cd <= 0 and essence >= _seed_cost():
 				_start_cast()
 			elif _pressed("seed_next") and seeds.size() > 1:
 				seed_i = (seed_i + 1) % seeds.size()
@@ -786,7 +891,7 @@ func _update_player(dt: float) -> void:
 				block_t = 0.0
 				_play(_a("block_idle"), 0.1)
 			elif _pressed("level") and _near_bonfire(3.0) != null:
-				_level_up()
+				menu.open("status")
 			elif _pressed("weapon"):
 				_set_state("swap")
 				anim.play("p/g_draw" if weapon == "sword" else "p/draw", 0.1, 1.4)
@@ -868,8 +973,10 @@ func _update_player(dt: float) -> void:
 			player.velocity.z = 0
 			if state_t > 0.9 and state_t - dt <= 0.9 and flasks > 0:
 				flasks -= 1
-				hp = min(max_hp, hp + 70)
-				_float("+70", player.position + Vector3(0, 2, 0), Color(0.6, 1, 0.6))
+				var heal: float = 70.0 * stats.flask_mult
+				hp = min(max_hp, hp + heal)
+				poison_t = 0.0  # the Sap also cures poison
+				_float("+%d" % int(heal), player.position + Vector3(0, 2, 0), Color(0.6, 1, 0.6))
 			if state_t > 1.4:
 				_set_state("free")
 		"cast":
@@ -903,12 +1010,12 @@ func _update_player(dt: float) -> void:
 		lock_target = null
 	# bonfire rest
 	var bf = _near_bonfire(2.2)
-	if state == "free" and bf != null and (hp < max_hp or flasks < max_flasks or essence < 100 or not lit.has(bf[1]) or bonfire_pos != bf[0]):
+	if state == "free" and bf != null and (hp < max_hp or flasks < max_flasks or essence < max_essence or not lit.has(bf[1]) or bonfire_pos != bf[0]):
 		bonfire_pos = bf[0]
 		lit[bf[1]] = true
 		hp = max_hp
 		flasks = max_flasks
-		essence = 100.0
+		essence = max_essence
 		_respawn_enemies()
 		_save.call_deferred()
 		_show_banner("FOGUEIRA: " + bf[1].to_upper(), "Vida, frascos e essência restaurados. Os mortos se levantam de novo.", Color(1, 0.7, 0.3), 2.5)
@@ -1116,13 +1223,13 @@ func _start_move(name: String) -> void:
 	hit_done = false
 	combo_queued = false
 	sprinting = false
-	_spend(mv.stamina)
+	_spend(mv.stamina * stats.stamina_cost)
 	anim.play(_a(mv.anim), 0.08, mv.speed)
 	_sfx(["knifeSlice", "knifeSlice2", "drawKnife1"] if not name.ends_with("kick") else ["cloth1"], -3)
 
 func _start_roll(dir: Vector3) -> void:
 	_set_state("roll")
-	_spend(18.0)
+	_spend(18.0 * stats.roll_cost)
 	roll_dir = dir.normalized() if dir.length() > 0.1 else _fwd()
 	model.rotation.y = atan2(roll_dir.x, roll_dir.z)
 	invuln_t = 0.45
@@ -1132,24 +1239,106 @@ func _start_roll(dir: Vector3) -> void:
 func _start_cast() -> void:
 	_set_state("cast")
 	seed_cd = 1.2
-	essence -= SEEDS[seeds[seed_i]].cost
+	essence -= _seed_cost()
 	anim.play(_a("cast"), 0.1, 1.2)
 
-func _level_up() -> void:
-	var cost := 150 * level
-	if embers < cost:
-		_show_banner("BRASAS INSUFICIENTES", "Precisa de %d brasas para o nível %d" % [cost, level + 1], Color(0.8, 0.6, 0.4), 2.0)
-		return
+# every stat from attributes, talents, gear and permanent rewards
+func _recalc() -> void:
+	stats = Rpg.derive(attrs, talents)
+	max_hp = stats.max_hp + bonus_hp + (gear.ring.val if gear.has("ring") else 0.0)
+	max_stamina = stats.max_stamina
+	max_essence = stats.max_essence
+	hp = minf(hp, max_hp)
+	essence = minf(essence, max_essence)
+
+func _melee_mult() -> float:
+	var m: float = stats[weapon + "_mult"] * Rpg.upgrade_mult(upgrades[weapon])
+	if gear.has(weapon):
+		m *= 1.0 + gear[weapon].val / 100.0
+	if talents.has("furia"):
+		m *= 1.0 + 0.1 * mini(chain / 4, 4)
+	if buff_t > 0.0:
+		m *= 1.3
+	return m
+
+func _seed_mult() -> float:
+	return stats.seed_mult * ((1.0 + gear.amulet.val / 100.0) if gear.has("amulet") else 1.0)
+
+func _seed_cost() -> float:
+	return SEEDS[seeds[seed_i]].cost * stats.seed_cost
+
+# level up at a bonfire: one point into an attribute (called from the menu)
+func _buy_attr(a: String) -> bool:
+	var cost := Rpg.level_cost(level)
+	if embers < cost or _near_bonfire(3.0) == null:
+		return false
 	embers -= cost
 	level += 1
-	max_hp += 15.0
-	max_stamina += 8.0
-	dmg_mult += 0.06
+	attrs[a] += 1
+	_recalc()
 	hp = max_hp
 	stamina = max_stamina
 	_sfx("jingle_win", -6)
-	_show_banner("NÍVEL %d" % level, "+15 vida  ·  +8 estamina  ·  +6%% dano", Color(1, 0.8, 0.4), 2.5)
 	_save()
+	return true
+
+func _talent_points_left() -> int:
+	return Rpg.talent_points(level, bells, boss_kills) - talents.size()
+
+func _learn(id: String) -> bool:
+	if _talent_points_left() <= 0 or not Rpg.can_learn(id, talents):
+		return false
+	talents[id] = true
+	_recalc()
+	_sfx("jingle_win", -8)
+	_save()
+	return true
+
+# reset attributes and talents at a bonfire; the first one is free, then it costs embers
+func _respec_cost() -> int:
+	return 0 if not has_meta("respecced") else 100 * level
+
+func _respec() -> bool:
+	var cost := _respec_cost()
+	if embers < cost or _near_bonfire(3.0) == null:
+		return false
+	embers -= cost
+	set_meta("respecced", true)
+	var base := Rpg.class_attrs(cls)
+	for a in Rpg.ATTRS:
+		free_points += attrs[a] - base[a]
+	attrs = base
+	talents = {}
+	_recalc()
+	_save()
+	return true
+
+func _place_point(a: String) -> bool:
+	if free_points <= 0:
+		return false
+	free_points -= 1
+	attrs[a] += 1
+	_recalc()
+	_save()
+	return true
+
+func _reinforce() -> bool:
+	var lv: int = upgrades[weapon]
+	if lv >= Rpg.MAX_UPGRADE or _near_bonfire(3.0) == null:
+		return false
+	var c: Array = Rpg.upgrade_cost(lv)
+	if titanite < c[0] or embers < c[1]:
+		return false
+	titanite -= c[0]
+	embers -= c[1]
+	upgrades[weapon] = lv + 1
+	_sfx("impactPlate_heavy_002", -2)
+	_save()
+	return true
+
+func _quest_state() -> Dictionary:
+	return {"lit": lit, "sentinels_dead": sentinels_dead, "bells": bells, "elevator_open": elevator_open,
+		"shards_found": shards_found, "best_upgrade": maxi(upgrades.sword, upgrades.great), "talents": talents.size(), "kills": kills}
 
 func _broken_target_in_front():
 	for e in enemies:
@@ -1178,16 +1367,15 @@ func _player_hit_check(name: String) -> void:
 		var tb: Vector3 = boss.root.position - player.position
 		if tb.length() < mv.reach + 2.6 and fwd.angle_to(tb.normalized()) < 1.0:
 			landed = true
-			_damage_boss(mv.dmg * dmg_mult * (1.0 + (gear[weapon].val / 100.0 if gear.has(weapon) else 0.0)))
+			_damage_boss(mv.dmg * _melee_mult())
 
 func _damage_enemy(e: Dictionary, mv: Dictionary) -> void:
 	if e.state in ["dormant", "awaken"]:
 		return
-	var dmg: float = mv.dmg * dmg_mult
-	if mv.has("anim") and gear.has(weapon):  # melee only: the equipped blade's bonus
-		dmg *= 1.0 + gear[weapon].val / 100.0
+	var el: String = mv.get("el", "fis")
+	var dmg: float = mv.dmg * (_melee_mult() if el == "fis" else _seed_mult())
 	if e.state == "broken" and move == "riposte":
-		dmg = 140.0 * dmg_mult
+		dmg = 140.0 * _melee_mult() * stats.crit_mult
 		_float("CRÍTICO!", e.root.position + Vector3(0, 2.6, 0), Color(1, 0.3, 0.2))
 		shake = 0.6
 	elif e.state == "block":
@@ -1198,12 +1386,23 @@ func _damage_enemy(e: Dictionary, mv: Dictionary) -> void:
 		_eplay(e, "Block_Hit", 0.05)
 		_sfx("impactPlate_heavy_002", -2)
 		_float("bloqueou", e.root.position + Vector3(0, 2.3, 0), Color(0.7, 0.7, 0.8))
+	var weak := Rpg.weakness(e.kind, el)
+	dmg *= weak
 	e.hp -= dmg
-	if not mv.has("anim") and gear.has("amulet"):  # spells: the amulet's bonus
-		dmg *= 1.0 + gear.amulet.val / 100.0
 	shake = max(shake, 0.25)
 	_sfx(["impactWood_heavy_000", "impactPlate_heavy_000"], -2)
-	_float(str(int(dmg)), e.root.position + Vector3(0, 2.1, 0), Color.WHITE)
+	_float(str(int(dmg)) + (" FRACO!" if weak > 1.1 else (" resiste" if weak < 0.9 else "")), e.root.position + Vector3(0, 2.1, 0),
+		Color(1, 0.6, 0.2) if weak > 1.1 else (Color(0.6, 0.6, 0.65) if weak < 0.9 else Color.WHITE))
+	if el == "fogo" and e.hp > 0:
+		if e.get("burn", 0.0) <= 0.0:
+			_float("QUEIMANDO", e.root.position + Vector3(0, 2.6, 0), Color(1, 0.45, 0.1))
+		e.burn = 4.0
+	if el == "fis" and talents.has("sangue") and e.hp > 0:
+		e.bleed = e.get("bleed", 0.0) + 25.0
+		if e.bleed >= 100.0:
+			e.bleed = 0.0
+			e.hp -= e.max * 0.12 + 20.0
+			_float("SANGRAMENTO", e.root.position + Vector3(0, 2.6, 0), Color(0.9, 0.05, 0.05))
 	if e.hp <= 0:
 		_kill_enemy(e)
 		return
@@ -1247,6 +1446,18 @@ func _kill_enemy(e: Dictionary) -> void:
 	var reward: int = {"sentinel": 300, "warrior": 60, "minion": 35, "caster": 50, "rogue": 45, "archer": 45, "wolf": 40}[e.kind] / (2 if e.revived else 1)
 	embers += reward
 	_float("+%d brasas" % reward, e.root.position + Vector3(0, 2.6, 0), Color(1, 0.7, 0.3))
+	kills += 1
+	var ti := 2 if e.kind == "sentinel" else (1 if randf() < 0.12 else 0)
+	if ti > 0 and not e.revived:
+		titanite += ti
+		_float("+%d titanita" % ti, e.root.position + Vector3(0, 3.0, 0), Color(0.7, 0.85, 1.0))
+	if talents.has("vampiro"):
+		hp = minf(max_hp, hp + max_hp * 0.08)
+	if e.kind == "sentinel" and not sentinels_dead and enemies.filter(func(o): return o.kind == "sentinel" and not o.dead).is_empty():
+		sentinels_dead = true
+		_show_banner("SENTINELAS DERROTADAS", "O caminho para o sino está livre  ·  +1 talento", Color(1, 0.8, 0.4), 4.0)
+		boss_kills += 1
+		_save()
 	if lock_target == e:
 		lock_target = null
 
@@ -1269,7 +1480,9 @@ func _damage_boss(dmg: float) -> void:
 		if boss.kind == "wyrm":
 			embers += 5000
 			_drop_item(boss.root.position + Vector3(0, 0, 4), 3)
-			max_hp += 50.0
+			bonus_hp += 50.0
+			boss_kills += 1
+			_recalc()
 			hp = max_hp
 			_sfx("dragon_roar", 2)
 			_sfx("jingle_win", -2)
@@ -1279,6 +1492,7 @@ func _damage_boss(dmg: float) -> void:
 			_show_banner("WYRM ANCIÃO DERROTADO", "A ilha é sua  ·  +5000 brasas  ·  +50 vida máxima", Color(1, 0.6, 0.15), 7.0)
 			return
 		embers += 2000
+		boss_kills += 1
 		_drop_item(boss.root.position + Vector3(0, 0, 3), 3)
 		dragon_seed = true
 		_sfx("dragon_roar", 2)
@@ -1290,8 +1504,13 @@ func _damage_boss(dmg: float) -> void:
 		_show_banner("DRAGÃO DERROTADO", "Você obteve a SEMENTE DO DRAGÃO  ·  +2000 brasas", Color(1, 0.6, 0.15), 6.0)
 
 func _hurt_player(dmg: float, src: String, attacker: Dictionary = {}) -> void:
+	if invuln_t > 0 and state == "roll" and talents.has("esquiva") and buff_t <= 0.0:
+		buff_t = 3.0
+		stamina = minf(max_stamina, stamina + 25.0)
+		_float("ESQUIVA PERFEITA", player.position + Vector3(0, 2.2, 0), Color(0.7, 0.9, 1))
 	if invuln_t > 0 or state == "dead":
 		return
+	dmg *= stats.taken_mult
 	if state == "block":
 		if block_t < 0.22 and not attacker.is_empty():
 			_float("APARADO!", player.position + Vector3(0, 2.2, 0), Color(0.6, 0.9, 1))
@@ -1311,6 +1530,10 @@ func _hurt_player(dmg: float, src: String, attacker: Dictionary = {}) -> void:
 	hp -= dmg
 	shake = 0.5
 	_sfx(["impactPunch_heavy_000", "impactPunch_heavy_001"], 0)
+	if attacker.get("kind", "") == "rogue" and randf() < 0.4 and hp > 0:
+		if poison_t <= 0.0:
+			_float("ENVENENADO", player.position + Vector3(0, 2.4, 0), Color(0.5, 0.9, 0.2))
+		poison_t = 8.0
 	_float("-%d" % int(dmg), player.position + Vector3(0, 2, 0), Color(1, 0.3, 0.3))
 	if hp <= 0:
 		hp = 0
@@ -1387,10 +1610,8 @@ func _take_item(item: Dictionary) -> void:
 	var line: String = ITEMS[item.slot].fmt % int(item.val)
 	var old = gear.get(item.slot)
 	if old == null or item.val > old.val:
-		if item.slot == "ring":
-			max_hp += item.val - (old.val if old != null else 0.0)
-			hp = minf(hp, max_hp)
 		gear[item.slot] = item
+		_recalc()
 		_show_banner(item.name.to_upper(), "%s  ·  %s  ·  equipado" % [RARITY[item.rarity][0], line], col, 3.0 if item.rarity < 3 else 5.0)
 	else:
 		embers += 20 * (item.rarity + 1)
@@ -1430,6 +1651,7 @@ func _update_pickups() -> void:
 		if s.position.distance_to(player.position) < 1.4:
 			max_flasks += 1
 			flasks += 1
+			shards_found += 1
 			shards.erase(s)
 			s.queue_free()
 			_sfx("jingle_win", -8)
@@ -1441,7 +1663,8 @@ func _respawn() -> void:
 	hp = max_hp
 	stamina = max_stamina
 	flasks = max_flasks
-	essence = 100.0
+	essence = max_essence
+	poison_t = 0.0
 	_set_state("free")
 	lock_target = null
 	_respawn_enemies()
@@ -1537,6 +1760,11 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 		e.slow -= dt
 		dt *= 0.4
 		e.ap.speed_scale = 0.4 if e.slow > 0.0 else 1.0
+	if e.get("burn", 0.0) > 0.0 and not e.dead:  # Fire Seed burn
+		e.burn -= dt
+		e.hp -= 6.0 * _seed_mult() * dt
+		if e.hp <= 0.0:
+			_kill_enemy(e)
 	e.root.position.y = _ground_y(e.root.position, e.root.position.y)
 	if e.dead:
 		# some skeletons pull themselves back together once, unless their bones are burnt (Fire Seed)
@@ -1952,7 +2180,7 @@ func _lightning() -> void:
 	while true:
 		var tp: Vector3 = target.root.position + Vector3(0, 1.1, 0)
 		_bolt_line(from, tp)
-		_damage_enemy(target, {"dmg": dmg, "poise": 25.0})
+		_damage_enemy(target, {"dmg": dmg, "poise": 25.0, "el": "raio"})
 		from = tp
 		dmg *= 0.6
 		var next = null
@@ -1997,7 +2225,7 @@ func _update_fireballs(dt: float) -> void:
 		for e in enemies:
 			if n.position.distance_to(e.root.position + Vector3(0, 1, 0)) < 1.2:
 				if not e.dead:
-					_damage_enemy(e, {"dmg": 30.0, "poise": 60.0} if f.ice else {"dmg": 110.0 if f.get("big") else 55.0, "poise": 20.0})
+					_damage_enemy(e, {"dmg": 30.0, "poise": 60.0, "el": "gelo"} if f.ice else {"dmg": 110.0 if f.get("big") else 55.0, "poise": 20.0, "el": "fogo"})
 					if f.ice:
 						e.slow = 3.0
 						_float("CONGELADO", e.root.position + Vector3(0, 2.4, 0), Color(0.6, 0.9, 1))
@@ -2008,7 +2236,7 @@ func _update_fireballs(dt: float) -> void:
 					_float("CINZAS", e.root.position + Vector3(0, 1.8, 0), Color(1, 0.55, 0.2))
 					hit = true
 		if boss != null and not boss.dead and n.position.distance_to(boss.root.position + Vector3(0, 2.5, 0)) < 3.0:
-			_damage_boss(70.0)
+			_damage_boss(70.0 * _seed_mult())
 			hit = true
 		if hit or f.t <= 0:
 			n.queue_free()
@@ -2081,8 +2309,8 @@ func _input(event: InputEvent) -> void:
 		elif not event.pressed and event.index == cam_touch:
 			cam_touch = -1
 	elif event is InputEventScreenDrag and event.index == cam_touch:
-		cam_yaw -= event.relative.x * 0.006
-		cam_pitch = clamp(cam_pitch - event.relative.y * 0.004, -0.9, 0.2)
+		cam_yaw -= event.relative.x * 0.006 * menu.options.sens
+		cam_pitch = clamp(cam_pitch - event.relative.y * 0.004 * menu.options.sens, -0.9, 0.2)
 	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
 		cam_yaw -= event.relative.x * 0.006
 		cam_pitch = clamp(cam_pitch - event.relative.y * 0.004, -0.9, 0.2)
@@ -2182,7 +2410,7 @@ func _build_ui() -> void:
 	joystick.set("joystick_size", 230)
 	joystick.set("tip_size", 100)
 	ui.add_child(joystick)
-	for a in ["attack", "roll", "lock", "seed", "flask", "block", "level", "weapon", "seed_next", "travel", "jump", "interact"]:
+	for a in ["attack", "roll", "lock", "seed", "flask", "block", "level", "weapon", "seed_next", "travel", "jump", "interact", "menu"]:
 		var b := TouchScreenButton.new()
 		var s := CircleShape2D.new()
 		s.radius = _button_r(a)
@@ -2193,11 +2421,18 @@ func _build_ui() -> void:
 		buttons[a] = b
 	get_tree().root.size_changed.connect(_layout_ui)
 	_layout_ui()
+	var ml := CanvasLayer.new()
+	ml.layer = 15
+	add_child(ml)
+	menu = Menu.new()
+	ml.add_child(menu)
+	menu.setup(self)
+	menu.apply_options()
 
 func _button_r(a: String) -> float:
 	match a:
 		"attack": return 115.0
-		"lock", "level", "weapon", "seed_next", "travel": return 62.0
+		"lock", "level", "weapon", "seed_next", "travel", "menu": return 62.0
 	return 78.0
 
 func _button_pos(a: String, vs: Vector2) -> Vector2:
@@ -2214,6 +2449,7 @@ func _button_pos(a: String, vs: Vector2) -> Vector2:
 		"jump": return Vector2(vs.x - 600, vs.y - 150)
 		"interact": return Vector2(vs.x - 610, vs.y - 330)
 		"level": return Vector2(vs.x * 0.5, vs.y - 120)
+		"menu": return Vector2(vs.x - 110, 260)
 	return Vector2.ZERO
 
 func _layout_ui() -> void:
@@ -2246,21 +2482,25 @@ func _draw_ui() -> void:
 		ui_draw.draw_circle(lp, 9, Color(1, 1, 1, 0.9))
 		ui_draw.draw_arc(lp, 18, 0, TAU, 24, Color(1, 1, 1, 0.6), 2)
 	# HP and stamina, souls style
-	ui_draw.draw_rect(Rect2(40, 34, max_hp * 3.2, 22), Color(0.1, 0, 0, 0.7))
-	ui_draw.draw_rect(Rect2(40, 34, hp * 3.2, 22), Color(0.65, 0.08, 0.08))
-	ui_draw.draw_rect(Rect2(40, 64, max_stamina * 3.2, 14), Color(0, 0.08, 0, 0.7))
-	ui_draw.draw_rect(Rect2(40, 64, max(0.0, stamina) * 3.2, 14), Color(0.25, 0.6, 0.25))
-	ui_draw.draw_rect(Rect2(40, 84, 100 * 2.4, 10), Color(0, 0, 0.1, 0.7))
-	ui_draw.draw_rect(Rect2(40, 84, essence * 2.4, 10), Color(0.25, 0.45, 0.95))
-	_text("Nível %d   Frascos %d/%d" % [level, flasks, max_flasks], Vector2(40, 132), 28, Color(0.9, 0.8, 0.6))
-	_text("%d FPS" % Engine.get_frames_per_second(), Vector2(vs.x * 0.5 - 40, 30), 20, Color(0.6, 0.6, 0.6))
-	var gy := 170.0
-	for slot in ["sword", "great", "ring", "amulet"]:
-		if gear.has(slot):
-			_text("%s  %s" % [gear[slot].name, ITEMS[slot].fmt % int(gear[slot].val)], Vector2(40, gy), 20, RARITY[gear[slot].rarity][1])
-			gy += 24
+	ui_draw.draw_rect(Rect2(40, 34, max_hp * 2.6, 28), Color(0.1, 0, 0, 0.7))
+	ui_draw.draw_rect(Rect2(40, 34, hp * 2.6, 28), Color(0.5, 0.75, 0.15) if poison_t > 0.0 else Color(0.65, 0.08, 0.08))
+	ui_draw.draw_rect(Rect2(40, 70, max_stamina * 3.2, 18), Color(0, 0.08, 0, 0.7))
+	ui_draw.draw_rect(Rect2(40, 70, max(0.0, stamina) * 3.2, 18), Color(0.25, 0.6, 0.25))
+	ui_draw.draw_rect(Rect2(40, 96, max_essence * 2.4, 14), Color(0, 0, 0.1, 0.7))
+	ui_draw.draw_rect(Rect2(40, 96, essence * 2.4, 14), Color(0.25, 0.45, 0.95))
+	_text("Nível %d   Frascos %d/%d" % [level, flasks, max_flasks], Vector2(40, 150), 34, Color(0.9, 0.8, 0.6))
+	var status := []
+	if poison_t > 0.0:
+		status.append("ENVENENADO")
+	if buff_t > 0.0:
+		status.append("ESQUIVA +30% dano")
+	if not status.is_empty():
+		_text("  ".join(status), Vector2(40, 192), 30, Color(0.6, 1, 0.4))
+	if menu.options.show_fps:
+		_text("%d FPS" % Engine.get_frames_per_second(), Vector2(vs.x * 0.5 - 40, 30), 22, Color(0.6, 0.6, 0.6))
+	_text("Objetivo: " + Rpg.current_objective(_quest_state()), Vector2(vs.x * 0.5 - 330, 66), 28, Color(0.95, 0.85, 0.6))
 	if _near_bonfire(3.0) != null:
-		_text("Próximo nível: %d brasas" % (150 * level), Vector2(vs.x * 0.5 - 170, vs.y - 200), 28, Color(1, 0.8, 0.5))
+		_text("NÍVEL: subir atributos, reforçar arma, talentos", Vector2(vs.x * 0.5 - 330, vs.y - 200), 30, Color(1, 0.8, 0.5))
 	for e in enemies:
 		if e.dead or e.hp >= e.max or camera.is_position_behind(e.root.position):
 			continue
@@ -2268,8 +2508,9 @@ func _draw_ui() -> void:
 		ui_draw.draw_rect(Rect2(ep - Vector2(50, 0), Vector2(100, 8)), Color(0, 0, 0, 0.6))
 		ui_draw.draw_rect(Rect2(ep - Vector2(50, 0), Vector2(100 * e.hp / e.max, 8)), Color(0.75, 0.1, 0.1))
 		ui_draw.draw_rect(Rect2(ep - Vector2(50, -10), Vector2(100 * e.poise / e.max_poise, 4)), Color(1, 0.8, 0.3) if e.state != "broken" else Color(1, 0.2, 0.2))
-	_text("%d" % embers, Vector2(vs.x - 220, 60), 40, Color(1, 0.75, 0.4))
-	_text("brasas", Vector2(vs.x - 220, 92), 22, Color(0.8, 0.6, 0.4))
+	_text("%d" % embers, Vector2(vs.x - 260, 60), 44, Color(1, 0.75, 0.4))
+	_text("brasas", Vector2(vs.x - 260, 94), 26, Color(0.8, 0.6, 0.4))
+	_text("%d titanita" % titanite, Vector2(vs.x - 260, 134), 28, Color(0.7, 0.85, 1.0))
 	if dragon_seed:
 		_text("Semente do Dragão", Vector2(vs.x - 330, 130), 26, Color(1, 0.55, 0.15))
 	if boss != null and boss.awake and not boss.dead:
@@ -2290,12 +2531,12 @@ func _draw_ui() -> void:
 		if a == "travel" and (_near_bonfire(3.0) == null or lit.size() < 2):
 			continue
 		var label: String = {"attack": "ATACAR", "roll": "ROLAR", "lock": "MIRA", "seed": SEEDS[seeds[seed_i]].name, "flask": "FRASCO", "block": "DEFESA",
-			"level": "NÍVEL", "weapon": "ARMA", "seed_next": "TROCAR", "travel": "VIAJAR", "jump": "PULAR",
+			"level": "NÍVEL", "weapon": "ARMA", "seed_next": "TROCAR", "travel": "VIAJAR", "jump": "PULAR", "menu": "MENU",
 			"interact": _current_interact().label if a == "interact" else ""}[a]
 		var col: Color = SEEDS[seeds[seed_i]].col if a == "seed" else Color(1, 1, 1)
 		ui_draw.draw_circle(pos, r, Color(col, 0.28 if Input.is_action_pressed(a) else 0.12))
 		ui_draw.draw_arc(pos, r, 0, TAU, 48, Color(col, 0.6), 3)
-		if a == "seed" and essence < SEEDS[seeds[seed_i]].cost:
+		if a == "seed" and essence < _seed_cost():
 			ui_draw.draw_circle(pos, r, Color(0, 0, 0, 0.5))
 		ui_draw.draw_string_outline(font, pos - Vector2(r, -10), label, HORIZONTAL_ALIGNMENT_CENTER, r * 2, 28, 6, Color(0, 0, 0, 0.8))
 		ui_draw.draw_string(font, pos - Vector2(r, -10), label, HORIZONTAL_ALIGNMENT_CENTER, r * 2, 28, Color(1, 1, 1, 0.9))

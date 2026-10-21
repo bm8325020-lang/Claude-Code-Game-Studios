@@ -44,6 +44,14 @@ const HOUSES := [  # Burgo: [x, z, width, depth, height]
 	[-60, -92, 10, 10, 8], [-40, -94, 12, 8, 11], [-18, -92, 8, 8, 7], [0, -94, 10, 10, 9], [14, -90, 8, 10, 8],
 ]
 
+# [position, facing yaw]: lights the way and gives each area warm landmarks
+const TORCHES := [
+	[Vector3(-3.5, BURGO_Y + 2.2, -49.2), PI], [Vector3(3.5, BURGO_Y + 2.2, -49.2), PI], [Vector3(-25, BURGO_Y + 2.6, -99.8), 0.0],
+	[Vector3(19.8, BURGO_Y + 2.6, -74), -PI / 2.0], [Vector3(-69.8, BURGO_Y + 2.6, -80), PI / 2.0], [Vector3(-36, BURGO_Y + 2.6, -59.5), PI],
+	[Vector3(-65.2, ALLEY_Y + 2.4, -30), PI / 2.0], [Vector3(-36.8, ALLEY_Y + 2.4, -20), -PI / 2.0],
+	[Vector3(-43.3, CHURCH_Y + 3.0, 11.5), -PI / 2.0], [Vector3(-43.3, CHURCH_Y + 3.0, 18.5), -PI / 2.0], [Vector3(-59.3, CHURCH_Y + 3.0, 15), PI / 2.0],
+]
+
 static var mats := {}
 static var pieces := {}  # name -> ArrayMesh with the level's materials (assets/arch, tools/make_architecture.py)
 static var batches := {}  # "piece|cell" -> [mesh, [Transform3D]]: every modelled piece is drawn through a few MultiMeshes
@@ -81,6 +89,9 @@ static func build(m: Node3D) -> void:
 	_burgo(m)
 	_rooftops(m)
 	_church(m)
+	for t in TORCHES:
+		torch(m, t[0], t[1])
+	_horizon(m)
 	for b in BONFIRES:
 		m.bonfires.append([b[0], b[1]])
 		m._prop("bonfire", b[0])
@@ -156,9 +167,104 @@ static func wall(m: Node3D, center: Vector3, size: Vector3, piece := "", collide
 		var c := center + (Vector3(off, 0, 0) if along_x else Vector3(0, 0, off))
 		place(piece, c - Vector3(0, size.y / 2.0, 0), Vector3(seg / 4.0, size.y / nominal_h, size.z if along_x else size.x), 0.0 if along_x else PI / 2.0)
 
-# rock mass under a platform (centre and size like block)
-static func cliff(center: Vector3, size: Vector3) -> void:
+# the world beyond the playable loop: a ring of mountains fading into the fog, the volcano glowing on the horizon
+# and the towers of the high city above the church, so every area has landmarks to aim for
+static func _horizon(m: Node3D) -> void:
+	# two jagged ridges (one mesh each): a dark silhouette against the glowing horizon
+	var noise := FastNoiseLite.new()
+	noise.seed = 3
+	noise.frequency = 0.9
+	var ridge_mat := StandardMaterial3D.new()
+	ridge_mat.albedo_color = Color(0.05, 0.045, 0.06)
+	ridge_mat.roughness = 1.0
+	ridge_mat.cull_mode = BaseMaterial3D.CULL_DISABLED  # seen from inside the ring
+	for ring in [[250.0, 5.0, 35.0, 0.0], [290.0, 20.0, 55.0, 7.0]]:  # radius, base height, peak height, noise offset
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var n := 96
+		for i in n:
+			var a0 := i * TAU / n
+			var a1 := (i + 1) * TAU / n
+			var h0: float = ring[1] + ring[2] * absf(noise.get_noise_1d(a0 * 4.0 + ring[3]))
+			var h1: float = ring[1] + ring[2] * absf(noise.get_noise_1d(a1 * 4.0 + ring[3]))
+			var r: float = ring[0]
+			var p0 := Vector3(sin(a0) * r, -80.0, cos(a0) * r)
+			var p1 := Vector3(sin(a1) * r, -80.0, cos(a1) * r)
+			var q0 := Vector3(sin(a0) * r, h0, cos(a0) * r)
+			var q1 := Vector3(sin(a1) * r, h1, cos(a1) * r)
+			for v in [p0, q0, q1, p0, q1, p1]:
+				st.add_vertex(v)
+		st.generate_normals()
+		var ridge := MeshInstance3D.new()
+		ridge.mesh = st.commit()
+		ridge.material_override = ridge_mat
+		ridge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		m.add_child(ridge)
+	var volcano := MeshInstance3D.new()  # Coração do Vulcão, far to the north-east
+	var cm := CylinderMesh.new()
+	cm.top_radius = 18.0
+	cm.bottom_radius = 95.0
+	cm.height = 150.0
+	cm.radial_segments = 10
+	volcano.mesh = cm
+	volcano.material_override = mats.rock
+	volcano.position = Vector3(140, 15, -230)
+	m.add_child(volcano)
+	var glow := MeshInstance3D.new()
+	var gm := CylinderMesh.new()
+	gm.top_radius = 17.0
+	gm.bottom_radius = 17.5
+	gm.height = 2.0
+	gm.radial_segments = 10
+	glow.mesh = gm
+	var lava := StandardMaterial3D.new()
+	lava.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	lava.albedo_color = Color(1.0, 0.35, 0.05)
+	glow.material_override = lava
+	glow.position = volcano.position + Vector3(0, 75.5, 0)
+	m.add_child(glow)
+	for t in [[-130.0, -230.0, 55.0], [-115.0, -245.0, 75.0], [-150.0, -240.0, 45.0], [-135.0, -260.0, 90.0]]:  # Cidade Alta, high and far
+		place("ruin_tower", Vector3(t[0], 25.0, t[1]), Vector3(2.0, t[2] / 10.0, 2.0))
+		place("belfry", Vector3(t[0], 25.0 + t[2], t[1]), Vector3(1.2, 1.6, 1.2))
+
+# rock mass under a platform (centre and size like block); its collider only stops the camera (layer 2)
+static func cliff(m: Node3D, center: Vector3, size: Vector3) -> void:
 	place("cliff", center - Vector3(0, size.y / 2.0, 0), size)
+	var body := StaticBody3D.new()
+	body.collision_layer = 2
+	body.collision_mask = 0
+	body.position = center
+	var cs := CollisionShape3D.new()
+	var sh := BoxShape3D.new()
+	sh.size = size * Vector3(0.85, 1.0, 0.85)  # the rock tapers toward the bottom
+	cs.shape = sh
+	body.add_child(cs)
+	m.add_child(body)
+
+# wall torch: an iron bracket, a flame that glows and a short warm light
+static func torch(m: Node3D, pos: Vector3, facing: float) -> void:
+	var out := Vector3(sin(facing), 0, cos(facing))
+	place("beam", pos - Vector3(0, 0.3, 0) + out * 0.25, Vector3(0.12, 0.6, 0.12))
+	var flame := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.16
+	sm.height = 0.42
+	sm.radial_segments = 6
+	sm.rings = 3
+	flame.mesh = sm
+	var fm := StandardMaterial3D.new()
+	fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fm.albedo_color = Color(1.0, 0.6, 0.2)
+	flame.material_override = fm
+	flame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	flame.position = pos + out * 0.25 + Vector3(0, 0.45, 0)
+	m.add_child(flame)
+	var l := OmniLight3D.new()
+	l.position = flame.position + out * 0.4
+	l.light_color = Color(1.0, 0.55, 0.2)
+	l.light_energy = 1.6
+	l.omni_range = 8.0
+	m.add_child(l)
 
 # a solid block; collide=false for decoration
 static func block(m: Node3D, center: Vector3, size: Vector3, mat: Material, collide := true) -> void:
@@ -276,7 +382,7 @@ static func _sanctuary(m: Node3D) -> void:
 
 static func _burgo(m: Node3D) -> void:
 	block(m, Vector3(-25, BURGO_Y - 0.5, -74), Vector3(90, 1, 52), mats.floor)
-	cliff(Vector3(-25, BURGO_Y - 16, -74), Vector3(90, 30, 52))
+	cliff(m, Vector3(-25, BURGO_Y - 16, -74), Vector3(90, 30, 52))
 	wall(m, Vector3(-25, BURGO_Y + 1, -100.5), Vector3(90, 2, 1))  # north parapet
 	wall(m, Vector3(20.5, BURGO_Y + 1, -74), Vector3(1, 2, 52))  # east parapet
 	wall(m, Vector3(-70.5, BURGO_Y + 1, -82), Vector3(1, 2, 36))  # west parapet, open where the ramp comes up
@@ -298,7 +404,7 @@ static func _burgo(m: Node3D) -> void:
 	m._place("pm/Cart", Vector3(-10, BURGO_Y, -82), 1.8, Color(0.45, 0.4, 0.38), null, 0.6)
 	# the alley under the rooftops, with a ramp back up into the Burgo's west side
 	block(m, Vector3(-51, ALLEY_Y - 0.5, -26), Vector3(30, 1, 46), mats.floor)
-	cliff(Vector3(-51, ALLEY_Y - 17, -26), Vector3(30, 32, 46))
+	cliff(m, Vector3(-51, ALLEY_Y - 17, -26), Vector3(30, 32, 46))
 	_stair(m, Vector3(-67.5, ALLEY_Y, -22), Vector3(-67.5, BURGO_Y, -54), 4.0)
 	for z in [-46.0, -6.0]:
 		wall(m, Vector3(-51, ALLEY_Y + 1, z - 3.0 * sign(z + 26)), Vector3(30, 2, 1))
@@ -316,7 +422,7 @@ static func _rooftops(m: Node3D) -> void:
 static func _church(m: Node3D) -> void:
 	var y := CHURCH_Y
 	block(m, Vector3(-42, y - 0.5, 14), Vector3(40, 1, 32), mats.floor)
-	cliff(Vector3(-42, y - 20, 14), Vector3(40, 38, 32))
+	cliff(m, Vector3(-42, y - 20, 14), Vector3(40, 38, 32))
 	# nave: lancet-windowed walls with a door on the east side, open roof beams
 	wall(m, Vector3(-52, y + 6, 4), Vector3(16, 12, 1), "church_wall_4")
 	wall(m, Vector3(-52, y + 6, 26), Vector3(16, 12, 1), "church_wall_4")
