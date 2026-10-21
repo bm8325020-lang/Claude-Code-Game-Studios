@@ -230,7 +230,7 @@ func _ready() -> void:
 		seed_marks.append([_glow_marker(Vector3(sp[0], y + 0.3, sp[1]), SEEDS[sp[2]].col), sp])
 	map_tex = _make_map()
 	if not autoplay:  # the playtest robot always starts fresh and never overwrites a save
-		_load()
+		_build_title()
 
 # ------------------------------------------------------------------ save
 const SAVE_PATH := "user://sementes_save.json"
@@ -297,6 +297,56 @@ func _load() -> void:
 	flasks = max_flasks
 	player.position = bonfire_pos + Vector3(0, 0.5, -2.5)
 	_show_banner("BEM-VINDO DE VOLTA", "Nível %d  ·  %d brasas" % [level, embers], Color(0.95, 0.85, 0.65), 3.0)
+
+# title card: the world is built and paused behind it
+func _build_title() -> void:
+	get_tree().paused = true
+	var layer := CanvasLayer.new()
+	layer.layer = 20
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(layer)
+	var bg := ColorRect.new()
+	bg.color = Color(0, 0, 0, 0.72)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(bg)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(center)
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 26)
+	center.add_child(box)
+	ui.visible = false
+	var title := Label.new()
+	title.text = "SEMENTES DO DRAGÃO"
+	title.add_theme_font_size_override("font_size", 96)
+	title.add_theme_color_override("font_color", Color(1, 0.6, 0.2))
+	title.add_theme_constant_override("outline_size", 14)
+	title.add_theme_color_override("font_outline_color", Color.BLACK)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+	var sub := Label.new()
+	sub.text = "Sombra e Chama"
+	sub.add_theme_font_size_override("font_size", 40)
+	sub.add_theme_color_override("font_color", Color(0.85, 0.8, 0.7))
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(sub)
+	var has_save := FileAccess.file_exists(SAVE_PATH)
+	for b in ([["CONTINUAR", true]] if has_save else []) + [["NOVO JOGO", false]]:
+		var btn := Button.new()
+		btn.text = b[0]
+		btn.custom_minimum_size = Vector2(520, 110)
+		btn.add_theme_font_size_override("font_size", 46)
+		btn.pressed.connect(func():
+			if b[1]:
+				_load()
+			else:
+				DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+				_show_banner("PRAIA DAS CINZAS", "Onde o mar devolve os que caem", Color(0.95, 0.85, 0.65), 3.5)
+			layer.queue_free()
+			ui.visible = true
+			get_tree().paused = false)
+		box.add_child(btn)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST:
