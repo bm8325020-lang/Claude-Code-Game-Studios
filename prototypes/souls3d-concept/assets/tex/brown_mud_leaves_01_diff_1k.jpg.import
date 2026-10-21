@@ -2,19 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b68ivv4gec1k"
-path="res://.godot/imported/TreeMed002_0.png-f1c08fc28796a5d9262f2de57f6abd57.ctex"
+uid="uid://b80g28ftiahvy"
+path="res://.godot/imported/brown_mud_leaves_01_diff_1k.jpg-4a9fcd867f8bcacb5c04227bff841337.ctex"
 metadata={
 "vram_texture": false
-}
-generator_parameters={
-"md5": "907d9d9e4c77ac5e1692ff10a145704a"
 }
 
 [deps]
 
-source_file="res://assets/nature/TreeMed002_0.png"
-dest_files=["res://.godot/imported/TreeMed002_0.png-f1c08fc28796a5d9262f2de57f6abd57.ctex"]
+source_file="res://assets/tex/brown_mud_leaves_01_diff_1k.jpg"
+dest_files=["res://.godot/imported/brown_mud_leaves_01_diff_1k.jpg-4a9fcd867f8bcacb5c04227bff841337.ctex"]
 
 [params]
 
@@ -26,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dmtytj3oiw7lv"
-path="res://.godot/imported/TreeMed001.glb-0a614d82e6c91d057b658a7b738342b7.scn"
+uid="uid://08wxvv4ucbkw"
+path="res://.godot/imported/pine_1.glb-b6d75b5fa4ee2ca6d6ed9a7a9964bc94.scn"
 
 [deps]
 
-source_file="res://assets/nature/TreeMed001.glb"
-dest_files=["res://.godot/imported/TreeMed001.glb-0a614d82e6c91d057b658a7b738342b7.scn"]
+source_file="res://assets/nature/pine_1.glb"
+dest_files=["res://.godot/imported/pine_1.glb-b6d75b5fa4ee2ca6d6ed9a7a9964bc94.scn"]
 
 [params]
 

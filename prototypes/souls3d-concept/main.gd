@@ -6,7 +6,19 @@ extends Node3D
 const HeroLook = preload("res://hero_look.gd")
 const HeroAnims = preload("res://hero_anims.gd")
 
-const BONFIRE_POS := Vector3(0, 0, 14)
+const BONFIRES := [  # [x, z, name]; y comes from the terrain
+	[0.0, 14.0, "Ruínas do Guardião"], [12.0, 150.0, "Praia das Cinzas"], [-115.0, 35.0, "Floresta Morta"],
+	[118.0, -25.0, "Cemitério dos Juramentados"], [-30.0, -118.0, "Sopé do Pico"],
+]
+const World = preload("res://world.gd")
+# open-island enemies, by region
+const WORLD_SPAWNS := [
+	[Vector3(-6, 0, 128), "minion"], [Vector3(24, 0, 120), "minion"], [Vector3(4, 0, 92), "warrior"], [Vector3(-14, 0, 70), "minion"],
+	[Vector3(-90, 0, 50), "minion"], [Vector3(-130, 0, 10), "minion"], [Vector3(-100, 0, -10), "caster"], [Vector3(-140, 0, 60), "warrior"],
+	[Vector3(-75, 0, 90), "minion"], [Vector3(100, 0, -10), "warrior"], [Vector3(130, 0, -40), "warrior"], [Vector3(110, 0, -50), "caster"],
+	[Vector3(140, 0, -5), "minion"], [Vector3(95, 0, -35), "minion"], [Vector3(125, 0, 10), "caster"], [Vector3(60, 0, -60), "warrior"],
+	[Vector3(-40, 0, -95), "warrior"], [Vector3(-15, 0, -135), "caster"], [Vector3(20, 0, -110), "minion"],
+]
 const BOSS_HOME := Vector3(0, 0, -26)
 const ANIMS := {
 	"idle": "sword_and_shield_idle", "idle2": "sword_and_shield_idle_2", "run": "sword_and_shield_run",
@@ -98,6 +110,10 @@ var hit_len := 0.55
 var idle_t := 0.0
 var auto_block := 0.0
 var shards: Array = []
+var world: Node3D
+var bonfires: Array = []  # [pos, name]
+var bonfire_pos := Vector3.ZERO  # last bonfire rested at
+var lit := {}  # bonfire names already lit
 var breakables: Array = []
 var weapon := "sword"  # sword (sword + shield) or great (great sword, two hands)
 var sword_props: Array = []
@@ -149,7 +165,7 @@ func _ready() -> void:
 	stone_mat = _pbr("castle_wall_slates", 1.0)
 	_build_world()
 	_build_player()
-	for sp in ENEMY_SPAWNS:
+	for sp in ENEMY_SPAWNS + WORLD_SPAWNS:
 		_spawn_enemy(sp[0], sp[1])
 	for p in SHARD_SPOTS:
 		shards.append(_glow_marker(p, Color(0.4, 1.0, 0.5)))
@@ -208,37 +224,54 @@ func _build_world() -> void:
 	e.background_color = Color(0.03, 0.035, 0.05)
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	e.ambient_light_color = Color(0.3, 0.32, 0.42)
-	e.ambient_light_energy = 0.55
+	e.ambient_light_energy = 0.8
 	e.fog_enabled = true
 	e.fog_light_color = Color(0.08, 0.09, 0.12)
-	e.fog_density = 0.03
+	e.fog_density = 0.012
 	e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	var moon := DirectionalLight3D.new()
 	moon.rotation_degrees = Vector3(-42, 150, 0)
 	moon.light_color = Color(0.55, 0.62, 0.9)
-	moon.light_energy = 0.6
+	moon.light_energy = 0.9
 	moon.shadow_enabled = true
 	moon.directional_shadow_max_distance = 40
 	add_child(moon)
+	world = World.new()
+	for b in BONFIRES:
+		bonfires.append([Vector3(b[0], world.flatten(Vector2(b[0], b[1]), 5.0), b[1]), b[2]])
+	var ground := ShaderMaterial.new()
+	ground.shader = load("res://terrain.gdshader")
+	for t in [["mud", "brown_mud_leaves_01"], ["rock", "aerial_rocks_02"], ["sand", "coast_sand_rocks_02"]]:
+		ground.set_shader_parameter(t[0], load("res://assets/tex/%s_diff_1k.jpg" % t[1]))
+		ground.set_shader_parameter(t[0] + "_n", load("res://assets/tex/%s_nor_gl_1k.jpg" % t[1]))
+	var sea := StandardMaterial3D.new()
+	sea.albedo_color = Color(0.02, 0.04, 0.06)
+	sea.metallic = 0.6
+	sea.roughness = 0.15
+	world.build(ground, sea)
+	add_child(world)
+	bonfire_pos = bonfires[1][0]
 	var floor_mat := _pbr("cobblestone_floor_08", 18.0)
 	_box_collider(Vector3(0, -0.5, -6), Vector3(44, 1, 76), floor_mat)
 	var wall := _pbr("castle_wall_slates", 4.0)
 	_box_collider(Vector3(-22, 4, -6), Vector3(1, 8, 76), wall)
 	_box_collider(Vector3(22, 4, -6), Vector3(1, 8, 76), wall)
-	_box_collider(Vector3(0, 4, 32), Vector3(44, 8, 1), wall)
+	_box_collider(Vector3(-12.5, 4, 32), Vector3(19, 8, 1), wall)  # south wall, gate gap in the middle
+	_box_collider(Vector3(12.5, 4, 32), Vector3(19, 8, 1), wall)
 	_box_collider(Vector3(0, 4, -44), Vector3(44, 8, 1), wall)
 	# divider wall with the archway to the boss arena
 	_box_collider(Vector3(-12.6, 3, -14), Vector3(18.8, 6, 1.2), wall)
 	_box_collider(Vector3(12.6, 3, -14), Vector3(18.8, 6, 1.2), wall)
 	var arch := _prop("archway_gate", Vector3(0, 0, -14))
 	arch.get_children()  # keep the gate visual; the bars are decorative and open
-	_prop("bonfire", BONFIRE_POS)
-	var fire := OmniLight3D.new()
-	fire.position = BONFIRE_POS + Vector3(0, 0.9, 0)
-	fire.light_color = Color(1, 0.5, 0.15)
-	fire.light_energy = 3.0
-	fire.omni_range = 9
-	add_child(fire)
+	for b in bonfires:
+		_prop("bonfire", b[0])
+		var fire := OmniLight3D.new()
+		fire.position = b[0] + Vector3(0, 0.9, 0)
+		fire.light_color = Color(1, 0.5, 0.15)
+		fire.light_energy = 3.0
+		fire.omni_range = 9
+		add_child(fire)
 	for i in 4:
 		var side := -1 if i % 2 == 0 else 1
 		_prop("column_broken", Vector3(side * 9, 0, 8 - i * 6), randf() * TAU)
@@ -274,18 +307,34 @@ func _build_scenery() -> void:
 	rng.seed = 7
 	var rock := _pbr("castle_wall_slates", 1.0)
 	rock.uv1_triplanar = true
-	rock.uv1_scale = Vector3(0.25, 0.25, 0.25)
+	rock.uv1_scale = Vector3(0.08, 0.08, 0.08)
 	rock.albedo_color = Color(0.55, 0.55, 0.6)
-	for z in range(-48, 40, 5):
-		for side in [-1, 1]:
-			_place("nature/TreeHigh00%d" % rng.randi_range(1, 3), Vector3(side * rng.randf_range(27, 32), 0, z + rng.randf_range(-2, 2)), rng.randf_range(11, 17), Color(0.22, 0.27, 0.24))
-	for x in range(-30, 31, 6):
-		for z in [rng.randf_range(40, 44), rng.randf_range(-54, -51)]:
-			_place("nature/TreeMed00%d" % rng.randi_range(1, 2), Vector3(x + rng.randf_range(-2, 2), 0, z), rng.randf_range(9, 14), Color(0.22, 0.27, 0.24))
-	for i in 10:
-		var a := i * TAU / 10 + rng.randf_range(-0.2, 0.2)
-		# cliffs are up to twice as wide as tall: keep their footprint clear of the walled area
-		_place("nature/Cliff00%d" % rng.randi_range(1, 3), Vector3(sin(a) * 66, 0, cos(a) * 82 - 6), rng.randf_range(18, 24), Color.WHITE, rock)
+	# pines over the whole island, thick in the Dead Forest (west), none in the ruins or on the camps
+	var keep := func(p: Vector2, _y: float) -> bool:
+		if p.x > World.RUINS.position.x - 6 and p.x < World.RUINS.end.x + 6 and p.y > World.RUINS.position.y - 6 and p.y < World.RUINS.end.y + 6:
+			return false
+		for b in bonfires:
+			if Vector2(b[0].x, b[0].z).distance_to(p) < 9.0:
+				return false
+		return true
+	var forest := Rect2(-210, -90, 150, 220)
+	_scatter_model("nature/dead_tree_1", 220, forest, Vector2(6, 9), Color.WHITE, keep, 3)
+	_scatter_model("nature/dead_tree_2", 160, forest, Vector2(5, 8), Color.WHITE, keep, 13)
+	_scatter_model("nature/dead_tree_3", 50, forest, Vector2(4, 6), Color.WHITE, keep, 23)
+	_scatter_model("nature/pine_1", 140, Rect2(-210, -210, 420, 420), Vector2(9, 14), Color.WHITE, keep, 4)
+	_scatter_model("nature/pine_2", 120, Rect2(-210, -210, 420, 420), Vector2(8, 12), Color.WHITE, keep, 5)
+	_scatter_model("nature/dead_tree_1", 70, Rect2(-210, -210, 420, 420), Vector2(5, 8), Color.WHITE, keep, 8)
+	_scatter_model("nature/Rock002", 140, Rect2(-210, -210, 420, 420), Vector2(1.0, 3.5), Color.WHITE, keep, 6, rock)
+	_scatter_model("nature/Cliff003", 18, Rect2(-60, -215, 120, 90), Vector2(14, 22), Color.WHITE, keep, 7, rock)
+	# the Oathbound Cemetery (east)
+	var grng := RandomNumberGenerator.new()
+	grng.seed = 9
+	for g in 22:
+		var gp := Vector2(118, -25) + Vector2(grng.randf_range(-28, 28), grng.randf_range(-28, 28))
+		if gp.distance_to(Vector2(118, -25)) > 7.0:
+			_prop("graves", Vector3(gp.x, world.height(gp.x, gp.y), gp.y), grng.randf() * TAU)
+	for c in [Vector2(104, -8), Vector2(134, -40), Vector2(100, -45)]:
+		_prop("column_broken", Vector3(c.x, world.height(c.x, c.y), c.y), grng.randf() * TAU, 1.2)
 	for i in 10:
 		var side := -1 if i % 2 == 0 else 1
 		var pos := Vector3(side * rng.randf_range(18.5, 20.5), 0, rng.randf_range(-40, 28))
@@ -333,6 +382,20 @@ func _place(path: String, pos: Vector3, h: float, tint: Color, mat: Material = n
 	holder.position = pos
 	holder.rotation.y = randf() * TAU if rot_y < 0 else rot_y
 	return holder
+
+# one model many times (MultiMesh) on the island terrain, scaled to a height range
+func _scatter_model(path: String, count: int, area: Rect2, h: Vector2, tint: Color, keep: Callable, seed: int, mat: Material = null) -> void:
+	var n: Node3D = load("res://assets/%s.glb" % path).instantiate()
+	var mi: MeshInstance3D = n.find_children("*", "MeshInstance3D", true, false)[0]
+	var k: float = 1.0 / mi.get_aabb().size.y
+	var m: Material = mat
+	if m == null:
+		m = mi.mesh.surface_get_material(0).duplicate()
+		m.albedo_color *= tint
+	var mmi: MultiMeshInstance3D = world.scatter(mi.mesh, count, area, h * k, keep, seed)
+	mmi.material_override = m
+	mmi.visibility_range_end = 260.0
+	n.free()
 
 func _static_box(pos: Vector3, size: Vector3) -> void:
 	var body := StaticBody3D.new()
@@ -451,7 +514,7 @@ func _attach(skel: Skeleton3D, bone: String, prop_name: String, xf: Transform3D)
 
 func _build_player() -> void:
 	player = CharacterBody3D.new()
-	player.position = BONFIRE_POS + Vector3(0, 0, -2.5)
+	player.position = bonfire_pos + Vector3(0, 0.5, -2.5)
 	var cs := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
 	cap.radius = 0.35
@@ -481,7 +544,7 @@ func _build_player() -> void:
 	cam_pivot.add_child(spring)
 	camera = Camera3D.new()
 	camera.fov = 65
-	camera.far = 120
+	camera.far = 320
 	spring.add_child(camera)
 
 func _dark_cloth() -> StandardMaterial3D:
@@ -513,7 +576,7 @@ func _skeleton_model(kind: String) -> Node3D:
 
 func _spawn_enemy(pos: Vector3, kind := "warrior") -> void:
 	var root := Node3D.new()
-	root.position = pos
+	root.position = Vector3(pos.x, world.height(pos.x, pos.z), pos.z)
 	root.rotation.y = randf() * TAU
 	add_child(root)
 	var k := _skeleton_model(kind)
@@ -674,7 +737,7 @@ func _update_player(dt: float) -> void:
 				_set_state("block")
 				block_t = 0.0
 				_play(_a("block_idle"), 0.1)
-			elif _pressed("level") and player.position.distance_to(BONFIRE_POS) < 3.0:
+			elif _pressed("level") and _near_bonfire(3.0) != null:
 				_level_up()
 			elif _pressed("weapon"):
 				_set_state("swap")
@@ -762,6 +825,8 @@ func _update_player(dt: float) -> void:
 			if state_t > 4.0:
 				_respawn()
 	player.move_and_slide()
+	if player.position.y < World.SEA - 0.8 and state != "dead":
+		_hurt_player(9999.0, "Afogado no mar de cinzas")
 	if state == "roll" or sprinting:
 		for b in breakables.duplicate():
 			if Vector2(b.pos.x - player.position.x, b.pos.z - player.position.z).length() < 0.9:
@@ -771,12 +836,15 @@ func _update_player(dt: float) -> void:
 	if lock_target != null and (lock_target.dead or lock_target.root.position.distance_to(player.position) > 20):
 		lock_target = null
 	# bonfire rest
-	if state == "free" and player.position.distance_to(BONFIRE_POS) < 2.2 and (hp < max_hp or flasks < max_flasks or essence < 100):
+	var bf = _near_bonfire(2.2)
+	if state == "free" and bf != null and (hp < max_hp or flasks < max_flasks or essence < 100 or not lit.has(bf[1]) or bonfire_pos != bf[0]):
+		bonfire_pos = bf[0]
+		lit[bf[1]] = true
 		hp = max_hp
 		flasks = max_flasks
 		essence = 100.0
 		_respawn_enemies()
-		_show_banner("FOGUEIRA ACESA", "Vida, frascos e essência restaurados. Os mortos se levantam de novo.", Color(1, 0.7, 0.3), 2.5)
+		_show_banner("FOGUEIRA: " + bf[1].to_upper(), "Vida, frascos e essência restaurados. Os mortos se levantam de novo.", Color(1, 0.7, 0.3), 2.5)
 	# reclaim dropped embers
 	if dropped_marker != null and player.position.distance_to(dropped_marker.position) < 1.5:
 		embers += dropped_embers
@@ -784,6 +852,12 @@ func _update_player(dt: float) -> void:
 		dropped_embers = 0
 		dropped_marker.queue_free()
 		dropped_marker = null
+
+func _near_bonfire(r: float):
+	for b in bonfires:
+		if player.position.distance_to(b[0]) < r:
+			return b
+	return null
 
 func _set_state(s: String) -> void:
 	state = s
@@ -1070,7 +1144,7 @@ func _update_pickups() -> void:
 			_show_banner("FRAGMENTO DE SEIVA", "Frascos máximos: %d" % max_flasks, Color(0.5, 1, 0.6), 2.5)
 
 func _respawn() -> void:
-	player.position = BONFIRE_POS + Vector3(0, 0, -2.5)
+	player.position = bonfire_pos + Vector3(0, 0.5, -2.5)
 	hp = max_hp
 	stamina = max_stamina
 	flasks = max_flasks
@@ -1093,7 +1167,7 @@ func _respawn_enemies() -> void:
 	for e in enemies:
 		e.root.queue_free()
 	enemies.clear()
-	for sp in ENEMY_SPAWNS:
+	for sp in ENEMY_SPAWNS + WORLD_SPAWNS:
 		_spawn_enemy(sp[0], sp[1])
 
 func _toggle_lock() -> void:
@@ -1160,6 +1234,9 @@ func _wake_boss() -> void:
 
 # ------------------------------------------------------------------ enemies
 func _update_enemy(e: Dictionary, dt: float) -> void:
+	if e.state == "dormant" and e.root.position.distance_squared_to(player.position) > 3600.0:
+		return  # far sleepers cost nothing
+	e.root.position.y = world.height(e.root.position.x, e.root.position.z)
 	if e.dead:
 		# some skeletons pull themselves back together once, unless their bones are burnt (Fire Seed)
 		if e.revive_t > 0:
@@ -1663,7 +1740,7 @@ func _draw_ui() -> void:
 	ui_draw.draw_rect(Rect2(40, 84, 100 * 2.4, 10), Color(0, 0, 0.1, 0.7))
 	ui_draw.draw_rect(Rect2(40, 84, essence * 2.4, 10), Color(0.25, 0.45, 0.95))
 	_text("Nível %d   Frascos %d/%d" % [level, flasks, max_flasks], Vector2(40, 132), 28, Color(0.9, 0.8, 0.6))
-	if player.position.distance_to(BONFIRE_POS) < 3.0:
+	if _near_bonfire(3.0) != null:
 		_text("Próximo nível: %d brasas" % (150 * level), Vector2(vs.x * 0.5 - 170, vs.y - 200), 28, Color(1, 0.8, 0.5))
 	for e in enemies:
 		if e.dead or e.hp >= e.max or camera.is_position_behind(e.root.position):
@@ -1685,7 +1762,7 @@ func _draw_ui() -> void:
 	for a in buttons:
 		var pos := _button_pos(a, vs)
 		var r := _button_r(a)
-		if a == "level" and player.position.distance_to(BONFIRE_POS) > 3.0:
+		if a == "level" and _near_bonfire(3.0) == null:
 			continue
 		var label: String = {"attack": "ATACAR", "roll": "ROLAR", "lock": "MIRA", "seed": "FOGO", "flask": "FRASCO", "block": "DEFESA", "level": "NÍVEL", "weapon": "ARMA"}[a]
 		var col := Color(1, 0.55, 0.2) if a == "seed" else Color(1, 1, 1)

@@ -2,19 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bg8omi8mgncsk"
-path="res://.godot/imported/TreeHigh002_0.png-bf80f0f3acccbf432a1adcd1773855f0.ctex"
+uid="uid://ciuvm0wmv3x6"
+path="res://.godot/imported/brown_mud_leaves_01_nor_gl_1k.jpg-541829e0d8f74c58540246788d2d7e4b.ctex"
 metadata={
 "vram_texture": false
-}
-generator_parameters={
-"md5": "907d9d9e4c77ac5e1692ff10a145704a"
 }
 
 [deps]
 
-source_file="res://assets/nature/TreeHigh002_0.png"
-dest_files=["res://.godot/imported/TreeHigh002_0.png-bf80f0f3acccbf432a1adcd1773855f0.ctex"]
+source_file="res://assets/tex/brown_mud_leaves_01_nor_gl_1k.jpg"
+dest_files=["res://.godot/imported/brown_mud_leaves_01_nor_gl_1k.jpg-541829e0d8f74c58540246788d2d7e4b.ctex"]
 
 [params]
 
@@ -26,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""
