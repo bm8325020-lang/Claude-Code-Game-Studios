@@ -7,6 +7,9 @@ framework:
   version: 1.2.0
   last_upgraded: 2026-10-19
 
+project:
+  stage: Concept
+
 # NOTE: this template ships with no `modes:` block, and the six knobs below must
 # never be added to one.
 #
@@ -25,3 +28,35 @@ framework:
 # here. `/settings --local <key>=<value>` writes there; `/settings <key>=<value>`
 # edits this file. See `.claude/docs/config-resolution.md` for the full
 # precedence order.
+
+modes:
+  rigor: standard
+  automation: autonomous
+
+engine:
+  name: "Godot"
+  version: "4.7.2"
+  language: "GDScript"
+  rendering: "Compatibility"
+  physics: "Godot Physics 2D"
+  path: "/home/user/.local/godot/Godot_v4.7.2-stable_linux.x86_64"
+
+specialists:
+  code: "godot-gdscript-specialist"
+  shader: "godot-shader-specialist"
+  ui: "godot-specialist"
+  additional: ["godot-gdextension-specialist"]
+
+naming:
+  classes: PascalCase
+  variables: snake_case
+  constants: SCREAMING_SNAKE
+  signals: past_tense
+  files: snake_case
+  scenes: snake_case
+
+commands:
+  build: '"/home/user/.local/godot/Godot_v4.7.2-stable_linux.x86_64" --headless --path . --export-debug "Android" build/android/game-debug.apk'
+  test: '"/home/user/.local/godot/Godot_v4.7.2-stable_linux.x86_64" --headless --path . -s -d --remote-debug tcp://127.0.0.1:0 res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests --ignoreHeadlessMode'
+  run: '"/home/user/.local/godot/Godot_v4.7.2-stable_linux.x86_64" --path . --windowed --resolution 1280x720'
+  smoke: '"/home/user/.local/godot/Godot_v4.7.2-stable_linux.x86_64" --headless --path . --quit-after 5'

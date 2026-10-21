@@ -175,3 +175,8 @@ $RECYCLE.BIN/
 # the project root. Anchored so a reports/ folder elsewhere stays tracked.
 /reports/
 /test-results/
+
+# Godot editor cache and Android builds (regenerated)
+.godot/
+*.apk
+*.idsig
