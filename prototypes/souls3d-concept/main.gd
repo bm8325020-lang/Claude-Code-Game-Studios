@@ -3,6 +3,8 @@
 # Date: 2026-10-21
 extends Node3D
 
+const HeroLook = preload("res://hero_look.gd")
+
 const BONFIRE_POS := Vector3(0, 0, 14)
 const BOSS_HOME := Vector3(0, 0, -26)
 const ANIMS := {
@@ -294,26 +296,10 @@ func _build_player() -> void:
 	add_child(player)
 	model = load("res://assets/mixamo/x_bot.fbx").instantiate()
 	player.add_child(model)
-	# the body is the gambeson under the armour
-	var gambeson := _dark_cloth()
-	gambeson.albedo_color = Color(0.09, 0.07, 0.07)
-	for m in model.find_children("*", "MeshInstance3D", true, false):
-		for i in m.mesh.get_surface_count():
-			m.set_surface_override_material(i, gambeson)
 	anim = model.find_children("*", "AnimationPlayer", true, false)[0]
 	_load_anims(anim)
+	HeroLook.dress(model)
 	var skel: Skeleton3D = model.find_children("*", "Skeleton3D", true, false)[0]
-	# hero_armor.glb: each piece is named "<bone>__<piece>" and modelled in that bone's space
-	var armor: Node3D = load("res://assets/props/hero_armor.glb").instantiate()
-	for mi in armor.find_children("*", "MeshInstance3D", true, false):
-		var ba := BoneAttachment3D.new()
-		ba.bone_name = str(mi.name).split("__")[0]
-		skel.add_child(ba)
-		mi.get_parent().remove_child(mi)
-		mi.owner = null
-		mi.transform = Transform3D.IDENTITY
-		ba.add_child(mi)
-	armor.free()
 	# hand bones are scaled by 100 in Mixamo rigs exported to cm; the props are in metres
 	var s := 1.0 / skel.get_bone_global_rest(skel.find_bone("mixamorig_RightHand")).basis.get_scale().x
 	sword_props.append(_attach(skel, "mixamorig_RightHand", "longsword", Transform3D(Basis(Vector3.RIGHT, -PI / 2).scaled(Vector3.ONE * s), Vector3(0, 0.07, 0.02) * s)))

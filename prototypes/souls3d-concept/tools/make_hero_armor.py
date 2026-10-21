@@ -6,7 +6,7 @@
 # BoneAttachment3D with an identity transform. Sizes come from the X Bot's per-bone extents.
 # usage: blender -b --python make_hero_armor.py -- <out_dir>
 import bpy, bmesh, math, random, sys, os
-from mathutils import Vector
+from mathutils import Vector, Matrix
 
 OUT = sys.argv[sys.argv.index("--") + 1]
 os.makedirs(OUT, exist_ok=True)
@@ -123,6 +123,17 @@ def slit(target, center, size):
     mod.solver = "EXACT"
     return cut
 
+def rivets(name, points, r=0.0065):
+    bm = bmesh.new()
+    for p in points:
+        g = bmesh.ops.create_icosphere(bm, subdivisions=1, radius=r)
+        for v in g["verts"]:
+            v.co = Vector((v.co.x + p[0], v.co.y + p[1], v.co.z + p[2]))
+    return obj_from_bm(bm, name, TRIM)
+
+def ring_points(y, rx, rz, cz, angles, cx=0.0):
+    return [(cx + math.sin(a) * rx, y, cz + math.cos(a) * rz) for a in angles]
+
 cutters = []
 
 # ---- Head: great helm with an eye slit, breaths, a ridge and an ember glow behind the slit
@@ -136,6 +147,17 @@ cutters.append(slit(helm, (0, 0.075, 0.17), (0.17, 0.018, 0.09)))
 lathe([(y, rx + 0.009, f + 0.009, b + 0.009) for y, rx, f, b in helm_rings[:-1]], HEAD + "__ridge", TRIM,
       arc=(-0.07, 0.07), seg=2, thick=0.006, cz=0.024)
 lathe([(-0.1, 0.116, 0.152, 0.133), (-0.075, 0.116, 0.152, 0.133)], HEAD + "__rim", TRIM, seg=28, thick=0.006, cz=0.024)
+# horsehair crest: a fin over the helm's top ridge, longer and ragged toward the back
+inner = [(0.2, 0.135), (0.245, 0.105), (0.272, 0.06), (0.283, 0.02), (0.276, -0.03), (0.25, -0.075), (0.205, -0.105), (0.14, -0.12)]
+outer = [(0.235, 0.15), (0.3, 0.115), (0.34, 0.06), (0.355, 0.0), (0.345, -0.065), (0.305, -0.13), (0.23, -0.19), (0.08, -0.235)]
+rnd = random.Random(11)
+bm = bmesh.new()
+iv = [bm.verts.new((0, y, z)) for y, z in inner]
+ov = [bm.verts.new((0, y + rnd.uniform(-0.012, 0.012) * i / 7, z + rnd.uniform(-0.012, 0.0) * i / 7)) for i, (y, z) in enumerate(outer)]
+for i in range(len(inner) - 1):
+    bm.faces.new((iv[i], iv[i + 1], ov[i + 1], ov[i]))
+crest = obj_from_bm(bm, HEAD + "__crest", CLOTH, 0.022)
+crest.modifiers["solid"].offset = 0.0
 box(HEAD + "__glow", EMBER, (0, 0.075, 0.148), (0.15, 0.01, 0.004), bevel=0)
 
 # ---- Chest: breastplate + backplate, front ridge, the Seed gem, gorget, cape
@@ -149,6 +171,16 @@ gem(CHEST + "__seed", (0, 0.07, 0.185), 0.026)
 lathe([(0.06, 0.04, 0.04, 0.04), (0.06, 0.05, 0.05, 0.05)], CHEST + "__seed_ring", TRIM, seg=20, thick=0.008, cz=0.176)
 lathe([(0.17, 0.1, 0.1, 0.1), (0.22, 0.092, 0.095, 0.092), (0.27, 0.082, 0.088, 0.082)], CHEST + "__gorget", DARK,
       seg=24, thick=0.007, cz=0.0)
+rivets(CHEST + "__gorget_rivets", ring_points(0.22, 0.1, 0.103, 0.0, [-1.2, -0.6, 0.0, 0.6, 1.2]))
+lathe([(0.13, 0.12, 0.15, 0.15), (0.2, 0.135, 0.17, 0.17), (0.27, 0.11, 0.15, 0.15), (0.31, 0.05, 0.085, 0.085)],
+       CHEST + "__hood", CLOTH, arc=(math.pi - 1.4, math.pi + 1.4), seg=14, thick=0.008, cz=-0.02)
+def cape_z(y):  # back surface of the cape centre line, follows the cape's slope
+    return -0.15 + (-0.27 + 0.15) * (0.2 - y) / 0.76 - 0.014
+for nm, m, w, h, d in (("__sigil", TRIM, 0.05, 0.085, 0.0), ("__sigil_ember", EMBER, 0.022, 0.04, 0.003)):
+    bm = bmesh.new()
+    pts = [(0, -0.02 + h), (w, -0.02), (0, -0.02 - h), (-w, -0.02)]
+    bm.faces.new([bm.verts.new((x, y, cape_z(y) - d)) for x, y in pts])
+    obj_from_bm(bm, CHEST + nm, m, 0.003)
 tattered(CHEST + "__cape", CLOTH, top_y=0.2, bot_y=-0.56, top_w=0.17, bot_w=0.25, top_z=-0.15, bot_z=-0.27, wrap=0.06)
 
 # ---- Waist: two faulds lames, belt with buckle, side tassets
@@ -157,6 +189,13 @@ lathe([(0.0, 0.148, 0.142, 0.125), (0.09, 0.152, 0.148, 0.13)], "mixamorig_Spine
 HIPS = "mixamorig_Hips"
 lathe([(0.0, 0.18, 0.15, 0.17), (0.05, 0.178, 0.148, 0.168)], HIPS + "__belt", LEATHER, seg=28, thick=0.008, cz=-0.026)
 box(HIPS + "__buckle", TRIM, (0, 0.025, 0.128), (0.06, 0.045, 0.012))
+# scabbard on the left hip (+X is the hero's left on the hips), hangs back and out
+sc_xf = Matrix.Translation((0.215, 0.0, -0.05)) @ Matrix.Rotation(0.18, 4, "Z") @ Matrix.Rotation(0.32, 4, "X")
+for nm, m, rings in (("__scabbard", LEATHER, [(0.0, 0.032, 0.015, 0.015), (-0.7, 0.026, 0.012, 0.012), (-0.74, 0.004, 0.004, 0.004)]),
+                     ("__scabbard_throat", TRIM, [(0.01, 0.036, 0.019, 0.019), (-0.05, 0.035, 0.018, 0.018)]),
+                     ("__scabbard_chape", TRIM, [(-0.62, 0.03, 0.016, 0.016), (-0.745, 0.008, 0.008, 0.008)])):
+    lathe(rings, HIPS + nm, m, seg=12, thick=0.004).data.transform(sc_xf)
+box(HIPS + "__pouch", LEATHER, (-0.13, -0.03, -0.14), (0.07, 0.08, 0.04), bevel=0.01)
 for side in (-1, 1):
     lathe([(0.0, 0.19, 0.17, 0.17), (-0.2, 0.22, 0.2, 0.2)], HIPS + "__tasset_%s" % ("l" if side > 0 else "r"), PLATE,
           arc=(side * math.pi / 2 - 0.55, side * math.pi / 2 + 0.55), seg=6, thick=0.007, cz=-0.026)
@@ -172,11 +211,13 @@ for side in ("Left", "Right"):
           arc=(math.pi - 1.6, math.pi + 1.6), seg=14, thick=0.007, cz=0.008)
     lathe([(0.03, 0.135, 0.135, 0.135), (0.045, 0.137, 0.137, 0.137)], arm + "__pauldron_trim", TRIM,
           arc=(math.pi - 1.9, math.pi + 1.9), seg=16, thick=0.006)
+    rivets(arm + "__pauldron_rivets", ring_points(0.037, 0.143, 0.143, 0.0, [math.pi + a for a in (-1.6, -0.8, 0.0, 0.8, 1.6)]))
     lathe([(0.15, 0.064, 0.064, 0.064), (0.27, 0.06, 0.06, 0.06)], arm + "__rerebrace", PLATE, seg=20, thick=0.006, cz=0.006)
     lathe([(-0.035, 0.064, 0.064, 0.064), (0.0, 0.076, 0.076, 0.076), (0.04, 0.066, 0.066, 0.066)], fore + "__couter", DARK,
           seg=20, thick=0.007)
     lathe([(0.05, 0.063, 0.063, 0.063), (0.2, 0.058, 0.058, 0.058), (0.24, 0.06, 0.06, 0.06), (0.285, 0.074, 0.074, 0.074)],
           fore + "__vambrace", PLATE, seg=20, thick=0.006)
+    lathe([(0.27, 0.076, 0.076, 0.076), (0.29, 0.079, 0.079, 0.079)], fore + "__vambrace_trim", TRIM, seg=20, thick=0.005)
     lathe([(-0.005, 0.062, 0.05, 0.05), (0.05, 0.062, 0.05, 0.05), (0.095, 0.055, 0.042, 0.042)], hand + "__gauntlet", DARK,
           arc=(math.pi - 1.7, math.pi + 1.7), seg=12, thick=0.006)
 
@@ -191,6 +232,8 @@ for side in ("Left", "Right"):
           leg + "__poleyn", DARK, arc=(-1.5, 1.5), seg=12, thick=0.007, cz=-0.005)
     lathe([(0.07, 0.068, 0.082, 0.078), (0.2, 0.07, 0.083, 0.088), (0.33, 0.062, 0.072, 0.07), (0.43, 0.056, 0.066, 0.062)],
           leg + "__greave", PLATE, seg=20, thick=0.006, cz=-0.005)
+    lathe([(0.07, 0.074, 0.088, 0.084), (0.095, 0.075, 0.089, 0.088)], leg + "__greave_trim", TRIM, seg=20, thick=0.005, cz=-0.005)
+    rivets(leg + "__greave_rivets", ring_points(0.083, 0.078, 0.096, -0.005, (-0.9, 0.0, 0.9)))
     lathe([(-0.045, 0.066, 0.085, 0.085), (0.06, 0.068, 0.085, 0.085), (0.15, 0.062, 0.075, 0.072)], foot + "__sabaton", DARK,
           seg=18, thick=0.006, cz=-0.019, cx=0.007)
     lathe([(-0.005, 0.058, 0.07, 0.04), (0.06, 0.052, 0.06, 0.035), (0.1, 0.03, 0.035, 0.02), (0.112, 0.0, 0.0, 0.0)],
