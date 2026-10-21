@@ -124,7 +124,7 @@ var env: Environment
 var sky_mat: ProceduralSkyMaterial
 var moon: DirectionalLight3D  # the sun by day, the moon by night
 var day_t := 0.3  # time of day 0..1 (0 = midnight, 0.5 = noon); a full day lasts DAY_LEN seconds
-const DAY_LEN := 1200.0
+const DAY_LEN := 1800.0
 var npcs: Node  # npcs.gd: people you can talk to
 var dialog: Control
 var smith_open := false  # talking to the smith: reinforce without a bonfire
@@ -207,7 +207,9 @@ var step_t := 0.0
 
 func _ready() -> void:
 	randomize()
-	stone_mat = _pbr("castle_wall_slates", 1.0)
+	stone_mat = StandardMaterial3D.new()  # props: clean warm stone, no brick texture
+	stone_mat.albedo_color = Color(0.72, 0.66, 0.58)
+	stone_mat.roughness = 0.9
 	_build_world()
 	world = World.new()
 	add_child(world)
@@ -414,15 +416,6 @@ func _notification(what: int) -> void:
 		_save()
 
 # ------------------------------------------------------------------ world
-func _pbr(name: String, uv: float) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_texture = load("res://assets/tex/%s_diff_1k.jpg" % name)
-	m.normal_enabled = true
-	m.normal_texture = load("res://assets/tex/%s_nor_gl_1k.jpg" % name)
-	m.roughness_texture = load("res://assets/tex/%s_rough_1k.jpg" % name)
-	m.uv1_scale = Vector3(uv, uv, uv)
-	return m
-
 func _prop(name: String, pos: Vector3, rot_y := 0.0, scale := 1.0) -> Node3D:
 	var s: Node3D = load("res://assets/props/%s.glb" % name).instantiate()
 	s.position = pos
@@ -459,33 +452,34 @@ func _build_world() -> void:
 	env = e
 	we.environment = e
 	add_child(we)
-	# night sky with an ember-lit horizon (the volcano), instead of a black void
+	# a bright painted sky; _update_daynight moves it from blue noon to orange dusk to a deep blue (never black) night
 	sky_mat = ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.02, 0.025, 0.05)
-	sky_mat.sky_horizon_color = Color(0.2, 0.11, 0.1)
-	sky_mat.ground_horizon_color = Color(0.12, 0.07, 0.07)
-	sky_mat.ground_bottom_color = Color(0.01, 0.01, 0.015)
-	sky_mat.sun_angle_max = 3.0
-	sky_mat.sun_curve = 0.3
+	sky_mat.sky_top_color = Color(0.16, 0.4, 0.85)
+	sky_mat.sky_horizon_color = Color(0.62, 0.8, 0.96)
+	sky_mat.ground_horizon_color = Color(0.55, 0.7, 0.85)
+	sky_mat.ground_bottom_color = Color(0.3, 0.4, 0.5)
+	sky_mat.sun_angle_max = 8.0
+	sky_mat.sun_curve = 0.12
 	var sky := Sky.new()
 	sky.sky_material = sky_mat
 	e.background_mode = Environment.BG_SKY
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	e.ambient_light_color = Color(0.3, 0.32, 0.42)
-	e.ambient_light_energy = 0.8
-	e.fog_enabled = true
-	e.fog_light_color = Color(0.07, 0.055, 0.07)
-	e.fog_density = 0.007
-	e.fog_sky_affect = 0.4
-	e.tonemap_mode = Environment.TONE_MAPPER_AGX
-	e.glow_enabled = true  # fire, embers and lamps bloom a little
-	e.glow_intensity = 0.6
-	e.glow_bloom = 0.05
-	e.glow_hdr_threshold = 1.1
+	e.ambient_light_color = Color(0.72, 0.74, 0.76)
+	e.ambient_light_energy = 0.9
+	e.fog_enabled = true  # thin haze: far hills turn sky-blue instead of disappearing, so the world reads as open
+	e.fog_light_color = Color(0.62, 0.8, 0.96)
+	e.fog_density = 0.0006
+	e.fog_sky_affect = 0.1
+	e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	e.tonemap_white = 6.0
+	e.glow_enabled = true  # fire, embers, lamps and the sun's sparkle bloom a little
+	e.glow_intensity = 0.5
+	e.glow_bloom = 0.04
+	e.glow_hdr_threshold = 1.2
 	e.adjustment_enabled = true
-	e.adjustment_contrast = 1.08
-	e.adjustment_saturation = 1.05
+	e.adjustment_contrast = 1.06
+	e.adjustment_saturation = 1.12
 	moon = DirectionalLight3D.new()
 	moon.rotation_degrees = Vector3(-42, 150, 0)
 	moon.light_color = Color(0.55, 0.62, 0.9)
@@ -496,25 +490,29 @@ func _build_world() -> void:
 	add_child(moon)
 	Level.build(self)
 
-# sun and moon cross the sky; sky, ambient light and fog follow; lamps matter at night
+# sun and moon cross the sky; sky, ambient light and fog follow; lamps matter at night.
+# elev is shifted up so the day lasts about 60% of the cycle
+func _elev() -> float:
+	return -cos(day_t * TAU) + 0.3
+
 func _update_daynight(dt: float) -> void:
 	day_t = fmod(day_t + dt / DAY_LEN, 1.0)
-	var elev := -cos(day_t * TAU)  # -1 midnight .. 1 noon
-	var day := smoothstep(-0.15, 0.25, elev)
-	var dusk := 1.0 - smoothstep(0.0, 0.35, absf(elev))  # warm light near sunrise and sunset
-	var a: float = maxf(absf(elev), 0.12)
-	moon.rotation_degrees = Vector3(-rad_to_deg(asin(a)) , 150.0 + day_t * 360.0, 0)
-	moon.light_color = Color(0.55, 0.62, 0.9).lerp(Color(1.0, 0.92, 0.8), day).lerp(Color(1.0, 0.6, 0.35), dusk * 0.6)
-	moon.light_energy = lerpf(0.8, 1.2, day)
-	sky_mat.sky_top_color = Color(0.02, 0.025, 0.05).lerp(Color(0.22, 0.36, 0.62), day)
-	sky_mat.sky_horizon_color = Color(0.2, 0.11, 0.1).lerp(Color(0.62, 0.62, 0.62), day).lerp(Color(0.85, 0.45, 0.25), dusk * 0.7)
-	sky_mat.ground_horizon_color = sky_mat.sky_horizon_color * 0.7
-	env.ambient_light_color = Color(0.3, 0.32, 0.42).lerp(Color(0.62, 0.6, 0.58), day)
-	env.ambient_light_energy = lerpf(0.8, 0.75, day)
-	env.fog_light_color = Color(0.07, 0.055, 0.07).lerp(Color(0.5, 0.52, 0.56), day).lerp(Color(0.6, 0.38, 0.28), dusk * 0.5)
+	var elev := _elev()  # -0.7 midnight .. 1.3 noon
+	var day := smoothstep(-0.2, 0.3, elev)
+	var dusk := 1.0 - smoothstep(0.0, 0.4, absf(elev))  # warm light near sunrise and sunset
+	var a: float = clampf(absf(elev), 0.15, 1.0)
+	moon.rotation_degrees = Vector3(-rad_to_deg(asin(a)), 150.0 + day_t * 360.0, 0)
+	moon.light_color = Color(0.55, 0.65, 1.0).lerp(Color(1.0, 0.95, 0.85), day).lerp(Color(1.0, 0.62, 0.35), dusk * 0.7)
+	moon.light_energy = lerpf(0.55, 1.5, day)
+	sky_mat.sky_top_color = Color(0.03, 0.06, 0.18).lerp(Color(0.16, 0.4, 0.85), day)
+	sky_mat.sky_horizon_color = Color(0.12, 0.16, 0.32).lerp(Color(0.62, 0.8, 0.96), day).lerp(Color(1.0, 0.55, 0.35), dusk * 0.75)
+	sky_mat.ground_horizon_color = sky_mat.sky_horizon_color * 0.9
+	env.ambient_light_color = Color(0.3, 0.38, 0.62).lerp(Color(0.72, 0.74, 0.76), day).lerp(Color(0.9, 0.6, 0.5), dusk * 0.3)
+	env.ambient_light_energy = lerpf(0.85, 0.9, day)
+	env.fog_light_color = sky_mat.sky_horizon_color
 
 func is_night() -> bool:
-	return -cos(day_t * TAU) < -0.1
+	return _elev() < -0.1
 
 # places a model from assets/<path>.glb scaled to height h; tint darkens its own material, mat replaces it
 func _place(path: String, pos: Vector3, h: float, tint: Color, mat: Material = null, rot_y := -1.0) -> Node3D:
@@ -673,7 +671,7 @@ func _build_player() -> void:
 	cam_pivot.add_child(spring)
 	camera = Camera3D.new()
 	camera.fov = 65
-	camera.far = 320
+	camera.far = 4000  # the far horizon (world.gd) stays in view: the world reads as open
 	spring.add_child(camera)
 
 func _dark_cloth() -> StandardMaterial3D:

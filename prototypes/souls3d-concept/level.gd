@@ -83,29 +83,25 @@ static var pieces := {}  # name -> ArrayMesh with the level's materials (assets/
 static var batches := {}  # "piece|cell" -> [mesh, [Transform3D]]: every modelled piece is drawn through a few MultiMeshes
 const MAT_OF := {"stone": "wall", "plaster": "plaster", "wood": "wood", "roof": "roof", "dark": "dark", "iron": "iron", "rock": "rock"}
 
-static func _mat(tex: String, scale: float, tint := Color.WHITE) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_texture = load("res://assets/tex/%s_diff_1k.jpg" % tex)
-	m.normal_enabled = true
-	m.normal_texture = load("res://assets/tex/%s_nor_gl_1k.jpg" % tex)
-	if ResourceLoader.exists("res://assets/tex/%s_rough_1k.jpg" % tex):
-		m.roughness_texture = load("res://assets/tex/%s_rough_1k.jpg" % tex)
-	m.albedo_color = tint
-	m.uv1_triplanar = true  # level blocks are plain boxes: world-space tiling keeps texel size even
-	m.uv1_world_triplanar = true
-	m.uv1_scale = Vector3.ONE * scale
+# painted, untextured level material (paint.gdshader): a clean colour with soft patches; top = colour on up faces
+static func _paint(c: Color, top := Color.WHITE, top_amount := 0.0, wobble := 0.12) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = load("res://paint.gdshader")
+	m.set_shader_parameter("color", c)
+	m.set_shader_parameter("top_color", top)
+	m.set_shader_parameter("top_amount", top_amount)
+	m.set_shader_parameter("wobble", wobble)
 	return m
 
 static func build(m: Node3D) -> void:
 	mats = {
-		"floor": _mat("cobblestone_floor_08", 0.3), "wall": _mat("castle_wall_slates", 0.25),
-		"rock": _mat("aerial_rocks_02", 0.06, Color(0.55, 0.52, 0.5)), "roof": _mat("castle_wall_slates", 0.4, Color(0.35, 0.3, 0.3)),
+		"floor": _paint(Color(0.8, 0.66, 0.48), Color.WHITE, 0.0, 0.12),  # warm sandstone paving
+		"wall": _paint(Color(0.93, 0.87, 0.74), Color(0.45, 0.7, 0.3), 0.5),  # cream stone with a little moss on top
+		"rock": _paint(Color(0.62, 0.55, 0.47), Color(0.4, 0.72, 0.26), 1.0, 0.18),  # warm rock, grass on the ledges
+		"roof": _paint(Color(0.78, 0.3, 0.2), Color.WHITE, 0.0, 0.1),  # terracotta
 	}
-	var wood := StandardMaterial3D.new()
-	wood.albedo_color = Color(0.2, 0.13, 0.08)
-	wood.roughness = 0.9
-	mats.wood = wood
-	mats.plaster = _mat("coast_sand_rocks_02", 0.5, Color(0.8, 0.72, 0.6))  # rough daub between the timbers
+	mats.wood = _paint(Color(0.55, 0.34, 0.18), Color.WHITE, 0.0, 0.15)
+	mats.plaster = _paint(Color(0.98, 0.94, 0.85), Color.WHITE, 0.0, 0.06)
 	mats.dark = _plain(Color(0.015, 0.012, 0.012), 1.0)
 	mats.iron = _plain(Color(0.12, 0.12, 0.13), 0.5, 0.8)
 	pieces = {}
@@ -143,20 +139,18 @@ static func _plain(c: Color, rough: float, metal := 0.0) -> StandardMaterial3D:
 	return m
 
 # Kenney kit piece "kit/name" (assets/kenney): every mesh in the GLB merged into one ArrayMesh, one surface per
-# source material, each recoloured through kenney_dark.gdshader so the bright kits sit in the dark world
+# source material, each drawn through kit_color.gdshader in its own bright colours
 static var kit_mats := {}
 
 static func _kit_mat(src: Material) -> ShaderMaterial:
 	if not kit_mats.has(src):
 		var sm := ShaderMaterial.new()
-		sm.shader = load("res://kenney_dark.gdshader")
+		sm.shader = load("res://kit_color.gdshader")
 		var std := src as StandardMaterial3D
 		sm.set_shader_parameter("use_map", std != null and std.albedo_texture != null)
 		if std != null:
 			sm.set_shader_parameter("colormap", std.albedo_texture)
 			sm.set_shader_parameter("base_color", std.albedo_color)
-		sm.set_shader_parameter("grit", load("res://assets/tex/castle_wall_slates_diff_1k.jpg"))
-		sm.set_shader_parameter("grit_n", load("res://assets/tex/castle_wall_slates_nor_gl_1k.jpg"))
 		kit_mats[src] = sm
 	return kit_mats[src]
 
@@ -200,6 +194,8 @@ static func _kit_mesh(name: String) -> ArrayMesh:
 		vv.append_array(verts)
 		nn.append_array(arr[Mesh.ARRAY_NORMAL])
 		var col: Color = std.albedo_color if std != null else Color.WHITE
+		if name.begins_with("nature/") and col.s > 0.25 and col.h > 0.4 and col.h < 0.55:  # teal leaves: a fresh grass green
+			col.h = 0.3
 		for k in verts.size():
 			cc.append(col)
 		var idx = arr[Mesh.ARRAY_INDEX]
@@ -254,21 +250,38 @@ static func _coarse(src: Mesh) -> ArrayMesh:
 static func _kit_vc_mat() -> ShaderMaterial:
 	if not kit_mats.has("vc"):
 		var sm := ShaderMaterial.new()
-		sm.shader = load("res://kenney_dark.gdshader")
+		sm.shader = load("res://kit_color.gdshader")
 		sm.set_shader_parameter("use_map", false)
 		sm.set_shader_parameter("use_vcolor", true)
-		sm.set_shader_parameter("desat", 0.35)
-		sm.set_shader_parameter("dark", 0.5)
-		sm.set_shader_parameter("tint", Vector3(0.8, 0.95, 0.75))  # foliage: green-black, not moonlit blue
-		sm.set_shader_parameter("grit", load("res://assets/tex/castle_wall_slates_diff_1k.jpg"))
-		sm.set_shader_parameter("grit_n", load("res://assets/tex/castle_wall_slates_nor_gl_1k.jpg"))
+		sm.set_shader_parameter("saturation", 1.15)  # foliage, flowers and rocks: bright and lively
 		kit_mats["vc"] = sm
 	return kit_mats["vc"]
 
+# MegaKit plaster colours (multiplied over the kit's beige plaster): "mvk/Wall_...#k" is that wall painted PLASTER[k]
+const PLASTER := [Color(1.4, 1.45, 1.55), Color(1.45, 1.4, 0.9), Color(1.45, 1.05, 1.1), Color(1.0, 1.25, 1.75),
+	Color(1.05, 1.45, 1.25), Color(1.25, 1.1, 1.65)]
+
+static func _painted(base: ArrayMesh, k: int) -> ArrayMesh:
+	var mesh: ArrayMesh = base.duplicate()
+	for i in mesh.get_surface_count():
+		var mat := mesh.surface_get_material(i)
+		if mat.resource_name == "MI_Plaster":
+			if not mvk_mats.has("MI_Plaster#%d" % k):
+				var m: StandardMaterial3D = mat.duplicate()
+				m.albedo_color = PLASTER[k]
+				mvk_mats["MI_Plaster#%d" % k] = m
+			mesh.surface_set_material(i, mvk_mats["MI_Plaster#%d" % k])
+	return mesh
+
 static func _piece(name: String) -> ArrayMesh:
+	if not pieces.has(name) and name.contains("#"):
+		var base := _piece(name.get_slice("#", 0))
+		var k := int(name.get_slice("#", 1))
+		pieces[name] = _painted(base, k)
+		far_pieces[pieces[name]] = _painted(far_pieces.get(base, base), k)
 	if not pieces.has(name) and name.contains("/"):
 		pieces[name] = _kit_mesh(name)
-		for plain in ["mvk/Wall_UnevenBrick_Straight", "mvk/Wall_Plaster_Straight"]:  # far away a wall with windows is a plain wall
+		for plain in ["mvk/Wall_Plaster_Straight"]:  # far away a wall with windows is a plain wall
 			if name != plain and name.begins_with(plain.trim_suffix("Straight")):
 				far_pieces[pieces[name]] = far_pieces[_piece(plain)]
 	if not pieces.has(name):
@@ -374,66 +387,6 @@ static func wall(m: Node3D, center: Vector3, size: Vector3, piece := "", collide
 		var c := center + (Vector3(off, 0, 0) if along_x else Vector3(0, 0, off))
 		place(piece, c - Vector3(0, size.y / 2.0, 0), Vector3(seg / 4.0, size.y / nominal_h, size.z if along_x else size.x), 0.0 if along_x else PI / 2.0)
 
-# the world beyond the playable loop: a ring of mountains fading into the fog, the volcano glowing on the horizon
-# and the towers of the high city above the church, so every area has landmarks to aim for
-static func _horizon(m: Node3D) -> void:
-	# two jagged ridges (one mesh each): a dark silhouette against the glowing horizon
-	var noise := FastNoiseLite.new()
-	noise.seed = 3
-	noise.frequency = 0.9
-	var ridge_mat := StandardMaterial3D.new()
-	ridge_mat.albedo_color = Color(0.05, 0.045, 0.06)
-	ridge_mat.roughness = 1.0
-	ridge_mat.cull_mode = BaseMaterial3D.CULL_DISABLED  # seen from inside the ring
-	for ring in [[250.0, 5.0, 35.0, 0.0], [290.0, 20.0, 55.0, 7.0]]:  # radius, base height, peak height, noise offset
-		var st := SurfaceTool.new()
-		st.begin(Mesh.PRIMITIVE_TRIANGLES)
-		var n := 96
-		for i in n:
-			var a0 := i * TAU / n
-			var a1 := (i + 1) * TAU / n
-			var h0: float = ring[1] + ring[2] * absf(noise.get_noise_1d(a0 * 4.0 + ring[3]))
-			var h1: float = ring[1] + ring[2] * absf(noise.get_noise_1d(a1 * 4.0 + ring[3]))
-			var r: float = ring[0]
-			var p0 := Vector3(sin(a0) * r, -80.0, cos(a0) * r)
-			var p1 := Vector3(sin(a1) * r, -80.0, cos(a1) * r)
-			var q0 := Vector3(sin(a0) * r, h0, cos(a0) * r)
-			var q1 := Vector3(sin(a1) * r, h1, cos(a1) * r)
-			for v in [p0, q0, q1, p0, q1, p1]:
-				st.add_vertex(v)
-		st.generate_normals()
-		var ridge := MeshInstance3D.new()
-		ridge.mesh = st.commit()
-		ridge.material_override = ridge_mat
-		ridge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		m.add_child(ridge)
-	var volcano := MeshInstance3D.new()  # Coração do Vulcão, far to the north-east
-	var cm := CylinderMesh.new()
-	cm.top_radius = 18.0
-	cm.bottom_radius = 95.0
-	cm.height = 150.0
-	cm.radial_segments = 10
-	volcano.mesh = cm
-	volcano.material_override = mats.rock
-	volcano.position = Vector3(140, 15, -230)
-	m.add_child(volcano)
-	var glow := MeshInstance3D.new()
-	var gm := CylinderMesh.new()
-	gm.top_radius = 17.0
-	gm.bottom_radius = 17.5
-	gm.height = 2.0
-	gm.radial_segments = 10
-	glow.mesh = gm
-	var lava := StandardMaterial3D.new()
-	lava.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	lava.albedo_color = Color(1.0, 0.35, 0.05)
-	glow.material_override = lava
-	glow.position = volcano.position + Vector3(0, 75.5, 0)
-	m.add_child(glow)
-	for t in [[-130.0, -230.0, 55.0], [-115.0, -245.0, 75.0], [-150.0, -240.0, 45.0], [-135.0, -260.0, 90.0]]:  # Cidade Alta, high and far
-		place("ruin_tower", Vector3(t[0], 25.0, t[1]), Vector3(2.0, t[2] / 10.0, 2.0))
-		place("belfry", Vector3(t[0], 25.0 + t[2], t[1]), Vector3(1.2, 1.6, 1.2))
-
 # height of a kit piece in its own units (its AABB top)
 static func _top(name: String) -> float:
 	return _piece(name).get_aabb().end.y
@@ -472,52 +425,6 @@ static func ground_h(x: float, z: float) -> float:
 		var side := (Vector2(x, z) - (a + ab * t)).length()
 		h = lerpf(lerpf(r[2], r[5], t), h, smoothstep(r[6], r[6] + 3.0, side))
 	return h
-
-static func _terrain(m: Node3D) -> void:
-	tnoise = FastNoiseLite.new()
-	tnoise.seed = 5
-	tnoise.frequency = 0.02
-	tnoise.fractal_octaves = 3
-	var n := int(T_SIZE / T_STEP) + 1
-	var heights := PackedFloat32Array()
-	heights.resize(n * n)
-	for j in n:
-		for i in n:
-			heights[j * n + i] = ground_h(T_ORIGIN.x + i * T_STEP, T_ORIGIN.y + j * T_STEP)
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for j in n:
-		for i in n:
-			st.add_vertex(Vector3(T_ORIGIN.x + i * T_STEP, heights[j * n + i], T_ORIGIN.y + j * T_STEP))
-	for j in n - 1:
-		for i in n - 1:
-			var a := j * n + i
-			for k in [a, a + 1, a + n, a + 1, a + n + 1, a + n]:
-				st.add_index(k)
-	st.generate_normals()
-	var mi := MeshInstance3D.new()
-	mi.mesh = st.commit()
-	var sm := ShaderMaterial.new()
-	sm.shader = load("res://terrain.gdshader")
-	for k in [["mud", "brown_mud_leaves_01_diff"], ["mud_n", "brown_mud_leaves_01_nor_gl"], ["rock", "aerial_rocks_02_diff"],
-			["rock_n", "aerial_rocks_02_nor_gl"], ["sand", "coast_sand_rocks_02_diff"], ["sand_n", "coast_sand_rocks_02_nor_gl"]]:
-		sm.set_shader_parameter(k[0], load("res://assets/tex/%s_1k.jpg" % k[1]))
-	sm.set_shader_parameter("sand_level", -100.0)
-	mi.material_override = sm
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	m.add_child(mi)
-	var body := StaticBody3D.new()
-	body.collision_layer = 1 | 2
-	var cs := CollisionShape3D.new()
-	var hs := HeightMapShape3D.new()
-	hs.map_width = n
-	hs.map_depth = n
-	hs.map_data = heights
-	cs.shape = hs
-	cs.scale = Vector3(T_STEP, 1, T_STEP)
-	cs.position = Vector3(T_ORIGIN.x + T_SIZE / 2.0, 0, T_ORIGIN.y + T_SIZE / 2.0)
-	body.add_child(cs)
-	m.add_child(body)
 
 # Cemitério dos Juramentados: crypts, rows of graves, iron fence, dead pines and two lamps
 static func _graveyard(m: Node3D) -> void:
@@ -563,13 +470,13 @@ static func _graveyard(m: Node3D) -> void:
 	place("graveyard/altar-stone", Vector3(66, y, 0), Vector3.ONE * 3.0, -PI / 2.0)
 	place("graveyard/candle-multiple", Vector3(66, y + 1.2, 0), Vector3.ONE * 3.0)
 
-# Jardim Morto: dark pines, dead trees and rocks in the valley; nothing inside the built areas or on the paths
+# Jardim Morto: green and autumn trees, flowers and bushes in the valley; nothing inside the built areas or on the paths
 static func _forest(m: Node3D) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 21
-	var trees := ["nature/tree_pineTallA_detailed", "nature/tree_pineTallB_detailed", "nature/tree_thin_dark", "nature/tree_default_dark",
-		"graveyard/pine-crooked", "nature/tree_pineRoundC", "fantasy-town/tree-high-crooked"]
-	var props := ["nature/rock_tallA", "nature/rock_tallC", "nature/rock_largeB", "nature/stump_old", "nature/log_large", "nature/mushroom_tanGroup"]
+	var trees := ["nature/tree_default", "nature/tree_oak", "nature/tree_fat", "nature/tree_detailed", "nature/tree_default_fall",
+		"nature/tree_pineRoundC", "nature/tree_oak_fall", "nature/tree_tall"]
+	var props := ["nature/flower_redA", "nature/flower_yellowB", "nature/flower_purpleA", "nature/plant_bushLarge", "nature/mushroom_redGroup", "nature/rock_largeB"]
 	var placed := 0
 	var tries := 0
 	while placed < 200 and tries < 4000:
@@ -600,8 +507,8 @@ static func _in_built(x: float, z: float) -> bool:
 			return true
 	return false
 
-# a Medieval Village MegaKit house (2 m wall modules, 3 m storeys): a stone ground floor with the door on local +z,
-# plastered upper floors with windows, a round-tile roof whose ridge runs along local z, brick gable fronts, a chimney
+# a Medieval Village MegaKit house (2 m wall modules, 3 m storeys): painted plaster walls with the door on local +z,
+# windows and timber framing, a round-tile roof whose ridge runs along local z, brick gable fronts, a chimney
 const ROOFS := {4: [4, 6, 8], 6: [4, 6, 8, 10, 12, 14], 8: [8, 10, 12, 14]}
 
 static func mvk_house(m: Node3D, origin: Vector3, w: int, d: int, floors: int, rot: float, seed := 0) -> Vector3:
@@ -617,19 +524,20 @@ static func mvk_house(m: Node3D, origin: Vector3, w: int, d: int, floors: int, r
 	var b := Basis(Vector3.UP, rot)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed
-	var low := ["mvk/Wall_UnevenBrick_Straight", "mvk/Wall_UnevenBrick_Window_Thin_Round", "mvk/Wall_UnevenBrick_Straight", "mvk/Wall_UnevenBrick_Window_Wide_Flat"]
+	var paint := "#%d" % (rng.randi() % PLASTER.size())  # each house its own colour
+	var low := ["mvk/Wall_Plaster_Straight", "mvk/Wall_Plaster_Window_Thin_Round", "mvk/Wall_Plaster_Straight", "mvk/Wall_Plaster_Window_Wide_Flat"]
 	var high := ["mvk/Wall_Plaster_Window_Wide_Round", "mvk/Wall_Plaster_WoodGrid", "mvk/Wall_Plaster_Window_Thin_Round", "mvk/Wall_Plaster_Straight", "mvk/Wall_Plaster_Window_Wide_Flat"]
 	for f in floors:
 		var y := f * 3.0
 		for i in w:  # front (+z) and back
 			var x := (i - (w - 1) / 2.0) * 2.0
-			var front: String = "mvk/Wall_UnevenBrick_Door_Round" if f == 0 and i == w / 2 else (low if f == 0 else high)[rng.randi() % (low if f == 0 else high).size()]
-			place(front, origin + b * Vector3(x, y, d), Vector3.ONE, rot)
-			place((low if f == 0 else high)[rng.randi() % 4], origin + b * Vector3(-x, y, -d), Vector3.ONE, rot + PI)
+			var front: String = "mvk/Wall_Plaster_Door_Round" if f == 0 and i == w / 2 else (low if f == 0 else high)[rng.randi() % (low if f == 0 else high).size()]
+			place(front + paint, origin + b * Vector3(x, y, d), Vector3.ONE, rot)
+			place((low if f == 0 else high)[rng.randi() % 4] + paint, origin + b * Vector3(-x, y, -d), Vector3.ONE, rot + PI)
 		for i in d:  # sides
 			var z := (i - (d - 1) / 2.0) * 2.0
-			place((low if f == 0 else high)[rng.randi() % 4], origin + b * Vector3(w, y, z), Vector3.ONE, rot + PI / 2.0)
-			place((low if f == 0 else high)[rng.randi() % 4], origin + b * Vector3(-w, y, -z), Vector3.ONE, rot - PI / 2.0)
+			place((low if f == 0 else high)[rng.randi() % 4] + paint, origin + b * Vector3(w, y, z), Vector3.ONE, rot + PI / 2.0)
+			place((low if f == 0 else high)[rng.randi() % 4] + paint, origin + b * Vector3(-w, y, -z), Vector3.ONE, rot - PI / 2.0)
 		for c in [Vector3(w, y, d), Vector3(-w, y, d), Vector3(w, y, -d), Vector3(-w, y, -d)]:
 			place("mvk/Corner_Exterior_Wood", origin + b * c, Vector3.ONE, rot + atan2(c.x, c.z) - PI / 4.0)
 	var top := floors * 3.0
