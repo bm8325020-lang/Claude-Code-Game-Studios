@@ -18,6 +18,7 @@
 - Bonfire: rest, level up with Embers; Sap Shards raise max flasks; Embers dropped on death can be recovered.
 - Enemies: Skeleton Warrior (blocks) and Skeleton Minion (fast), rise from the floor, 5 attack types incl. a leaping chop.
 - Great sword (ARMA button, Q): two-handed moveset with a 4-hit combo, a spinning heavy, a sliding sprint attack, a jump attack after a roll and its own riposte; more damage, reach and poise damage, costs more stamina and blocking drains more.
+- Hero: dark-knight plate armour built in Blender by `tools/make_hero_armor.py` (one GLB, pieces named `<bone>__<piece>` in each Mixamo bone's local space, attached with BoneAttachment3D), over the X Bot body as a dark gambeson.
 - Boss: dragon with phase 2 at 50% HP; a portcullis closes behind the player.
 
 ## Findings

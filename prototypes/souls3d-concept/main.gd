@@ -116,7 +116,6 @@ var boss = null
 var fireballs: Array = []
 var floaters: Array = []
 var stone_mat: StandardMaterial3D
-var steel_mat: StandardMaterial3D
 var ui: CanvasLayer
 var ui_draw: Control
 var joystick: Control
@@ -138,10 +137,6 @@ var step_t := 0.0
 func _ready() -> void:
 	randomize()
 	stone_mat = _pbr("castle_wall_slates", 1.0)
-	steel_mat = StandardMaterial3D.new()
-	steel_mat.albedo_color = Color(0.32, 0.33, 0.37)
-	steel_mat.metallic = 0.9
-	steel_mat.roughness = 0.32
 	_build_world()
 	_build_player()
 	for sp in ENEMY_SPAWNS:
@@ -299,12 +294,26 @@ func _build_player() -> void:
 	add_child(player)
 	model = load("res://assets/mixamo/x_bot.fbx").instantiate()
 	player.add_child(model)
+	# the body is the gambeson under the armour
+	var gambeson := _dark_cloth()
+	gambeson.albedo_color = Color(0.09, 0.07, 0.07)
 	for m in model.find_children("*", "MeshInstance3D", true, false):
 		for i in m.mesh.get_surface_count():
-			m.set_surface_override_material(i, steel_mat if i == 0 else _dark_cloth())
+			m.set_surface_override_material(i, gambeson)
 	anim = model.find_children("*", "AnimationPlayer", true, false)[0]
 	_load_anims(anim)
 	var skel: Skeleton3D = model.find_children("*", "Skeleton3D", true, false)[0]
+	# hero_armor.glb: each piece is named "<bone>__<piece>" and modelled in that bone's space
+	var armor: Node3D = load("res://assets/props/hero_armor.glb").instantiate()
+	for mi in armor.find_children("*", "MeshInstance3D", true, false):
+		var ba := BoneAttachment3D.new()
+		ba.bone_name = str(mi.name).split("__")[0]
+		skel.add_child(ba)
+		mi.get_parent().remove_child(mi)
+		mi.owner = null
+		mi.transform = Transform3D.IDENTITY
+		ba.add_child(mi)
+	armor.free()
 	# hand bones are scaled by 100 in Mixamo rigs exported to cm; the props are in metres
 	var s := 1.0 / skel.get_bone_global_rest(skel.find_bone("mixamorig_RightHand")).basis.get_scale().x
 	sword_props.append(_attach(skel, "mixamorig_RightHand", "longsword", Transform3D(Basis(Vector3.RIGHT, -PI / 2).scaled(Vector3.ONE * s), Vector3(0, 0.07, 0.02) * s)))
