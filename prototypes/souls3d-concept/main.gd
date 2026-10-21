@@ -16,8 +16,23 @@ const ANIMS := {
 	"hit3": "sword_and_shield_impact_3", "death": "sword_and_shield_death", "death2": "sword_and_shield_death_2",
 	"cast": "sword_and_shield_casting_2", "drink": "sword_and_shield_power_up",
 	"block_idle": "sword_and_shield_block_idle", "block_hit": "sword_and_shield_block", "parry": "sword_and_shield_block_2",
+	"backhand": "sword_and_shield_backhand", "draw": "sheath_sword_1",
+	# great sword (two hands): same keys with a g_ prefix, picked by _a() when the great sword is out
+	"g_idle": "gs_great_sword_idle", "g_idle2": "gs_great_sword_idle_2", "g_run": "gs_great_sword_run",
+	"g_walk": "gs_great_sword_walk", "g_walk_back": "gs_great_sword_walk_2",
+	"g_strafe_r": "gs_great_sword_strafe", "g_strafe_l": "gs_great_sword_strafe_2",
+	"g_slash": "gs_great_sword_slash", "g_slash2": "gs_great_sword_slash_2", "g_slash3": "gs_great_sword_slash_3",
+	"g_slash4": "gs_great_sword_slash_4", "g_slash5": "gs_great_sword_slash_5", "g_spin": "gs_great_sword_high_spin_attack",
+	"g_slide": "gs_great_sword_slide_attack", "g_jump_atk": "gs_great_sword_jump_attack", "g_kick": "gs_great_sword_kick",
+	"g_attack": "gs_great_sword_attack", "g_roll": "stand_to_roll",
+	"g_hit1": "gs_great_sword_impact", "g_hit2": "gs_great_sword_impact_2", "g_hit3": "gs_great_sword_impact_3",
+	"g_death": "gs_two_handed_sword_death", "g_death2": "gs_two_handed_sword_death_2",
+	"g_cast": "gs_great_sword_casting", "g_drink": "gs_great_sword_power_up",
+	"g_block_idle": "gs_great_sword_blocking", "g_block_hit": "gs_great_sword_blocking_2", "g_parry": "gs_great_sword_blocking_3",
+	"g_draw": "gs_draw_a_great_sword_1",
 }
-const LOOPING := ["idle", "idle2", "run", "walk", "walk_back", "strafe_r", "strafe_l", "block_idle"]
+const LOOPING := ["idle", "idle2", "run", "walk", "walk_back", "strafe_r", "strafe_l", "block_idle",
+	"g_idle", "g_idle2", "g_run", "g_walk", "g_walk_back", "g_strafe_r", "g_strafe_l", "g_block_idle"]
 # hit/end are seconds into the clip; speed is the playback rate; lunge is m/s before the hit
 const MOVES := {
 	"c1": {"anim": "slash", "speed": 1.5, "hit": 0.55, "end": 1.1, "dmg": 28, "poise": 12, "stamina": 16, "reach": 2.4, "arc": 1.2, "lunge": 1.8},
@@ -29,8 +44,20 @@ const MOVES := {
 	"roll_atk": {"anim": "roll_atk", "speed": 1.4, "hit": 0.55, "end": 1.15, "dmg": 38, "poise": 20, "stamina": 20, "reach": 2.6, "arc": 1.2, "lunge": 4.0},
 	"kick": {"anim": "kick", "speed": 1.4, "hit": 0.45, "end": 1.0, "dmg": 12, "poise": 45, "stamina": 14, "reach": 2.0, "arc": 0.9, "lunge": 1.2},
 	"riposte": {"anim": "heavy2", "speed": 1.3, "hit": 0.75, "end": 1.6, "dmg": 140, "poise": 0, "stamina": 10, "reach": 2.8, "arc": 1.4, "lunge": 2.5},
+	"c5": {"anim": "backhand", "speed": 1.5, "hit": 0.87, "end": 1.6, "dmg": 40, "poise": 22, "stamina": 18, "reach": 2.5, "arc": 1.5, "lunge": 2.2},
+	# great sword: slower, wider, more damage and poise, more stamina
+	"g1": {"anim": "slash", "speed": 1.3, "hit": 0.53, "end": 1.15, "dmg": 44, "poise": 24, "stamina": 24, "reach": 3.0, "arc": 1.4, "lunge": 1.6},
+	"g2": {"anim": "slash2", "speed": 1.3, "hit": 0.63, "end": 1.3, "dmg": 46, "poise": 24, "stamina": 24, "reach": 3.0, "arc": 1.4, "lunge": 1.6},
+	"g3": {"anim": "slash3", "speed": 1.3, "hit": 0.87, "end": 1.5, "dmg": 50, "poise": 28, "stamina": 26, "reach": 3.0, "arc": 1.5, "lunge": 1.8},
+	"g4": {"anim": "slash5", "speed": 1.35, "hit": 0.43, "end": 1.3, "dmg": 72, "poise": 45, "stamina": 30, "reach": 3.2, "arc": 1.7, "lunge": 2.6},
+	"g_heavy": {"anim": "spin", "speed": 1.15, "hit": 0.7, "end": 1.6, "dmg": 85, "poise": 55, "stamina": 40, "reach": 3.3, "arc": 3.2, "lunge": 1.0},
+	"g_run_atk": {"anim": "slide", "speed": 1.4, "hit": 1.23, "end": 1.9, "dmg": 60, "poise": 40, "stamina": 30, "reach": 3.0, "arc": 1.2, "lunge": 6.0},
+	"g_roll_atk": {"anim": "jump_atk", "speed": 1.3, "hit": 0.9, "end": 1.7, "dmg": 78, "poise": 60, "stamina": 34, "reach": 3.0, "arc": 1.3, "lunge": 3.5},
+	"g_kick": {"anim": "kick", "speed": 1.4, "hit": 0.6, "end": 1.2, "dmg": 16, "poise": 50, "stamina": 16, "reach": 2.1, "arc": 0.9, "lunge": 1.2},
+	"g_riposte": {"anim": "attack", "speed": 1.2, "hit": 0.47, "end": 1.15, "dmg": 190, "poise": 0, "stamina": 12, "reach": 3.0, "arc": 1.4, "lunge": 2.5},
 }
-const COMBO := ["c1", "c2", "c3", "c4"]
+const COMBO := ["c1", "c2", "c3", "c4", "c5"]
+const COMBO_G := ["g1", "g2", "g3", "g4"]
 const ENEMY_SPAWNS := [
 	[Vector3(-4, 0, 4), "warrior"], [Vector3(4, 0, 0), "minion"], [Vector3(-2, 0, -6), "warrior"],
 	[Vector3(5, 0, -10), "minion"], [Vector3(-14, 0, -2), "minion"], [Vector3(12, 0, 6), "warrior"],
@@ -63,6 +90,9 @@ var hit_len := 0.55
 var idle_t := 0.0
 var auto_block := 0.0
 var shards: Array = []
+var weapon := "sword"  # sword (sword + shield) or great (great sword, two hands)
+var sword_props: Array = []
+var great_prop: Node3D
 var gate: StaticBody3D
 var gate_bars: Node3D
 var stamina := 100.0
@@ -247,13 +277,14 @@ func _load_anims(ap: AnimationPlayer) -> void:
 		lib.add_animation(key, a)
 	ap.add_animation_library("p", lib)
 
-func _attach(skel: Skeleton3D, bone: String, prop_name: String, xf: Transform3D) -> void:
+func _attach(skel: Skeleton3D, bone: String, prop_name: String, xf: Transform3D) -> Node3D:
 	var ba := BoneAttachment3D.new()
 	ba.bone_name = bone
 	skel.add_child(ba)
 	var p: Node3D = load("res://assets/props/%s.glb" % prop_name).instantiate()
 	p.transform = xf
 	ba.add_child(p)
+	return ba
 
 func _build_player() -> void:
 	player = CharacterBody3D.new()
@@ -276,8 +307,10 @@ func _build_player() -> void:
 	var skel: Skeleton3D = model.find_children("*", "Skeleton3D", true, false)[0]
 	# hand bones are scaled by 100 in Mixamo rigs exported to cm; the props are in metres
 	var s := 1.0 / skel.get_bone_global_rest(skel.find_bone("mixamorig_RightHand")).basis.get_scale().x
-	_attach(skel, "mixamorig_RightHand", "longsword", Transform3D(Basis(Vector3.RIGHT, -PI / 2).scaled(Vector3.ONE * s), Vector3(0, 0.07, 0.02) * s))
-	_attach(skel, "mixamorig_LeftForeArm", "shield", Transform3D(Basis(Vector3.UP, PI / 2).rotated(Vector3.FORWARD, PI / 2).scaled(Vector3.ONE * s), Vector3(0.0, 0.18, 0.06) * s))
+	sword_props.append(_attach(skel, "mixamorig_RightHand", "longsword", Transform3D(Basis(Vector3.RIGHT, -PI / 2).scaled(Vector3.ONE * s), Vector3(0, 0.07, 0.02) * s)))
+	great_prop = _attach(skel, "mixamorig_RightHand", "longsword", Transform3D(Basis(Vector3.RIGHT, -PI / 2).scaled(Vector3(1.4, 1.4, 1.8) * s), Vector3(0, 0.07, 0.02) * s))
+	great_prop.visible = false
+	sword_props.append(_attach(skel, "mixamorig_LeftForeArm", "shield", Transform3D(Basis(Vector3.UP, PI / 2).rotated(Vector3.FORWARD, PI / 2).scaled(Vector3.ONE * s), Vector3(0.0, 0.18, 0.06) * s)))
 	anim.play("p/idle")
 	cam_pivot = Node3D.new()
 	add_child(cam_pivot)
@@ -420,7 +453,7 @@ func _update_player(dt: float) -> void:
 		attack_hold += dt
 		if attack_hold > 0.32 and stamina > 5:
 			attack_hold = -99.0
-			_start_move("heavy")
+			_start_move(_mv("heavy"))
 	elif not _held("attack"):
 		attack_hold = 0.0
 	match state:
@@ -445,11 +478,11 @@ func _update_player(dt: float) -> void:
 					_face(dir)
 				if dir.length() > 0.1:
 					anim.speed_scale = 1.35 if sprinting else 1.0
-					_play("p/run", 0.15)
+					_play(_a("run"), 0.15)
 				else:
 					anim.speed_scale = 1.0
 					idle_t += dt
-					_play("p/idle2" if idle_t > 6.0 else "p/idle", 0.3)
+					_play(_a("idle2" if idle_t > 6.0 else "idle"), 0.3)
 			if dir.length() > 0.1:
 				idle_t = 0.0
 				step_t -= dt * (1.5 if sprinting else 1.0)
@@ -459,7 +492,7 @@ func _update_player(dt: float) -> void:
 			if _pressed("attack") and stamina > 5:
 				attack_hold = 0.0
 				if _held("block"):
-					_start_move("kick")
+					_start_move(_mv("kick"))
 				else:
 					_start_attack()
 			elif _pressed("roll") and stamina > 5:
@@ -469,14 +502,18 @@ func _update_player(dt: float) -> void:
 			elif _pressed("flask") and flasks > 0:
 				_set_state("drink")
 				anim.speed_scale = 1.0
-				_play("p/drink", 0.1)
+				_play(_a("drink"), 0.1)
 				_sfx("metalPot1", -6)
 			elif _held("block") and stamina > 0:
 				_set_state("block")
 				block_t = 0.0
-				_play("p/block_idle", 0.1)
+				_play(_a("block_idle"), 0.1)
 			elif _pressed("level") and player.position.distance_to(BONFIRE_POS) < 3.0:
 				_level_up()
+			elif _pressed("weapon"):
+				_set_state("swap")
+				anim.play("p/g_draw" if weapon == "sword" else "p/draw", 0.1, 1.4)
+				_sfx("drawKnife1", -2)
 		"attack":
 			var mv: Dictionary = MOVES[move]
 			var hit_at: float = mv.hit / mv.speed
@@ -494,8 +531,9 @@ func _update_player(dt: float) -> void:
 				hit_done = true
 				_player_hit_check(move)
 			var end_at: float = mv.end / mv.speed
-			if state_t > hit_at + 0.12 and combo_queued and stamina > 5 and move in COMBO and move != COMBO[-1]:
-				_start_move(COMBO[COMBO.find(move) + 1])
+			var combo: Array = COMBO_G if weapon == "great" else COMBO
+			if state_t > hit_at + 0.12 and combo_queued and stamina > 5 and move in combo and move != combo[-1]:
+				_start_move(combo[combo.find(move) + 1])
 			elif state_t > hit_at + 0.15 and _pressed("roll") and stamina > 5:
 				_start_roll(dir)
 			elif state_t > end_at:
@@ -516,9 +554,22 @@ func _update_player(dt: float) -> void:
 			elif dir.length() > 0.1:
 				_face(dir)
 			if _pressed("attack") and stamina > 5:
-				_start_move("kick")
+				_start_move(_mv("kick"))
 			elif not _held("block"):
 				_set_state("free")
+		"swap":
+			player.velocity.x = 0
+			player.velocity.z = 0
+			# the hand reaches the back halfway through the draw clip: swap the props there
+			if state_t > 0.45 and state_t - dt <= 0.45:
+				weapon = "great" if weapon == "sword" else "sword"
+				great_prop.visible = weapon == "great"
+				for p in sword_props:
+					p.visible = weapon == "sword"
+			if state_t > 1.0:
+				_set_state("free")
+				_show_banner("ESPADÃO" if weapon == "great" else "ESPADA E ESCUDO",
+					"Duas mãos: mais dano e alcance, mais lento" if weapon == "great" else "Rápida, escudo forte para aparar", Color(0.85, 0.85, 0.9), 1.6)
 		"hit":
 			player.velocity.x = 0
 			player.velocity.z = 0
@@ -572,13 +623,13 @@ func _set_state(s: String) -> void:
 
 func _play_locomotion(dir: Vector3) -> void:
 	if dir.length() < 0.1:
-		_play("p/idle", 0.2)
+		_play(_a("idle"), 0.2)
 		return
 	var local := dir.rotated(Vector3.UP, -model.rotation.y)
 	if abs(local.x) > abs(local.z):
-		_play("p/strafe_l" if local.x > 0 else "p/strafe_r", 0.2)
+		_play(_a("strafe_l" if local.x > 0 else "strafe_r"), 0.2)
 	else:
-		_play("p/walk" if local.z > 0 else "p/walk_back", 0.2)
+		_play(_a("walk" if local.z > 0 else "walk_back"), 0.2)
 
 func _pressed(action: String) -> bool:
 	if autoplay:
@@ -600,6 +651,14 @@ func _play(name: String, blend: float) -> void:
 	if anim.current_animation != name:
 		anim.play(name, blend)
 
+# animation name for the weapon in hand
+func _a(n: String) -> String:
+	return "p/g_" + n if weapon == "great" and ANIMS.has("g_" + n) else "p/" + n
+
+# move name for the weapon in hand
+func _mv(n: String) -> String:
+	return "g_" + n if weapon == "great" else n
+
 func _spend(amount: float) -> void:
 	stamina = max(-10.0, stamina - amount)
 	stamina_delay = 0.6
@@ -607,13 +666,13 @@ func _spend(amount: float) -> void:
 func _start_attack() -> void:
 	var t = _broken_target_in_front()
 	if t != null:
-		_start_move("riposte")
+		_start_move(_mv("riposte"))
 	elif since_roll < 0.35:
-		_start_move("roll_atk")
+		_start_move(_mv("roll_atk"))
 	elif sprinting:
-		_start_move("run_atk")
+		_start_move(_mv("run_atk"))
 	else:
-		_start_move(COMBO[0])
+		_start_move((COMBO_G if weapon == "great" else COMBO)[0])
 
 func _start_move(name: String) -> void:
 	var mv: Dictionary = MOVES[name]
@@ -623,8 +682,8 @@ func _start_move(name: String) -> void:
 	combo_queued = false
 	sprinting = false
 	_spend(mv.stamina)
-	anim.play("p/" + mv.anim, 0.08, mv.speed)
-	_sfx(["knifeSlice", "knifeSlice2", "drawKnife1"] if name != "kick" else ["cloth1"], -3)
+	anim.play(_a(mv.anim), 0.08, mv.speed)
+	_sfx(["knifeSlice", "knifeSlice2", "drawKnife1"] if not name.ends_with("kick") else ["cloth1"], -3)
 
 func _start_roll(dir: Vector3) -> void:
 	_set_state("roll")
@@ -632,14 +691,14 @@ func _start_roll(dir: Vector3) -> void:
 	roll_dir = dir.normalized() if dir.length() > 0.1 else _fwd()
 	model.rotation.y = atan2(roll_dir.x, roll_dir.z)
 	invuln_t = 0.45
-	anim.play("p/roll", 0.05, 1.7)
+	anim.play(_a("roll"), 0.05, 1.7)
 	_sfx(["cloth1", "cloth3"], -2)
 
 func _start_cast() -> void:
 	_set_state("cast")
 	seed_cd = 1.2
 	essence -= 30.0
-	anim.play("p/cast", 0.1, 1.2)
+	anim.play(_a("cast"), 0.1, 1.2)
 
 func _level_up() -> void:
 	var cost := 150 * level
@@ -761,12 +820,12 @@ func _hurt_player(dmg: float, src: String, attacker: Dictionary = {}) -> void:
 		if block_t < 0.22 and not attacker.is_empty():
 			_float("APARADO!", player.position + Vector3(0, 2.2, 0), Color(0.6, 0.9, 1))
 			_sfx("impactPlate_heavy_002", 2)
-			anim.play("p/parry", 0.05, 1.4)
+			anim.play(_a("parry"), 0.05, 1.4)
 			_break_guard(attacker)
 			return
-		stamina -= dmg * 0.9
+		stamina -= dmg * (1.4 if weapon == "great" else 0.9)
 		stamina_delay = 0.6
-		anim.play("p/block_hit", 0.05, 1.3)
+		anim.play(_a("block_hit"), 0.05, 1.3)
 		_sfx("impactPlate_heavy_000", 0)
 		if stamina > 0:
 			hp -= dmg * 0.1
@@ -780,7 +839,7 @@ func _hurt_player(dmg: float, src: String, attacker: Dictionary = {}) -> void:
 	if hp <= 0:
 		hp = 0
 		_set_state("dead")
-		anim.play(["p/death", "p/death2"].pick_random(), 0.1)
+		anim.play(_a(["death", "death2"].pick_random()), 0.1)
 		_sfx("jingle_death", -2)
 		if dropped_marker != null:
 			dropped_marker.queue_free()
@@ -793,7 +852,7 @@ func _hurt_player(dmg: float, src: String, attacker: Dictionary = {}) -> void:
 		_set_state("hit")
 		var h: String = ["hit1", "hit2", "hit3"].pick_random()
 		hit_len = 0.55
-		anim.play("p/" + h, 0.05, 1.3)
+		anim.play(_a(h), 0.05, 1.3)
 
 func _glow_marker(pos: Vector3, col: Color) -> Node3D:
 	var n := Node3D.new()
@@ -1168,6 +1227,7 @@ func _autoplay_press(action: String) -> bool:
 		"seed": return randf() < 0.01
 		"flask": return hp < 60 and randf() < 0.05
 		"lock": return lock_target == null and randf() < 0.01
+		"weapon": return randf() < 0.004
 		"block":
 			if randf() < 0.01:
 				auto_block = 1.0
@@ -1228,7 +1288,7 @@ func _build_ui() -> void:
 	joystick.set("joystick_size", 230)
 	joystick.set("tip_size", 100)
 	ui.add_child(joystick)
-	for a in ["attack", "roll", "lock", "seed", "flask", "block", "level"]:
+	for a in ["attack", "roll", "lock", "seed", "flask", "block", "level", "weapon"]:
 		var b := TouchScreenButton.new()
 		var s := CircleShape2D.new()
 		s.radius = _button_r(a)
@@ -1243,7 +1303,7 @@ func _build_ui() -> void:
 func _button_r(a: String) -> float:
 	match a:
 		"attack": return 115.0
-		"lock", "level": return 62.0
+		"lock", "level", "weapon": return 62.0
 	return 78.0
 
 func _button_pos(a: String, vs: Vector2) -> Vector2:
@@ -1254,6 +1314,7 @@ func _button_pos(a: String, vs: Vector2) -> Vector2:
 		"seed": return Vector2(vs.x - 320, vs.y - 460)
 		"flask": return Vector2(vs.x - 140, vs.y - 430)
 		"lock": return Vector2(vs.x - 110, vs.y - 600)
+		"weapon": return Vector2(vs.x - 260, vs.y - 640)
 		"level": return Vector2(vs.x * 0.5, vs.y - 120)
 	return Vector2.ZERO
 
@@ -1318,7 +1379,7 @@ func _draw_ui() -> void:
 		var r := _button_r(a)
 		if a == "level" and player.position.distance_to(BONFIRE_POS) > 3.0:
 			continue
-		var label: String = {"attack": "ATACAR", "roll": "ROLAR", "lock": "MIRA", "seed": "FOGO", "flask": "FRASCO", "block": "ESCUDO", "level": "NÍVEL"}[a]
+		var label: String = {"attack": "ATACAR", "roll": "ROLAR", "lock": "MIRA", "seed": "FOGO", "flask": "FRASCO", "block": "DEFESA", "level": "NÍVEL", "weapon": "ARMA"}[a]
 		var col := Color(1, 0.55, 0.2) if a == "seed" else Color(1, 1, 1)
 		ui_draw.draw_circle(pos, r, Color(col, 0.28 if Input.is_action_pressed(a) else 0.12))
 		ui_draw.draw_arc(pos, r, 0, TAU, 48, Color(col, 0.6), 3)

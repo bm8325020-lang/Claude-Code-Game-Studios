@@ -5,18 +5,19 @@
 
 ## Run
 
-- Desktop: `godot --path .` (WASD move, J attack — hold for heavy, U shield, Space roll, K fire, H flask, L lock-on, N level up at the bonfire, right mouse drag camera).
+- Desktop: `godot --path .` (WASD move, J attack — hold for heavy, U shield, Space roll, K fire, H flask, L lock-on, N level up at the bonfire, Q switch weapon, right mouse drag camera).
 - Android: export the `Android` preset to an APK.
-- Mixamo animations are not in the repo (licence); put the Sword and Shield pack FBX files in `assets/mixamo/` named in snake_case.
+- Mixamo animations are not in the repo (licence); put the Sword and Shield and Great Sword pack FBX files (great sword files prefixed `gs_`) in `assets/mixamo/` named in snake_case.
 
 ## Mechanics (v3)
 
-- 4-hit combo, each hit a different animation; hold ATTACK for a heavy; attacking while sprinting or right after a roll uses dedicated moves.
+- Sword and shield: 5-hit combo (the 5th is a backhand), each hit a different animation; hold ATTACK for a heavy; attacking while sprinting or right after a roll uses dedicated moves.
 - Shield block (stamina), parry in the first 0.22 s of a block, shield + attack = kick that breaks guard.
 - Poise: enemies get stunned when their poise bar empties; attack a stunned enemy for a critical riposte.
 - Sprint (full stick for 0.6 s), lock-on strafing, Fire Seed costs Essence (blue bar).
 - Bonfire: rest, level up with Embers; Sap Shards raise max flasks; Embers dropped on death can be recovered.
 - Enemies: Skeleton Warrior (blocks) and Skeleton Minion (fast), rise from the floor, 5 attack types incl. a leaping chop.
+- Great sword (ARMA button, Q): two-handed moveset with a 4-hit combo, a spinning heavy, a sliding sprint attack, a jump attack after a roll and its own riposte; more damage, reach and poise damage, costs more stamina and blocking drains more.
 - Boss: dragon with phase 2 at 50% HP; a portcullis closes behind the player.
 
 ## Findings
