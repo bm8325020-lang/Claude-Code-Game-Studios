@@ -19,20 +19,41 @@ static func dress(model: Node3D) -> void:
 		"cloth": _mat("armor_cloth", Color(1, 1, 1), 0.0),
 	}
 	mats.cloth.cull_mode = BaseMaterial3D.CULL_DISABLED
-	# each piece is named "<bone>__<piece>" and modelled in that bone's space
+	# each piece is named "<bone>__<piece>" and modelled in that bone's space. All pieces become one mesh skinned
+	# rigidly to the skeleton, one surface per material: ~50 bone attachments cost ~50 draw calls on phones.
 	var armor: Node3D = load("res://assets/props/hero_armor.glb").instantiate()
+	var tools := {}  # material name -> SurfaceTool
 	for mi in armor.find_children("*", "MeshInstance3D", true, false):
-		var ba := BoneAttachment3D.new()
-		ba.bone_name = str(mi.name).split("__")[0]
-		skel.add_child(ba)
-		mi.get_parent().remove_child(mi)
-		mi.owner = null
-		mi.transform = Transform3D.IDENTITY
-		ba.add_child(mi)
+		var bone := skel.find_bone(str(mi.name).split("__")[0])
+		var rest := skel.get_bone_global_rest(bone)
+		var nb := rest.basis.inverse().transposed()
 		for i in mi.mesh.get_surface_count():
 			var src: Material = mi.mesh.surface_get_material(i)
-			if src != null and mats.has(src.resource_name):
-				mi.set_surface_override_material(i, mats[src.resource_name])
+			var key: String = src.resource_name if src != null and mats.has(src.resource_name) else "plate"
+			if not tools.has(key):
+				tools[key] = SurfaceTool.new()
+				tools[key].begin(Mesh.PRIMITIVE_TRIANGLES)
+			var st: SurfaceTool = tools[key]
+			var arr: Array = mi.mesh.surface_get_arrays(i)
+			var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			var norms: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+			var idx = arr[Mesh.ARRAY_INDEX]
+			var order: Array = range(verts.size()) if idx == null else Array(idx)
+			for v in order:
+				st.set_normal((nb * norms[v]).normalized())
+				st.set_bones(PackedInt32Array([bone, 0, 0, 0]))
+				st.set_weights(PackedFloat32Array([1.0, 0.0, 0.0, 0.0]))
+				st.add_vertex(rest * verts[v])
+	var mesh := ArrayMesh.new()
+	for key in tools:
+		tools[key].commit(mesh)
+		mesh.surface_set_material(mesh.get_surface_count() - 1, mats[key])
+	var skinned := MeshInstance3D.new()
+	skinned.name = "HeroArmor"
+	skinned.mesh = mesh
+	skel.add_child(skinned)
+	skinned.skeleton = skinned.get_path_to(skel)
+	skinned.skin = skel.create_skin_from_rest_transforms()
 	armor.free()
 
 static func _mat(tex: String, tint: Color, metal: float) -> StandardMaterial3D:

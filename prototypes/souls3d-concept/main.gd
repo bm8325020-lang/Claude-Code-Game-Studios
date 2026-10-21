@@ -530,50 +530,33 @@ func _dark_cloth() -> StandardMaterial3D:
 	m.roughness = 0.9
 	return m
 
-const ENEMY_NAME := {"sentinel": "Sentinela de Pedra", "warrior": "Esqueleto Guerreiro", "minion": "Esqueleto Lacaio", "caster": "Esqueleto Mago",
-	"rogue": "Esqueleto Ladino", "archer": "Esqueleto Besteiro", "wolf": "Lobo da Cinza"}
-const SKELETON_FILE := {"sentinel": "Warrior", "warrior": "Warrior", "minion": "Minion", "caster": "Mage", "rogue": "Rogue", "archer": "Rogue"}
-# weapon props per kind: [bone, gltf]
-const SKELETON_GEAR := {"sentinel": [["handslot.r", "Blade"]], "warrior": [["handslot.r", "Blade"]], "minion": [["handslot.r", "Blade"]], "caster": [["handslot.r", "Staff"]],
-	"rogue": [["handslot.r", "Blade"], ["handslot.l", "Blade"]], "archer": [["handslot.l", "Crossbow"]]}
+const ENEMY_NAME := {"sentinel": "Sentinela de Pedra", "warrior": "Cavaleiro Oco", "minion": "Esquecido", "caster": "Clérigo da Cinza",
+	"rogue": "Espreitador", "archer": "Besteiro Espreitador", "wolf": "Lobo da Cinza"}
+# our own models on the KayKit rig (tools/make_foes.py), so the KayKit clips still play
+var foe_mat: StandardMaterial3D
+const FOE_FILE := {"sentinel": "Sentinel", "warrior": "Knight", "minion": "Hollow", "caster": "Cultist", "rogue": "Stalker", "archer": "Stalker"}
+# weapon models per kind: [bone, assets/foes/w_*.glb]
+const FOE_GEAR := {"sentinel": [["handslot.r", "greatsword"]], "warrior": [["handslot.r", "sword"]], "minion": [["handslot.r", "sword"]], "caster": [["handslot.r", "staff"]],
+	"rogue": [["handslot.r", "dagger"], ["handslot.l", "dagger"]], "archer": [["handslot.l", "crossbow"]]}
 
 func _skeleton_model(kind: String) -> Node3D:
 	if kind == "wolf":
 		return _wolf_model()
-	var k: Node3D = load("res://assets/skeletons/Skeleton_%s.glb" % SKELETON_FILE[kind]).instantiate()
-	_shrink_skull(k.find_children("*", "AnimationPlayer", true, false)[0])
-	for hat in k.find_children("*Hat*", "MeshInstance3D", true, false):
-		hat.visible = false  # the pointed wizard hat reads as a cartoon
-	k.scale = Vector3.ONE * {"warrior": 1.0, "sentinel": 1.7}.get(kind, 0.92)
-	var bone: Color = {"caster": Color(0.55, 0.6, 0.72), "sentinel": Color(0.45, 0.45, 0.47)}.get(kind, Color(0.72, 0.68, 0.62))
-	for m in k.find_children("*", "MeshInstance3D", true, false):
-		for i in m.mesh.get_surface_count():
-			var mt = m.mesh.surface_get_material(i)
-			if mt is StandardMaterial3D:
-				var d: StandardMaterial3D = mt.duplicate()
-				d.albedo_color = bone  # aged bone, less toy-like; casters are grave-cold blue
-				d.roughness = 0.85
-				m.set_surface_override_material(i, d)
+	var k: Node3D = load("res://assets/foes/%s.glb" % FOE_FILE[kind]).instantiate()
+	k.scale = Vector3.ONE * {"warrior": 1.05, "sentinel": 1.6}.get(kind, 0.95)
 	var skel: Skeleton3D = k.find_children("*", "Skeleton3D", true, false)[0]
-	for g in SKELETON_GEAR[kind]:
+	for g in FOE_GEAR[kind]:
 		var ba := BoneAttachment3D.new()
 		ba.bone_name = g[0]
 		skel.add_child(ba)
-		ba.add_child(load("res://assets/skeletons/Skeleton_%s.gltf" % g[1]).instantiate())
+		ba.add_child(load("res://assets/foes/w_%s.glb" % g[1]).instantiate())
+	if foe_mat == null:
+		foe_mat = StandardMaterial3D.new()
+		foe_mat.vertex_color_use_as_albedo = true  # colours are baked per face, so a foe is one draw call
+		foe_mat.roughness = 0.8
+	for m in k.find_children("*", "MeshInstance3D", true, false):
+		m.material_override = foe_mat
 	return k
-
-# KayKit skeletons are chibi: every clip keys the head scale, so scale those keys down once per shared library
-func _shrink_skull(ap: AnimationPlayer) -> void:
-	var lib: AnimationLibrary = ap.get_animation_library("")
-	if lib.has_meta("skull_shrunk"):
-		return
-	lib.set_meta("skull_shrunk", true)
-	for an in lib.get_animation_list():
-		var a: Animation = lib.get_animation(an)
-		for t in a.get_track_count():
-			if a.track_get_type(t) == Animation.TYPE_SCALE_3D and str(a.track_get_path(t)).ends_with(":head"):
-				for k in a.track_get_key_count(t):
-					a.track_set_key_value(t, k, a.track_get_key_value(t, k) * 0.66)
 
 # Quaternius wolf (CC0), recoloured ash-grey, scaled to 0.85 m at the shoulder
 func _wolf_model() -> Node3D:

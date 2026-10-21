@@ -45,6 +45,9 @@ const HOUSES := [  # Burgo: [x, z, width, depth, height]
 ]
 
 static var mats := {}
+static var pieces := {}  # name -> ArrayMesh with the level's materials (assets/arch, tools/make_architecture.py)
+static var batches := {}  # "piece|cell" -> [mesh, [Transform3D]]: every modelled piece is drawn through a few MultiMeshes
+const MAT_OF := {"stone": "wall", "plaster": "plaster", "wood": "wood", "roof": "roof", "dark": "dark", "iron": "iron", "rock": "rock"}
 
 static func _mat(tex: String, scale: float, tint := Color.WHITE) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -68,6 +71,11 @@ static func build(m: Node3D) -> void:
 	wood.albedo_color = Color(0.2, 0.13, 0.08)
 	wood.roughness = 0.9
 	mats.wood = wood
+	mats.plaster = _mat("coast_sand_rocks_02", 0.5, Color(0.8, 0.72, 0.6))  # rough daub between the timbers
+	mats.dark = _plain(Color(0.015, 0.012, 0.012), 1.0)
+	mats.iron = _plain(Color(0.12, 0.12, 0.13), 0.5, 0.8)
+	pieces = {}
+	batches = {}
 	_sanctuary(m)
 	_stair(m, Vector3(0, 0, -12), Vector3(0, BURGO_Y, -48), 6.0)
 	_burgo(m)
@@ -83,6 +91,74 @@ static func build(m: Node3D) -> void:
 		fire.omni_range = 10
 		m.add_child(fire)
 	m.bonfire_pos = BONFIRES[0][0]
+	_flush(m)
+
+static func _plain(c: Color, rough: float, metal := 0.0) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c
+	m.roughness = rough
+	m.metallic = metal
+	return m
+
+static func _piece(name: String) -> ArrayMesh:
+	if not pieces.has(name):
+		var s: Node3D = load("res://assets/arch/%s.glb" % name).instantiate()
+		var mesh: ArrayMesh = (s.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D).mesh.duplicate()
+		for i in mesh.get_surface_count():
+			mesh.surface_set_material(i, mats[MAT_OF[mesh.surface_get_material(i).resource_name]])
+		pieces[name] = mesh
+		s.free()
+	return pieces[name]
+
+# a modelled piece standing on `bottom`, stretched by `scale` (pieces are authored at a nominal size), turned by rot_y
+static func place(name: String, bottom: Vector3, scale: Vector3, rot_y := 0.0) -> void:
+	var key := "%s|%d|%d" % [name, floori(bottom.x / 48.0), floori(bottom.z / 48.0)]
+	if not batches.has(key):
+		batches[key] = [_piece(name), []]
+	batches[key][1].append(Transform3D(Basis(Vector3.UP, rot_y) * Basis.from_scale(scale), bottom))
+
+static func _flush(m: Node3D) -> void:
+	for k in batches:
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = batches[k][0]
+		mm.instance_count = batches[k][1].size()
+		for i in mm.instance_count:
+			mm.set_instance_transform(i, batches[k][1][i])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.multimesh = mm
+		m.add_child(mmi)
+	batches = {}
+
+static func collider(m: Node3D, center: Vector3, size: Vector3) -> void:
+	var body := StaticBody3D.new()
+	body.position = center
+	var cs := CollisionShape3D.new()
+	var sh := BoxShape3D.new()
+	sh.size = size
+	cs.shape = sh
+	body.add_child(cs)
+	m.add_child(body)
+
+# a wall run as modelled 4 m segments along its long side: low ones get the crenellated parapet
+static func wall(m: Node3D, center: Vector3, size: Vector3, piece := "", collide := true) -> void:
+	if collide:
+		collider(m, center, size)
+	if piece == "":
+		piece = "parapet_4" if size.y <= 2.5 else "wall_4"
+	var nominal_h: float = {"parapet_4": 2.0, "wall_4": 4.0, "church_wall_4": 12.0}[piece]
+	var along_x := size.x >= size.z
+	var length: float = size.x if along_x else size.z
+	var n := maxi(1, roundi(length / 4.0))
+	var seg := length / n
+	for i in n:
+		var off := -length / 2.0 + seg * (i + 0.5)
+		var c := center + (Vector3(off, 0, 0) if along_x else Vector3(0, 0, off))
+		place(piece, c - Vector3(0, size.y / 2.0, 0), Vector3(seg / 4.0, size.y / nominal_h, size.z if along_x else size.x), 0.0 if along_x else PI / 2.0)
+
+# rock mass under a platform (centre and size like block)
+static func cliff(center: Vector3, size: Vector3) -> void:
+	place("cliff", center - Vector3(0, size.y / 2.0, 0), size)
 
 # a solid block; collide=false for decoration
 static func block(m: Node3D, center: Vector3, size: Vector3, mat: Material, collide := true) -> void:
@@ -123,14 +199,8 @@ static func _stair(m: Node3D, a: Vector3, b: Vector3, width: float) -> void:
 	for i in steps:
 		var t := (i + 0.5) / steps
 		var p := a.lerp(b, t)
-		var stp := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(width, (b.y - a.y) / steps + 0.2, run.length() / steps)
-		stp.mesh = bm
-		stp.material_override = mats.floor
-		stp.position = p - Vector3(0, 0.15, 0)
-		stp.rotation.y = atan2(dir.x, dir.z)
-		m.add_child(stp)
+		var rise := (b.y - a.y) / steps + 0.2
+		place("step", p - Vector3(0, 0.15 + rise / 2.0, 0), Vector3(width, rise, run.length() / steps), atan2(dir.x, dir.z) + PI)
 	var side := dir.cross(Vector3.UP)
 	for s in [-1, 1]:
 		var w := StaticBody3D.new()
@@ -148,7 +218,8 @@ static func _stair(m: Node3D, a: Vector3, b: Vector3, width: float) -> void:
 		wmi.material_override = mats.wall
 		w.add_child(wmi)
 		m.add_child(w)
-	block(m, (a + b) / 2.0 + Vector3(0, -10, 0), Vector3(width + 1.2, 18, run.length()), mats.rock, false)
+	var under := Vector3(width + 1.2, 18, run.length())
+	place("cliff", (a + b) / 2.0 + Vector3(0, -19, 0), under if absf(dir.z) > absf(dir.x) else Vector3(under.z, under.y, under.x))
 
 static func _sanctuary(m: Node3D) -> void:
 	var body := StaticBody3D.new()
@@ -183,70 +254,86 @@ static func _sanctuary(m: Node3D) -> void:
 	m._place("pm/Arc", Vector3(0, 0, 9), 5.0, Color.WHITE, mats.wall, 0.0)
 	# east: the way down to the cemetery is barred for now
 	m._prop("archway_gate", Vector3(13.5, 0, 0), PI / 2)
-	block(m, Vector3(13.5, 2, 0), Vector3(0.6, 4, 3.2), mats.wall)
+	wall(m, Vector3(13.5, 2, 0), Vector3(0.6, 4, 3.2))
+	# crenellated rim so a long combo cannot carry you off the cliff; open to the stair (north), gate (east), elevator (west)
+	for i in 21:
+		var ang := i * TAU / 21.0
+		if absf(angle_difference(ang, PI)) < 0.35 or absf(angle_difference(ang, PI / 2.0)) < 0.35 or absf(angle_difference(ang, -PI / 2.0)) < 0.35:
+			continue
+		var c := Vector3(sin(ang), 0, cos(ang)) * 13.6
+		var rim := StaticBody3D.new()
+		rim.position = c + Vector3(0, 1, 0)
+		rim.rotation.y = ang + PI / 2.0
+		var rcs := CollisionShape3D.new()
+		var rsh := BoxShape3D.new()
+		rsh.size = Vector3(4.2, 2, 0.8)
+		rcs.shape = rsh
+		rim.add_child(rcs)
+		m.add_child(rim)
+		place("parapet_4", c, Vector3(4.2 / 4.0, 1.0, 0.8), ang + PI / 2.0)
 	# west: landing to the elevator shaft
 	block(m, Vector3(-16.5, -0.5, ELEVATOR.z), Vector3(5.0, 1.0, 3.0), mats.floor)
 
 static func _burgo(m: Node3D) -> void:
 	block(m, Vector3(-25, BURGO_Y - 0.5, -74), Vector3(90, 1, 52), mats.floor)
-	block(m, Vector3(-25, BURGO_Y - 16, -74), Vector3(90, 30, 52), mats.rock, false)
-	block(m, Vector3(-25, BURGO_Y + 1, -100.5), Vector3(90, 2, 1), mats.wall)  # north parapet
-	block(m, Vector3(20.5, BURGO_Y + 1, -74), Vector3(1, 2, 52), mats.wall)  # east parapet
-	block(m, Vector3(-70.5, BURGO_Y + 1, -82), Vector3(1, 2, 36), mats.wall)  # west parapet, open where the ramp comes up
+	cliff(Vector3(-25, BURGO_Y - 16, -74), Vector3(90, 30, 52))
+	wall(m, Vector3(-25, BURGO_Y + 1, -100.5), Vector3(90, 2, 1))  # north parapet
+	wall(m, Vector3(20.5, BURGO_Y + 1, -74), Vector3(1, 2, 52))  # east parapet
+	wall(m, Vector3(-70.5, BURGO_Y + 1, -82), Vector3(1, 2, 36))  # west parapet, open where the ramp comes up
 	for side in [-1, 1]:  # south parapet either side of the stair head
-		block(m, Vector3(-25 + side * 0 + (-22.5 if side < 0 else 11.5), BURGO_Y + 1, -47.5), Vector3(41 if side < 0 else 17, 2, 1), mats.wall)
-	for h in HOUSES:
-		var c := Vector3(h[0], BURGO_Y + h[4] / 2.0, h[1])
-		block(m, c, Vector3(h[2], h[4], h[3]), mats.wall)
-		var roof := MeshInstance3D.new()
-		var pm := PrismMesh.new()
-		pm.size = Vector3(h[2] + 0.6, 3.0, h[3] + 0.6)
-		roof.mesh = pm
-		roof.material_override = mats.roof
-		roof.position = Vector3(h[0], BURGO_Y + h[4] + 1.5, h[1])
-		m.add_child(roof)
-	# archer perches: flat-topped houses get a parapet ring instead of a roof (spawns at y 24/25)
-	block(m, Vector3(-30, 25 - 0.1, -58), Vector3(4, 0.2, 4), mats.floor)
-	block(m, Vector3(0, 24 - 0.1, -94), Vector3(4, 0.2, 4), mats.floor)
+		wall(m, Vector3(-22.5 if side < 0 else 11.5, BURGO_Y + 1, -47.5), Vector3(41 if side < 0 else 17, 2, 1))
+	for i in HOUSES.size():
+		var h: Array = HOUSES[i]
+		collider(m, Vector3(h[0], BURGO_Y + h[4] / 2.0, h[1]), Vector3(h[2], h[4], h[3]))
+		# timber houses face the square; the two archer perches (spawns at y 24/25) are flat-roofed watch houses
+		var watch: bool = i == 2 or i == 8
+		var rot := PI if h[1] > -74 else 0.0
+		var sc := Vector3(h[2] / 10.0, h[4] / (8.4 if watch else 8.0), h[3] / 8.0)
+		if h[0] > 12:
+			rot = -PI / 2.0
+			sc = Vector3(h[3] / 10.0, sc.y, h[2] / 8.0)
+		place("house_watch" if watch else "house", Vector3(h[0], BURGO_Y, h[1]), sc, rot)
 	m._prop("wall_ruin", Vector3(-8, BURGO_Y, -60), 0.3)
 	m._prop("graves", Vector3(-42, BURGO_Y, -66), 1.2)
 	m._place("pm/Cart", Vector3(-10, BURGO_Y, -82), 1.8, Color(0.45, 0.4, 0.38), null, 0.6)
 	# the alley under the rooftops, with a ramp back up into the Burgo's west side
 	block(m, Vector3(-51, ALLEY_Y - 0.5, -26), Vector3(30, 1, 46), mats.floor)
-	block(m, Vector3(-51, ALLEY_Y - 17, -26), Vector3(30, 32, 46), mats.rock, false)
+	cliff(Vector3(-51, ALLEY_Y - 17, -26), Vector3(30, 32, 46))
 	_stair(m, Vector3(-67.5, ALLEY_Y, -22), Vector3(-67.5, BURGO_Y, -54), 4.0)
 	for z in [-46.0, -6.0]:
-		block(m, Vector3(-51, ALLEY_Y + 1, z - 3.0 * sign(z + 26)), Vector3(30, 2, 1), mats.wall)
+		wall(m, Vector3(-51, ALLEY_Y + 1, z - 3.0 * sign(z + 26)), Vector3(30, 2, 1))
 
 static func _rooftops(m: Node3D) -> void:
 	for r in ROOFTOPS:
 		if r[5]:  # a ruined house rising from the alley
 			var hgt: float = r[1] - ALLEY_Y
-			block(m, Vector3(r[0], ALLEY_Y + hgt / 2.0, r[2]), Vector3(r[3], hgt, r[4]), mats.wall)
-			block(m, Vector3(r[0], r[1] + 0.05, r[2]), Vector3(r[3] + 0.3, 0.1, r[4] + 0.3), mats.roof)
+			collider(m, Vector3(r[0], ALLEY_Y + hgt / 2.0, r[2]), Vector3(r[3], hgt, r[4]))
+			place("ruin_tower", Vector3(r[0], ALLEY_Y, r[2]), Vector3(r[3] / 4.0, hgt / 10.0, r[4] / 4.0))
 		else:  # a bare wooden beam
-			block(m, Vector3(r[0], r[1] - 0.15, r[2]), Vector3(r[3], 0.3, r[4]), mats.wood)
+			collider(m, Vector3(r[0], r[1] - 0.15, r[2]), Vector3(r[3], 0.3, r[4]))
+			place("beam", Vector3(r[0], r[1] - 0.3, r[2]), Vector3(r[3], 0.3, r[4]))
 
 static func _church(m: Node3D) -> void:
 	var y := CHURCH_Y
 	block(m, Vector3(-42, y - 0.5, 14), Vector3(40, 1, 32), mats.floor)
-	block(m, Vector3(-42, y - 20, 14), Vector3(40, 38, 32), mats.rock, false)
-	# nave: walls with a door on the east side, open roof beams
-	block(m, Vector3(-52, y + 6, 4), Vector3(16, 12, 1), mats.wall)
-	block(m, Vector3(-52, y + 6, 26), Vector3(16, 12, 1), mats.wall)
-	block(m, Vector3(-60, y + 6, 15), Vector3(1, 12, 22), mats.wall)
-	block(m, Vector3(-44, y + 6, 8), Vector3(1, 12, 8), mats.wall)
-	block(m, Vector3(-44, y + 6, 22.5), Vector3(1, 12, 7), mats.wall)
-	block(m, Vector3(-44, y + 10, 15), Vector3(1, 4, 6), mats.wall)
+	cliff(Vector3(-42, y - 20, 14), Vector3(40, 38, 32))
+	# nave: lancet-windowed walls with a door on the east side, open roof beams
+	wall(m, Vector3(-52, y + 6, 4), Vector3(16, 12, 1), "church_wall_4")
+	wall(m, Vector3(-52, y + 6, 26), Vector3(16, 12, 1), "church_wall_4")
+	wall(m, Vector3(-60, y + 6, 15), Vector3(1, 12, 22), "church_wall_4")
+	wall(m, Vector3(-44, y + 6, 8), Vector3(1, 12, 8), "church_wall_4")
+	wall(m, Vector3(-44, y + 6, 22.5), Vector3(1, 12, 7), "church_wall_4")
+	wall(m, Vector3(-44, y + 10, 15), Vector3(1, 4, 6), "wall_4")
 	for z in [8.0, 13.0, 18.0, 23.0]:
-		block(m, Vector3(-52, y + 12, z), Vector3(16, 0.6, 0.6), mats.wood, false)
+		place("beam", Vector3(-52, y + 11.7, z), Vector3(16, 0.6, 0.6))
 	m._prop("seed_shrine", Vector3(-58, y, 15), PI / 2)
 	# bell tower: the ladder takes you up (interact), the bell is on top
-	block(m, Vector3(-30, y + 6, 26), Vector3(6, 12, 6), mats.wall)
-	block(m, Vector3(-30, y + 12.25, 26), Vector3(7, 0.5, 7), mats.floor)
-	for c in [Vector2(-32.8, 23.2), Vector2(-27.2, 23.2), Vector2(-32.8, 28.8), Vector2(-27.2, 28.8)]:
-		block(m, Vector3(c.x, y + 15, c.y), Vector3(0.6, 5, 0.6), mats.wall)
-	block(m, Vector3(-30, y + 17.75, 26), Vector3(7, 0.5, 7), mats.roof)
+	collider(m, Vector3(-30, y + 6, 26), Vector3(6, 12, 6))
+	place("ruin_tower", Vector3(-30, y, 26), Vector3(1.5, 1.2, 1.5))
+	collider(m, Vector3(-30, y + 12.25, 26), Vector3(7, 0.5, 7))
+	place("belfry", Vector3(-30, y + 12.0, 26), Vector3.ONE)  # open bell chamber and slate spire
+	for c in [Vector2(-33, 23), Vector2(-27, 23), Vector2(-33, 29), Vector2(-27, 29)]:
+		collider(m, Vector3(c.x, y + 15, c.y), Vector3(1.0, 5, 1.0))
 	var bell := MeshInstance3D.new()
 	var bm := CylinderMesh.new()
 	bm.top_radius = 0.6
@@ -266,13 +353,13 @@ static func _church(m: Node3D) -> void:
 	m.interacts.append({"pos": rail + Vector3(0, 12.5, 2.4), "r": 1.6, "label": "DESCER", "do": func(): m._climb(rail + Vector3(0, 0, -1.2))})
 	m.interacts.append({"pos": Vector3(-30, y + 12.5, 26), "r": 2.2, "label": "SINO", "do": func(): m._ring_bell(1)})
 	# plaza parapets (open to the rooftops on the north-west and to the elevator bridge on the east)
-	block(m, Vector3(-42, y + 1, 30.5), Vector3(40, 2, 1), mats.wall)
-	block(m, Vector3(-62.5, y + 1, 18), Vector3(1, 2, 24), mats.wall)
-	block(m, Vector3(-21.5, y + 1, 18), Vector3(1, 2, 24), mats.wall)
-	block(m, Vector3(-36, y + 1, -2.5), Vector3(28, 2, 1), mats.wall)
+	wall(m, Vector3(-42, y + 1, 30.5), Vector3(40, 2, 1))
+	wall(m, Vector3(-62.5, y + 1, 18), Vector3(1, 2, 24))
+	wall(m, Vector3(-21.5, y + 1, 18), Vector3(1, 2, 24))
+	wall(m, Vector3(-36, y + 1, -2.5), Vector3(28, 2, 1))
 	# elevator bridge, shaft frame and the moving platform
 	for c in [Vector2(-1.8, -1.8), Vector2(1.8, -1.8), Vector2(-1.8, 1.8), Vector2(1.8, 1.8)]:
-		block(m, Vector3(ELEVATOR.x + c.x * 1.05, y / 2.0 + 2.0, ELEVATOR.z + c.y * 1.05), Vector3(0.4, y + 6.0, 0.4), mats.wood, false)
+		place("beam", Vector3(ELEVATOR.x + c.x * 1.05, -1.0, ELEVATOR.z + c.y * 1.05), Vector3(0.4, y + 6.0, 0.4))
 
 const AREAS := [  # [name, subtitle, test]
 	["SANTUÁRIO DA CHAMA", "Tudo volta para cá", "sanctuary"],
