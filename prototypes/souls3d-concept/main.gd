@@ -64,6 +64,13 @@ const ENEMY_SPAWNS := [
 	[Vector3(-4, 0, 4), "warrior"], [Vector3(4, 0, 0), "minion"], [Vector3(-2, 0, -6), "warrior"],
 	[Vector3(5, 0, -10), "minion"], [Vector3(-14, 0, -2), "minion"], [Vector3(12, 0, 6), "warrior"],
 ]
+const BREAKABLE_SPOTS := [
+	[Vector3(-13.5, 0, 11.5), "Vase_Large", 1.1], [Vector3(-12.6, 0, 12.3), "Vase_Small", 0.7], [Vector3(-10.8, 0, 8.8), "Jar01_Art", 0.9],
+	[Vector3(11.5, 0, 11.2), "Barrel", 1.1], [Vector3(12.3, 0, 10.2), "SmallBarrel_Art", 0.8], [Vector3(8.8, 0, 11.8), "Vase_Mid", 0.9],
+	[Vector3(-2.6, 0, -12.6), "Jar02_Art", 1.0], [Vector3(2.7, 0, -12.5), "Vase_Large", 1.1], [Vector3(19.5, 0, 2), "Barrel", 1.1],
+	[Vector3(19.6, 0, 3.2), "Vase_Broken", 0.8], [Vector3(-19.5, 0, -4), "Jar01_Art", 0.9], [Vector3(-19.4, 0, 18), "Vase_Mid", 0.9],
+	[Vector3(-3.5, 0, -36), "Vase_Large", 1.1], [Vector3(3.6, 0, -36.5), "Jar02_Art", 1.0], [Vector3(15, 0, -41), "SmallBarrel_Art", 0.8],
+]
 const SHARD_SPOTS := [Vector3(-17, 0.6, -9), Vector3(16, 0.6, 22)]
 
 # player
@@ -92,6 +99,7 @@ var hit_len := 0.55
 var idle_t := 0.0
 var auto_block := 0.0
 var shards: Array = []
+var breakables: Array = []
 var weapon := "sword"  # sword (sword + shield) or great (great sword, two hands)
 var sword_props: Array = []
 var great_prop: Node3D
@@ -256,6 +264,163 @@ func _build_world() -> void:
 			l2.light_energy = 1.6
 			l2.omni_range = 9
 			add_child(l2)
+	_build_scenery()
+	_build_ruins()
+
+# Gobkit CC0 nature kit (assets/nature), darkened: pines and cliffs over the walls,
+# rubble rocks along the inside of the walls.
+func _build_scenery() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var rock := _pbr("castle_wall_slates", 1.0)
+	rock.uv1_triplanar = true
+	rock.uv1_scale = Vector3(0.25, 0.25, 0.25)
+	rock.albedo_color = Color(0.55, 0.55, 0.6)
+	for z in range(-48, 40, 5):
+		for side in [-1, 1]:
+			_place("nature/TreeHigh00%d" % rng.randi_range(1, 3), Vector3(side * rng.randf_range(27, 32), 0, z + rng.randf_range(-2, 2)), rng.randf_range(11, 17), Color(0.22, 0.27, 0.24))
+	for x in range(-30, 31, 6):
+		for z in [rng.randf_range(40, 44), rng.randf_range(-54, -51)]:
+			_place("nature/TreeMed00%d" % rng.randi_range(1, 2), Vector3(x + rng.randf_range(-2, 2), 0, z), rng.randf_range(9, 14), Color(0.22, 0.27, 0.24))
+	for i in 10:
+		var a := i * TAU / 10 + rng.randf_range(-0.2, 0.2)
+		# cliffs are up to twice as wide as tall: keep their footprint clear of the walled area
+		_place("nature/Cliff00%d" % rng.randi_range(1, 3), Vector3(sin(a) * 66, 0, cos(a) * 82 - 6), rng.randf_range(18, 24), Color.WHITE, rock)
+	for i in 10:
+		var side := -1 if i % 2 == 0 else 1
+		var pos := Vector3(side * rng.randf_range(18.5, 20.5), 0, rng.randf_range(-40, 28))
+		var h := rng.randf_range(0.8, 1.8)
+		_place("nature/Rock00%d" % rng.randi_range(1, 3), pos, h, Color.WHITE, rock)
+		var body := StaticBody3D.new()
+		var cs := CollisionShape3D.new()
+		var sh := SphereShape3D.new()
+		sh.radius = h * 0.6
+		cs.shape = sh
+		body.position = pos + Vector3(0, h * 0.4, 0)
+		body.add_child(cs)
+		add_child(body)
+
+# places a model from assets/<path>.glb scaled to height h; tint darkens its own material, mat replaces it
+func _place(path: String, pos: Vector3, h: float, tint: Color, mat: Material = null, rot_y := -1.0) -> Node3D:
+	var holder := Node3D.new()
+	add_child(holder)
+	var n: Node3D = load("res://assets/%s.glb" % path).instantiate()
+	holder.add_child(n)
+	var box := AABB()
+	var first := true
+	for m in n.find_children("*", "MeshInstance3D", true, false):
+		if str(m.name).ends_with("_collider") or m.name == &"Logo":  # collision hulls and a brand decal
+			m.visible = false
+			continue
+		var xf := Transform3D()  # mesh -> model root; global_transform is not up to date during _ready
+		var p: Node = m
+		while p != n:
+			xf = p.transform * xf
+			p = p.get_parent()
+		var a: AABB = xf * m.get_aabb()
+		box = a if first else box.merge(a)
+		first = false
+		for i in m.mesh.get_surface_count():
+			if mat != null:
+				m.set_surface_override_material(i, mat)
+			elif m.mesh.surface_get_material(i) is StandardMaterial3D:
+				var d: StandardMaterial3D = m.mesh.surface_get_material(i).duplicate()
+				d.albedo_color *= tint
+				m.set_surface_override_material(i, d)
+	var k := h / box.size.y if box.size.y > 0.01 else 1.0
+	n.scale = Vector3.ONE * k
+	n.position = -Vector3(box.get_center().x, box.position.y, box.get_center().z) * k
+	holder.position = pos
+	holder.rotation.y = randf() * TAU if rot_y < 0 else rot_y
+	return holder
+
+func _static_box(pos: Vector3, size: Vector3) -> void:
+	var body := StaticBody3D.new()
+	var cs := CollisionShape3D.new()
+	var sh := BoxShape3D.new()
+	sh.size = size
+	cs.shape = sh
+	body.position = pos + Vector3(0, size.y / 2, 0)
+	body.add_child(cs)
+	add_child(body)
+
+# Polygonal Mind CC0 ruins (assets/pm): arch, columns, broken walls, seed crystals, webs, a cart
+func _build_ruins() -> void:
+	var stone := _pbr("castle_wall_slates", 1.0)
+	stone.uv1_triplanar = true
+	stone.uv1_scale = Vector3(0.2, 0.2, 0.2)
+	_place("pm/Arc", Vector3(-15, 0, 23), 5.0, Color.WHITE, stone, 0.5)
+	_place("pm/Wall_Broken_01", Vector3(16, 0, 25), 3.5, Color.WHITE, stone, -0.3)
+	_static_box(Vector3(16, 0, 25), Vector3(2.2, 3.5, 3.6))
+	_place("pm/Wall_CornerBroken", Vector3(-18.5, 0, -40), 4.0, Color.WHITE, stone, PI * 0.25)
+	for c in [[Vector3(-7, 0, -20), "Column_Regular", 6.0], [Vector3(7, 0, -20), "Column_Regular", 6.0],
+			[Vector3(7, 0, -34), "Column_SmallBroken_01", 2.6], [Vector3(-8, 0, -28), "Column_SmallBroken_01", 2.6]]:
+		_place("pm/" + c[1], c[0], c[2], Color.WHITE, stone, -1.0)
+		_static_box(c[0], Vector3(1.6, c[2], 1.6))
+	# Seed crystals around the shrine: dark glass with an ember core
+	var crystal := StandardMaterial3D.new()
+	crystal.albedo_color = Color(0.25, 0.05, 0.03)
+	crystal.emission_enabled = true
+	crystal.emission = Color(1.0, 0.3, 0.05)
+	crystal.emission_energy_multiplier = 0.35
+	crystal.roughness = 0.2
+	for i in 5:
+		var a := i * TAU / 5 + 0.4
+		_place("pm/Crystal_Small_0%d" % (1 if i % 2 == 0 else 3), Vector3(0, 0, -38) + Vector3(sin(a), 0, cos(a)) * 2.8, randf_range(1.0, 2.0), Color.WHITE, crystal, -1.0)
+	var cl := OmniLight3D.new()
+	cl.position = Vector3(0, 1.2, -38)
+	cl.light_color = Color(1, 0.35, 0.08)
+	cl.light_energy = 1.5
+	cl.omni_range = 6
+	add_child(cl)
+	for w in [[Vector3(-21.3, 3.5, 31.3), PI * 0.75], [Vector3(21.3, 3.5, 31.3), PI * 1.25],
+			[Vector3(-21.3, 3.5, -43.3), PI * 0.25], [Vector3(21.3, 3.5, -43.3), PI * 1.75]]:
+		_place("pm/Spiderweb_Art", w[0], 0.0, Color(0.6, 0.6, 0.6), null, w[1]).rotation.x = PI / 2  # flat model, stood up
+	_place("pm/Cart", Vector3(6, 0, 19), 1.8, Color(0.45, 0.4, 0.38), null, 2.4)
+	_static_box(Vector3(6, 0, 19), Vector3(2.6, 1.6, 2.6))
+	_spawn_breakables()
+
+# pots, jars and barrels: break with an attack or a roll, drop a few embers, back at the bonfire
+func _spawn_breakables() -> void:
+	for b in breakables:
+		if is_instance_valid(b.node):
+			b.node.queue_free()
+	breakables.clear()
+	for sp in BREAKABLE_SPOTS:
+		var n := _place("pm/" + sp[1], sp[0], sp[2], Color(0.5, 0.45, 0.42), null)
+		breakables.append({"node": n, "pos": sp[0], "wood": sp[1].contains("Barrel")})
+
+func _break(b: Dictionary) -> void:
+	breakables.erase(b)
+	var n: Node3D = b.node
+	var bits := CPUParticles3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3.ONE * 0.08
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.3, 0.2, 0.12) if b.wood else Color(0.35, 0.3, 0.27)
+	bm.material = mat
+	bits.mesh = bm
+	bits.one_shot = true
+	bits.emitting = true
+	bits.amount = 18
+	bits.lifetime = 0.9
+	bits.explosiveness = 1.0
+	bits.direction = Vector3.UP
+	bits.spread = 70
+	bits.initial_velocity_min = 2.0
+	bits.initial_velocity_max = 4.5
+	bits.gravity = Vector3(0, -12, 0)
+	bits.position = b.pos + Vector3(0, 0.4, 0)
+	add_child(bits)
+	get_tree().create_timer(1.2).timeout.connect(bits.queue_free)
+	n.queue_free()
+	_sfx(["impactWood_medium_001", "impactWood_medium_002"] if b.wood else ["impactGlass_heavy_000", "impactGlass_heavy_001", "impactGlass_heavy_002"], -2)
+	var r := randi_range(3, 12)
+	embers += r
+	_float("+%d brasas" % r, b.pos + Vector3(0, 1.4, 0), Color(1, 0.7, 0.3))
+	if flasks < max_flasks and randf() < 0.12:
+		flasks += 1
+		_float("+1 frasco", b.pos + Vector3(0, 1.9, 0), Color(0.6, 1, 0.6))
 
 # ------------------------------------------------------------------ characters
 func _load_anims(ap: AnimationPlayer) -> void:
@@ -591,6 +756,10 @@ func _update_player(dt: float) -> void:
 			if state_t > 4.0:
 				_respawn()
 	player.move_and_slide()
+	if state == "roll" or sprinting:
+		for b in breakables.duplicate():
+			if Vector2(b.pos.x - player.position.x, b.pos.z - player.position.z).length() < 0.9:
+				_break(b)
 	if _pressed("lock"):
 		_toggle_lock()
 	if lock_target != null and (lock_target.dead or lock_target.root.position.distance_to(player.position) > 20):
@@ -721,6 +890,11 @@ func _broken_target_in_front():
 func _player_hit_check(name: String) -> void:
 	var mv: Dictionary = MOVES[name]
 	var fwd := _fwd()
+	for b in breakables.duplicate():
+		var tb: Vector3 = b.pos - player.position
+		tb.y = 0
+		if tb.length() < mv.reach + 0.3 and fwd.angle_to(tb.normalized()) < mv.arc:
+			_break(b)
 	for e in enemies:
 		if e.dead:
 			continue
@@ -904,6 +1078,7 @@ func _respawn() -> void:
 		_fade(music_amb, -8.0, 2.0)
 
 func _respawn_enemies() -> void:
+	_spawn_breakables()
 	for e in enemies:
 		e.root.queue_free()
 	enemies.clear()
@@ -1024,7 +1199,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				e.hit = false
 				ap.speed_scale = 1.0
 				ap.play(e.atk, 0.0, 1.4)
-				ap.seek(e.wind_pos, true)
+				ap.seek(e.wind_pos)
 				_sfx(["knifeSlice", "knifeSlice2"], -4)
 		"strike":
 			e.eye.light_energy = 0.5
