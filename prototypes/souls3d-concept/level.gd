@@ -9,6 +9,26 @@ const BURGO_Y := 15.0
 const ALLEY_Y := 8.0
 const CHURCH_Y := 30.0
 const ELEVATOR := Vector3(-21.0, 0.0, 2.0)  # shaft column (x, z); the platform runs y 0 <-> 30
+const GRAVE_Y := -3.0  # the cemetery floor, east of the shrine and below it
+
+# --- terrain: a valley ringed by mountains; every area is a flattened shelf of it, joined by ramps and cliffs
+const T_ORIGIN := Vector2(-170.0, -190.0)
+const T_SIZE := 300.0
+const T_STEP := 2.5
+# [x0, z0, x1, z1, height, blend metres]
+const FLATS := [
+	[22.0, -28.0, 72.0, 28.0, GRAVE_Y - 0.4, 4.0],  # cemetery
+	[-66.0, -49.0, -36.0, -3.0, ALLEY_Y - 0.6, 2.0],  # alley under the rooftops
+	[-70.0, -100.0, 20.0, -48.0, BURGO_Y - 0.6, 3.0],  # Burgo
+	[-26.0, -1.0, -14.0, 5.0, -0.8, 2.0],  # foot of the elevator shaft, beside the shrine
+	[-62.0, -2.0, -26.0, 30.0, CHURCH_Y - 0.6, 2.0],  # church crag (the plaza overhangs its east edge, clear of the shaft)
+]
+# [from x, z, y, to x, z, y, half width]: the ground follows stairs and paths
+const RAMPS := [
+	[0.0, -12.0, -0.8, 0.0, -48.0, 14.2, 5.0],  # great stair
+	[-67.5, -22.0, 7.2, -67.5, -54.0, 14.2, 3.0],  # alley stair
+	[13.0, 0.0, -0.6, 24.0, 0.0, GRAVE_Y - 0.4, 3.5],  # path down to the cemetery
+]
 
 const BONFIRES := [
 	[Vector3(0, 0, 0), "Santuário da Chama"],
@@ -25,13 +45,18 @@ const SPAWNS := [
 	[Vector3(-56, 27, -10), "archer"],
 	[Vector3(-36, CHURCH_Y, 10), "warrior"], [Vector3(-28, CHURCH_Y, 22), "caster"], [Vector3(-40, CHURCH_Y, 27), "rogue"],
 	[Vector3(-53, CHURCH_Y, 11), "sentinel"], [Vector3(-53, CHURCH_Y, 19), "sentinel"],
+	# Cemitério dos Juramentados (east, below the shrine): strong for this early, the souls-style warning
+	[Vector3(34, GRAVE_Y, -8), "warrior"], [Vector3(42, GRAVE_Y, 8), "caster"], [Vector3(52, GRAVE_Y, -14), "warrior"],
+	[Vector3(58, GRAVE_Y, 12), "minion"], [Vector3(48, GRAVE_Y, 20), "rogue"],
+	# Jardim Morto (the forest in the valley): ash wolves
+	[Vector3(8, -10, 42), "wolf"], [Vector3(16, -10, 48), "wolf"], [Vector3(-14, -10, 52), "wolf"], [Vector3(-40, -10, 60), "wolf"],
 ]
 const BREAKABLES := [
 	[Vector3(-14, BURGO_Y, -70), "Barrel", 1.1], [Vector3(-15, BURGO_Y, -71.4), "Vase_Large", 1.1], [Vector3(-36, BURGO_Y, -88), "Jar01_Art", 0.9],
 	[Vector3(8, BURGO_Y, -84), "SmallBarrel_Art", 0.8], [Vector3(-52, BURGO_Y, -60), "Vase_Mid", 0.9], [Vector3(-64, ALLEY_Y, -12), "Barrel", 1.1],
 	[Vector3(-63, ALLEY_Y, -10.6), "Jar02_Art", 1.0], [Vector3(-26, CHURCH_Y, 12), "Vase_Large", 1.1], [Vector3(-26, CHURCH_Y, 13.4), "Vase_Small", 0.7],
 ]
-const SHARDS := [Vector3(-62, ALLEY_Y + 0.6, -6), Vector3(-40, 22.1, -26)]
+const SHARDS := [Vector3(-62, ALLEY_Y + 0.6, -6), Vector3(-40, 22.1, -26), Vector3(62, GRAVE_Y + 0.6, -20)]
 # parkour: [centre x, top y, centre z, size x, size z, from-the-alley pillar?]
 const ROOFTOPS := [
 	[-60.0, 16.2, -44.0, 6.0, 5.0, true], [-60.0, 17.0, -38.5, 1.2, 4.0, false], [-58.0, 18.0, -32.0, 6.0, 6.0, true],
@@ -53,6 +78,7 @@ const TORCHES := [
 ]
 
 static var mats := {}
+static var tnoise: FastNoiseLite
 static var pieces := {}  # name -> ArrayMesh with the level's materials (assets/arch, tools/make_architecture.py)
 static var batches := {}  # "piece|cell" -> [mesh, [Transform3D]]: every modelled piece is drawn through a few MultiMeshes
 const MAT_OF := {"stone": "wall", "plaster": "plaster", "wood": "wood", "roof": "roof", "dark": "dark", "iron": "iron", "rock": "rock"}
@@ -84,11 +110,14 @@ static func build(m: Node3D) -> void:
 	mats.iron = _plain(Color(0.12, 0.12, 0.13), 0.5, 0.8)
 	pieces = {}
 	batches = {}
+	_terrain(m)
 	_sanctuary(m)
 	_stair(m, Vector3(0, 0, -12), Vector3(0, BURGO_Y, -48), 6.0)
 	_burgo(m)
 	_rooftops(m)
 	_church(m)
+	_graveyard(m)
+	_forest(m)
 	for t in TORCHES:
 		torch(m, t[0], t[1])
 	_horizon(m)
@@ -111,7 +140,91 @@ static func _plain(c: Color, rough: float, metal := 0.0) -> StandardMaterial3D:
 	m.metallic = metal
 	return m
 
+# Kenney kit piece "kit/name" (assets/kenney): every mesh in the GLB merged into one ArrayMesh, one surface per
+# source material, each recoloured through kenney_dark.gdshader so the bright kits sit in the dark world
+static var kit_mats := {}
+
+static func _kit_mat(src: Material) -> ShaderMaterial:
+	if not kit_mats.has(src):
+		var sm := ShaderMaterial.new()
+		sm.shader = load("res://kenney_dark.gdshader")
+		var std := src as StandardMaterial3D
+		sm.set_shader_parameter("use_map", std != null and std.albedo_texture != null)
+		if std != null:
+			sm.set_shader_parameter("colormap", std.albedo_texture)
+			sm.set_shader_parameter("base_color", std.albedo_color)
+		sm.set_shader_parameter("grit", load("res://assets/tex/castle_wall_slates_diff_1k.jpg"))
+		sm.set_shader_parameter("grit_n", load("res://assets/tex/castle_wall_slates_nor_gl_1k.jpg"))
+		kit_mats[src] = sm
+	return kit_mats[src]
+
+static func _kit_mesh(name: String) -> ArrayMesh:
+	var root: Node3D = load("res://assets/kenney/%s.glb" % name).instantiate()
+	var tools := {}  # source material -> SurfaceTool
+	for mi in root.find_children("*", "MeshInstance3D", true, false):
+		var xf := Transform3D()
+		var p: Node = mi
+		while p != root:
+			xf = (p as Node3D).transform * xf
+			p = p.get_parent()
+		for i in mi.mesh.get_surface_count():
+			var src: Material = mi.get_surface_override_material(i) if mi.get_surface_override_material(i) else mi.mesh.surface_get_material(i)
+			if not tools.has(src):
+				tools[src] = SurfaceTool.new()
+				tools[src].begin(Mesh.PRIMITIVE_TRIANGLES)
+			tools[src].append_from(mi.mesh, i, xf)
+	var mesh := ArrayMesh.new()
+	# flat-coloured materials (the nature kit has many) become one vertex-coloured surface: one draw call per piece
+	var vv := PackedVector3Array()
+	var nn := PackedVector3Array()
+	var cc := PackedColorArray()
+	var ii := PackedInt32Array()
+	for src in tools:
+		var std := src as StandardMaterial3D
+		if std != null and std.albedo_texture != null:
+			tools[src].commit(mesh)
+			mesh.surface_set_material(mesh.get_surface_count() - 1, _kit_mat(src))
+			continue
+		var arr: Array = tools[src].commit_to_arrays()
+		var base := vv.size()
+		var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		vv.append_array(verts)
+		nn.append_array(arr[Mesh.ARRAY_NORMAL])
+		var col: Color = std.albedo_color if std != null else Color.WHITE
+		for k in verts.size():
+			cc.append(col)
+		var idx = arr[Mesh.ARRAY_INDEX]
+		for k in (range(verts.size()) if idx == null else Array(idx)):
+			ii.append(base + k)
+	if not vv.is_empty():
+		var arrays := []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = vv
+		arrays[Mesh.ARRAY_NORMAL] = nn
+		arrays[Mesh.ARRAY_COLOR] = cc
+		arrays[Mesh.ARRAY_INDEX] = ii
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		mesh.surface_set_material(mesh.get_surface_count() - 1, _kit_vc_mat())
+	root.free()
+	return mesh
+
+static func _kit_vc_mat() -> ShaderMaterial:
+	if not kit_mats.has("vc"):
+		var sm := ShaderMaterial.new()
+		sm.shader = load("res://kenney_dark.gdshader")
+		sm.set_shader_parameter("use_map", false)
+		sm.set_shader_parameter("use_vcolor", true)
+		sm.set_shader_parameter("desat", 0.35)
+		sm.set_shader_parameter("dark", 0.5)
+		sm.set_shader_parameter("tint", Vector3(0.8, 0.95, 0.75))  # foliage: green-black, not moonlit blue
+		sm.set_shader_parameter("grit", load("res://assets/tex/castle_wall_slates_diff_1k.jpg"))
+		sm.set_shader_parameter("grit_n", load("res://assets/tex/castle_wall_slates_nor_gl_1k.jpg"))
+		kit_mats["vc"] = sm
+	return kit_mats["vc"]
+
 static func _piece(name: String) -> ArrayMesh:
+	if not pieces.has(name) and name.contains("/"):
+		pieces[name] = _kit_mesh(name)
 	if not pieces.has(name):
 		var s: Node3D = load("res://assets/arch/%s.glb" % name).instantiate()
 		var mesh: ArrayMesh = (s.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D).mesh.duplicate()
@@ -123,7 +236,7 @@ static func _piece(name: String) -> ArrayMesh:
 
 # a modelled piece standing on `bottom`, stretched by `scale` (pieces are authored at a nominal size), turned by rot_y
 static func place(name: String, bottom: Vector3, scale: Vector3, rot_y := 0.0) -> void:
-	var key := "%s|%d|%d" % [name, floori(bottom.x / 48.0), floori(bottom.z / 48.0)]
+	var key := "%s|%d|%d" % [name, floori(bottom.x / 96.0), floori(bottom.z / 96.0)]
 	if not batches.has(key):
 		batches[key] = [_piece(name), []]
 	batches[key][1].append(Transform3D(Basis(Vector3.UP, rot_y) * Basis.from_scale(scale), bottom))
@@ -138,6 +251,10 @@ static func _flush(m: Node3D) -> void:
 			mm.set_instance_transform(i, batches[k][1][i])
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
+		if str(k).begins_with("nature/") or str(k).begins_with("graveyard/"):  # trees, rocks and grave clutter fade out early
+			mmi.visibility_range_end = 95.0
+			mmi.visibility_range_end_margin = 10.0
+			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
 		m.add_child(mmi)
 	batches = {}
 
@@ -226,6 +343,209 @@ static func _horizon(m: Node3D) -> void:
 	for t in [[-130.0, -230.0, 55.0], [-115.0, -245.0, 75.0], [-150.0, -240.0, 45.0], [-135.0, -260.0, 90.0]]:  # Cidade Alta, high and far
 		place("ruin_tower", Vector3(t[0], 25.0, t[1]), Vector3(2.0, t[2] / 10.0, 2.0))
 		place("belfry", Vector3(t[0], 25.0 + t[2], t[1]), Vector3(1.2, 1.6, 1.2))
+
+# height of a kit piece in its own units (its AABB top)
+static func _top(name: String) -> float:
+	return _piece(name).get_aabb().end.y
+
+# a solid kit block (castle wall tile, crypt...) of footprint s x s metres standing on bottom
+static func _kit_block(m: Node3D, name: String, bottom: Vector3, s: float, h: float, rot := 0.0) -> void:
+	place(name, bottom, Vector3.ONE * s, rot)
+	collider(m, bottom + Vector3(0, h / 2.0, 0), Vector3(s, h, s))
+
+# castle watch tower: n stacked square sections with a battlement top; walkable on top (archers stand there)
+static func _tower(m: Node3D, bottom: Vector3, n: int) -> float:
+	var s := 4.0
+	var y := bottom.y
+	for i in n:
+		var part := "castle/tower-square-base" if i == 0 else "castle/tower-square-mid-windows"
+		place(part, Vector3(bottom.x, y, bottom.z), Vector3.ONE * s)
+		y += _top(part) * s
+	place("castle/tower-square-top", Vector3(bottom.x, y, bottom.z), Vector3.ONE * s)
+	collider(m, Vector3(bottom.x, (bottom.y + y) / 2.0, bottom.z), Vector3(s, y - bottom.y, s))
+	return y
+
+static func ground_h(x: float, z: float) -> float:
+	var n := tnoise.get_noise_2d(x, z)
+	var h := -10.0 + n * 3.0
+	h += smoothstep(105.0, 150.0, Vector2(x + 20.0, z + 30.0).length()) * (55.0 + n * 25.0)  # the mountain ring
+	h = lerpf(-0.8, h, smoothstep(13.0, 24.0, Vector2(x, z).length()))  # the shrine's hill
+	for f in FLATS:
+		var gx := maxf(maxf(f[0] - x, x - f[2]), 0.0)
+		var gz := maxf(maxf(f[1] - z, z - f[3]), 0.0)
+		h = lerpf(f[4], h, smoothstep(0.0, f[5], Vector2(gx, gz).length()))
+	for r in RAMPS:
+		var a := Vector2(r[0], r[1])
+		var b := Vector2(r[3], r[4])
+		var ab := b - a
+		var t := clampf((Vector2(x, z) - a).dot(ab) / ab.length_squared(), 0.0, 1.0)
+		var side := (Vector2(x, z) - (a + ab * t)).length()
+		h = lerpf(lerpf(r[2], r[5], t), h, smoothstep(r[6], r[6] + 3.0, side))
+	return h
+
+static func _terrain(m: Node3D) -> void:
+	tnoise = FastNoiseLite.new()
+	tnoise.seed = 5
+	tnoise.frequency = 0.02
+	tnoise.fractal_octaves = 3
+	var n := int(T_SIZE / T_STEP) + 1
+	var heights := PackedFloat32Array()
+	heights.resize(n * n)
+	for j in n:
+		for i in n:
+			heights[j * n + i] = ground_h(T_ORIGIN.x + i * T_STEP, T_ORIGIN.y + j * T_STEP)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for j in n:
+		for i in n:
+			st.add_vertex(Vector3(T_ORIGIN.x + i * T_STEP, heights[j * n + i], T_ORIGIN.y + j * T_STEP))
+	for j in n - 1:
+		for i in n - 1:
+			var a := j * n + i
+			for k in [a, a + 1, a + n, a + 1, a + n + 1, a + n]:
+				st.add_index(k)
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	var sm := ShaderMaterial.new()
+	sm.shader = load("res://terrain.gdshader")
+	for k in [["mud", "brown_mud_leaves_01_diff"], ["mud_n", "brown_mud_leaves_01_nor_gl"], ["rock", "aerial_rocks_02_diff"],
+			["rock_n", "aerial_rocks_02_nor_gl"], ["sand", "coast_sand_rocks_02_diff"], ["sand_n", "coast_sand_rocks_02_nor_gl"]]:
+		sm.set_shader_parameter(k[0], load("res://assets/tex/%s_1k.jpg" % k[1]))
+	sm.set_shader_parameter("sand_level", -100.0)
+	mi.material_override = sm
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	m.add_child(mi)
+	var body := StaticBody3D.new()
+	body.collision_layer = 1 | 2
+	var cs := CollisionShape3D.new()
+	var hs := HeightMapShape3D.new()
+	hs.map_width = n
+	hs.map_depth = n
+	hs.map_data = heights
+	cs.shape = hs
+	cs.scale = Vector3(T_STEP, 1, T_STEP)
+	cs.position = Vector3(T_ORIGIN.x + T_SIZE / 2.0, 0, T_ORIGIN.y + T_SIZE / 2.0)
+	body.add_child(cs)
+	m.add_child(body)
+
+# Cemitério dos Juramentados: crypts, rows of graves, iron fence, dead pines and two lamps
+static func _graveyard(m: Node3D) -> void:
+	var y := GRAVE_Y
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	for i in 15:  # iron fence along the far edges
+		place("graveyard/iron-fence", Vector3(26.0 + i * 3.0, y, -26.0), Vector3.ONE * 3.0)
+		place("graveyard/iron-fence", Vector3(26.0 + i * 3.0, y, 26.0), Vector3.ONE * 3.0, PI)
+	for i in 17:
+		place("graveyard/iron-fence", Vector3(70.0, y, -24.0 + i * 3.0), Vector3.ONE * 3.0, PI / 2.0)
+	collider(m, Vector3(47, y + 1.2, -26.6), Vector3(46, 2.4, 0.6))
+	collider(m, Vector3(47, y + 1.2, 26.6), Vector3(46, 2.4, 0.6))
+	collider(m, Vector3(70.6, y + 1.2, 0), Vector3(0.6, 2.4, 52))
+	for c in [[Vector3(60, y, -20), "crypt-large", 3.5, 0.0], [Vector3(60, y, 18), "crypt-large", 3.5, PI], [Vector3(44, y, -18), "crypt-small", 3.0, 0.0],
+			[Vector3(36, y, 18), "crypt-small", 3.0, PI]]:
+		var name: String = c[1]
+		place("graveyard/" + name, c[0], Vector3.ONE * c[2], c[3])
+		place("graveyard/" + name + "-roof", c[0], Vector3.ONE * c[2], c[3])
+		var aabb := _piece("graveyard/" + name).get_aabb()
+		var sz: Vector3 = aabb.size * c[2]
+		collider(m, c[0] + Vector3(0, sz.y / 2.0, 0), Vector3(sz.x, sz.y, sz.z) if c[3] == 0.0 or c[3] == PI else Vector3(sz.z, sz.y, sz.x))
+	var stones := ["gravestone-cross-large", "gravestone-round", "gravestone-wide", "gravestone-broken", "gravestone-decorative", "gravestone-roof", "gravestone-bevel"]
+	for row in 6:
+		for k in 8:
+			if rng.randf() < 0.25:
+				continue
+			var p := Vector3(30.0 + k * 4.5 + rng.randf_range(-0.6, 0.6), y, -10.0 + row * 4.0 + rng.randf_range(-0.4, 0.4))
+			place("graveyard/" + stones[rng.randi() % stones.size()], p, Vector3.ONE * 2.6, rng.randf_range(-0.25, 0.25))
+			if rng.randf() < 0.5:
+				place("graveyard/grave-border", p + Vector3(0, 0, 1.3), Vector3.ONE * 2.6)
+	for i in 10:
+		var p := Vector3(rng.randf_range(26, 68), y, rng.randf_range(-24, 24))
+		place("graveyard/" + ["pine-crooked", "pine-fall-crooked", "pine-crooked"][i % 3], p, Vector3.ONE * rng.randf_range(4.0, 6.0), rng.randf() * TAU)
+	for c in [Vector3(28, y, -5), Vector3(28, y, 5), Vector3(52, y, 0)]:
+		place("graveyard/lightpost-single", c, Vector3.ONE * 3.0, PI / 2.0)
+		var l := OmniLight3D.new()
+		l.position = c + Vector3(0, 3.6, 0)
+		l.light_color = Color(0.55, 0.8, 0.6)  # cold grave-light
+		l.light_energy = 1.4
+		l.omni_range = 9.0
+		m.add_child(l)
+	place("graveyard/altar-stone", Vector3(66, y, 0), Vector3.ONE * 3.0, -PI / 2.0)
+	place("graveyard/candle-multiple", Vector3(66, y + 1.2, 0), Vector3.ONE * 3.0)
+
+# Jardim Morto: dark pines, dead trees and rocks in the valley; nothing inside the built areas or on the paths
+static func _forest(m: Node3D) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 21
+	var trees := ["nature/tree_pineTallA_detailed", "nature/tree_pineTallB_detailed", "nature/tree_thin_dark", "nature/tree_default_dark",
+		"graveyard/pine-crooked", "nature/tree_pineRoundC", "fantasy-town/tree-high-crooked"]
+	var props := ["nature/rock_tallA", "nature/rock_tallC", "nature/rock_largeB", "nature/stump_old", "nature/log_large", "nature/mushroom_tanGroup"]
+	var placed := 0
+	var tries := 0
+	while placed < 200 and tries < 4000:
+		tries += 1
+		var x := rng.randf_range(T_ORIGIN.x + 10.0, T_ORIGIN.x + T_SIZE - 10.0)
+		var z := rng.randf_range(T_ORIGIN.y + 10.0, T_ORIGIN.y + T_SIZE - 10.0)
+		var h := ground_h(x, z)
+		if h > 5.0 or Vector2(x, z).length() < 28.0 or _in_built(x, z):
+			continue
+		var slope := absf(ground_h(x + 2.0, z) - h) + absf(ground_h(x, z + 2.0) - h)
+		if slope > 3.0:
+			continue
+		placed += 1
+		if rng.randf() < 0.75:
+			place(trees[rng.randi() % trees.size()], Vector3(x, h - 0.3, z), Vector3.ONE * rng.randf_range(5.0, 9.0), rng.randf() * TAU)
+		else:
+			place(props[rng.randi() % props.size()], Vector3(x, h - 0.4, z), Vector3.ONE * rng.randf_range(2.5, 6.0), rng.randf() * TAU)
+
+static func _in_built(x: float, z: float) -> bool:
+	for f in FLATS:
+		if x > f[0] - 6.0 and x < f[2] + 6.0 and z > f[1] - 6.0 and z < f[3] + 6.0:
+			return true
+	for r in RAMPS:
+		var a := Vector2(r[0], r[1])
+		var b := Vector2(r[3], r[4])
+		var t := clampf((Vector2(x, z) - a).dot(b - a) / (b - a).length_squared(), 0.0, 1.0)
+		if (Vector2(x, z) - a.lerp(b, t)).length() < r[6] + 4.0:
+			return true
+	return false
+
+# a Kenney fantasy-town house: w x d cells of KS metres, stone ground floor and timber upper floors, a door on
+# its local +z side and a gabled roof whose ridge runs along local x; rot turns the whole house
+const KS := 3.0
+
+static func kit_house(m: Node3D, origin: Vector3, w: int, d: int, floors: int, rot: float, seed := 0) -> void:
+	var b := Basis(Vector3.UP, rot)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var sides := [[Vector2i(1, 0), 0.0], [Vector2i(-1, 0), PI], [Vector2i(0, 1), -PI / 2.0], [Vector2i(0, -1), PI / 2.0]]
+	for f in floors:
+		for cx in w:
+			for cz in d:
+				var cell := Vector3((cx - (w - 1) / 2.0) * KS, f * KS, (cz - (d - 1) / 2.0) * KS)
+				for sd in sides:
+					var nx: int = cx + sd[0].x
+					var nz: int = cz + sd[0].y
+					if nx >= 0 and nx < w and nz >= 0 and nz < d:
+						continue  # inner side
+					var piece := "fantasy-town/wall"
+					if f == 0 and sd[0] == Vector2i(0, 1) and cx == w / 2:
+						piece = "fantasy-town/wall-doorway-round"
+					elif f == 0:
+						piece = ["fantasy-town/wall", "fantasy-town/wall-window-stone", "fantasy-town/wall"][rng.randi() % 3]
+					else:
+						piece = ["fantasy-town/wall-wood-window-shutters", "fantasy-town/wall-wood-detail-cross", "fantasy-town/wall-wood-window-small", "fantasy-town/wall-wood"][rng.randi() % 4]
+					place(piece, origin + b * cell, Vector3.ONE * KS, rot + sd[1])
+	var top := floors * KS
+	for cx in w:
+		for cz in d:
+			var cell := Vector3((cx - (w - 1) / 2.0) * KS, top, (cz - (d - 1) / 2.0) * KS)
+			if d == 1:
+				place("fantasy-town/roof-gable", origin + b * cell, Vector3.ONE * KS, rot)
+			else:
+				place("fantasy-town/roof", origin + b * cell, Vector3.ONE * KS, rot + (PI / 2.0 if cz < d / 2 else -PI / 2.0))
+	if seed % 2 == 0:
+		place("fantasy-town/chimney", origin + b * Vector3((w - 1) / 2.0 * KS, top, 0), Vector3.ONE * KS, rot)
 
 # rock mass under a platform (centre and size like block); its collider only stops the camera (layer 2)
 static func cliff(m: Node3D, center: Vector3, size: Vector3) -> void:
@@ -324,8 +644,7 @@ static func _stair(m: Node3D, a: Vector3, b: Vector3, width: float) -> void:
 		wmi.material_override = mats.wall
 		w.add_child(wmi)
 		m.add_child(w)
-	var under := Vector3(width + 1.2, 18, run.length())
-	place("cliff", (a + b) / 2.0 + Vector3(0, -19, 0), under if absf(dir.z) > absf(dir.x) else Vector3(under.z, under.y, under.x))
+	pass  # the terrain follows the stair (RAMPS), no rock mass needed under it
 
 static func _sanctuary(m: Node3D) -> void:
 	var body := StaticBody3D.new()
@@ -345,22 +664,13 @@ static func _sanctuary(m: Node3D) -> void:
 	top.material_override = mats.floor
 	body.add_child(top)
 	m.add_child(body)
-	var base := MeshInstance3D.new()  # the cliff the shrine stands on
-	var bm := CylinderMesh.new()
-	bm.top_radius = 14.6
-	bm.bottom_radius = 7.0
-	bm.height = 34.0
-	base.mesh = bm
-	base.material_override = mats.rock
-	base.position.y = -18.0
-	m.add_child(base)
 	for i in 7:  # broken colonnade on the rim, gaps toward the stair, the cemetery gate and the elevator
 		var a := i * TAU / 7.0 + 0.45
 		m._place("pm/Column_SmallBroken_01" if i % 2 else "pm/Column_Regular", Vector3(sin(a) * 12.0, 0, cos(a) * 12.0), 2.6 if i % 2 else 5.0, Color.WHITE, mats.wall)
 	m._place("pm/Arc", Vector3(0, 0, 9), 5.0, Color.WHITE, mats.wall, 0.0)
-	# east: the way down to the cemetery is barred for now
-	m._prop("archway_gate", Vector3(13.5, 0, 0), PI / 2)
-	wall(m, Vector3(13.5, 2, 0), Vector3(0.6, 4, 3.2))
+	# east: the path down to the cemetery
+	place("graveyard/border-pillar", Vector3(13.6, -0.3, -2.4), Vector3.ONE * 3.0)
+	place("graveyard/border-pillar", Vector3(13.6, -0.3, 2.4), Vector3.ONE * 3.0)
 	# crenellated rim so a long combo cannot carry you off the cliff; open to the stair (north), gate (east), elevator (west)
 	for i in 21:
 		var ang := i * TAU / 21.0
@@ -382,29 +692,46 @@ static func _sanctuary(m: Node3D) -> void:
 
 static func _burgo(m: Node3D) -> void:
 	block(m, Vector3(-25, BURGO_Y - 0.5, -74), Vector3(90, 1, 52), mats.floor)
-	cliff(m, Vector3(-25, BURGO_Y - 16, -74), Vector3(90, 30, 52))
-	wall(m, Vector3(-25, BURGO_Y + 1, -100.5), Vector3(90, 2, 1))  # north parapet
-	wall(m, Vector3(20.5, BURGO_Y + 1, -74), Vector3(1, 2, 52))  # east parapet
+	# outer ramparts (north and east): Kenney castle wall blocks, 4 m a tile, towers on the corners
+	var kw := 4.0
+	var wh := _top("castle/wall") * kw
+	for i in 23:
+		_kit_block(m, "castle/wall", Vector3(-68.0 + i * kw, BURGO_Y, -102.0), kw, wh)
+	for i in 13:
+		_kit_block(m, "castle/wall", Vector3(22.0, BURGO_Y, -98.0 + i * kw), kw, wh, PI / 2.0)
+	for c in [Vector3(-72.0, BURGO_Y, -102.0), Vector3(22.0, BURGO_Y, -102.0), Vector3(22.0, BURGO_Y, -46.0)]:
+		_tower(m, c, 3)
+	place("castle/flag-banner-long", Vector3(-26.0, BURGO_Y + wh, -100.5), Vector3.ONE * kw)
+	place("castle/flag-banner-long", Vector3(2.0, BURGO_Y + wh, -100.5), Vector3.ONE * kw)
 	wall(m, Vector3(-70.5, BURGO_Y + 1, -82), Vector3(1, 2, 36))  # west parapet, open where the ramp comes up
 	for side in [-1, 1]:  # south parapet either side of the stair head
 		wall(m, Vector3(-22.5 if side < 0 else 11.5, BURGO_Y + 1, -47.5), Vector3(41 if side < 0 else 17, 2, 1))
 	for i in HOUSES.size():
 		var h: Array = HOUSES[i]
-		collider(m, Vector3(h[0], BURGO_Y + h[4] / 2.0, h[1]), Vector3(h[2], h[4], h[3]))
-		# timber houses face the square; the two archer perches (spawns at y 24/25) are flat-roofed watch houses
-		var watch: bool = i == 2 or i == 8
+		if i == 2 or i == 8:  # the two archer perches are castle watch towers
+			_tower(m, Vector3(h[0], BURGO_Y, h[1]), 2)
+			continue
+		# Kenney timber houses facing the square: stone ground floor, timber upper floor, gabled roof
+		var w := clampi(roundi(h[2] / KS), 2, 4)
+		var floors := 2 if h[4] < 10 else 3
 		var rot := PI if h[1] > -74 else 0.0
-		var sc := Vector3(h[2] / 10.0, h[4] / (8.4 if watch else 8.0), h[3] / 8.0)
+		var size := Vector3(w * KS, floors * KS, 2 * KS)
 		if h[0] > 12:
 			rot = -PI / 2.0
-			sc = Vector3(h[3] / 10.0, sc.y, h[2] / 8.0)
-		place("house_watch" if watch else "house", Vector3(h[0], BURGO_Y, h[1]), sc, rot)
+			size = Vector3(size.z, size.y, size.x)
+		collider(m, Vector3(h[0], BURGO_Y + size.y / 2.0, h[1]), size)
+		kit_house(m, Vector3(h[0], BURGO_Y, h[1]), w, 2, floors, rot, i)
+	for c in [Vector3(-12, BURGO_Y, -66), Vector3(-36, BURGO_Y, -75), Vector3(-2, BURGO_Y, -84)]:  # street lamps
+		place("graveyard/lightpost-single", c, Vector3.ONE * 3.0)
+	place("fantasy-town/fountain-round", Vector3(-12, BURGO_Y, -76), Vector3.ONE * 4.0)
+	collider(m, Vector3(-12, BURGO_Y + 0.6, -76), Vector3(4.4, 1.2, 4.4))
+	place("fantasy-town/stall-red", Vector3(4, BURGO_Y, -70), Vector3.ONE * 3.0, PI)
+	place("fantasy-town/cart-high", Vector3(-48, BURGO_Y, -66), Vector3.ONE * 3.0, 0.4)
 	m._prop("wall_ruin", Vector3(-8, BURGO_Y, -60), 0.3)
 	m._prop("graves", Vector3(-42, BURGO_Y, -66), 1.2)
 	m._place("pm/Cart", Vector3(-10, BURGO_Y, -82), 1.8, Color(0.45, 0.4, 0.38), null, 0.6)
 	# the alley under the rooftops, with a ramp back up into the Burgo's west side
 	block(m, Vector3(-51, ALLEY_Y - 0.5, -26), Vector3(30, 1, 46), mats.floor)
-	cliff(m, Vector3(-51, ALLEY_Y - 17, -26), Vector3(30, 32, 46))
 	_stair(m, Vector3(-67.5, ALLEY_Y, -22), Vector3(-67.5, BURGO_Y, -54), 4.0)
 	for z in [-46.0, -6.0]:
 		wall(m, Vector3(-51, ALLEY_Y + 1, z - 3.0 * sign(z + 26)), Vector3(30, 2, 1))
@@ -422,7 +749,8 @@ static func _rooftops(m: Node3D) -> void:
 static func _church(m: Node3D) -> void:
 	var y := CHURCH_Y
 	block(m, Vector3(-42, y - 0.5, 14), Vector3(40, 1, 32), mats.floor)
-	cliff(m, Vector3(-42, y - 20, 14), Vector3(40, 38, 32))
+	for c in [Vector3(-64.0, y, -4.0), Vector3(-64.0, y, 32.0)]:  # corner towers on the crag
+		_tower(m, c, 2)
 	# nave: lancet-windowed walls with a door on the east side, open roof beams
 	wall(m, Vector3(-52, y + 6, 4), Vector3(16, 12, 1), "church_wall_4")
 	wall(m, Vector3(-52, y + 6, 26), Vector3(16, 12, 1), "church_wall_4")
@@ -473,6 +801,8 @@ const AREAS := [  # [name, subtitle, test]
 	["TELHADOS QUEBRADOS", "Pule, ou volte pelos becos", "roofs"],
 	["BECOS DO BURGO", "Aqui embaixo ninguém ouve você cair", "alley"],
 	["IGREJA DO JURAMENTO", "Toque o sino. Desperte o que dorme", "church"],
+	["CEMITÉRIO DOS JURAMENTADOS", "Volte quando for mais forte", "graveyard"],
+	["JARDIM MORTO", "Os lobos sentem o cheiro da Chama", "forest"],
 ]
 
 static func area_of(p: Vector3) -> Array:
@@ -487,6 +817,10 @@ static func area_of(p: Vector3) -> Array:
 		t = "roofs"
 	elif p.y > BURGO_Y - 1.0 and p.z < -47.0:
 		t = "burgo"
+	elif p.x > 20.0 and p.y < 2.0 and absf(p.z) < 30.0:
+		t = "graveyard"
+	elif p.y < -4.0:
+		t = "forest"
 	for a in AREAS:
 		if a[2] == t:
 			return a
