@@ -215,8 +215,9 @@ func _ready() -> void:
 	_build_player()
 	for sp in ENEMY_SPAWNS + WORLD_SPAWNS:
 		_spawn_enemy(sp[0], sp[1])
-	for p in SHARD_SPOTS:
-		shards.append(_glow_marker(p, Color(0.4, 1.0, 0.5)))
+	for i in SHARD_SPOTS.size():
+		shards.append(_glow_marker(SHARD_SPOTS[i], Color(0.4, 1.0, 0.5)))
+		shards[-1].set_meta("spot", i)
 	_spawn_boss(BOSS_HOME, 6.5, Color.WHITE, 1100.0, "Dragão Guardião", "guardian")
 	var peak := Vector3(World.PEAK.x, world.height(World.PEAK.x, World.PEAK.y), World.PEAK.y)
 	_spawn_boss(peak, 9.0, Color(1.0, 0.45, 0.4), 2400.0, "Wyrm Ancião", "wyrm")
@@ -228,6 +229,78 @@ func _ready() -> void:
 		var y: float = world.height(sp[0], sp[1])
 		seed_marks.append([_glow_marker(Vector3(sp[0], y + 0.3, sp[1]), SEEDS[sp[2]].col), sp])
 	map_tex = _make_map()
+	if not autoplay:  # the playtest robot always starts fresh and never overwrites a save
+		_load()
+
+# ------------------------------------------------------------------ save
+const SAVE_PATH := "user://sementes_save.json"
+
+func _save() -> void:
+	if autoplay:
+		return
+	var d := {
+		"level": level, "max_hp": max_hp, "max_stamina": max_stamina, "dmg_mult": dmg_mult, "max_flasks": max_flasks,
+		"embers": embers, "dropped_embers": dropped_embers, "seeds": seeds, "seed_i": seed_i, "dragon_seed": dragon_seed,
+		"rage": rage, "gear": gear, "lit": lit.keys(),
+		"bonfire": [bonfire_pos.x, bonfire_pos.y, bonfire_pos.z],
+		"dropped_at": [dropped_marker.position.x, dropped_marker.position.y, dropped_marker.position.z] if dropped_marker != null else [],
+		"bosses_dead": bosses.filter(func(b): return b.dead).map(func(b): return b.kind),
+		"shards_left": shards.map(func(n): return n.get_meta("spot")),
+		"seeds_left": seed_marks.map(func(m): return m[1][2]),
+	}
+	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if f != null:
+		f.store_string(JSON.stringify(d))
+
+func _load() -> void:
+	if not FileAccess.file_exists(SAVE_PATH):
+		return
+	var d = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
+	if not d is Dictionary:
+		return  # unreadable save: start a new game rather than crash
+	level = int(d.level)
+	max_hp = d.max_hp
+	max_stamina = d.max_stamina
+	dmg_mult = d.dmg_mult
+	max_flasks = int(d.max_flasks)
+	embers = int(d.embers)
+	seeds = d.seeds
+	seed_i = clampi(int(d.seed_i), 0, seeds.size() - 1)
+	dragon_seed = d.dragon_seed
+	rage = d.rage
+	weapon = "sword"
+	gear = {}
+	for slot in d.gear:
+		var it: Dictionary = d.gear[slot]
+		it.rarity = int(it.rarity)
+		gear[slot] = it
+	for n in d.lit:
+		lit[n] = true
+	bonfire_pos = Vector3(d.bonfire[0], d.bonfire[1], d.bonfire[2])
+	if d.dropped_at.size() == 3 and int(d.dropped_embers) > 0:
+		dropped_embers = int(d.dropped_embers)
+		dropped_marker = _glow_marker(Vector3(d.dropped_at[0], d.dropped_at[1], d.dropped_at[2]), Color(1, 0.5, 0.1))
+	for b in bosses:
+		if b.kind in d.bosses_dead:
+			b.dead = true
+			b.root.visible = false
+	for n in shards.duplicate():
+		if not int(n.get_meta("spot")) in d.shards_left.map(func(x): return int(x)):
+			shards.erase(n)
+			n.queue_free()
+	for m in seed_marks.duplicate():
+		if not m[1][2] in d.seeds_left:
+			seed_marks.erase(m)
+			m[0].queue_free()
+	hp = max_hp
+	stamina = max_stamina
+	flasks = max_flasks
+	player.position = bonfire_pos + Vector3(0, 0.5, -2.5)
+	_show_banner("BEM-VINDO DE VOLTA", "Nível %d  ·  %d brasas" % [level, embers], Color(0.95, 0.85, 0.65), 3.0)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_save()
 
 # ------------------------------------------------------------------ world
 func _pbr(name: String, uv: float) -> StandardMaterial3D:
@@ -978,6 +1051,7 @@ func _update_player(dt: float) -> void:
 		flasks = max_flasks
 		essence = 100.0
 		_respawn_enemies()
+		_save.call_deferred()
 		_show_banner("FOGUEIRA: " + bf[1].to_upper(), "Vida, frascos e essência restaurados. Os mortos se levantam de novo.", Color(1, 0.7, 0.3), 2.5)
 	# reclaim dropped embers
 	if dropped_marker != null and player.position.distance_to(dropped_marker.position) < 1.5:
@@ -986,6 +1060,7 @@ func _update_player(dt: float) -> void:
 		dropped_embers = 0
 		dropped_marker.queue_free()
 		dropped_marker = null
+		_save()
 
 func _become_dragon(on: bool) -> void:
 	dragon_form = on
@@ -1225,6 +1300,7 @@ func _level_up() -> void:
 	stamina = max_stamina
 	_sfx("jingle_win", -6)
 	_show_banner("NÍVEL %d" % level, "+15 vida  ·  +8 estamina  ·  +6%% dano", Color(1, 0.8, 0.4), 2.5)
+	_save()
 
 func _broken_target_in_front():
 	for e in enemies:
@@ -1348,6 +1424,7 @@ func _damage_boss(dmg: float) -> void:
 			_sfx("jingle_win", -2)
 			_fade(music_boss, -80.0, 4.0)
 			_fade(music_amb, -8.0, 4.0)
+			_save.call_deferred()
 			_show_banner("WYRM ANCIÃO DERROTADO", "A ilha é sua  ·  +5000 brasas  ·  +50 vida máxima", Color(1, 0.6, 0.15), 7.0)
 			return
 		embers += 2000
@@ -1358,6 +1435,7 @@ func _damage_boss(dmg: float) -> void:
 		_fade(music_boss, -80.0, 4.0)
 		_fade(music_amb, -8.0, 4.0)
 		_set_gate(false)
+		_save.call_deferred()
 		_show_banner("DRAGÃO DERROTADO", "Você obteve a SEMENTE DO DRAGÃO  ·  +2000 brasas", Color(1, 0.6, 0.15), 6.0)
 
 func _hurt_player(dmg: float, src: String, attacker: Dictionary = {}) -> void:
@@ -1401,6 +1479,7 @@ func _hurt_player(dmg: float, src: String, attacker: Dictionary = {}) -> void:
 		embers = 0
 		if dropped_embers > 0:
 			dropped_marker = _glow_marker(player.position, Color(1, 0.5, 0.1))
+		_save()
 		_show_banner("VOCÊ MORREU", "%s · suas brasas ficaram onde você caiu" % src, Color(0.75, 0.05, 0.05), 4.0)
 	elif state in ["free", "drink", "cast", "block"]:
 		_set_state("hit")
@@ -1476,6 +1555,7 @@ func _take_item(item: Dictionary) -> void:
 	if item.rarity == 3:
 		_sfx("dragon_roar", -12)
 		shake = 0.4
+	_save()
 
 func _update_pickups() -> void:
 	for l in loot.duplicate():
@@ -1492,6 +1572,7 @@ func _update_pickups() -> void:
 			seed_marks.erase(sm)
 			_sfx("jingle_win", -4)
 			_show_banner(sm[1][3], sm[1][4], SEEDS[sm[1][2]].col, 4.0)
+			_save()
 	var r := ""
 	for rg in REGIONS:
 		if Vector2(player.position.x, player.position.z).distance_to(Vector2(rg[0], rg[1])) < rg[2]:
@@ -1510,6 +1591,7 @@ func _update_pickups() -> void:
 			s.queue_free()
 			_sfx("jingle_win", -8)
 			_show_banner("FRAGMENTO DE SEIVA", "Frascos máximos: %d" % max_flasks, Color(0.5, 1, 0.6), 2.5)
+			_save()
 
 func _respawn() -> void:
 	player.position = bonfire_pos + Vector3(0, 0.5, -2.5)
