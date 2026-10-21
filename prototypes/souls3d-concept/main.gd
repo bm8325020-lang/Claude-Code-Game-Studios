@@ -160,7 +160,9 @@ var dropped_marker: Node3D
 var invuln_t := 0.0
 
 var enemies: Array = []
-var boss = null
+var boss = null  # the boss nearest the player; every boss function works on this one
+var bosses: Array = []
+var meteors: Array = []
 var fireballs: Array = []
 var bolts: Array = []  # casters' ghost-fire bolts
 var floaters: Array = []
@@ -204,7 +206,10 @@ func _ready() -> void:
 		_spawn_enemy(sp[0], sp[1])
 	for p in SHARD_SPOTS:
 		shards.append(_glow_marker(p, Color(0.4, 1.0, 0.5)))
-	_spawn_boss()
+	_spawn_boss(BOSS_HOME, 6.5, Color.WHITE, 1100.0, "Dragão Guardião", "guardian")
+	var peak := Vector3(World.PEAK.x, world.height(World.PEAK.x, World.PEAK.y), World.PEAK.y)
+	_spawn_boss(peak, 9.0, Color(1.0, 0.45, 0.4), 2400.0, "Wyrm Ancião", "wyrm")
+	boss = bosses[0]
 	_build_gate()
 	_build_ui()
 	_build_audio()
@@ -275,6 +280,7 @@ func _build_world() -> void:
 	moon.directional_shadow_max_distance = 40
 	add_child(moon)
 	world = World.new()
+	world.flatten(World.PEAK, 20.0)  # the Ancient Wyrm's summit
 	for b in BONFIRES:
 		bonfires.append([Vector3(b[0], world.flatten(Vector2(b[0], b[1]), 5.0), b[1]), b[2]])
 	var ground := ShaderMaterial.new()
@@ -705,27 +711,39 @@ func _dragon_model(size: float, tex: String) -> Array:
 	ap.play("d/idle")
 	return [d, ap]
 
-func _spawn_boss() -> void:
+func _spawn_boss(home: Vector3, size: float, tint: Color, hpmax: float, title: String, kind: String) -> void:
 	var root := Node3D.new()
-	root.position = BOSS_HOME
+	root.position = home
 	add_child(root)
-	var dr := _dragon_model(6.5, "dragon")
+	var dr := _dragon_model(size, "dragon")
 	root.add_child(dr[0])
+	for m in dr[0].find_children("*", "MeshInstance3D", true, false):
+		m.material_override.albedo_color = tint
 	var ap: AnimationPlayer = dr[1]
 	var mouth := OmniLight3D.new()
-	mouth.position = Vector3(0, 3.5, 3.5)
+	mouth.position = Vector3(0, 3.5, 3.5) * size / 6.5
 	mouth.light_color = Color(1, 0.4, 0.05)
 	mouth.light_energy = 0.0
 	mouth.omni_range = 10
 	root.add_child(mouth)
-	boss = {"root": root, "ap": ap, "mouth": mouth, "hp": 1100.0, "max": 1100.0, "state": "idle", "t": 0.0, "hit": false, "dead": false, "awake": false, "next": "bite", "phase": 1}
+	bosses.append({"root": root, "ap": ap, "mouth": mouth, "hp": hpmax, "max": hpmax, "state": "idle", "t": 0.0, "hit": false, "dead": false,
+		"awake": false, "next": "bite", "phase": 1, "home": home, "k": size / 6.5, "name": title, "kind": kind})
 
 # ------------------------------------------------------------------ loop
 func _physics_process(dt: float) -> void:
 	_update_player(dt)
 	for e in enemies:
 		_update_enemy(e, dt)
-	_update_boss(dt)
+	var near := 1e9
+	for b in bosses:
+		boss = b
+		_update_boss(dt)
+	for b in bosses:  # aim everything else at the nearest living boss
+		var d: float = b.root.position.distance_to(player.position)
+		if not b.dead and d < near:
+			near = d
+			boss = b
+	_update_meteors(dt)
 	_update_fireballs(dt)
 	_update_bolts(dt)
 	_update_pickups()
@@ -975,6 +993,7 @@ func _become_dragon(on: bool) -> void:
 			bm.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 			bm.albedo_color = Color(1, 0.5, 0.1)
 			bm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+			bm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			var puff := GradientTexture2D.new()  # soft round flame instead of a square
 			puff.fill = GradientTexture2D.FILL_RADIAL
 			puff.fill_from = Vector2(0.5, 0.5)
@@ -992,8 +1011,12 @@ func _become_dragon(on: bool) -> void:
 			breath.initial_velocity_min = 11
 			breath.initial_velocity_max = 15
 			breath.gravity = Vector3(0, 1.5, 0)
-			breath.scale_amount_min = 0.6
-			breath.scale_amount_max = 2.2
+			breath.scale_amount_min = 0.5
+			breath.scale_amount_max = 1.4
+			var grow := Curve.new()  # flames swell as they travel
+			grow.add_point(Vector2(0, 0.3))
+			grow.add_point(Vector2(1, 1.0))
+			breath.scale_amount_curve = grow
 			breath.emitting = false
 			breath.position = Vector3(0, 1.7, 1.6)
 			player.add_child(breath)
@@ -1301,6 +1324,16 @@ func _damage_boss(dmg: float) -> void:
 	if boss.hp <= 0 and not boss.dead:
 		boss.dead = true
 		boss.ap.play("d/die")
+		if boss.kind == "wyrm":
+			embers += 5000
+			max_hp += 50.0
+			hp = max_hp
+			_sfx("dragon_roar", 2)
+			_sfx("jingle_win", -2)
+			_fade(music_boss, -80.0, 4.0)
+			_fade(music_amb, -8.0, 4.0)
+			_show_banner("WYRM ANCIÃO DERROTADO", "A ilha é sua  ·  +5000 brasas  ·  +50 vida máxima", Color(1, 0.6, 0.15), 7.0)
+			return
 		embers += 2000
 		dragon_seed = true
 		_sfx("dragon_roar", 2)
@@ -1419,15 +1452,16 @@ func _respawn() -> void:
 	_set_state("free")
 	lock_target = null
 	_respawn_enemies()
-	if boss != null and not boss.dead:
-		boss.hp = boss.max
-		boss.awake = false
-		boss.phase = 1
-		boss.root.position = BOSS_HOME
-		boss.state = "idle"
-		_set_gate(false)
-		_fade(music_boss, -80.0, 2.0)
-		_fade(music_amb, -8.0, 2.0)
+	for b in bosses:
+		if not b.dead:
+			b.hp = b.max
+			b.awake = false
+			b.phase = 1
+			b.root.position = b.home
+			b.state = "idle"
+	_set_gate(false)
+	_fade(music_boss, -80.0, 2.0)
+	_fade(music_amb, -8.0, 2.0)
 
 func _respawn_enemies() -> void:
 	_spawn_breakables()
@@ -1493,8 +1527,9 @@ func _wake_boss() -> void:
 	if boss.awake:
 		return
 	boss.awake = true
-	_set_gate(true)
-	_show_banner("DRAGÃO GUARDIÃO", "", Color(1, 0.45, 0.15), 3.0)
+	if boss.kind == "guardian":
+		_set_gate(true)
+	_show_banner(boss.name.to_upper(), "", Color(1, 0.45, 0.15), 3.0)
 	_sfx("dragon_roar", 3)
 	_fade(music_amb, -80.0, 2.0)
 	_fade(music_boss, -4.0, 2.0)
@@ -1778,13 +1813,16 @@ func _update_boss(dt: float) -> void:
 	var ap: AnimationPlayer = boss.ap
 	var fury: float = 1.0 if boss.phase == 1 else 1.45
 	if not boss.awake:
-		if player.position.z < -15.5 and state != "dead":
+		var zone: bool = (player.position.z < -15.5 and player.position.z > -44.0 and absf(player.position.x) < 22.0) if boss.kind == "guardian" \
+			else player.position.distance_to(boss.home) < 26.0
+		if zone and state != "dead":
 			_wake_boss()
 		return
+	var k: float = boss.k
 	match boss.state:
 		"idle", "chase":
 			root.rotation.y = lerp_angle(root.rotation.y, atan2(to.x, to.z), 0.06 * fury)
-			if dist > 5.5:
+			if dist > 5.5 * k:
 				root.position += to.normalized() * 2.6 * fury * dt
 				if ap.current_animation != "d/walk":
 					ap.play("d/walk", 0.3, fury)
@@ -1792,10 +1830,10 @@ func _update_boss(dt: float) -> void:
 				boss.state = "windup"
 				boss.t = 0.0
 				boss.next = "breath" if randf() < (0.4 if boss.phase == 1 else 0.55) else "bite"
-			if dist > 9 and boss.t > 3.0 / fury and randf() < 0.01 * fury:
+			if dist > 9 * k and boss.t > 3.0 / fury and randf() < 0.01 * fury:
 				boss.state = "windup"
 				boss.t = 0.0
-				boss.next = "breath"
+				boss.next = "rain" if boss.kind == "wyrm" and randf() < 0.6 else "breath"
 		"windup":
 			ap.play("d/attack", 0.2, 0.6 * fury)
 			boss.mouth.light_energy = boss.t * 8.0
@@ -1805,12 +1843,16 @@ func _update_boss(dt: float) -> void:
 				boss.t = 0.0
 				boss.hit = false
 				_sfx("fire_breath" if boss.next == "breath" else "dragon_roar", 0 if boss.next == "breath" else -6)
+				if boss.next == "rain":  # the Ancient Wyrm calls fire down around you
+					for i in 6:
+						var off := Vector3.ZERO if i == 0 else Vector3(randf_range(-6, 6), 0, randf_range(-6, 6))
+						_meteor(player.position + off)
 		"bite":
 			boss.mouth.light_energy = 0.5
 			if not boss.hit and boss.t > 0.15:
 				boss.hit = true
 				var fwd := Vector3(sin(root.rotation.y), 0, cos(root.rotation.y))
-				if dist < 6.0 and fwd.angle_to(to.normalized()) < 0.8:
+				if dist < 6.0 * k and fwd.angle_to(to.normalized()) < 0.8:
 					_hurt_player(45.0 * fury, "Mordida do Dragão")
 			if boss.t > 1.0 / fury:
 				boss.state = "chase"
@@ -1818,12 +1860,58 @@ func _update_boss(dt: float) -> void:
 		"breath":
 			boss.mouth.light_energy = 9.0
 			var fwd2 := Vector3(sin(root.rotation.y), 0, cos(root.rotation.y))
-			if int(boss.t * 10) % 3 == 0 and dist < 10.0 and fwd2.angle_to(to.normalized()) < 0.5:
+			if int(boss.t * 10) % 3 == 0 and dist < 10.0 * k and fwd2.angle_to(to.normalized()) < 0.5:
 				_hurt_player(14.0 * fury, "Sopro de Fogo")
 			if boss.t > 1.6:
 				boss.mouth.light_energy = 0.0
 				boss.state = "chase"
 				boss.t = 0.0
+		"rain":
+			boss.mouth.light_energy = 3.0
+			if boss.t > 1.4:
+				boss.mouth.light_energy = 0.0
+				boss.state = "chase"
+				boss.t = 0.0
+
+func _meteor(at: Vector3) -> void:
+	at.y = world.height(at.x, at.z)
+	var ring := MeshInstance3D.new()  # warning circle on the ground
+	var tm := TorusMesh.new()
+	tm.inner_radius = 1.7
+	tm.outer_radius = 2.0
+	ring.mesh = tm
+	var rm := StandardMaterial3D.new()
+	rm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	rm.albedo_color = Color(1, 0.3, 0.05)
+	ring.material_override = rm
+	ring.position = at + Vector3(0, 0.15, 0)
+	add_child(ring)
+	var rock := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.6
+	sm.height = 1.2
+	rock.mesh = sm
+	var mm := StandardMaterial3D.new()
+	mm.emission_enabled = true
+	mm.emission = Color(1, 0.4, 0.05)
+	mm.emission_energy_multiplier = 5
+	rock.material_override = mm
+	rock.position = at + Vector3(0, 16, 0)
+	add_child(rock)
+	meteors.append({"at": at, "t": 1.3, "ring": ring, "rock": rock})
+
+func _update_meteors(dt: float) -> void:
+	for m in meteors.duplicate():
+		m.t -= dt
+		m.rock.position.y = m.at.y + 16.0 * maxf(m.t, 0.0) / 1.3
+		if m.t <= 0:
+			if Vector2(player.position.x - m.at.x, player.position.z - m.at.z).length() < 2.0:
+				_hurt_player(35.0, "Chuva de Fogo")
+			_sfx("fireball", -4)
+			shake = maxf(shake, 0.3)
+			m.ring.queue_free()
+			m.rock.queue_free()
+			meteors.erase(m)
 
 # ------------------------------------------------------------------ Seed of Fire
 func _throw_fireball(ice := false) -> void:
@@ -2204,7 +2292,7 @@ func _draw_ui() -> void:
 	if boss != null and boss.awake and not boss.dead:
 		var w := vs.x * 0.55
 		var x0 := (vs.x - w) / 2
-		_text("Dragão Guardião", Vector2(x0, vs.y - 92), 30, Color(0.95, 0.9, 0.8))
+		_text(boss.name, Vector2(x0, vs.y - 92), 30, Color(0.95, 0.9, 0.8))
 		ui_draw.draw_rect(Rect2(x0, vs.y - 80, w, 16), Color(0.1, 0, 0, 0.7))
 		ui_draw.draw_rect(Rect2(x0, vs.y - 80, w * boss.hp / boss.max, 16), Color(0.6, 0.1, 0.05))
 	for a in buttons:
