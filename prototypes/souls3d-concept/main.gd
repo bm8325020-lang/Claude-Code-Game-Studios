@@ -229,6 +229,10 @@ func _ready() -> void:
 		var y: float = world.height(sp[0], sp[1])
 		seed_marks.append([_glow_marker(Vector3(sp[0], y + 0.3, sp[1]), SEEDS[sp[2]].col), sp])
 	map_tex = _make_map()
+	for l in find_children("*", "OmniLight3D", true, false):
+		l.distance_fade_enabled = true
+		l.distance_fade_begin = 35.0
+		l.distance_fade_length = 10.0
 	if not autoplay:  # the playtest robot always starts fresh and never overwrites a save
 		_build_title()
 
@@ -411,7 +415,8 @@ func _build_world() -> void:
 	moon.light_color = Color(0.55, 0.62, 0.9)
 	moon.light_energy = 0.9
 	moon.shadow_enabled = true
-	moon.directional_shadow_max_distance = 40
+	moon.directional_shadow_max_distance = 25
+	moon.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL  # one shadow pass instead of four
 	add_child(moon)
 	world = World.new()
 	world.flatten(World.PEAK, 20.0)  # the Ancient Wyrm's summit
@@ -496,8 +501,8 @@ func _build_scenery() -> void:
 				return false
 		return true
 	var forest := Rect2(-210, -90, 150, 220)
-	_scatter_model("nature/dead_tree_1", 220, forest, Vector2(6, 9), Color.WHITE, keep, 3)
-	_scatter_model("nature/dead_tree_2", 160, forest, Vector2(5, 8), Color.WHITE, keep, 13)
+	_scatter_model("nature/dead_tree_1", 150, forest, Vector2(6, 9), Color.WHITE, keep, 3)
+	_scatter_model("nature/dead_tree_2", 110, forest, Vector2(5, 8), Color.WHITE, keep, 13)
 	_scatter_model("nature/dead_tree_3", 50, forest, Vector2(4, 6), Color.WHITE, keep, 23)
 	_scatter_model("nature/pine_1", 140, Rect2(-210, -210, 420, 420), Vector2(9, 14), Color.WHITE, keep, 4)
 	_scatter_model("nature/pine_2", 120, Rect2(-210, -210, 420, 420), Vector2(8, 12), Color.WHITE, keep, 5)
@@ -572,7 +577,8 @@ func _scatter_model(path: String, count: int, area: Rect2, h: Vector2, tint: Col
 		m.albedo_color *= tint
 	var mmi: MultiMeshInstance3D = world.scatter(mi.mesh, count, area, h * k, keep, seed)
 	mmi.material_override = m
-	mmi.visibility_range_end = 260.0
+	mmi.visibility_range_end = 110.0  # the fog hides them past this anyway
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	n.free()
 
 func _static_box(pos: Vector3, size: Vector3) -> void:
@@ -810,6 +816,7 @@ func _spawn_enemy(pos: Vector3, kind := "warrior") -> void:
 	if kind == "wolf":
 		eye.position = Vector3(0, 0.75, 0.6)
 	eye.light_energy = 0.0
+	eye.visible = false  # lights are expensive on phones: on only for a nearby attack tell (see _cull)
 	eye.omni_range = 1.8
 	root.add_child(eye)
 	var ap: AnimationPlayer = k.find_children("*", "AnimationPlayer", true, false)[0]
@@ -864,7 +871,16 @@ func _spawn_boss(home: Vector3, size: float, tint: Color, hpmax: float, title: S
 		"awake": false, "next": "bite", "phase": 1, "home": home, "k": size / 6.5, "name": title, "kind": kind})
 
 # ------------------------------------------------------------------ loop
+# phones: far enemies are hidden and not animated, eye lights only for a nearby attack tell, far lights fade out
+func _cull() -> void:
+	for e in enemies:
+		var d: float = e.root.position.distance_to(player.position)
+		e.root.visible = d < 70.0
+		e.ap.active = d < 55.0 or e.state != "dormant"
+		e.eye.visible = d < 25.0 and e.eye.light_energy > 1.0
+
 func _physics_process(dt: float) -> void:
+	_cull()
 	_update_player(dt)
 	for e in enemies:
 		_update_enemy(e, dt)
@@ -2460,6 +2476,7 @@ func _draw_ui() -> void:
 	ui_draw.draw_rect(Rect2(40, 84, 100 * 2.4, 10), Color(0, 0, 0.1, 0.7))
 	ui_draw.draw_rect(Rect2(40, 84, essence * 2.4, 10), Color(0.25, 0.45, 0.95))
 	_text("Nível %d   Frascos %d/%d" % [level, flasks, max_flasks], Vector2(40, 132), 28, Color(0.9, 0.8, 0.6))
+	_text("%d FPS" % Engine.get_frames_per_second(), Vector2(vs.x * 0.5 - 40, 30), 20, Color(0.6, 0.6, 0.6))
 	if dragon_seed:
 		ui_draw.draw_rect(Rect2(40, 98, 240, 10), Color(0.1, 0.03, 0, 0.7))
 		var fill := dragon_t / 15.0 if dragon_form else rage / 100.0

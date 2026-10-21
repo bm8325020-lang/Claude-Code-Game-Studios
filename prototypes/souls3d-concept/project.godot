@@ -6,6 +6,8 @@ config_version=5
 
 [application]
 
+run/max_fps=60
+
 config/name="Sementes do Dragão — Protótipo Souls 3D"
 config/icon="res://icon.png"
 run/main_scene="res://main.tscn"
@@ -43,3 +45,7 @@ renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/msaa_3d=1
+anti_aliasing/quality/msaa_3d.mobile=0
+scaling_3d/scale.mobile=0.7
+lights_and_shadows/directional_shadow/size.mobile=1024
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality.mobile=0

@@ -62,6 +62,7 @@ func build(ground_mat: Material, sea_mat: Material) -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.material_override = ground_mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # re-drawing the whole island per shadow split cost 4x on phones
 	add_child(mi)
 	var body := StaticBody3D.new()
 	var cs := CollisionShape3D.new()
@@ -79,6 +80,7 @@ func build(ground_mat: Material, sea_mat: Material) -> void:
 	sea.mesh = pm
 	sea.position.y = SEA
 	sea.material_override = sea_mat
+	sea.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(sea)
 
 # scatter one model many times as a MultiMesh; keep(p) says whether a spot is allowed

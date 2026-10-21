@@ -18,7 +18,7 @@ def mat(name, color, rough=0.9):
 BARK = mat("bark", (0.11, 0.09, 0.08))
 NEEDLES = mat("needles", (0.06, 0.1, 0.07))
 
-def tube(bm, a, b, r0, r1, sides=6):
+def tube(bm, a, b, r0, r1, sides=4):
     """Tapered closed tube from a to b."""
     axis = (b - a).normalized()
     side = axis.cross(Vector((0, 0, 1)))
@@ -52,9 +52,10 @@ def branch(bm, start, d, length, r, depth, rnd):
         q = p + d * length / 3
         tube(bm, p, q, r * (1 - s / 3.5), r * (1 - (s + 1) / 3.5))
         if depth > 0 and s >= 1:
-            for _ in range(rnd.randint(1, 2)):
+            for _ in range(2):
                 nd = (d + Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-0.2, 0.6)))).normalized()
                 branch(bm, q, nd, length * rnd.uniform(0.45, 0.65), r * 0.45, depth - 1, rnd)
+            break  # one fork per limb keeps the tree under ~300 triangles for phones
         p = q
 
 def export(name, bm, m):
