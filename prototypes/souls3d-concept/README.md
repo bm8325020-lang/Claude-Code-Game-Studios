@@ -26,6 +26,7 @@
 - More enemies (KayKit Skeletons CC0, same rig): Skeleton Mage (the caster, hat hidden), Skeleton Rogue (dual blades, fast, dodges) and Skeleton Crossbowman (straight fast bolts). Skull keys are scaled to 0.66 to tone down the chibi look. Ash Wolves (Quaternius CC0, `assets/beasts`) hunt in packs: run, circle and pounce; the pounce is procedural since the model only has idle/walk.
 - Seeds of power: Fire (fireball), Ice (slows for 3 s, heavy poise damage; found in the cemetery) and Lightning (instant strike that jumps to two more enemies; deep in the Dead Forest). SEED casts the current one, TROCAR (T) cycles.
 - HUD map of the island (lit bonfires, Seeds, player arrow), region names on entry, fast travel between lit bonfires (VIAJAR / Y).
+- Dragon form: after the first dragon falls you hold the Dragon Seed; damage you deal fills the Fury bar, and when it is full DRAGÃO (G) turns you into a black dragon for 15 s (fire breath cone, wing dash with i-frames, giant fireball, half damage taken). `SEMENTES_DRAGON=1` starts with the Seed for showcase runs.
 - Boss: dragon with phase 2 at 50% HP; a portcullis closes behind the player.
 
 ## Findings
