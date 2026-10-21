@@ -9,6 +9,7 @@ const HeroAnims = preload("res://hero_anims.gd")
 const Level = preload("res://level.gd")
 const Rpg = preload("res://rpg.gd")
 const Menu = preload("res://menu.gd")
+const World = preload("res://world.gd")
 const BOSS_HOME := Vector3(0, 0, -26)
 const ANIMS := {
 	"idle": "sword_and_shield_idle", "idle2": "sword_and_shield_idle_2", "run": "sword_and_shield_run",
@@ -110,6 +111,7 @@ var shards_found := 0
 var poison_t := 0.0
 var buff_t := 0.0  # Esquiva Perfeita
 var menu: Control
+var world: Node3D  # world.gd: the streamed 10 km world around the valley
 var free_points := 0  # attribute points returned by a respec
 var move := ""
 var attack_hold := 0.0
@@ -191,6 +193,9 @@ func _ready() -> void:
 	randomize()
 	stone_mat = _pbr("castle_wall_slates", 1.0)
 	_build_world()
+	world = World.new()
+	add_child(world)
+	world.setup(self)
 	_build_player()
 	_update_camera(0.0)
 	_recalc()
@@ -222,7 +227,7 @@ func _save() -> void:
 	var d := {
 		"level": level, "max_flasks": max_flasks, "cls": cls, "attrs": attrs, "talents": talents.keys(), "upgrades": upgrades,
 		"titanite": titanite, "kills": kills, "sentinels_dead": sentinels_dead, "boss_kills": boss_kills, "bonus_hp": bonus_hp,
-		"shards_found": shards_found, "free_points": free_points,
+		"shards_found": shards_found, "free_points": free_points, "found": world.found.keys(),
 		"embers": embers, "dropped_embers": dropped_embers, "seeds": seeds, "seed_i": seed_i, "dragon_seed": dragon_seed,
 		"gear": gear, "lit": lit.keys(), "elevator_open": elevator_open, "bells": bells,
 		"bonfire": [bonfire_pos.x, bonfire_pos.y, bonfire_pos.z],
@@ -263,6 +268,8 @@ func _load() -> void:
 	bonus_hp = float(d.get("bonus_hp", 0.0))
 	shards_found = int(d.get("shards_found", 0))
 	free_points = int(d.get("free_points", 0))
+	for n in d.get("found", []):
+		world.found[n] = true
 	embers = int(d.embers)
 	seeds = d.seeds
 	seed_i = clampi(int(d.seed_i), 0, seeds.size() - 1)
@@ -627,22 +634,17 @@ func _dark_cloth() -> StandardMaterial3D:
 	m.roughness = 0.9
 	return m
 
-const ENEMY_NAME := {"sentinel": "Sentinela de Pedra", "warrior": "Cavaleiro Oco", "minion": "Esquecido", "caster": "Clérigo da Cinza",
-	"rogue": "Espreitador", "archer": "Besteiro Espreitador", "wolf": "Lobo da Cinza"}
-# our own models on the KayKit rig (tools/make_foes.py), so the KayKit clips still play
+# our own models on the KayKit rig (tools/make_foes.py), so the KayKit clips still play; data in Rpg.FOES
 var foe_mat: StandardMaterial3D
-const FOE_FILE := {"sentinel": "Sentinel", "warrior": "Knight", "minion": "Hollow", "caster": "Cultist", "rogue": "Stalker", "archer": "Stalker"}
-# weapon models per kind: [bone, assets/foes/w_*.glb]
-const FOE_GEAR := {"sentinel": [["handslot.r", "greatsword"]], "warrior": [["handslot.r", "sword"]], "minion": [["handslot.r", "sword"]], "caster": [["handslot.r", "staff"]],
-	"rogue": [["handslot.r", "dagger"], ["handslot.l", "dagger"]], "archer": [["handslot.l", "crossbow"]]}
 
 func _skeleton_model(kind: String) -> Node3D:
-	if kind == "wolf":
+	if Rpg.FOES[kind].ai == "wolf":
 		return _wolf_model()
-	var k: Node3D = load("res://assets/foes/%s.glb" % FOE_FILE[kind]).instantiate()
-	k.scale = Vector3.ONE * {"warrior": 1.05, "sentinel": 1.6}.get(kind, 0.95)
+	var f: Dictionary = Rpg.FOES[kind]
+	var k: Node3D = load("res://assets/foes/%s.glb" % f.model).instantiate()
+	k.scale = Vector3.ONE * f.scale
 	var skel: Skeleton3D = k.find_children("*", "Skeleton3D", true, false)[0]
-	for g in FOE_GEAR[kind]:
+	for g in f.gear:
 		var ba := BoneAttachment3D.new()
 		ba.bone_name = g[0]
 		skel.add_child(ba)
@@ -685,18 +687,18 @@ func _spawn_enemy(pos: Vector3, kind := "warrior") -> void:
 	root.add_child(k)
 	var eye := OmniLight3D.new()
 	eye.position = Vector3(0, 1.7, 0.25)
-	eye.light_color = Color(0.3, 0.8, 1.0) if kind == "caster" else Color(1, 0.1, 0.05)
-	if kind == "wolf":
+	eye.light_color = Color(0.3, 0.8, 1.0) if Rpg.FOES[kind].ai == "caster" else Color(1, 0.1, 0.05)
+	if Rpg.FOES[kind].ai == "wolf":
 		eye.position = Vector3(0, 0.75, 0.6)
 	eye.light_energy = 0.0
 	eye.visible = false  # lights are expensive on phones: on only for a nearby attack tell (see _cull)
 	eye.omni_range = 1.8
 	root.add_child(eye)
 	var ap: AnimationPlayer = k.find_children("*", "AnimationPlayer", true, false)[0]
-	ap.play("WolfArmature|Idle" if kind == "wolf" else "Skeletons_Inactive_Floor_Pose")
-	var hpv: float = {"sentinel": 380.0, "warrior": 90.0, "minion": 55.0, "caster": 45.0, "rogue": 60.0, "archer": 50.0, "wolf": 70.0}[kind]
-	var poise: float = {"sentinel": 90.0, "warrior": 40.0, "minion": 22.0, "caster": 15.0, "rogue": 25.0, "archer": 18.0, "wolf": 30.0}[kind]
-	enemies.append({"root": root, "ap": ap, "eye": eye, "kind": kind, "hp": hpv, "max": hpv, "poise": poise, "max_poise": poise,
+	ap.play("WolfArmature|Idle" if Rpg.FOES[kind].ai == "wolf" else "Skeletons_Inactive_Floor_Pose")
+	var hpv: float = Rpg.FOES[kind].hp
+	var poise: float = Rpg.FOES[kind].poise
+	enemies.append({"root": root, "ap": ap, "eye": eye, "kind": kind, "ai": Rpg.FOES[kind].ai, "hp": hpv, "max": hpv, "poise": poise, "max_poise": poise,
 		"home": pos, "state": "dormant", "t": 0.0, "hit": false, "dead": false, "atk": "", "wind_pos": 0.0, "leap": false,
 		"model": k, "combo": false, "side": 1.0, "dodge": Vector3.ZERO, "revive_t": -1.0, "revived": false, "cast_cd": 2.0})
 
@@ -753,6 +755,7 @@ func _cull() -> void:
 		e.eye.visible = d < 25.0 and e.eye.light_energy > 1.0
 
 func _physics_process(dt: float) -> void:
+	world.update(player.position)
 	_cull()
 	_update_player(dt)
 	for e in enemies:
@@ -1431,23 +1434,23 @@ func _break_guard(e: Dictionary) -> void:
 func _kill_enemy(e: Dictionary) -> void:
 	e.dead = true
 	e.eye.light_energy = 0.0
-	if e.kind == "wolf":
+	if e.ai == "wolf":
 		e.revive_t = -1.0
 		e.ap.stop()
 		create_tween().tween_property(e.root, "rotation:z", PI / 2, 0.4)  # keels over
-	elif not e.revived and e.kind in ["warrior", "minion", "rogue"] and randf() < 0.5:
+	elif not e.revived and e.kind in ["warrior", "minion", "rogue"] and randf() < 0.5:  # only the undead of the first valley
 		e.revive_t = 4.0
 		e.ap.play("Death_C_Skeletons")
 	else:
 		e.revive_t = -1.0
 		e.ap.play(["Death_A", "Death_B"].pick_random())
-	if randf() < (0.25 if e.kind == "wolf" else 0.35):
+	if randf() < (0.25 if e.ai == "wolf" else 0.35):
 		_drop_item(e.root.position, _roll_rarity())
-	var reward: int = {"sentinel": 300, "warrior": 60, "minion": 35, "caster": 50, "rogue": 45, "archer": 45, "wolf": 40}[e.kind] / (2 if e.revived else 1)
+	var reward: int = Rpg.FOES[e.kind].reward / (2 if e.revived else 1)
 	embers += reward
 	_float("+%d brasas" % reward, e.root.position + Vector3(0, 2.6, 0), Color(1, 0.7, 0.3))
 	kills += 1
-	var ti := 2 if e.kind == "sentinel" else (1 if randf() < 0.12 else 0)
+	var ti := 2 if e.kind in ["sentinel", "blackknight", "executioner"] else (1 if randf() < 0.12 else 0)
 	if ti > 0 and not e.revived:
 		titanite += ti
 		_float("+%d titanita" % ti, e.root.position + Vector3(0, 3.0, 0), Color(0.7, 0.85, 1.0))
@@ -1530,7 +1533,7 @@ func _hurt_player(dmg: float, src: String, attacker: Dictionary = {}) -> void:
 	hp -= dmg
 	shake = 0.5
 	_sfx(["impactPunch_heavy_000", "impactPunch_heavy_001"], 0)
-	if attacker.get("kind", "") == "rogue" and randf() < 0.4 and hp > 0:
+	if not attacker.is_empty() and randf() < Rpg.FOES.get(attacker.get("kind", ""), {}).get("poison", 0.0) and hp > 0:
 		if poison_t <= 0.0:
 			_float("ENVENENADO", player.position + Vector3(0, 2.4, 0), Color(0.5, 0.9, 0.2))
 		poison_t = 8.0
@@ -1640,6 +1643,8 @@ func _update_pickups() -> void:
 			_save()
 	var r := ""
 	var ar := Level.area_of(player.position)
+	if ar.is_empty():
+		ar = world.area_of(player.position)
 	if not ar.is_empty():
 		r = ar[0]
 		if r != region and banner_t <= 0.5:
@@ -1686,6 +1691,7 @@ func _respawn_enemies() -> void:
 	enemies.clear()
 	for sp in Level.SPAWNS:
 		_spawn_enemy(sp[0], sp[1])
+	world.respawn()
 
 func _toggle_lock() -> void:
 	if lock_target != null:
@@ -1783,14 +1789,14 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 		return
 	e.t += dt
 	e.cast_cd -= dt
-	if e.kind == "wolf":
+	if e.ai == "wolf":
 		_update_wolf(e, dt)
 		return
 	var to: Vector3 = player.position - e.root.position
 	to.y = 0
 	var dist := to.length()
 	var ap: AnimationPlayer = e.ap
-	var speed: float = {"sentinel": 2.4, "warrior": 3.0, "minion": 3.9, "rogue": 4.4}.get(e.kind, 3.0)
+	var speed: float = Rpg.FOES[e.kind].speed
 	match e.state:
 		"dormant":
 			if dist < 9 and state != "dead":
@@ -1805,7 +1811,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 		"idle":
 			if dist < 11 and state != "dead":
 				e.state = "chase"
-		"chase" when e.kind in ["caster", "archer"]:
+		"chase" when e.ai in ["caster", "archer"]:
 			# keeps its distance and throws ghost fire
 			e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.15)
 			if dist < 5.0:
@@ -1820,10 +1826,10 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				e.state = "cast"
 				e.t = 0.0
 				e.hit = false
-				ap.play("2H_Ranged_Aiming" if e.kind == "archer" else "Spellcast_Raise", 0.15, 1.4)
+				ap.play("2H_Ranged_Aiming" if e.ai == "archer" else "Spellcast_Raise", 0.15, 1.4)
 				e.eye.light_energy = 2.0
-			elif ap.current_animation != ("2H_Ranged_Aiming" if e.kind == "archer" else "Spellcasting"):
-				ap.play("2H_Ranged_Aiming" if e.kind == "archer" else "Spellcasting", 0.2)
+			elif ap.current_animation != ("2H_Ranged_Aiming" if e.ai == "archer" else "Spellcasting"):
+				ap.play("2H_Ranged_Aiming" if e.ai == "archer" else "Spellcasting", 0.2)
 			if dist > 18 or state == "dead":
 				e.state = "idle"
 				ap.play("Idle_Combat", 0.2)
@@ -1831,7 +1837,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 			e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.2)
 			if not e.hit and e.t > 1.1:
 				e.hit = true
-				ap.play("2H_Ranged_Shoot" if e.kind == "archer" else "Spellcast_Shoot", 0.05, 1.2)
+				ap.play("2H_Ranged_Shoot" if e.ai == "archer" else "Spellcast_Shoot", 0.05, 1.2)
 				_cast_bolt(e)
 			if e.t > 1.8:
 				e.state = "chase"
@@ -1852,7 +1858,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 		"chase":
 			e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.15)
 			# minions are quick: they hop out of the way of a swing
-			if e.kind in ["minion", "rogue"] and state == "attack" and state_t < 0.1 and dist < 3.2 and randf() < 0.3:
+			if e.ai in ["minion", "rogue"] and state == "attack" and state_t < 0.1 and dist < 3.2 and randf() < 0.3:
 				e.state = "dodge"
 				e.t = 0.0
 				var side := randi() % 3
@@ -1866,7 +1872,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				ap.play("Running_Strafe_Left" if e.side > 0 else "Running_Strafe_Right", 0.2)
 				return
 			# warriors raise the shield when the player swings at them
-			if e.kind in ["warrior", "sentinel"] and state == "attack" and state_t < 0.1 and dist < 3.2 and randf() < 0.35:
+			if e.ai in ["warrior", "sentinel"] and state == "attack" and state_t < 0.1 and dist < 3.2 and randf() < 0.35:
 				e.state = "block"
 				e.t = 0.0
 				ap.play("Blocking", 0.1)
@@ -1890,7 +1896,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				ap.play(["Taunt", "Cheer"].pick_random() if state == "dead" else "Idle_Combat", 0.2)
 		"windup":
 			e.eye.light_energy = 0.5 + 6.0 * e.t
-			if e.t > (0.45 if e.kind in ["warrior", "sentinel"] else 0.3):
+			if e.t > (0.45 if e.ai in ["warrior", "sentinel"] else 0.3):
 				e.state = "strike"
 				e.t = 0.0
 				e.hit = false
@@ -1907,7 +1913,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				e.hit = true
 				var fwd := Vector3(sin(e.root.rotation.y), 0, cos(e.root.rotation.y))
 				if dist < 2.6 and fwd.angle_to(to.normalized()) < 1.0:
-					_hurt_player({"sentinel": 40.0, "warrior": 30.0, "minion": 20.0, "rogue": 16.0}.get(e.kind, 20.0), ENEMY_NAME[e.kind], e)
+					_hurt_player(Rpg.FOES[e.kind].dmg, Rpg.FOES[e.kind].name, e)
 			if ap.current_animation_position > length * 0.92 or e.t > 2.5:
 				e.leap = false
 				# one follow-up swing now and then
@@ -1992,7 +1998,7 @@ func _update_wolf(e: Dictionary, dt: float) -> void:
 			m.rotation.x = lerpf(-0.3, 0.35, minf(k, 1.0))
 			if not e.hit and k > 0.55 and dist < 1.7:
 				e.hit = true
-				_hurt_player(18.0, ENEMY_NAME.wolf, e)
+				_hurt_player(Rpg.FOES[e.kind].dmg, Rpg.FOES[e.kind].name, e)
 			if k >= 1.0:
 				e.state = "recover"
 				e.t = 0.0
@@ -2023,7 +2029,7 @@ func _enemy_attack(e: Dictionary, atk: String) -> void:
 	e.atk = atk
 	e.ap.play(atk, 0.1, 0.35)
 	e.wind_pos = 0.0
-	e.wind_pos = (0.45 if e.kind in ["warrior", "sentinel"] else 0.3) * 0.35
+	e.wind_pos = (0.45 if e.ai in ["warrior", "sentinel"] else 0.3) * 0.35
 
 func _update_boss(dt: float) -> void:
 	if boss == null or boss.dead:
@@ -2261,7 +2267,7 @@ func _cast_bolt(e: Dictionary) -> void:
 	ball.add_child(l)
 	ball.position = e.root.position + Vector3(0, 1.4, 0)
 	add_child(ball)
-	var arrow: bool = e.kind == "archer"
+	var arrow: bool = e.ai == "archer"
 	if arrow:  # a crossbow bolt: fast, straight, dark
 		var bm := BoxMesh.new()
 		bm.size = Vector3(0.04, 0.04, 0.6)
@@ -2273,7 +2279,7 @@ func _cast_bolt(e: Dictionary) -> void:
 		ball.look_at_from_position(ball.position, player.position + Vector3(0, 1.0, 0))
 	var spd := 24.0 if arrow else 9.0
 	bolts.append({"node": ball, "vel": (player.position + Vector3(0, 1.0, 0) - ball.position).normalized() * spd, "t": 2.5,
-		"homing": not arrow, "dmg": 18.0 if arrow else 22.0, "src": ENEMY_NAME[e.kind]})
+		"homing": not arrow, "dmg": 18.0 if arrow else 22.0, "src": Rpg.FOES[e.kind].name})
 	_sfx("knifeSlice" if arrow else "fireball", -6)
 
 func _update_bolts(dt: float) -> void:

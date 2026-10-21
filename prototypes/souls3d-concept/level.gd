@@ -4,7 +4,7 @@
 # y 15..30, with the Becos alley below at y 8) -> Igreja do Juramento (y 30) -> elevator shortcut back down.
 extends RefCounted
 
-const FALL_DEATH_Y := -25.0
+const FALL_DEATH_Y := -40.0
 const BURGO_Y := 15.0
 const ALLEY_Y := 8.0
 const CHURCH_Y := 30.0
@@ -110,7 +110,10 @@ static func build(m: Node3D) -> void:
 	mats.iron = _plain(Color(0.12, 0.12, 0.13), 0.5, 0.8)
 	pieces = {}
 	batches = {}
-	_terrain(m)
+	tnoise = FastNoiseLite.new()  # the ground itself is streamed by world.gd, which reads ground_h here
+	tnoise.seed = 5
+	tnoise.frequency = 0.02
+	tnoise.fractal_octaves = 3
 	_sanctuary(m)
 	_stair(m, Vector3(0, 0, -12), Vector3(0, BURGO_Y, -48), 6.0)
 	_burgo(m)
@@ -120,7 +123,6 @@ static func build(m: Node3D) -> void:
 	_forest(m)
 	for t in TORCHES:
 		torch(m, t[0], t[1])
-	_horizon(m)
 	for b in BONFIRES:
 		m.bonfires.append([b[0], b[1]])
 		m._prop("bonfire", b[0])
@@ -251,12 +253,26 @@ static func _flush(m: Node3D) -> void:
 			mm.set_instance_transform(i, batches[k][1][i])
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
-		if str(k).begins_with("nature/") or str(k).begins_with("graveyard/"):  # trees, rocks and grave clutter fade out early
+		if str(k).begins_with("fantasy-town/"):  # town houses: the ramparts and towers hide them from afar anyway
+			mmi.visibility_range_end = 170.0
+			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # a whole town in the shadow pass doubled its cost
+		elif str(k).begins_with("nature/") or str(k).begins_with("graveyard/"):  # trees, rocks and grave clutter fade out early
 			mmi.visibility_range_end = 95.0
 			mmi.visibility_range_end_margin = 10.0
 			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
 		m.add_child(mmi)
 	batches = {}
+
+static func collider_rot(m: Node3D, center: Vector3, size: Vector3, rot_y: float) -> void:
+	var body := StaticBody3D.new()
+	body.position = center
+	body.rotation.y = rot_y
+	var cs := CollisionShape3D.new()
+	var sh := BoxShape3D.new()
+	sh.size = size
+	cs.shape = sh
+	body.add_child(cs)
+	m.add_child(body)
 
 static func collider(m: Node3D, center: Vector3, size: Vector3) -> void:
 	var body := StaticBody3D.new()
@@ -368,7 +384,7 @@ static func _tower(m: Node3D, bottom: Vector3, n: int) -> float:
 static func ground_h(x: float, z: float) -> float:
 	var n := tnoise.get_noise_2d(x, z)
 	var h := -10.0 + n * 3.0
-	h += smoothstep(105.0, 150.0, Vector2(x + 20.0, z + 30.0).length()) * (55.0 + n * 25.0)  # the mountain ring
+	h += smoothstep(105.0, 150.0, Vector2(x + 20.0, z + 30.0).length()) * (18.0 + n * 8.0)  # the valley's rim of hills
 	h = lerpf(-0.8, h, smoothstep(13.0, 24.0, Vector2(x, z).length()))  # the shrine's hill
 	for f in FLATS:
 		var gx := maxf(maxf(f[0] - x, x - f[2]), 0.0)
@@ -487,7 +503,7 @@ static func _forest(m: Node3D) -> void:
 		var x := rng.randf_range(T_ORIGIN.x + 10.0, T_ORIGIN.x + T_SIZE - 10.0)
 		var z := rng.randf_range(T_ORIGIN.y + 10.0, T_ORIGIN.y + T_SIZE - 10.0)
 		var h := ground_h(x, z)
-		if h > 5.0 or Vector2(x, z).length() < 28.0 or _in_built(x, z):
+		if h > 5.0 or Vector2(x, z).length() < 28.0 or Vector2(x, z).length() > 215.0 or _in_built(x, z):
 			continue
 		var slope := absf(ground_h(x + 2.0, z) - h) + absf(ground_h(x, z + 2.0) - h)
 		if slope > 3.0:
@@ -513,6 +529,7 @@ static func _in_built(x: float, z: float) -> bool:
 # a Kenney fantasy-town house: w x d cells of KS metres, stone ground floor and timber upper floors, a door on
 # its local +z side and a gabled roof whose ridge runs along local x; rot turns the whole house
 const KS := 3.0
+const ROOF_TURN := PI / 2.0  # turned so each cell shows its gable to the street: a row of pointed fronts, like old towns
 
 static func kit_house(m: Node3D, origin: Vector3, w: int, d: int, floors: int, rot: float, seed := 0) -> void:
 	var b := Basis(Vector3.UP, rot)
@@ -537,13 +554,9 @@ static func kit_house(m: Node3D, origin: Vector3, w: int, d: int, floors: int, r
 						piece = ["fantasy-town/wall-wood-window-shutters", "fantasy-town/wall-wood-detail-cross", "fantasy-town/wall-wood-window-small", "fantasy-town/wall-wood"][rng.randi() % 4]
 					place(piece, origin + b * cell, Vector3.ONE * KS, rot + sd[1])
 	var top := floors * KS
-	for cx in w:
-		for cz in d:
-			var cell := Vector3((cx - (w - 1) / 2.0) * KS, top, (cz - (d - 1) / 2.0) * KS)
-			if d == 1:
-				place("fantasy-town/roof-gable", origin + b * cell, Vector3.ONE * KS, rot)
-			else:
-				place("fantasy-town/roof", origin + b * cell, Vector3.ONE * KS, rot + (PI / 2.0 if cz < d / 2 else -PI / 2.0))
+	for cx in w:  # one steep gable per cell along the front, running back over the whole depth
+		var cell := Vector3((cx - (w - 1) / 2.0) * KS, top, 0.0)
+		place("fantasy-town/roof-high-gable", origin + b * cell, Vector3(KS * d, KS * 0.7 * d, KS), rot + ROOF_TURN)
 	if seed % 2 == 0:
 		place("fantasy-town/chimney", origin + b * Vector3((w - 1) / 2.0 * KS, top, 0), Vector3.ONE * KS, rot)
 

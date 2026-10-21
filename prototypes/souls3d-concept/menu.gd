@@ -4,7 +4,7 @@
 extends Control
 
 const Rpg = preload("res://rpg.gd")
-const TABS := [["status", "PERSONAGEM"], ["talents", "TALENTOS"], ["gear", "EQUIPAMENTO"], ["quests", "MISSÕES"], ["options", "OPÇÕES"]]
+const TABS := [["status", "PERSONAGEM"], ["talents", "TALENTOS"], ["gear", "EQUIPAMENTO"], ["quests", "MISSÕES"], ["map", "MAPA"], ["options", "OPÇÕES"]]
 const OPTIONS_PATH := "user://sementes_options.json"
 
 var main: Node
@@ -37,7 +37,7 @@ func setup(m: Node) -> void:
 	col.add_child(bar)
 	for t in TABS:
 		var b := _button(t[1], func(): _show(t[0]))
-		b.custom_minimum_size = Vector2(250, 90)
+		b.custom_minimum_size = Vector2(225, 90)
 		bar.add_child(b)
 		tab_buttons[t[0]] = b
 	var close := _button("FECHAR", close_menu)
@@ -189,7 +189,7 @@ func _tab_gear() -> void:
 		for el in Rpg.WEAK[k]:
 			var m: float = Rpg.WEAK[k][el]
 			parts.append("%s %s" % [{"fis": "físico", "fogo": "fogo", "gelo": "gelo", "raio": "raio"}[el], "fraco" if m > 1.0 else "resiste"])
-		body.add_child(_label("%s: %s" % [main.ENEMY_NAME[k], ", ".join(parts)], 28))
+		body.add_child(_label("%s: %s" % [Rpg.FOES[k].name, ", ".join(parts)], 28))
 
 func _tab_quests() -> void:
 	var q: Dictionary = Rpg.quests(main._quest_state())
@@ -200,6 +200,35 @@ func _tab_quests() -> void:
 	for m in q.side:
 		body.add_child(_label(("✔  " if m[1] else "•  ") + m[0], 32, Color(0.55, 0.85, 0.55) if m[1] else Color(0.95, 0.9, 0.8)))
 	body.add_child(_label("Inimigos derrotados: %d" % main.kills, 28, Color(0.7, 0.7, 0.7)))
+
+# the 10 km world: roads, every town (named once found), lit bonfires and where you stand
+func _tab_map() -> void:
+	var w: Node = main.world
+	body.add_child(_label("Cidades encontradas: %d de %d  ·  fogueiras acesas brilham em laranja" % [w.found.size(), w.towns.size()], 30, Color(1, 0.75, 0.4)))
+	var map := Control.new()
+	map.custom_minimum_size = Vector2(0, 760)
+	map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	map.draw.connect(func():
+		var side := minf(map.size.x, 760.0)
+		var o := Vector2((map.size.x - side) / 2.0, 0)
+		var k: float = side / (w.HALF * 2.0)
+		var to_map := func(p: Vector2) -> Vector2: return o + (p + Vector2(w.HALF, w.HALF)) * k
+		map.draw_rect(Rect2(o, Vector2(side, side)), Color(0.09, 0.08, 0.07))
+		map.draw_rect(Rect2(o, Vector2(side, side)), Color(0.5, 0.4, 0.3), false, 3.0)
+		for rd in w.roads:
+			map.draw_line(to_map.call(rd[0]), to_map.call(rd[1]), Color(0.45, 0.38, 0.3), 2.0)
+		map.draw_circle(to_map.call(Vector2.ZERO), 10.0, Color(1, 0.55, 0.15))
+		map.draw_string(ThemeDB.fallback_font, to_map.call(Vector2.ZERO) + Vector2(14, 6), "Santuário", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(1, 0.8, 0.5))
+		for t in w.towns:
+			var p: Vector2 = to_map.call(t.pos)
+			var known: bool = w.found.has(t.name) or main.lit.has(t.name)
+			var col := Color(1, 0.55, 0.15) if main.lit.has(t.name) else (Color(0.85, 0.8, 0.7) if known else Color(0.4, 0.38, 0.35))
+			map.draw_circle(p, 9.0 if t.city else 6.0, col)
+			map.draw_string(ThemeDB.fallback_font, p + Vector2(12, 6), t.name if known else "?", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, col)
+		var pp: Vector2 = to_map.call(Vector2(main.player.position.x, main.player.position.z))
+		map.draw_circle(pp, 8.0, Color(0.9, 0.15, 0.1))
+		map.draw_arc(pp, 14.0, 0, TAU, 20, Color(1, 1, 1), 2.0))
+	body.add_child(map)
 
 func _tab_options() -> void:
 	body.add_child(_label("Se o jogo travar, desligue as sombras e baixe a resolução.", 30, Color(0.8, 0.8, 0.8)))

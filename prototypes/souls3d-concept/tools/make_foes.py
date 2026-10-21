@@ -43,6 +43,7 @@ FOE = mat("foe", (1, 1, 1))
 def bake_colors(me, mats):
     """One draw call per enemy on phones: every face's material colour goes into a vertex colour, one material left."""
     col = me.color_attributes.new("Col", "BYTE_COLOR", "CORNER")
+    me.color_attributes.active_color = col
     for p in me.polygons:
         b = mats[p.material_index].node_tree.nodes["Principled BSDF"]
         c = b.inputs["Emission Color"].default_value if b.inputs["Emission Strength"].default_value > 0 else b.inputs["Base Color"].default_value
@@ -240,6 +241,96 @@ def stalker(b):
     head_void(b, EMBER, y=-0.125, z=1.39, spread=0.035)
     limbs(b, LEATHER, LEATHER, LEATHER, LEATHER, arm_r=0.05, leg_r=0.065)
 
+# --- the walled cities ------------------------------------------------------------------------------------------------
+GAMBESON = mat("gambeson", (0.3, 0.26, 0.2))
+TABARD = mat("city_tabard", (0.28, 0.2, 0.06))  # faded city yellow
+BLACK = mat("black_plate", (0.04, 0.04, 0.05), metal=0.9, rough=0.35)
+GOLD = mat("old_gold", (0.45, 0.33, 0.1), metal=1.0, rough=0.4)
+PURPLE = mat("witch_cloth", (0.16, 0.06, 0.18))
+SKIN = mat("pale_skin", (0.5, 0.4, 0.34))
+BEAK = mat("plague_leather", (0.1, 0.08, 0.05), rough=0.6)
+GLASS = mat("plague_lens", (0.6, 0.55, 0.2), emit=(0.6, 0.5, 0.1))
+
+# Guarda da Muralha: kettle helm over a mail coif, padded gambeson, city tabard
+def guard(b):
+    rnd = random.Random(5)
+    b.box("hips", (0, 0, 0.55), (0.34, 0.24, 0.22), GAMBESON)
+    b.box("spine", (0, 0, 0.8), (0.36, 0.26, 0.34), GAMBESON, taper=1.15)
+    for z in (0.7, 0.8, 0.9):  # quilting
+        b.box("spine", (0, -0.135, z), (0.34, 0.01, 0.015), LEATHER)
+    b.box("chest", (0, -0.01, 1.08), (0.46, 0.3, 0.3), GAMBESON, taper=0.85)
+    b.box("chest", (0, -0.16, 0.95), (0.3, 0.02, 0.5), TABARD)  # tabard front
+    b.skirt("hips", 0.62, 0.25, 0.2, 0.23, TABARD, 8, rnd, 0.03)
+    b.tube("chest", (0, 0, 1.18), (0, 0, 1.27), 0.07, 0.07, IRON)
+    b.ball("head", (0, -0.01, 1.36), (0.12, 0.13, 0.13), IRON)  # mail coif
+    b.box("head", (0, -0.1, 1.34), (0.13, 0.04, 0.12), SKIN)  # face
+    head_void(b, EMBER, y=-0.125, z=1.37, spread=0.035)
+    b.cone("head", (0, 0, 1.43), (0, 0, 1.55), 0.13, IRON, 8)  # kettle helm crown
+    b.tube("head", (0, 0, 1.42), (0, 0, 1.44), 0.24, 0.24, IRON, 10)  # its wide brim
+    for s_, k in SH.items():
+        b.ball("upperarm." + s_, (k * 0.25, 0, 1.13), (0.11, 0.12, 0.09), IRON)
+    limbs(b, GAMBESON, GAMBESON, LEATHER, LEATHER, arm_r=0.06, leg_r=0.075)
+
+# Carrasco: huge, bare-chested, a black hood with eye holes, leather apron and a great axe
+def executioner(b):
+    rnd = random.Random(6)
+    b.box("hips", (0, 0, 0.55), (0.42, 0.3, 0.24), LEATHER)
+    b.box("spine", (0, 0.02, 0.8), (0.46, 0.34, 0.36), SKIN, taper=1.2)
+    b.box("chest", (0, 0.01, 1.08), (0.6, 0.38, 0.3), SKIN, taper=0.85)
+    b.ball("spine", (0, -0.12, 0.72), (0.24, 0.12, 0.16), SKIN)  # gut
+    b.box("chest", (0, -0.2, 0.9), (0.36, 0.03, 0.6), LEATHER)  # apron
+    b.skirt("hips", 0.62, 0.22, 0.24, 0.27, LEATHER, 8, rnd, 0.05)
+    b.box("chest", (0.12, -0.12, 1.12), (0.05, 0.3, 0.5), LEATHER, rot=(0, 0.5, 0))  # strap
+    b.tube("chest", (0, 0, 1.18), (0, 0, 1.27), 0.09, 0.08, SKIN)
+    b.cone("head", (0, 0, 1.22), (0, 0.02, 1.66), 0.17, BLACK, 8)  # hood
+    b.ball("head", (0, -0.03, 1.36), (0.14, 0.14, 0.15), BLACK)
+    b.box("head", (0, -0.15, 1.4), (0.16, 0.02, 0.04), VOID)
+    head_void(b, EMBER, y=-0.16, z=1.4, spread=0.045)
+    limbs(b, SKIN, LEATHER, SKIN, LEATHER, arm_r=0.085, leg_r=0.09)
+
+# Cavaleiro Negro: blackened plate edged in gold, horned great helm, long torn cape
+def blackknight(b):
+    knight(b, metal=BLACK, cloth=RAG, eyes=EMBER, bulk=1.15, crown=True)
+    for z in (1.2, 0.62):  # gold trim
+        b.box("chest" if z > 1 else "hips", (0, 0, z), (0.52 if z > 1 else 0.38, 0.34 if z > 1 else 0.27, 0.03), GOLD)
+    for s_, k in SH.items():
+        b.cone("upperarm." + s_, (k * 0.28, 0, 1.22), (k * 0.36, 0, 1.4), 0.04, GOLD, 4)  # pauldron spikes
+
+# Feiticeira da Torre: veiled, long violet robe, a circlet and cold eyes; bony hands
+def sorceress(b):
+    rnd = random.Random(7)
+    b.box("hips", (0, 0, 0.55), (0.28, 0.2, 0.2), PURPLE)
+    b.box("spine", (0, 0, 0.8), (0.26, 0.2, 0.34), PURPLE, taper=1.1)
+    b.box("chest", (0, 0, 1.08), (0.36, 0.24, 0.28), PURPLE, taper=0.8)
+    b.skirt("hips", 0.66, 0.02, 0.19, 0.34, PURPLE, 14, rnd, 0.03)
+    b.skirt("chest", 1.22, 0.4, 0.2, 0.3, RAG, 10, rnd, 0.1)  # shawl
+    for s_, k in SH.items():
+        b.tube("lowerarm." + s_, (k * 0.46, 0.01, 1.107), (k * 0.72, 0, 1.08), 0.06, 0.13, PURPLE, 7)
+    b.ball("head", (0, -0.02, 1.36), (0.1, 0.11, 0.12), SKIN)
+    b.skirt("head", 1.5, 1.2, 0.12, 0.16, RAG, 10, rnd, 0.06)  # veil
+    b.tube("head", (0, 0, 1.44), (0, 0, 1.46), 0.12, 0.12, GOLD, 10)  # circlet
+    b.cone("head", (0, -0.1, 1.46), (0, -0.12, 1.56), 0.025, GOLD, 4)
+    head_void(b, COLD, y=-0.115, z=1.38, spread=0.035)
+    limbs(b, PURPLE, PURPLE, BONE, LEATHER, arm_r=0.045, leg_r=0.06)
+
+# Andarilho da Peste: plague-doctor beak mask with glowing lenses, wide hat, oilskin coat
+def plague(b):
+    rnd = random.Random(8)
+    b.box("hips", (0, 0, 0.55), (0.3, 0.22, 0.2), BEAK)
+    b.box("spine", (0, 0, 0.8), (0.32, 0.22, 0.34), BEAK, taper=1.15)
+    b.box("chest", (0, 0, 1.08), (0.42, 0.26, 0.28), BEAK, taper=0.82)
+    b.skirt("hips", 0.64, 0.08, 0.2, 0.3, BEAK, 12, rnd, 0.05)  # long coat
+    b.skirt("chest", 1.22, 0.85, 0.24, 0.3, RAG, 10, rnd, 0.08)  # cape
+    b.ball("head", (0, -0.01, 1.36), (0.12, 0.12, 0.13), BEAK)
+    b.cone("head", (0, -0.1, 1.34), (0, -0.38, 1.27), 0.07, BONE, 6)  # the beak
+    for sx in (-1, 1):
+        b.ball("head", (sx * 0.05, -0.115, 1.4), (0.03, 0.015, 0.03), GLASS, 0)
+    b.tube("head", (0, 0, 1.46), (0, 0, 1.48), 0.26, 0.26, BEAK, 10)  # hat brim
+    b.tube("head", (0, 0, 1.48), (0, 0, 1.62), 0.12, 0.1, BEAK, 8)  # crown
+    for i in range(3):  # vials on the belt
+        b.box("hips", (-0.12 + i * 0.12, -0.13, 0.6), (0.04, 0.04, 0.09), GLASS)
+    limbs(b, BEAK, BEAK, LEATHER, LEATHER, arm_r=0.05, leg_r=0.065)
+
 def clear():
     # not a factory reset: that would also delete the shared materials
     for coll in (bpy.data.objects, bpy.data.meshes, bpy.data.armatures, bpy.data.actions, bpy.data.images):
@@ -274,7 +365,7 @@ def build(name, fn, **kw):
     for a in bpy.data.actions:
         if a.name.endswith("_Rig"):
             a.name = a.name[:-4]
-    bpy.ops.export_scene.gltf(filepath=os.path.join(OUT, name + ".glb"), export_format="GLB", export_animation_mode="ACTIONS")
+    bpy.ops.export_scene.gltf(filepath=os.path.join(OUT, name + ".glb"), export_format="GLB", export_animation_mode="ACTIONS", export_vertex_color="ACTIVE")
     print("EXPORTED", name, tris, "tris")
 
 # --- weapons, in the hand-slot frame -----------------------------------------------------------------------------------
@@ -291,7 +382,7 @@ def weapon(name, fn, turn=0.0):
     bake_colors(me, b.mats)
     ob = bpy.data.objects.new(name, me)
     bpy.context.collection.objects.link(ob)
-    bpy.ops.export_scene.gltf(filepath=os.path.join(OUT, name + ".glb"), export_format="GLB")
+    bpy.ops.export_scene.gltf(filepath=os.path.join(OUT, name + ".glb"), export_format="GLB", export_vertex_color="ACTIVE")
     print("EXPORTED", name, tris, "tris")
 
 def broadsword(b, length=0.95, width=0.09, m=IRON):
@@ -325,6 +416,26 @@ def crossbow(b):
     b.box("x", (0, -0.7, 0.08), (0.95, 0.008, 0.008), BONE)  # string
     b.box("x", (0, -0.55, 0.11), (0.02, 0.5, 0.02), STEEL)  # bolt
 
+def halberd(b):
+    b.tube("x", (0, 0, -0.9), (0, 0, 1.4), 0.025, 0.022, WOOD, 5)
+    b.box("x", (0.1, 0, 1.3), (0.22, 0.02, 0.28), IRON, taper=0.6)  # axe blade
+    b.box("x", (-0.07, 0, 1.32), (0.12, 0.02, 0.05), IRON)  # back hook
+    b.cone("x", (0, 0, 1.4), (0, 0, 1.68), 0.04, IRON, 4, squash=0.4)  # spike
+
+def greataxe(b):
+    b.tube("x", (0, 0, -0.5), (0, 0, 1.1), 0.035, 0.03, WOOD, 5)
+    b.box("x", (0.2, 0, 0.95), (0.38, 0.03, 0.5), DARKIRON, taper=1.6)  # the wide head
+    b.box("x", (-0.08, 0, 0.95), (0.1, 0.04, 0.12), DARKIRON)
+
+def shield(b):
+    b.box("x", (0, -0.06, 0.2), (0.5, 0.05, 0.62), BLACK, bevel=0.01, taper=0.75)  # kite shield in the hand slot frame
+    b.box("x", (0, -0.09, 0.22), (0.08, 0.01, 0.5), GOLD)
+    b.box("x", (0, -0.09, 0.3), (0.36, 0.01, 0.06), GOLD)
+
+def cleaver(b):
+    b.tube("x", (0, 0, -0.12), (0, 0, 0.12), 0.022, 0.022, WOOD, 5)
+    b.box("x", (0.05, 0, 0.36), (0.16, 0.015, 0.46), IRON)
+
 build("Hollow", hollow)
 build("Knight", knight)
 build("Sentinel", knight, metal=STONE, cloth=MOSS, eyes=EMBER, bulk=1.25, crown=True, stone=True)
@@ -335,3 +446,12 @@ weapon("w_greatsword", greatsword)
 weapon("w_staff", staff)
 weapon("w_dagger", dagger)
 weapon("w_crossbow", crossbow, -math.pi / 2)  # stock forward along the hand slot, like the blades
+build("Guard", guard)
+build("Executioner", executioner)
+build("BlackKnight", blackknight)
+build("Sorceress", sorceress)
+build("Plague", plague)
+weapon("w_halberd", halberd)
+weapon("w_greataxe", greataxe)
+weapon("w_shield", shield)
+weapon("w_cleaver", cleaver)

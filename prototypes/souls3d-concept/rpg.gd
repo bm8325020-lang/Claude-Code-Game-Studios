@@ -40,6 +40,25 @@ const TALENTS := {
 }
 const BRANCH_NAME := {"guerreiro": "GUERREIRO", "sombra": "SOMBRA", "chama": "CHAMA"}
 
+# every enemy: its name, which AI it uses (warrior, minion, caster, rogue, archer, sentinel, wolf), model and weapons
+# (assets/foes, tools/make_foes.py), scale, health, poise, embers, melee damage, walking speed; poison: its hits poison
+const FOES := {
+	"minion": {"name": "Esquecido", "ai": "minion", "model": "Hollow", "gear": [["handslot.r", "sword"]], "scale": 0.95, "hp": 55.0, "poise": 22.0, "reward": 35, "dmg": 20.0, "speed": 3.9},
+	"warrior": {"name": "Cavaleiro Oco", "ai": "warrior", "model": "Knight", "gear": [["handslot.r", "sword"]], "scale": 1.05, "hp": 90.0, "poise": 40.0, "reward": 60, "dmg": 30.0, "speed": 3.0},
+	"caster": {"name": "Clérigo da Cinza", "ai": "caster", "model": "Cultist", "gear": [["handslot.r", "staff"]], "scale": 0.95, "hp": 45.0, "poise": 15.0, "reward": 50, "dmg": 20.0, "speed": 3.0},
+	"rogue": {"name": "Espreitador", "ai": "rogue", "model": "Stalker", "gear": [["handslot.r", "dagger"], ["handslot.l", "dagger"]], "scale": 0.95, "hp": 60.0, "poise": 25.0, "reward": 45, "dmg": 16.0, "speed": 4.4, "poison": 0.4},
+	"archer": {"name": "Besteiro Espreitador", "ai": "archer", "model": "Stalker", "gear": [["handslot.l", "crossbow"]], "scale": 0.95, "hp": 50.0, "poise": 18.0, "reward": 45, "dmg": 18.0, "speed": 3.0},
+	"sentinel": {"name": "Sentinela de Pedra", "ai": "sentinel", "model": "Sentinel", "gear": [["handslot.r", "greatsword"]], "scale": 1.6, "hp": 380.0, "poise": 90.0, "reward": 300, "dmg": 40.0, "speed": 2.4},
+	"wolf": {"name": "Lobo da Cinza", "ai": "wolf", "model": "", "gear": [], "scale": 1.0, "hp": 70.0, "poise": 30.0, "reward": 40, "dmg": 18.0, "speed": 5.0},
+	# the walled cities of the wide world
+	"guard": {"name": "Guarda da Muralha", "ai": "warrior", "model": "Guard", "gear": [["handslot.r", "halberd"]], "scale": 1.05, "hp": 110.0, "poise": 45.0, "reward": 70, "dmg": 32.0, "speed": 3.0},
+	"wallbow": {"name": "Besteiro da Muralha", "ai": "archer", "model": "Guard", "gear": [["handslot.l", "crossbow"]], "scale": 1.05, "hp": 70.0, "poise": 25.0, "reward": 60, "dmg": 22.0, "speed": 3.0},
+	"executioner": {"name": "Carrasco", "ai": "sentinel", "model": "Executioner", "gear": [["handslot.r", "greataxe"]], "scale": 1.35, "hp": 260.0, "poise": 80.0, "reward": 220, "dmg": 48.0, "speed": 2.9},
+	"sorceress": {"name": "Feiticeira da Torre", "ai": "caster", "model": "Sorceress", "gear": [["handslot.r", "staff"]], "scale": 1.0, "hp": 70.0, "poise": 18.0, "reward": 90, "dmg": 24.0, "speed": 3.0},
+	"plague": {"name": "Andarilho da Peste", "ai": "rogue", "model": "Plague", "gear": [["handslot.r", "cleaver"]], "scale": 1.0, "hp": 80.0, "poise": 28.0, "reward": 75, "dmg": 18.0, "speed": 4.0, "poison": 1.0},
+	"blackknight": {"name": "Cavaleiro Negro", "ai": "warrior", "model": "BlackKnight", "gear": [["handslot.r", "sword"], ["handslot.l", "shield"]], "scale": 1.3, "hp": 520.0, "poise": 110.0, "reward": 800, "dmg": 45.0, "speed": 3.2},
+}
+
 # damage taken by kind, per element (1 = normal); missing means 1
 const WEAK := {
 	"minion": {"fogo": 1.5},
@@ -49,6 +68,12 @@ const WEAK := {
 	"archer": {"gelo": 1.4},
 	"sentinel": {"raio": 1.6, "fogo": 0.5, "fis": 0.8},
 	"wolf": {"fogo": 1.5},
+	"guard": {"raio": 1.4},
+	"wallbow": {"raio": 1.3},
+	"executioner": {"gelo": 1.4, "fis": 0.85},
+	"sorceress": {"fis": 1.3, "raio": 0.6},
+	"plague": {"fogo": 1.6, "gelo": 0.7},
+	"blackknight": {"raio": 1.3, "fogo": 0.7, "fis": 0.85},
 }
 const MAX_UPGRADE := 5
 
