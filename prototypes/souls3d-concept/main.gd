@@ -63,6 +63,7 @@ const COMBO_G := ["g1", "g2", "g3", "g4"]
 const ENEMY_SPAWNS := [
 	[Vector3(-4, 0, 4), "warrior"], [Vector3(4, 0, 0), "minion"], [Vector3(-2, 0, -6), "warrior"],
 	[Vector3(5, 0, -10), "minion"], [Vector3(-14, 0, -2), "minion"], [Vector3(12, 0, 6), "warrior"],
+	[Vector3(-8, 0, -9), "caster"], [Vector3(14, 0, -6), "caster"],
 ]
 const BREAKABLE_SPOTS := [
 	[Vector3(-13.5, 0, 11.5), "Vase_Large", 1.1], [Vector3(-12.6, 0, 12.3), "Vase_Small", 0.7], [Vector3(-10.8, 0, 8.8), "Jar01_Art", 0.9],
@@ -124,6 +125,7 @@ var invuln_t := 0.0
 var enemies: Array = []
 var boss = null
 var fireballs: Array = []
+var bolts: Array = []  # casters' ghost-fire bolts
 var floaters: Array = []
 var stone_mat: StandardMaterial3D
 var ui: CanvasLayer
@@ -492,14 +494,17 @@ func _dark_cloth() -> StandardMaterial3D:
 func _skeleton_model(kind: String) -> Node3D:
 	var k: Node3D = load("res://assets/skeletons/Skeleton_%s.glb" % ("Warrior" if kind == "warrior" else "Minion")).instantiate()
 	k.scale = Vector3.ONE * (1.0 if kind == "warrior" else 0.92)
+	var bone := Color(0.55, 0.6, 0.72) if kind == "caster" else Color(0.72, 0.68, 0.62)
 	for m in k.find_children("*", "MeshInstance3D", true, false):
 		for i in m.mesh.get_surface_count():
 			var mt = m.mesh.surface_get_material(i)
 			if mt is StandardMaterial3D:
 				var d: StandardMaterial3D = mt.duplicate()
-				d.albedo_color = Color(0.72, 0.68, 0.62)  # aged bone, less toy-like
+				d.albedo_color = bone  # aged bone, less toy-like; casters are grave-cold blue
 				d.roughness = 0.85
 				m.set_surface_override_material(i, d)
+	if kind == "caster":
+		return k
 	var skel: Skeleton3D = k.find_children("*", "Skeleton3D", true, false)[0]
 	var ba := BoneAttachment3D.new()
 	ba.bone_name = "handslot.r"
@@ -516,16 +521,17 @@ func _spawn_enemy(pos: Vector3, kind := "warrior") -> void:
 	root.add_child(k)
 	var eye := OmniLight3D.new()
 	eye.position = Vector3(0, 1.7, 0.25)
-	eye.light_color = Color(1, 0.1, 0.05)
+	eye.light_color = Color(0.3, 0.8, 1.0) if kind == "caster" else Color(1, 0.1, 0.05)
 	eye.light_energy = 0.0
 	eye.omni_range = 1.8
 	root.add_child(eye)
 	var ap: AnimationPlayer = k.find_children("*", "AnimationPlayer", true, false)[0]
 	ap.play("Skeletons_Inactive_Floor_Pose")
-	var hpv := 90.0 if kind == "warrior" else 55.0
-	var poise := 40.0 if kind == "warrior" else 22.0
+	var hpv: float = {"warrior": 90.0, "minion": 55.0, "caster": 45.0}[kind]
+	var poise: float = {"warrior": 40.0, "minion": 22.0, "caster": 15.0}[kind]
 	enemies.append({"root": root, "ap": ap, "eye": eye, "kind": kind, "hp": hpv, "max": hpv, "poise": poise, "max_poise": poise,
-		"home": pos, "state": "dormant", "t": 0.0, "hit": false, "dead": false, "atk": "", "wind_pos": 0.0, "leap": false})
+		"home": pos, "state": "dormant", "t": 0.0, "hit": false, "dead": false, "atk": "", "wind_pos": 0.0, "leap": false,
+		"combo": false, "side": 1.0, "dodge": Vector3.ZERO, "revive_t": -1.0, "revived": false, "cast_cd": 2.0})
 
 func _spawn_boss() -> void:
 	var root := Node3D.new()
@@ -568,6 +574,7 @@ func _physics_process(dt: float) -> void:
 		_update_enemy(e, dt)
 	_update_boss(dt)
 	_update_fireballs(dt)
+	_update_bolts(dt)
 	_update_pickups()
 	_update_camera(dt)
 	banner_t = max(0.0, banner_t - dt)
@@ -949,9 +956,14 @@ func _break_guard(e: Dictionary) -> void:
 
 func _kill_enemy(e: Dictionary) -> void:
 	e.dead = true
-	e.ap.play(["Death_A", "Death_B"].pick_random())
 	e.eye.light_energy = 0.0
-	var reward: int = 60 if e.kind == "warrior" else 35
+	if not e.revived and e.kind != "caster" and randf() < 0.5:
+		e.revive_t = 4.0
+		e.ap.play("Death_C_Skeletons")
+	else:
+		e.revive_t = -1.0
+		e.ap.play(["Death_A", "Death_B"].pick_random())
+	var reward: int = {"warrior": 60, "minion": 35, "caster": 50}[e.kind] / (2 if e.revived else 1)
 	embers += reward
 	_float("+%d brasas" % reward, e.root.position + Vector3(0, 2.6, 0), Color(1, 0.7, 0.3))
 	if lock_target == e:
@@ -1150,8 +1162,22 @@ func _wake_boss() -> void:
 # ------------------------------------------------------------------ enemies
 func _update_enemy(e: Dictionary, dt: float) -> void:
 	if e.dead:
+		# some skeletons pull themselves back together once, unless their bones are burnt (Fire Seed)
+		if e.revive_t > 0:
+			e.revive_t -= dt
+			e.eye.light_energy = 0.3 + 0.3 * sin(e.revive_t * 12.0)
+			if e.revive_t <= 0:
+				e.dead = false
+				e.revived = true
+				e.hp = e.max * 0.5
+				e.state = "awaken"
+				e.t = -0.8
+				e.ap.play("Death_C_Skeletons_Resurrect")
+				_sfx("impactWood_heavy_000", -2)
+				_float("RESSURGIU", e.root.position + Vector3(0, 2.4, 0), Color(0.8, 0.4, 0.3))
 		return
 	e.t += dt
+	e.cast_cd -= dt
 	var to: Vector3 = player.position - e.root.position
 	to.y = 0
 	var dist := to.length()
@@ -1171,8 +1197,66 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 		"idle":
 			if dist < 11 and state != "dead":
 				e.state = "chase"
+		"chase" when e.kind == "caster":
+			# keeps its distance and throws ghost fire
+			e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.15)
+			if dist < 5.0:
+				e.root.position -= to.normalized() * 2.2 * dt
+				if ap.current_animation != "Walking_Backwards":
+					ap.play("Walking_Backwards", 0.2)
+			elif dist > 11.0:
+				e.root.position += to.normalized() * 2.4 * dt
+				if ap.current_animation != "Walking_D_Skeletons":
+					ap.play("Walking_D_Skeletons", 0.2)
+			elif e.cast_cd <= 0:
+				e.state = "cast"
+				e.t = 0.0
+				e.hit = false
+				ap.play("Spellcast_Raise", 0.15, 1.4)
+				e.eye.light_energy = 2.0
+			elif ap.current_animation != "Spellcasting":
+				ap.play("Spellcasting", 0.2)
+			if dist > 18 or state == "dead":
+				e.state = "idle"
+				ap.play("Idle_Combat", 0.2)
+		"cast":
+			e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.2)
+			if not e.hit and e.t > 1.1:
+				e.hit = true
+				ap.play("Spellcast_Shoot", 0.05, 1.2)
+				_cast_bolt(e)
+			if e.t > 1.8:
+				e.state = "chase"
+				e.cast_cd = randf_range(2.5, 4.0)
+				e.eye.light_energy = 0.5
+		"dodge":
+			e.root.position += e.dodge * dt
+			if e.t > 0.45:
+				e.state = "chase"
+				e.t = 0.0
+		"circle":
+			# souls enemies sidestep around you, waiting for an opening
+			e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.2)
+			e.root.position += to.normalized().cross(Vector3.UP) * e.side * 2.0 * dt
+			if e.t > 1.6 or dist > 6.0:
+				e.state = "chase"
+				e.t = 0.0
 		"chase":
 			e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.15)
+			# minions are quick: they hop out of the way of a swing
+			if e.kind == "minion" and state == "attack" and state_t < 0.1 and dist < 3.2 and randf() < 0.3:
+				e.state = "dodge"
+				e.t = 0.0
+				var side := randi() % 3
+				e.dodge = (-to.normalized() if side == 0 else to.normalized().cross(Vector3.UP) * (1 if side == 1 else -1)) * 6.0
+				ap.play(["Dodge_Backward", "Dodge_Left", "Dodge_Right"][side], 0.05)
+				return
+			if dist > 2.5 and dist < 5.0 and e.t > 1.0 and randf() < 0.012:
+				e.state = "circle"
+				e.t = 0.0
+				e.side = [-1.0, 1.0].pick_random()
+				ap.play("Running_Strafe_Left" if e.side > 0 else "Running_Strafe_Right", 0.2)
+				return
 			# warriors raise the shield when the player swings at them
 			if e.kind == "warrior" and state == "attack" and state_t < 0.1 and dist < 3.2 and randf() < 0.35:
 				e.state = "block"
@@ -1182,6 +1266,10 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 			if dist > 4.0 and dist < 6.5 and e.t > 1.5 and randf() < 0.02:
 				_enemy_attack(e, "1H_Melee_Attack_Jump_Chop")
 				e.leap = true
+			elif dist > 8.0:
+				e.root.position += to.normalized() * speed * 0.5 * dt
+				if ap.current_animation != "Walking_D_Skeletons":
+					ap.play("Walking_D_Skeletons", 0.2)
 			elif dist > 1.9:
 				e.root.position += to.normalized() * speed * dt
 				if ap.current_animation != "Running_A":
@@ -1190,7 +1278,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				_enemy_attack(e, ["1H_Melee_Attack_Chop", "1H_Melee_Attack_Slice_Diagonal", "1H_Melee_Attack_Slice_Horizontal", "1H_Melee_Attack_Stab"].pick_random())
 			if dist > 16 or state == "dead":
 				e.state = "idle"
-				ap.play("Idle_Combat", 0.2)
+				ap.play(["Taunt", "Cheer"].pick_random() if state == "dead" else "Idle_Combat", 0.2)
 		"windup":
 			e.eye.light_energy = 0.5 + 6.0 * e.t
 			if e.t > (0.45 if e.kind == "warrior" else 0.3):
@@ -1212,14 +1300,23 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				if dist < 2.6 and fwd.angle_to(to.normalized()) < 1.0:
 					_hurt_player(30.0 if e.kind == "warrior" else 20.0, "Esqueleto Guerreiro" if e.kind == "warrior" else "Esqueleto Lacaio", e)
 			if ap.current_animation_position > length * 0.92 or e.t > 2.5:
-				e.state = "chase"
-				e.t = 0.0
 				e.leap = false
+				# one follow-up swing now and then
+				if not e.combo and dist < 2.6 and randf() < 0.35 and state != "dead":
+					e.combo = true
+					_enemy_attack(e, ["1H_Melee_Attack_Slice_Horizontal", "1H_Melee_Attack_Chop", "Dualwield_Melee_Attack_Slice"].pick_random())
+				else:
+					e.combo = false
+					e.state = "chase"
+					e.t = 0.0
 		"block":
 			e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.2)
 			if e.t > 1.1:
-				e.state = "chase"
-				e.t = 0.0
+				if dist < 2.4 and randf() < 0.6:
+					_enemy_attack(e, "Block_Attack")  # shield bash out of the guard
+				else:
+					e.state = "chase"
+					e.t = 0.0
 		"stagger":
 			e.eye.light_energy = 0.5
 			e.root.position -= to.normalized() * 1.5 * dt
@@ -1329,15 +1426,57 @@ func _update_fireballs(dt: float) -> void:
 		n.position += f.vel * dt
 		var hit := false
 		for e in enemies:
-			if not e.dead and n.position.distance_to(e.root.position + Vector3(0, 1, 0)) < 1.2:
-				_damage_enemy(e, {"dmg": 55.0, "poise": 20.0})
-				hit = true
+			if n.position.distance_to(e.root.position + Vector3(0, 1, 0)) < 1.2:
+				if not e.dead:
+					_damage_enemy(e, {"dmg": 55.0, "poise": 20.0})
+					hit = true
+				elif e.revive_t > 0:
+					e.revive_t = -1.0
+					e.eye.light_energy = 0.0
+					_float("CINZAS", e.root.position + Vector3(0, 1.8, 0), Color(1, 0.55, 0.2))
+					hit = true
 		if boss != null and not boss.dead and n.position.distance_to(boss.root.position + Vector3(0, 2.5, 0)) < 3.0:
 			_damage_boss(70.0)
 			hit = true
 		if hit or f.t <= 0:
 			n.queue_free()
 			fireballs.erase(f)
+
+func _cast_bolt(e: Dictionary) -> void:
+	var ball := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.2
+	sm.height = 0.4
+	ball.mesh = sm
+	var m := StandardMaterial3D.new()
+	m.emission_enabled = true
+	m.emission = Color(0.3, 0.85, 1.0)
+	m.emission_energy_multiplier = 5
+	m.albedo_color = Color(0.5, 0.9, 1.0)
+	ball.material_override = m
+	var l := OmniLight3D.new()
+	l.light_color = Color(0.3, 0.8, 1.0)
+	l.light_energy = 2.0
+	l.omni_range = 4
+	ball.add_child(l)
+	ball.position = e.root.position + Vector3(0, 1.4, 0)
+	add_child(ball)
+	bolts.append({"node": ball, "vel": (player.position + Vector3(0, 1.0, 0) - ball.position).normalized() * 9.0, "t": 2.5})
+	_sfx("fireball", -6)
+
+func _update_bolts(dt: float) -> void:
+	for b in bolts.duplicate():
+		b.t -= dt
+		var n: Node3D = b.node
+		var want: Vector3 = (player.position + Vector3(0, 1.0, 0) - n.position).normalized() * 9.0
+		b.vel = b.vel.lerp(want, 0.8 * dt)  # slight homing: roll through it, do not outrun it
+		n.position += b.vel * dt
+		var hit: bool = n.position.distance_to(player.position + Vector3(0, 1.0, 0)) < 0.8
+		if hit:
+			_hurt_player(22.0, "Esqueleto Conjurador")
+		if hit or b.t <= 0:
+			n.queue_free()
+			bolts.erase(b)
 
 # ------------------------------------------------------------------ camera
 func _update_camera(dt: float) -> void:
