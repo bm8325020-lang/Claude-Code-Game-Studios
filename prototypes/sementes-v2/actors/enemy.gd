@@ -80,6 +80,7 @@ var dead: bool = false
 var home: Vector3 = Vector3.ZERO
 var state: String = "idle"
 var engaging: bool = false
+var heals_home: bool = true
 var data: Dictionary = {}
 var model: Node3D
 var ap: AnimationPlayer
@@ -262,7 +263,8 @@ func _physics_process(dt: float) -> void:
 			var th: Vector3 = home - global_position
 			th.y = 0
 			want = th.normalized() * speed * 0.8
-			hp = minf(max_hp, hp + max_hp * 0.2 * dt)
+			if heals_home:
+				hp = minf(max_hp, hp + max_hp * 0.2 * dt)
 			if th.length() < 1.0:
 				_set_state("idle")
 		_:

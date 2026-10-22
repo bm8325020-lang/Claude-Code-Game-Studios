@@ -110,6 +110,7 @@ func build() -> void:
 		var pp: Vector3 = p.pos
 		p.pos = Vector3(pp.x, terrain.sample(pp.x, pp.z), pp.z)
 	stats["t_terrain_ms"] = Time.get_ticks_msec() - t0
+	print("  phase ", Time.get_ticks_msec() - t0, "ms")
 	_static = StaticBody3D.new()
 	_static.name = "Buildings"
 	_static.collision_layer = 1
@@ -118,6 +119,7 @@ func build() -> void:
 	_ground()
 	_water()
 	stats["t_ground_ms"] = Time.get_ticks_msec() - t0
+	print("  phase ", Time.get_ticks_msec() - t0, "ms")
 	var pl: Places = Places.new(self, terrain, kit, _static)
 	pl.village()
 	pl.farm()
@@ -130,6 +132,7 @@ func build() -> void:
 	pl.castle()
 	pl.commit_all()
 	stats["t_places_ms"] = Time.get_ticks_msec() - t0
+	print("  phase ", Time.get_ticks_msec() - t0, "ms")
 	veg = Veg.new(kit)
 	_scatter()
 	var vh: Node3D = Node3D.new()
@@ -137,6 +140,7 @@ func build() -> void:
 	add_child(vh)
 	veg.commit(vh)
 	stats["veg_instances"] = veg.count
+	print("  phase ", Time.get_ticks_msec() - t0, "ms")
 	for p in places:
 		if not spawns.has(p.id):
 			spawns[p.id] = (p.pos as Vector3) + Vector3(0, 0.1, 0)

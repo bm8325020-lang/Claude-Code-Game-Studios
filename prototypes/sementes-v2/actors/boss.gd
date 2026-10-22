@@ -57,6 +57,7 @@ func setup(_k: String, _lvl: int) -> void:
 	level = 1
 	data = DATA
 	_apply_stats()
+	heals_home = false
 
 
 func _say(key: String) -> void:

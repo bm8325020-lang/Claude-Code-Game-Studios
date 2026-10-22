@@ -57,7 +57,8 @@ func _setup() -> void:
 	hero = Hero.new()
 	world.add_child(hero)
 	hero.global_position = Vector3(0, 0.05, 0)
-	hero.max_hp = 400.0
+	hero.max_hp = 500.0
+	hero.power = 1.8
 	hero.max_potions = 12
 	hero.potion_heal = 120.0
 	hero.refill()
