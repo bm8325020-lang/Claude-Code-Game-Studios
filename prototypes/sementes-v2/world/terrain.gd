@@ -156,6 +156,43 @@ func generate(river_ctrl: Array, road_defs: Array, pads: Array) -> void:
 	_roads(road_defs)
 	_pads(pads)
 	_smooth_cells(1)
+	for tr in trenches:
+		_trench(tr)
+
+
+# Trenches cut into the rock after everything else (the mine gallery): {pts: Array[Vector2], hw: float, y0: float, y1: float}
+var trenches: Array = []
+
+
+func _trench(tr: Dictionary) -> void:
+	var pts: Array = tr.pts
+	var hw: float = tr.hw
+	var y0: float = tr.y0
+	if is_nan(y0):
+		y0 = sample((pts[0] as Vector2).x, (pts[0] as Vector2).y)
+		tr.y0 = y0
+	var y1: float = y0 + float(tr.rise)
+	var total: float = 0.0
+	for k in pts.size() - 1:
+		total += (pts[k] as Vector2).distance_to(pts[k + 1])
+	var acc: float = 0.0
+	for k in pts.size() - 1:
+		var a: Vector2 = pts[k]
+		var b: Vector2 = pts[k + 1]
+		var L: float = a.distance_to(b)
+		var steps: int = int(ceil(L / 1.0))
+		for s in steps + 1:
+			var p: Vector2 = a.lerp(b, float(s) / steps)
+			var fl: float = lerpf(y0, y1, (acc + L * float(s) / steps) / total)
+			var R: float = hw + 4.0
+			for j in range(maxi(0, int((p.y - R + HALF) / STEP)), mini(N - 1, int((p.y + R + HALF) / STEP) + 1) + 1):
+				for i in range(maxi(0, int((p.x - R + HALF) / STEP)), mini(N - 1, int((p.x + R + HALF) / STEP) + 1) + 1):
+					var d: float = Vector2(-HALF + i * STEP - p.x, -HALF + j * STEP - p.y).length()
+					var idx: int = j * N + i
+					var target: float = fl + maxf(0.0, d - hw) * 4.0
+					if target < h[idx]:
+						h[idx] = target
+		acc += L
 
 
 static func catmull(pts: Array, step: float) -> PackedVector3Array:
@@ -341,7 +378,8 @@ func _pads(pads: Array) -> void:
 		if is_nan(y):
 			y = sample(c.x, c.y)
 			pad.y = y
-		var R: float = size.length() * 0.5 + 5.0
+		var fall: float = float(pad.get("fall", 4.5))
+		var R: float = size.length() * 0.5 + fall + 0.5
 		var ca: float = cos(yaw)
 		var sa: float = sin(yaw)
 		var i0: int = maxi(0, int((c.x - R + HALF) / STEP))
@@ -358,7 +396,7 @@ func _pads(pads: Array) -> void:
 				var ex: float = maxf(absf(lx) - size.x * 0.5, 0.0)
 				var ez: float = maxf(absf(lz) - size.y * 0.5, 0.0)
 				var d: float = Vector2(ex, ez).length()
-				var t: float = sstep(0.6, 4.5, d)
+				var t: float = sstep(0.6, fall, d)
 				var idx: int = j * N + i
 				h[idx] = lerpf(y - 0.05, h[idx], t)
 

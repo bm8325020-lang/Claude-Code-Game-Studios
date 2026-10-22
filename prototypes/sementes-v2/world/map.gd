@@ -45,6 +45,7 @@ const Kit = preload("res://world/kit.gd")
 const Terrain = preload("res://world/terrain.gd")
 const Bld = preload("res://world/buildings.gd")
 const Veg = preload("res://world/vegetation.gd")
+const Places = preload("res://world/places.gd")
 
 const SQUARE: Vector2 = Vector2(0, -20)
 
@@ -63,7 +64,7 @@ var env: Environment
 
 var river_ctrl: Array = [
 	Vector3(-252, 0, -318), Vector3(-226, 0, -262), Vector3(-196, 0, -214), Vector3(-160, 0, -170),
-	Vector3(-125, 0, -105), Vector3(-100, 0, -42), Vector3(-82, 0, 8), Vector3(-68, 0, 45),
+	Vector3(-125, 0, -105), Vector3(-100, 0, -42), Vector3(-80, 0, 8), Vector3(-62, 0, 43),
 	Vector3(-58, 0, 78), Vector3(-38, 0, 122), Vector3(-12, 0, 160), Vector3(12, 0, 190), Vector3(26, 0, 214)]
 
 var road_defs: Array = [
@@ -100,7 +101,14 @@ func build() -> void:
 	terrain = Terrain.new()
 	_define_places()
 	_define_buildings()
+	terrain.trenches = [
+		{"pts": [Vector2(176, -174), Vector2(176, -186), Vector2(178, -199), Vector2(183, -212), Vector2(186, -222)], "hw": 3.2, "y0": NAN, "rise": 2.5},
+		{"pts": [Vector2(186, -222), Vector2(187, -226)], "hw": 7.5, "y0": NAN, "rise": 0.0},
+	]
 	terrain.generate(river_ctrl, road_defs, pads)
+	for p in places:
+		var pp: Vector3 = p.pos
+		p.pos = Vector3(pp.x, terrain.sample(pp.x, pp.z), pp.z)
 	stats["t_terrain_ms"] = Time.get_ticks_msec() - t0
 	_static = StaticBody3D.new()
 	_static.name = "Buildings"
@@ -110,8 +118,28 @@ func build() -> void:
 	_ground()
 	_water()
 	stats["t_ground_ms"] = Time.get_ticks_msec() - t0
-	if has_method("_build_world"):
-		call("_build_world")
+	var pl: Places = Places.new(self, terrain, kit, _static)
+	pl.village()
+	pl.farm()
+	pl.river_place()
+	pl.lake()
+	pl.forest()
+	pl.bandit_camp()
+	pl.watchtower()
+	pl.mine()
+	pl.castle()
+	pl.commit_all()
+	stats["t_places_ms"] = Time.get_ticks_msec() - t0
+	veg = Veg.new(kit)
+	_scatter()
+	var vh: Node3D = Node3D.new()
+	vh.name = "Vegetation"
+	add_child(vh)
+	veg.commit(vh)
+	stats["veg_instances"] = veg.count
+	for p in places:
+		if not spawns.has(p.id):
+			spawns[p.id] = (p.pos as Vector3) + Vector3(0, 0.1, 0)
 	stats["t_total_ms"] = Time.get_ticks_msec() - t0
 
 
@@ -153,7 +181,7 @@ func _define_places() -> void:
 func _house(id: String, pos: Vector2, yaw: float, spec: Dictionary) -> void:
 	var w: float = float(spec.get("w", 3)) * 2.0
 	var d: float = float(spec.get("d", 3)) * 2.0
-	var pad: Dictionary = {"c": pos, "size": Vector2(w + 2.5, d + 2.5), "yaw": yaw, "y": NAN}
+	var pad: Dictionary = {"c": pos, "size": Vector2(w + 2.5, d + 2.5), "yaw": yaw, "y": NAN, "fall": float(spec.get("fall", 4.5))}
 	pads.append(pad)
 	houses.append({"id": id, "pos": pos, "yaw": yaw, "spec": spec, "pad": pad})
 
@@ -164,8 +192,46 @@ func _pad(pos: Vector2, size: Vector2, yaw: float) -> Dictionary:
 	return pad
 
 
+var castle_pad: Dictionary
+var path_discs: Array = []   # Vector3(x, radius, z): yards, camp floors
+
+
+# Every building of the valley, placed by hand: position, yaw (front faces rot(yaw)*+Z) and what it is.
+# Houses face their street or the square; the numbers come from the plan at the top of this file.
 func _define_buildings() -> void:
-	pass
+	var V: String = "Village"
+	# around the square (each faces the Pedra do Primeiro Lume)
+	_house("inn", Vector2(-17, -38), 0.76, {"w": 4, "d": 5, "floors": 2, "style": "brick", "balcony": true, "door": 1, "seed": 11, "region": V})
+	_house("forge", Vector2(19, -37), -0.84, {"w": 3, "d": 4, "floors": 1, "style": "brick", "door": 1, "seed": 12, "region": V})
+	_house("elder", Vector2(-23, -3), 2.2, {"w": 2, "d": 3, "floors": 1, "style": "plaster", "door": 1, "seed": 13, "region": V})
+	_house("chapel", Vector2(19, 7), -2.53, {"w": 3, "d": 5, "floors": 2, "style": "brick", "door": 1, "chimney": false, "seed": 14, "region": V})
+	# north street, climbing toward the castle
+	_house("guard", Vector2(-12, -57), PI * 0.5, {"w": 3, "d": 3, "floors": 1, "style": "brick", "seed": 15, "region": V})
+	_house("A", Vector2(13, -50), -PI * 0.5, {"w": 3, "d": 3, "floors": 2, "style": "plaster", "balcony": true, "seed": 16, "region": V})
+	_house("B", Vector2(17, -67), -1.4, {"w": 2, "d": 3, "floors": 2, "style": "wood", "door": 0, "seed": 17, "region": V})
+	_house("C", Vector2(-8, -76), 1.75, {"w": 3, "d": 4, "floors": 1, "style": "plaster", "seed": 18, "region": V})
+	# mill road (west) and lake road (south)
+	_house("D", Vector2(-47, -6), 1.4, {"w": 3, "d": 3, "floors": 2, "style": "brick", "seed": 19, "region": V})
+	_house("E", Vector2(-34, 22), -PI * 0.5, {"w": 2, "d": 3, "floors": 1, "style": "wood", "seed": 20, "region": V})
+	_house("H", Vector2(-13, 20), PI * 0.5, {"w": 2, "d": 4, "floors": 2, "style": "plaster", "door": 1, "seed": 21, "region": V})
+	# east road
+	_house("F", Vector2(33, -35), 0.1, {"w": 3, "d": 4, "floors": 2, "style": "plaster", "seed": 22, "region": V})
+	_house("G", Vector2(52, -11), PI, {"w": 3, "d": 3, "floors": 1, "style": "wood", "seed": 23, "region": V})
+	# Quinta do Rego: farmhouse facing the yard, the barn, the coop
+	_house("farmhouse", Vector2(98, 50), 0.0, {"w": 3, "d": 4, "floors": 2, "style": "plaster", "door": 1, "seed": 31, "region": "Farm"})
+	_house("barn", Vector2(113, 74), -PI * 0.5, {"w": 4, "d": 5, "floors": 1, "style": "wood", "door": 2, "chimney": false, "seed": 32, "region": "Farm"})
+	_house("coop", Vector2(87, 79), 2.43, {"w": 2, "d": 2, "floors": 1, "style": "wood", "door": 0, "chimney": false, "seed": 33, "region": "Farm"})
+	# the mill on the east bank (small pad falloff so it does not fill the river), the toll hut at the bridge
+	_house("mill", Vector2(-53, 40), PI * 0.5, {"w": 3, "d": 4, "floors": 2, "style": "brick", "door": 1, "seed": 41, "region": "River", "fall": 1.5})
+	_house("toll", Vector2(-44, 70), -2.2, {"w": 2, "d": 2, "floors": 1, "style": "wood", "door": 0, "seed": 42, "region": "River"})
+	# Dona Celeste's hut above the pier, Gaspar's cabin at the mine mouth
+	_house("celeste", Vector2(62, 156), -PI * 0.5, {"w": 2, "d": 3, "floors": 1, "style": "wood", "door": 1, "seed": 51, "region": "Lake"})
+	_house("gaspar", Vector2(197, -174), -PI * 0.5, {"w": 2, "d": 2, "floors": 1, "style": "wood", "door": 0, "seed": 61, "region": "Mine"})
+	castle_pad = _pad(Vector2(4, -216), Vector2(50, 42), 0.0)
+	castle_pad["fall"] = 3.0
+	# dirt yards (ground layer only): farmyard, castle court, quarry floor, tower top, mine apron, mill yard
+	path_discs = [Vector3(100, 10, 64), Vector3(4, 20, -216), Vector3(-212, 13, 166), Vector3(186, 9, -48),
+		Vector3(177, 6, -180), Vector3(-47, 5, 47), Vector3(-44, 4, 70), Vector3(62, 4, 156), Vector3(-185, 9, 25)]
 
 
 # ------------------------------------------------------------------ ground
@@ -323,7 +389,6 @@ func _path_texture() -> ImageTexture:
 	return ImageTexture.create_from_image(img)
 
 
-var path_discs: Array = []   # Vector3(x, radius, z): yards, camp floors
 
 
 func _stamp_disc(data: PackedByteArray, S: int, c: Vector2, R: float) -> void:
@@ -507,3 +572,347 @@ func _sky() -> void:
 	sun.shadow_blur = 1.2
 	sun.shadow_bias = 0.04
 	add_child(sun)
+
+
+# ------------------------------------------------------------------ vegetation rules
+# Nothing grows by noise alone. Every set has a reason:
+#  trees      - inside the authored forest blobs (forest_density), species by place (pines up north and on high
+#               ground, oaks and twisted trees in the Bosque, birch-like common trees in valley copses); a few
+#               hand-placed shade trees in the village and the farm.
+#  understory - ferns, bushes and mushrooms only under trees; bushes along forest edges.
+#  grass      - tufts on road shoulders, around building footings and fences, in meadow patches.
+#  reeds      - tall wispy grass on the river banks and the reedy (south/east) lake shore.
+#  flowers    - in a few named meadows (square gardens, lake shore, the Carvalha glade, the watchtower hill).
+#  boulders   - at the foot of steep slopes and along the river; pebbles on road edges.
+#  crops      - rows in the farm fields (wheat gold, grey field dead tufts).
+var _blocked: PackedByteArray
+var _rng: RandomNumberGenerator
+
+
+func _block_mask() -> void:
+	var N: int = Terrain.N
+	_blocked = PackedByteArray()
+	_blocked.resize(N * N)
+	var items: Array = []
+	for pad in pads:
+		items.append([pad.c, (pad.size as Vector2) * 0.5 + Vector2(1.5, 1.5), float(pad.yaw)])
+	for d in path_discs:
+		var e: Vector3 = d
+		items.append([Vector2(e.x, e.z), Vector2(e.y, e.y) * 0.75, 0.0])
+	items.append([SQUARE, Vector2(15, 15), 0.0])
+	for it in items:
+		var c: Vector2 = it[0]
+		var hs: Vector2 = it[1]
+		var yaw: float = it[2]
+		var R: float = hs.length()
+		for j in range(maxi(0, int((c.y - R + Terrain.HALF) / Terrain.STEP)), mini(N - 1, int((c.y + R + Terrain.HALF) / Terrain.STEP) + 1) + 1):
+			for i in range(maxi(0, int((c.x - R + Terrain.HALF) / Terrain.STEP)), mini(N - 1, int((c.x + R + Terrain.HALF) / Terrain.STEP) + 1) + 1):
+				var x: float = -Terrain.HALF + i * Terrain.STEP - c.x
+				var z: float = -Terrain.HALF + j * Terrain.STEP - c.y
+				var lx: float = x * cos(yaw) - z * sin(yaw)
+				var lz: float = x * sin(yaw) + z * cos(yaw)
+				if absf(lx) <= hs.x and absf(lz) <= hs.y:
+					_blocked[j * N + i] = 1
+
+
+func _free(x: float, z: float, road_margin: float) -> bool:
+	if absf(x) > 312.0 or absf(z) > 312.0:
+		return false
+	var N: int = Terrain.N
+	var i: int = clampi(int(round((x + Terrain.HALF) / Terrain.STEP)), 0, N - 1)
+	var j: int = clampi(int(round((z + Terrain.HALF) / Terrain.STEP)), 0, N - 1)
+	var k: int = j * N + i
+	if _blocked[k] != 0:
+		return false
+	if terrain.road_d[k] < road_margin:
+		return false
+	if terrain.river_d[k] < terrain.river_w[k] + 1.0:
+		return false
+	if terrain.lake_norm(x, z) < 1.04:
+		return false
+	if is_field(x, z) > 0.05:
+		return false
+	return true
+
+
+func _slope(x: float, z: float) -> float:
+	return 1.0 - terrain.normal_at(x, z).y
+
+
+func _put(name: String, x: float, z: float, s: float, tint: Color = Color(1, 1, 1), sink: float = 0.0) -> void:
+	var y: float = terrain.sample(x, z) - sink
+	var xf: Transform3D = Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * s), Vector3(x, y, z))
+	veg.add(name, xf, tint)
+
+
+func _scatter() -> void:
+	_rng = RandomNumberGenerator.new()
+	_rng.seed = 2024
+	_block_mask()
+	var common: Array[String] = ["CommonTree_1", "CommonTree_2", "CommonTree_4"]
+	var pines: Array[String] = ["Pine_1", "Pine_2", "Pine_4"]
+	var twisted: Array[String] = ["TwistedTree_1", "TwistedTree_5"]
+	for n in common + pines + twisted:
+		veg.define(n, 240.0, true, 70.0)
+	for n in ["Bush_Common", "Bush_Common_Flowers", "Fern_1", "Plant_1_Big"]:
+		veg.define(n, 70.0, false)
+	veg.define("Mushroom_Common", 35.0, false)
+	for n in ["Grass_Common_Short", "Grass_Wispy_Short", "Grass_Wispy_Tall", "Grass_Common_Short#wheat", "Grass_Wispy_Short#grey"]:
+		veg.define(n, 45.0, false)
+	for n in ["Flower_3_Group", "Flower_4_Group", "Clover_1"]:
+		veg.define(n, 45.0, false)
+	for n in ["Rock_Medium_1", "Rock_Medium_2", "Rock_Medium_3"]:
+		veg.define(n, 200.0, true, 80.0)
+	veg.define("Pebble_Round_2", 30.0, false)
+	veg.define("Pebble_Square_3", 30.0, false)
+	veg.define("DeadTree_2", 200.0, true, 70.0)
+	veg.define("DeadTree_4", 200.0, true, 70.0)
+
+	# --- forest trees on a jittered 7 m grid
+	var trees: Array = []
+	var gs: float = 7.0
+	var z: float = -310.0
+	while z < 310.0:
+		var x: float = -310.0
+		while x < 310.0:
+			var px: float = x + _rng.randf_range(-2.8, 2.8)
+			var pz: float = z + _rng.randf_range(-2.8, 2.8)
+			x += gs
+			var f: float = forest_density(px, pz)
+			var hy: float = terrain.sample(px, pz)
+			# the mountain flanks get thin pine woods up to the tree line
+			var mt: float = 0.0
+			if hy > 22.0 and hy < 58.0 and _slope(px, pz) < 0.45:
+				mt = 0.55 * (1.0 - Terrain.sstep(46.0, 58.0, hy))
+			f = maxf(f, mt)
+			if f < 0.2 or _rng.randf() > f * 0.9:
+				continue
+			if not _free(px, pz, 6.0):
+				continue
+			if _slope(px, pz) > 0.5:
+				continue
+			# keep the castle plateau and the quarry pit bare
+			if Vector2(px - 8, pz + 214).length() < 40.0:
+				continue
+			var nm: String
+			var s: float = _rng.randf_range(0.85, 1.3)
+			var bosque: bool = px < -95.0 and pz > -120.0
+			if pz < -150.0 or hy > 24.0:
+				nm = pines[_rng.randi() % 3]
+			elif bosque:
+				var r: float = _rng.randf()
+				if r < 0.12:
+					nm = twisted[_rng.randi() % 2]
+					s = _rng.randf_range(0.7, 0.95)
+				elif r < 0.35:
+					nm = pines[_rng.randi() % 3]
+				else:
+					nm = common[_rng.randi() % 3]
+			else:
+				nm = common[_rng.randi() % 3] if _rng.randf() < 0.75 else pines[_rng.randi() % 3]
+			var tint: Color = Color(1, 1, 1).lerp(Color(1.12, 1.0, 0.75), _rng.randf() * 0.6)
+			if bosque:
+				tint = tint * Color(0.9, 0.98, 0.88)
+			_put(nm, px, pz, s, tint, 0.2)
+			trees.append(Vector3(px, s, pz))
+	stats["trees"] = trees.size()
+	# hand-placed shade trees: the square, the inn yard, the farm lane, the pier path, the chapel
+	var shade: Array = [Vector2(-10, -30), Vector2(13, 2), Vector2(-28, -46), Vector2(30, -8), Vector2(-24, 10),
+		Vector2(78, 54), Vector2(88, 40), Vector2(122, 92), Vector2(54, 144), Vector2(70, 170), Vector2(36, 20),
+		Vector2(-36, 52), Vector2(-60, 92), Vector2(160, -38), Vector2(-4, -92), Vector2(44, -48)]
+	for sp in shade:
+		var v: Vector2 = sp
+		_put(common[_rng.randi() % 3], v.x, v.y, _rng.randf_range(1.05, 1.3), Color(1.05, 1.0, 0.85), 0.2)
+		trees.append(Vector3(v.x, 1.1, v.y))
+	# dead trees where the seeds were dug out (grey field) and on the watchtower road
+	for dp in [Vector2(150, 118), Vector2(124, 120), Vector2(172, -20), Vector2(205, -60)]:
+		var dv: Vector2 = dp
+		_put("DeadTree_2" if dv.x < 160 else "DeadTree_4", dv.x, dv.y, 0.6, Color(1, 1, 1), 0.2)
+	# trunk collision (one cylinder each, cheap)
+	for tr in trees:
+		var tv: Vector3 = tr
+		var cs: CollisionShape3D = CollisionShape3D.new()
+		var sh: CylinderShape3D = CylinderShape3D.new()
+		sh.radius = 0.35 * tv.y
+		sh.height = 4.0
+		cs.shape = sh
+		cs.position = Vector3(tv.x, terrain.sample(tv.x, tv.z) + 1.8, tv.z)
+		_static.add_child(cs)
+
+	# --- understory: under and around trees
+	for tr in trees:
+		var tv2: Vector3 = tr
+		var nn: int = _rng.randi_range(0, 3)
+		for k in nn:
+			var a: float = _rng.randf() * TAU
+			var r2: float = _rng.randf_range(1.5, 4.5)
+			var ux: float = tv2.x + cos(a) * r2
+			var uz: float = tv2.z + sin(a) * r2
+			if not _free(ux, uz, 3.0):
+				continue
+			var pick: float = _rng.randf()
+			var dens: float = forest_density(ux, uz)
+			if pick < 0.35:
+				_put("Fern_1", ux, uz, _rng.randf_range(0.8, 1.3))
+			elif pick < 0.55:
+				_put("Bush_Common", ux, uz, _rng.randf_range(0.7, 1.2), Color(1, 1, 1).lerp(Color(1.1, 1.05, 0.7), _rng.randf()))
+			elif pick < 0.65 and dens < 0.6:
+				_put("Bush_Common_Flowers", ux, uz, _rng.randf_range(0.7, 1.0))
+			elif pick < 0.75 and dens > 0.5:
+				_put("Mushroom_Common", ux, uz, _rng.randf_range(0.8, 1.4))
+			elif pick < 0.85:
+				_put("Plant_1_Big", ux, uz, _rng.randf_range(0.6, 0.9))
+			else:
+				_put("Grass_Wispy_Short", ux, uz, _rng.randf_range(0.8, 1.2))
+
+	# --- road shoulders: grass tufts, a pebble now and then, flowers near the village
+	for r in terrain.roads:
+		var pts: PackedVector3Array = r.pts
+		var hw: float = r.hw
+		for k in range(0, pts.size() - 1):
+			var p: Vector3 = pts[k]
+			var q: Vector3 = pts[k + 1]
+			var dir: Vector3 = (q - p)
+			dir.y = 0.0
+			if dir.length() < 0.01:
+				continue
+			dir = dir.normalized()
+			var side: Vector3 = Vector3(-dir.z, 0, dir.x)
+			for sgn in [-1.0, 1.0]:
+				if _rng.randf() > 0.7:
+					continue
+				var off: float = hw + _rng.randf_range(0.6, 2.2)
+				var g: Vector3 = p + side * (sgn * off) + dir * _rng.randf_range(0.0, 2.0)
+				if not _free(g.x, g.z, hw + 0.4):
+					continue
+				var rr: float = _rng.randf()
+				if rr < 0.6:
+					_put("Grass_Common_Short", g.x, g.z, _rng.randf_range(0.8, 1.3))
+				elif rr < 0.8:
+					_put("Grass_Wispy_Short", g.x, g.z, _rng.randf_range(0.8, 1.2))
+				elif rr < 0.9:
+					_put("Pebble_Round_2" if _rng.randf() < 0.5 else "Pebble_Square_3", g.x, g.z, _rng.randf_range(1.0, 2.2))
+				elif Vector2(g.x, g.z).distance_to(SQUARE) < 140.0:
+					_put("Flower_3_Group" if _rng.randf() < 0.5 else "Flower_4_Group", g.x, g.z, _rng.randf_range(0.6, 0.9))
+
+	# --- meadow patches of grass and clover (clumped, never a uniform carpet)
+	var mn: FastNoiseLite = FastNoiseLite.new()
+	mn.seed = 77
+	mn.frequency = 0.045
+	var gz: float = -300.0
+	while gz < 300.0:
+		var gx: float = -300.0
+		while gx < 300.0:
+			var px2: float = gx + _rng.randf_range(-1.6, 1.6)
+			var pz2: float = gz + _rng.randf_range(-1.6, 1.6)
+			gx += 3.2
+			var clump: float = mn.get_noise_2d(px2, pz2)
+			if clump < 0.18:
+				continue
+			if _rng.randf() > (clump - 0.18) * 2.2:
+				continue
+			if terrain.sample(px2, pz2) > 30.0 or _slope(px2, pz2) > 0.3:
+				continue
+			if not _free(px2, pz2, 3.5):
+				continue
+			var rr2: float = _rng.randf()
+			if rr2 < 0.55:
+				_put("Grass_Common_Short", px2, pz2, _rng.randf_range(0.8, 1.4), Color(1, 1, 1).lerp(Color(1.15, 1.05, 0.7), _rng.randf()))
+			elif rr2 < 0.8:
+				_put("Grass_Wispy_Short", px2, pz2, _rng.randf_range(0.9, 1.4))
+			elif rr2 < 0.92:
+				_put("Clover_1", px2, pz2, _rng.randf_range(0.7, 1.0))
+			else:
+				_put("Flower_3_Group" if _rng.randf() < 0.5 else "Flower_4_Group", px2, pz2, _rng.randf_range(0.6, 0.9))
+		gz += 3.2
+
+	# --- named flower meadows
+	var meadows: Array = [Vector3(-30, 12, -60), Vector3(70, 14, 180), Vector3(-185, 12, 25), Vector3(170, 16, -60),
+		Vector3(-14, 8, 4), Vector3(26, 8, -12)]
+	for md in meadows:
+		var mv: Vector3 = md
+		for k in int(mv.y * 3.0):
+			var a2: float = _rng.randf() * TAU
+			var r3: float = sqrt(_rng.randf()) * mv.y
+			var fx: float = mv.x + cos(a2) * r3
+			var fz: float = mv.z + sin(a2) * r3
+			if not _free(fx, fz, 2.5):
+				continue
+			_put(["Flower_3_Group", "Flower_4_Group", "Clover_1", "Flower_3_Group"][_rng.randi() % 4], fx, fz, _rng.randf_range(0.55, 0.9))
+
+	# --- river banks: reeds and stones; lake: reeds on the south/east shore, stones on the beach
+	var rp: PackedVector3Array = terrain.river_pts
+	for k in range(0, rp.size() - 1):
+		var p2: Vector3 = rp[k]
+		var d2: Vector3 = rp[k + 1] - p2
+		d2.y = 0.0
+		var side2: Vector3 = Vector3(-d2.z, 0, d2.x).normalized()
+		var w: float = terrain.river_hw[k]
+		for sgn2 in [-1.0, 1.0]:
+			var rr3: float = _rng.randf()
+			var b: Vector3 = p2 + side2 * (sgn2 * (w + _rng.randf_range(0.2, 2.5)))
+			if _blocked[clampi(int(round((b.z + Terrain.HALF) / Terrain.STEP)), 0, Terrain.N - 1) * Terrain.N + clampi(int(round((b.x + Terrain.HALF) / Terrain.STEP)), 0, Terrain.N - 1)] != 0:
+				continue
+			if terrain.cell(b.x, b.z, terrain.road_d) < 4.0:
+				continue
+			if rr3 < 0.45:
+				_put("Grass_Wispy_Tall", b.x, b.z, _rng.randf_range(0.9, 1.4), Color(1.05, 1.0, 0.8))
+			elif rr3 < 0.53:
+				_put("Rock_Medium_%d" % (_rng.randi() % 3 + 1), b.x, b.z, _rng.randf_range(0.3, 0.7), Color(1, 1, 1), 0.3)
+	for k in 900:
+		var a3: float = _rng.randf() * TAU
+		var lr: float = _rng.randf_range(1.0, 1.12)
+		var lx: float = Terrain.LAKE_C.x + cos(a3) * Terrain.LAKE_R.x * lr
+		var lz: float = Terrain.LAKE_C.y + sin(a3) * Terrain.LAKE_R.y * lr
+		var ln: float = terrain.lake_norm(lx, lz)
+		if ln < 0.98 or ln > 1.14:
+			continue
+		if terrain.cell(lx, lz, terrain.road_d) < 4.0 or absf(lx - 44.0) < 4.0 and lz < 190.0:
+			continue
+		var beach: bool = lz < Terrain.LAKE_C.y - 10.0
+		if beach:
+			if _rng.randf() < 0.08:
+				_put("Rock_Medium_%d" % (_rng.randi() % 3 + 1), lx, lz, _rng.randf_range(0.25, 0.6), Color(1, 1, 1), 0.25)
+		elif _rng.randf() < 0.55:
+			_put("Grass_Wispy_Tall", lx, lz, _rng.randf_range(1.0, 1.5), Color(1.05, 1.0, 0.8))
+
+	# --- boulders at the foot of steep ground (cliffs, quarry walls, the mine spur), never on roads
+	var bz: float = -300.0
+	while bz < 300.0:
+		var bx: float = -300.0
+		while bx < 300.0:
+			var qx: float = bx + _rng.randf_range(-3.0, 3.0)
+			var qz: float = bz + _rng.randf_range(-3.0, 3.0)
+			bx += 6.0
+			var sl: float = _slope(qx, qz)
+			if sl < 0.12 or sl > 0.4:
+				continue
+			# foot of a cliff: steep ground just uphill
+			var n: Vector3 = terrain.normal_at(qx, qz)
+			var up: Vector2 = Vector2(-n.x, -n.z).normalized()
+			if _slope(qx + up.x * 4.0, qz + up.y * 4.0) < 0.5:
+				continue
+			if not _free(qx, qz, 4.0) or _rng.randf() > 0.6:
+				continue
+			_put("Rock_Medium_%d" % (_rng.randi() % 3 + 1), qx, qz, _rng.randf_range(0.6, 1.6), Color(1, 1, 1).lerp(Color(0.85, 0.82, 0.78), _rng.randf()), 0.4)
+		bz += 6.0
+
+	# --- crops: wheat rows (gold), the grey field (dead tufts), turnip rows
+	for fdef in FIELDS:
+		var c: Vector2 = fdef[0]
+		var hs: Vector2 = fdef[1]
+		var crop: String = fdef[2]
+		var row: float = -hs.y + 1.0
+		while row < hs.y - 0.5:
+			var cx: float = -hs.x + 1.0
+			while cx < hs.x - 0.5:
+				var wx: float = c.x + cx + _rng.randf_range(-0.3, 0.3)
+				var wz: float = c.y + row
+				if crop == "wheat" and _rng.randf() < 0.85:
+					_put("Grass_Common_Short#wheat", wx, wz, _rng.randf_range(0.9, 1.25))
+				elif crop == "grey" and _rng.randf() < 0.18:
+					_put("Grass_Wispy_Short#grey", wx, wz, _rng.randf_range(0.6, 1.0))
+				elif crop == "turnip" and _rng.randf() < 0.4:
+					_put("Plant_1_Big", wx, wz, _rng.randf_range(0.35, 0.5), Color(0.9, 1.05, 0.75))
+				cx += 1.6 if crop == "wheat" else 2.2
+			row += 1.4

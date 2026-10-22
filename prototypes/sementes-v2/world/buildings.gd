@@ -152,7 +152,7 @@ func _pick_wall(style: String, ground: bool, is_door: bool, i: int, n: int) -> S
 	return "Wall_Plaster_Straight"
 
 
-const ROOFS: Array[String] = ["4x4", "4x6", "4x8", "6x6", "6x8", "6x10", "6x12", "6x14", "8x8", "8x10", "8x12", "8x14"]
+const ROOFS: Array[String] = ["4x4", "4x6", "4x8", "6x4", "6x6", "6x8", "6x10", "6x12", "6x14", "8x8", "8x10", "8x12", "8x14"]
 
 
 func _roof(root: Transform3D, w: int, d: int, top: float, ridge: String) -> void:

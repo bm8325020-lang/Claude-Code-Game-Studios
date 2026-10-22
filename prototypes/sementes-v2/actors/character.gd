@@ -5,7 +5,8 @@
 #   var ch := CharacterKit.make({"body": "Female", "outfit": "Ranger", "hair": "Hair_Long", "weapon": "Sword_Bronze"})
 #
 # look keys (all optional):
-#   body "Male"|"Female"; outfit "Peasant"|"Ranger" (default for every piece);
+#   body "Male"|"Female"|"Imp"|"Puglin" (monsters: one model with its own club/mace, only tint applies);
+#   outfit "Peasant"|"Ranger" (default for every piece);
 #   arms/torso/legs/feet: override the outfit of one piece ("Peasant"/"Ranger");
 #   hood: bool (Ranger hood, hides hair), pauldrons: bool (Ranger only);
 #   hair: "Hair_SimpleParted"|"Hair_Long"|"Hair_Buns"|"Hair_Buzzed"|"Hair_BuzzedFemale"|"" ; beard: bool;
@@ -15,8 +16,10 @@
 # Result: Node3D "Character" facing +Z, feet at y=0, with
 #   Model/Armature/Skeleton3D (meshes, hand attachments "WeaponR"/"WeaponL"),
 #   Anim: AnimationPlayer with AnimLib's library ("" library: raw UAL clip names and authored action names).
-# Metadata: "skeleton" (Skeleton3D), "anim" (AnimationPlayer), "look" (Dictionary).
-# HeroAnim adds the AnimationTree; enemies can call Anim.play("Walk") directly.
+# Metadata: "skeleton" (Skeleton3D), "anim" (AnimationPlayer), "look" (Dictionary), "monster" (bool).
+# HeroAnim adds the AnimationTree; enemies can call Anim.play("walk") directly (aliases in AnimLib.ALIASES).
+# stow(ch, true) moves the weapon and shield onto the back (HeroAnim does it outside combat and for chores);
+# the props stay at Skeleton3D/WeaponR/Prop and Skeleton3D/WeaponL/Prop either way.
 class_name CharacterKit
 extends RefCounted
 
@@ -26,7 +29,7 @@ const CHARS: String = "res://assets/chars/"
 # Hand-measured grips (in hand bone space), tuned with tools/anim_preview.gd from several angles.
 # Each: [origin offset, euler degrees]. The prop's own origin is at its grip/guard, blade or haft along +Y.
 const GRIP: Dictionary = {
-	"Sword_Bronze": [Vector3(0.0, 0.0, 0.0), Vector3(0, 0, 0)],
+	"Sword_Bronze": [Vector3(0.0, 0.0, 0.0), Vector3(0, 0, -12)],
 	"Axe_Bronze": [Vector3(0.0, 0.26, 0.0), Vector3(0, 0, 0)],
 	"Pickaxe_Bronze": [Vector3(0.0, 0.2, 0.0), Vector3(0, 0, 0)],
 	"Shield_Wooden": [Vector3(0.0, 0.0, 0.0), Vector3(0, 0, 0)],
@@ -37,6 +40,8 @@ static var _mats: Dictionary = {}
 
 static func make(look: Dictionary) -> Node3D:
 	var body: String = look.get("body", "Male")
+	if body == "Imp" or body == "Puglin":
+		return _make_monster(look)
 	var outfit: String = look.get("outfit", "Peasant")
 	var root := Node3D.new()
 	root.name = "Character"
@@ -81,6 +86,44 @@ static func make(look: Dictionary) -> Node3D:
 	root.set_meta("look", look.duplicate())
 	set_weapon(root, look.get("weapon", ""))
 	set_shield(root, look.get("shield", ""))
+	return root
+
+
+# Imp / Puglin: one glb with body, clothes and weapon skinned to the same rig family (no pinkies).
+static func _make_monster(look: Dictionary) -> Node3D:
+	var body: String = look.get("body", "Imp")
+	var root := Node3D.new()
+	root.name = "Character"
+	var model: Node3D = load(CHARS + body + ".glb").instantiate()
+	model.name = "Model"
+	root.add_child(model)
+	var sk: Skeleton3D = model.find_children("*", "Skeleton3D", true, false)[0]
+	var tint: Color = look.get("tint", Color.WHITE)
+	for mi in sk.find_children("*", "MeshInstance3D", true, false):
+		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		if not tint.is_equal_approx(Color.WHITE) and String(mi.name).ends_with("_Body"):
+			var m: Material = (mi as MeshInstance3D).get_active_material(0)
+			if m is StandardMaterial3D:
+				var key: String = "mon|%s|%s" % [body, tint.to_html()]
+				if not _mats.has(key):
+					var nm: StandardMaterial3D = (m as StandardMaterial3D).duplicate()
+					nm.albedo_color = tint
+					_mats[key] = nm
+				(mi as MeshInstance3D).set_surface_override_material(0, _mats[key])
+	var ap := AnimationPlayer.new()
+	ap.name = "Anim"
+	root.add_child(ap)
+	ap.root_node = ap.get_path_to(sk.get_parent())
+	ap.add_animation_library("", AnimLib.library(sk))
+	ap.playback_default_blend_time = 0.15
+	var lk: Dictionary = look.duplicate()
+	lk["weapon"] = "builtin"  # the mace / club is part of the model
+	lk["shield"] = ""
+	root.set_meta("skeleton", sk)
+	root.set_meta("anim", ap)
+	root.set_meta("look", lk)
+	root.set_meta("monster", true)
+	ap.play("idle")
 	return root
 
 
@@ -132,6 +175,51 @@ static func _paint(mi: MeshInstance3D, tint: Color, hair_color: Color, body: Str
 		mi.set_surface_override_material(s, _mats[key])
 
 
+# Weapon and/or shield onto the back (true) or back into the hands (false). which: "both", "weapon", "shield".
+# Monsters keep their weapon.
+static func stow(ch: Node3D, on: bool, which: String = "both") -> void:
+	if ch.get_meta("monster", false):
+		return
+	var sk: Skeleton3D = ch.get_meta("skeleton")
+	var look: Dictionary = ch.get_meta("look", {})
+	for slot in ["WeaponR", "WeaponL"]:
+		if (which == "weapon" and slot == "WeaponL") or (which == "shield" and slot == "WeaponR"):
+			continue
+		ch.set_meta("stow_" + slot, on)
+		var att: BoneAttachment3D = sk.get_node_or_null(slot)
+		if att == null:
+			continue
+		var prop: String = look.get("weapon" if slot == "WeaponR" else "shield", "")
+		var hand: String = "hand_r" if slot == "WeaponR" else "hand_l"
+		att.bone_name = "spine_03" if on else hand
+		(att.get_node("Prop") as Node3D).transform = back_transform(sk, prop) if on else grip_transform(sk, prop, hand)
+
+
+static func is_stowed(ch: Node3D, slot: String = "WeaponR") -> bool:
+	return ch.get_meta("stow_" + slot, false)
+
+
+# Where a stowed prop sits, in spine_03 space: shields flat on the back, long props diagonal with the
+# handle over the right shoulder.
+static func back_transform(sk: Skeleton3D, prop: String) -> Transform3D:
+	var b: int = sk.find_bone("spine_03")
+	var chest: Transform3D = sk.get_bone_global_rest(b)
+	var s: float = sk.get_bone_global_rest(sk.find_bone("pelvis")).origin.y / 0.95
+	var at: Vector3 = chest.origin
+	var model: Transform3D
+	if prop.begins_with("Shield"):
+		model = Transform3D(Basis(Vector3(-1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, -1)), at + Vector3(0, -0.02, -0.24) * s)
+	else:
+		var y: Vector3 = Vector3(0.5, -1.0, 0.0).normalized()  # blade / haft down toward the left hip
+		var z := Vector3(0, 0, -1)
+		var origin: Vector3 = at + Vector3(-0.14, 0.2, -0.17) * s
+		if prop.begins_with("Axe") or prop.begins_with("Pickaxe") or prop.begins_with("Torch"):
+			y = -y  # head up over the shoulder, haft down
+			origin = at + Vector3(-0.12, 0.05, -0.17) * s
+		model = Transform3D(Basis(y.cross(z), y, z), origin)
+	return chest.affine_inverse() * model
+
+
 # Puts prop `prop` in the right hand ("" removes it).
 static func set_weapon(ch: Node3D, prop: String) -> void:
 	_hold(ch, "WeaponR", "hand_r", prop)
@@ -154,12 +242,13 @@ static func _hold(ch: Node3D, slot: String, bone: String, prop: String) -> void:
 		return
 	var att := BoneAttachment3D.new()
 	att.name = slot
-	att.bone_name = bone
+	var stowed: bool = ch.get_meta("stow_" + slot, false)
+	att.bone_name = "spine_03" if stowed else bone
 	sk.add_child(att)
 	var p: Node3D = load("res://assets/props/%s.gltf" % prop).instantiate()
 	p.name = "Prop"
 	att.add_child(p)
-	p.transform = grip_transform(sk, prop, bone)
+	p.transform = back_transform(sk, prop) if stowed else grip_transform(sk, prop, bone)
 	for mi in p.find_children("*", "MeshInstance3D", true, false):
 		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 
@@ -169,7 +258,10 @@ static func grip_transform(sk: Skeleton3D, prop: String, bone: String) -> Transf
 	var side: String = bone.right(2)
 	var hand: int = sk.find_bone(bone)
 	var index: Vector3 = sk.get_bone_rest(sk.find_bone("index_01" + side)).origin
-	var pinky: Vector3 = sk.get_bone_rest(sk.find_bone("pinky_01" + side)).origin
+	var little: int = sk.find_bone("pinky_01" + side)
+	if little < 0:
+		little = sk.find_bone("ring_01" + side)  # monsters have four fingers
+	var pinky: Vector3 = sk.get_bone_rest(little).origin
 	var middle: Vector3 = sk.get_bone_rest(sk.find_bone("middle_01" + side)).origin
 	if hand < 0:
 		return Transform3D.IDENTITY

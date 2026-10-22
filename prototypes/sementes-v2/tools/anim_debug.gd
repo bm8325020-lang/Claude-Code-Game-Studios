@@ -1,4 +1,4 @@
-# Animation agent: tree debugging.
+# Animation agent: prints pelvis height / hand pos per frame through the real AnimationTree (ACT=name).
 extends SceneTree
 var ch: Node3D
 var ha: HeroAnim
@@ -8,13 +8,13 @@ func _initialize() -> void:
 	root.add_child(ch)
 	ha = HeroAnim.new(ch)
 func _process(dt: float) -> bool:
-	ha.update(1.0 / 30.0, Vector3(0, 0, 1.5), true, "free")
 	n += 1
-	if n % 10 == 0:
+	if n == 20:
+		print(ha.act(OS.get_environment("ACT")))
+	ha.update(1.0 / 30.0, Vector3.ZERO, true, "free")
+	(ch.get_meta("tree") as AnimationTree).advance(0.0)
+	if n >= 18:
 		var sk: Skeleton3D = ch.get_meta("skeleton")
-		var b: int = sk.find_bone("upperarm_l")
-		print(n, " arm ", sk.get_bone_pose_rotation(b), " rest ", sk.get_bone_rest(b).basis.get_rotation_quaternion())
 		var tree: AnimationTree = ch.get_meta("tree")
-		for p in ["relaxed/blend_position", "loco_ts/scale", "mode/current_state", "act/current_state", "stance/blend_amount"]:
-			print("  ", p, " = ", tree.get("parameters/" + p))
+		print(n, " pelvis ", sk.get_bone_global_pose(sk.find_bone("pelvis")).origin, " root ", sk.get_bone_global_pose(sk.find_bone("root")).origin, " act ", tree.get("parameters/act/current_state"))
 	return n > 30

@@ -1,178 +1,232 @@
 # PROTOTYPE - NOT FOR PRODUCTION
-# Townsfolk you can talk to. Quaternius models (qrig.gd) that idle, wander near home and turn to face you.
-# Talking opens dialog.gd; free questions go to Claude (the player's own API key, set in OPÇÕES) with a persona built
-# from the NPC, the world lore and the game state. Without a key or a connection they answer from scripted lines.
+# The nine people of Brasalume (owner: UI agent): who they are (LORE.md "Os nove moradores"), how they look, and the
+# free conversation through Claude with the player's own API key (GameMenu.options.api_key, set in Opções; it stays
+# on the device and is sent only to api.anthropic.com). Without a key or a connection they answer from their lines.
+#
+# Use: var npcs := Npcs.new(); add_child(npcs)
+#   Npcs.info(role) -> Dictionary        {name, title, look, persona, voice, secret, lines: Array, quick: Dictionary}
+#                                        roles: blacksmith, merchant, elder, farmer, fisher, guard_captain, innkeeper,
+#                                        miner, priest (map npc_spots role / Quests giver ids)
+#   npcs.ask(role, line, context, cb)    cb.call(reply: String); context = one short pt-BR line about the game state
+#                                        (Npcs.context_line(prog, quests, place) builds it). Works while the tree is paused.
+#   npcs.busy(role) -> bool              a request is on its way
+#   npcs.forget(role)                    clears that NPC's conversation memory
+#   npcs.spawn(map, parent) -> Array     optional: CharacterKit people at map.npc_spots ({id, pos, facing, role}),
+#                                        playing an idle; returns [{role, node: Node3D, pos: Vector3}]
+class_name Npcs
 extends Node
 
-const QRig = preload("res://qrig.gd")
-const Rpg = preload("res://rpg.gd")
-const API_URL := "https://api.anthropic.com/v1/messages"
-const LORE := """Mundo: Cinzarra, terra coberta de cinzas. O Santuário da Chama é o coração do vale; quem morre desperta \
-nas fogueiras. Sete Sementes do Dragão (Fogo, Gelo, Raio, Veneno, Terra, Sombra e a do próprio Dragão) dão poder a quem \
-as carrega. O Burgo dos Esquecidos fica ao norte do Santuário, subindo a escadaria; a Igreja do Juramento fica no alto \
-do penhasco, com o primeiro Sino do Despertar; o Cemitério dos Juramentados fica a leste, abaixo do Santuário; o \
-Jardim Morto, com lobos, fica no vale. Além do vale há cidades muradas com castelos (guardas, carrascos, feiticeiras \
-e um Cavaleiro Negro em cada torre de menagem) e vilarejos tomados por possuídos, salteadores e diabretes. \
-Brasas são a moeda; titanita reforça armas; frascos de Seiva curam."""
+const API_URL: String = "https://api.anthropic.com/v1/messages"
+const LORE_SHORT: String = """Mundo: o Vale de Lume, quente porque a dragoa Lumeira veio morrer aqui há trezentos anos. O coração dela rachou em doze \
+Sementes do Dragão: cada uma aquece a terra por uma geração e guarda uma lembrança dela. O Pacto do Lume manda plantar \
+uma a cada 25 anos e, quando acabarem, viver com as próprias mãos. Nove foram plantadas. Há nove anos, depois da Fome \
+Branca, Dom Aurélio de Vigília, o Conde que Não Dorme, começou o Desenterro: seus Guardas da Vigília cavam as sementes \
+para reunir o coração e acordar a dragoa para sempre. O sonho ruim dela cria Diabretes de Brasa e Insones (gente que \
+tocou lasca e não dorme mais). Os Sem-Terra são lavradores expulsos que roubam o castelo. Os Pugos vivem na Mina do \
+Fôlego. Descansa-se nos Marcos de Lume, pedras mornas onde uma semente já foi plantada. O herói, apelidado de \
+Pé-Molhado, veio das Terras Frias do norte e foi tirado do rio no moinho; não tem nada e ninguém espera nada dele.
+Tom: conto popular medieval, caloroso, com sombra. Nunca chame o herói de escolhido."""
 
-# hand-placed people of the valley: [name, role, model, head, hair, position, idle clip, persona, quick answers]
-const VALLEY := [
-	["Guardiã Maela", "guardiã", "Female_Peasant.gltf", "Female", "Hair_Buns", Vector3(3.5, 0.0, 4.0), "Idle",
-		"Guardiã da Chama do Santuário há mais de cem anos. Calma, cansada, maternal. Sabe acender e cuidar das fogueiras e conhece as lendas das Sementes.",
-		{"Quem é você?": "Sou Maela. Cuido desta chama desde antes de o Burgo esquecer o próprio nome.",
-		"O que faço agora?": "Suba a escadaria ao norte, até o Burgo. Acenda a fogueira de lá: o fogo lembrará de você.",
-		"Fale das Sementes.": "Sete sementes caíram do Dragão quando ele adormeceu. Quem juntar todas pode acordá-lo... ou matá-lo."}],
-	["Ferreiro Brann", "ferreiro", "Male_Peasant.gltf", "Male", "Hair_Beard", Vector3(-6.0, 15.0, -79.0), "TreeChopping",
-		"Ferreiro do Burgo, rude e honesto, braços queimados. Reforça armas com titanita. Odeia os Cavaleiros Ocos que roubam seu ferro.",
-		{"Quem é você?": "Brann. Malho ferro desde que este lugar tinha gente viva. Tem titanita? Então temos negócio.",
-		"O que faço agora?": "Os telhados quebrados levam à Igreja. Cuidado com os besteiros nas torres de vigia.",
-		"Reforçar arma": "__smith"}],
-	["Mercadora Ysa", "mercadora", "Female_Ranger.gltf", "Female", "", Vector3(6.0, 15.0, -70.5), "Idle_Talking",
-		"Mercadora viajante esperta e debochada, vende titanita e seiva. Viaja entre as cidades muradas e conhece boatos de todas.",
-		{"Quem é você?": "Ysa, a que sobrevive. Compro barato, vendo caro e nunca durmo no mesmo lugar duas vezes.",
-		"O que há para comprar?": "__shop",
-		"Algum boato?": "Dizem que cada cidade murada guarda um Cavaleiro Negro na torre. E que eles pagam bem... depois de mortos."}],
-	["Velho Corvo", "eremita", "Male_Ranger.gltf", "Male", "Hair_Long", Vector3(17.0, -1.2, 5.0), "Idle_Lantern",
-		"Eremita meio louco que vigia o caminho do Cemitério. Fala por enigmas, mas sempre diz a verdade.",
-		{"Quem é você?": "Corvo, me chamam. Os mortos do cemitério me conhecem pelo nome. Você, eles vão conhecer pelo grito.",
-		"O que há no cemitério?": "Juramentados que não sabem que morreram. Fortes demais para você... por enquanto.",
-		"Alguma dica?": "Fogo queima os ossos de vez. Ossos queimados não se levantam."}],
-]
-# [role, model, head, hair, what they do when nobody talks to them (work, sit or stand)]
-const TOWN_ROLES := [["taberneira", "Female_Peasant.gltf", "Female", "Hair_Buns", "Idle_Talking"], ["sentinela aposentado", "Male_Ranger.gltf", "Male", "Hair_Beard", "Idle_FoldArms"],
-	["camponês", "Male_Peasant.gltf", "Male", "Hair_SimpleParted", "Farm_Harvest"], ["curandeira", "Female_Ranger.gltf", "Female", "Hair_Long", "Farm_Watering"],
-	["lenhador", "Male_Peasant.gltf", "Male", "Hair_Beard", "TreeChopping"], ["consertadora", "Female_Peasant.gltf", "Female", "Hair_Buns", "Fixing_Kneeling"],
-	["velho contador de histórias", "Male_Ranger.gltf", "Male", "Hair_Long", "Sitting_Idle"], ["vigia noturna", "Female_Ranger.gltf", "Female", "Hair_SimpleParted", "Idle_Torch"]]
-# idle variations a standing person drifts through now and then
-const IDLE_VARIANTS := ["Idle", "Idle_FoldArms", "Idle_Talking", "Idle_Lantern", "Idle_Rail"]
-const FIRST := ["Alda", "Bertram", "Cora", "Dimas", "Elvira", "Fausto", "Gilda", "Hugo", "Inês", "Jorge", "Leda", "Marco", "Nádia", "Otto"]
+const PEOPLE: Dictionary = {
+	"blacksmith": {"name": "Mestra Joana Malho", "title": "ferreira",
+		"look": {"body": "Female", "outfit": "Peasant", "hair": "Hair_Buns", "tint": Color(0.8, 0.7, 0.62), "weapon": ""},
+		"persona": "Mulher grande, de antebraços queimados e risada que assusta galinha. Fala pouco, trabalha muito.",
+		"voice": "Frases curtas, no ritmo do martelo. Tudo vira metáfora de ferro.",
+		"secret": "Foi ferreira do castelo; forjou o relicário que prende o coração da Lumeira, com fechos que só abrem por dentro. Não dorme direito desde que entendeu para que servia.",
+		"lines": ["Espada eu faço. Coragem você traz de casa. Se não trouxe, volta e procura.",
+			"Essa relha arou terra por quarenta anos. Agora vai cortar outra coisa. Ferro bom não reclama do serviço.",
+			"Tem coisa que a gente forja e depois passa a vida tentando desforjar."]},
+	"merchant": {"name": "Benedito Sal, o Seu Bené", "title": "mercador",
+		"look": {"body": "Male", "outfit": "Ranger", "hair": "Hair_SimpleParted", "beard": true, "tint": Color(0.9, 0.78, 0.6)},
+		"persona": "Mercador ambulante com uma mula chamada Duquesa, que trata melhor que gente. Fala sem parar, canta enquanto pesa, pechincha por esporte.",
+		"voice": "Rápido, cheio de diminutivo, de \"freguês\" e de preço com desconto que não é desconto.",
+		"secret": "Compra lascas de semente dos guardas e revende fora do vale. Guardou uma lasca costurada no forro do casaco; sonha que voa e quase não dorme. Está virando Insone e sabe disso.",
+		"lines": ["Freguês! Pra você, que caiu do rio, faço preço de afogado: o dobro, que você não sabe quanto custa nada.",
+			"A Duquesa não gosta de quem regateia. Eu adoro. Mas quem manda aqui é ela.",
+			"Você já sonhou que voava, Pé-Molhado? ... Não? Que sorte. Que sorte a sua."]},
+	"elder": {"name": "Vó Cândida", "title": "anciã",
+		"look": {"body": "Female", "outfit": "Peasant", "hair": "Hair_Long", "hair_color": Color(0.82, 0.8, 0.76), "tint": Color(0.75, 0.75, 0.85)},
+		"persona": "A pessoa mais velha de Brasalume. Cega há vinte anos, enxerga tudo. Fia lã na porta de casa e sabe a cantiga das sementes inteira.",
+		"voice": "Devagar, com provérbio e cantiga, mudando de assunto quando o assunto dói.",
+		"secret": "Foi ama de leite no castelo e criou o pequeno Aurélio. Guarda um cavalinho de pau que fez para ele e ainda acredita que o menino está dentro do conde.",
+		"lines": ["Quem chega molhado se seca no fogo dos outros. Depois paga com lenha. É assim desde que o mundo é mundo.",
+			"Doze sementes, doze filhos, doze invernos de saudade. A cantiga é mais velha que eu, e eu sou velha à beça.",
+			"Ele chorava de medo do escuro, sabia? O homem que não dorme. Chorava. Eu cantava, e ele dormia."]},
+	"farmer": {"name": "Matias Rego", "title": "lavrador",
+		"look": {"body": "Male", "outfit": "Peasant", "hair": "Hair_Buzzed", "tint": Color(0.85, 0.82, 0.68)},
+		"persona": "Dono da Quinta do Rego. Tímido, teimoso, poucas palavras com gente e muitas com as vacas, que têm nome de santa. Os campos ficaram cinzentos depois que os guardas arrancaram a semente.",
+		"voice": "Olhando para o chão, com \"pois é\" e \"vai vendo\". Só se anima falando de terra.",
+		"secret": "O irmão mais novo, Tobias, lidera os Sem-Terra. Toda noite Matias deixa pão e uma carta sem assinatura na cerca do campo norte.",
+		"lines": ["Pois é. Aqui era o melhor trigo do vale. Agora nem erva daninha quer nascer. Vai vendo.",
+			"A Santa Inês fugiu de novo. Se achar uma vaca de sino torto, é ela. Não grite, que ela se ofende.",
+			"Tem gente que rouba porque é ruim. Tem gente que rouba porque deram a terra dela pro castelo cavar."]},
+	"fisher": {"name": "Dona Celeste", "title": "pescadora",
+		"look": {"body": "Female", "outfit": "Ranger", "hair": "Hair_SimpleParted", "hair_color": Color(0.5, 0.48, 0.45), "tint": Color(0.7, 0.8, 0.85)},
+		"persona": "Pescadora do Lago Manso, viúva, mãos de corda. Paciente como linha na água, supersticiosa, conversa com os peixes.",
+		"voice": "Pouco e baixo, em imagens de água e tempo. Pausas compridas.",
+		"secret": "Desenterrou ela mesma a semente da margem antes dos guardas e jogou no fundo do lago. Desde então os Insones descem até a água à noite.",
+		"lines": ["Água não tem pressa. Por isso chega em todo lugar.",
+			"Joguei no fundo pra ninguém ter. Nem eu. Às vezes ainda vejo o brilho lá embaixo, quando a lua some.",
+			"Esses que andam de olho aberto... Não tenha raiva deles, não. Eles só querem um canto quente."]},
+	"guard_captain": {"name": "Capitão Rui Abrantes", "title": "capitão da guarda",
+		"look": {"body": "Male", "outfit": "Ranger", "hair": "Hair_Buzzed", "beard": true, "pauldrons": true, "weapon": "Sword_Bronze", "shield": "Shield_Wooden"},
+		"persona": "Capitão da guarda de Brasalume: ele, dois rapazes e um cachorro chamado Sargento. Seco, preciso, humor de quem já viu coisa demais.",
+		"voice": "Ordens curtas, palavrão contido, ironia. Chama o herói de \"recruta\".",
+		"secret": "Foi Guarda da Vigília; estava na noite em que cavaram a semente da praça e segurou as mães para trás. Desertou na manhã seguinte. Se o castelo souber, enforca.",
+		"lines": ["Escudo alto, recruta. Não é o golpe que mata. É o segundo golpe, que você não viu porque estava admirando o primeiro.",
+			"O Sargento não morde. Morde, mas não é pessoal.",
+			"Eu segurei a pá naquela noite. Não precisa me olhar assim. Eu já me olho assim todo dia."]},
+	"innkeeper": {"name": "Rosa Lume", "title": "taberneira",
+		"look": {"body": "Female", "outfit": "Peasant", "hair": "Hair_Buns", "hair_color": Color(0.55, 0.22, 0.12), "tint": Color(0.95, 0.8, 0.75)},
+		"persona": "Dona da Estalagem da Panela Quente. Voz alta, colo grande, sabe da vida de todo mundo. Foi quem tirou o herói do frio.",
+		"voice": "Exclamação, apelido carinhoso, bronca e comida, nessa ordem.",
+		"secret": "O filho, Tomé, foi escudeiro no castelo e virou Insone. Ela escreve uma carta por semana e guarda todas sem mandar. As roupas que deu ao herói eram dele.",
+		"lines": ["Acordou, Pé-Molhado! Tava mais azul que ameixa. Senta aí, come, e depois a gente vê o que você sabe fazer.",
+			"Essa camisa fica bem em você. Ficava bem nele também. Come, que esfria.",
+			"Aqui ninguém paga em moeda, paga em notícia. E a sua, menino, ainda tá fresca."]},
+	"miner": {"name": "Gaspar Fundo", "title": "mineiro",
+		"look": {"body": "Male", "outfit": "Peasant", "hair": "Hair_Long", "beard": true, "hair_color": Color(0.6, 0.58, 0.55), "weapon": "Pickaxe_Bronze"},
+		"persona": "O último mineiro da Mina do Fôlego. Meio surdo, tosse de pedra, ri do perigo e de si mesmo. A chave do portão da mina pendurada no pescoço.",
+		"voice": "Gritando (porque não ouve), com termos de mina e piada mórbida.",
+		"secret": "A montanha é o corpo da Lumeira: os mineiros achavam paredes mornas com curvas de costela, e ele fechou a mina. Conhece o túnel velho que sobe até a cripta do castelo.",
+		"lines": ["HEIN? Fala mais alto! Lá embaixo a gente aprende a gritar, que a montanha responde baixinho!",
+			"Os Pugos não são maus. São donos. A gente é que entrou sem bater.",
+			"Bota a mão aqui na pedra. Sentiu? Tá morna. Setenta anos e ainda tá morna."]},
+	"priest": {"name": "Frei Anselmo", "title": "sacerdote",
+		"look": {"body": "Male", "outfit": "Peasant", "hair": "Hair_SimpleParted", "hood": false, "tint": Color(0.6, 0.55, 0.5)},
+		"persona": "Frei da Capela do Repouso. Gentil, estudioso, magro, gagueja quando mente. Cuida dos Marcos de Lume e acende vela para quem ninguém lembra.",
+		"voice": "Educado, com citações do Livro do Repouso, frases que começam bonitas e terminam tropeçando.",
+		"secret": "Manda pombos para o castelo contando quem esconde semente, por medo, desde que levaram a irmã dele. Odeia cada carta que escreve.",
+		"lines": ["'Deixai dormir quem escolheu dormir.' É o primeiro versículo. É também o único que todo mundo esquece.",
+			"Os M-Marcos ainda estão mornos. Sente-se, descanse. A dragoa não se importa. Ela gostava de visita.",
+			"Há pecados que a gente comete por maldade. Os meus eu cometi por medo. Não sei qual Deus perdoa primeiro."]},
+}
 
-var main: Node
-var people: Array = []  # {name, role, persona, quick, root, ap, home, target, hist, interact, idle, town}
+var _hist: Dictionary = {}    # role -> Array of messages (assistant turns keep their whole content, thinking included)
+var _busy: Dictionary = {}
 
-func setup(m: Node) -> void:
-	main = m
-	for v in VALLEY:
-		add(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], "")
 
-func add(name: String, role: String, model: String, head: String, hair: String, pos: Vector3, idle: String, persona: String, quick: Dictionary, town: String) -> Dictionary:
-	var r: Array = QRig.instance("res://assets/qchars/" + model, false, head, hair)
-	var root := Node3D.new()
-	root.position = pos
-	main.add_child(root)
-	root.add_child(r[0])
-	var p := {"name": name, "role": role, "persona": persona, "quick": quick, "root": root, "ap": r[1], "home": pos, "target": pos,
-		"hist": [], "idle": idle, "town": town, "t": randf() * 4.0}
-	r[1].play(idle)
-	r[1].process_mode = Node.PROCESS_MODE_ALWAYS  # they keep moving while you talk (the world is paused)
-	p.interact = {"pos": pos, "r": 2.6, "label": "FALAR", "do": func(): main.dialog.open_with(p)}
-	main.interacts.append(p.interact)
-	people.append(p)
+static func info(role: String) -> Dictionary:
+	var p: Dictionary = (PEOPLE.get(role, {}) as Dictionary).duplicate()
+	if p.is_empty():
+		p = {"name": role.capitalize(), "title": "morador", "look": {}, "persona": "Morador do vale.", "voice": "Simples.",
+			"secret": "", "lines": ["Bom dia, forasteiro."]}
+	p["quick"] = {"Quem é você?": "%s. %s" % [p.name, p.lines[0]], "O que você acha do vale?": p.lines[1 % p.lines.size()],
+		"Algum conselho?": p.lines[2 % p.lines.size()]}
 	return p
 
-# two townsfolk per town, made up from its seed; they come and go with the town
-func populate_town(t: Dictionary, rng: RandomNumberGenerator, spots: Array) -> void:
-	for i in mini(2, spots.size()):
-		var role: Array = TOWN_ROLES[rng.randi() % TOWN_ROLES.size()]
-		var name: String = FIRST[rng.randi() % FIRST.size()]
-		var persona := "%s de %s, %s. %s" % [role[0].capitalize(), t.name, "uma cidade murada com castelo" if t.city else "um vilarejo pobre",
-			["Medroso, fala baixo, teme o castelo.", "Orgulhoso, fala da glória antiga da cidade.", "Desconfiado de forasteiros, mas ama boatos.", "Gentil, quer que alguém salve a família."][rng.randi() % 4]]
-		var quick := {"Quem é você?": "Me chamo %s. Sou %s aqui em %s." % [name, role[0], t.name],
-			"O que há por aqui?": ("O castelo no centro tem um Cavaleiro Negro. Os guardas não deixam ninguém passar." if t.city else "Os mortos andam pelas casas à noite. Os possuídos eram nossos vizinhos."),
-			"Alguma dica?": ["Os carrascos são lentos: role e acerte as costas.", "A Peste envenena; beba seiva para curar.", "Raio fura armadura de metal."][rng.randi() % 3]}
-		var p := add(name, role[0], role[1], role[2], role[3], spots[i], role[4], persona, quick, t.name)
-		t.npcs = t.get("npcs", []) + [p]
 
-func remove_town(t: Dictionary) -> void:
-	for p in t.get("npcs", []):
-		main.interacts.erase(p.interact)
-		people.erase(p)
-		p.root.queue_free()
-	t.npcs = []
+# one short line about where the hero is in the story, for the NPC prompt
+static func context_line(prog: Progression, quests: Quests, place: String = "") -> String:
+	var parts: PackedStringArray = []
+	if prog != null:
+		parts.append("o Pé-Molhado está no nível %d e já recuperou %d semente(s)" % [prog.level, prog.seeds.size()])
+	if quests != null:
+		var q: Dictionary = quests.current()
+		if not q.is_empty():
+			parts.append("a tarefa dele agora: \"%s\" (%s)" % [q.title, q.text])
+	if place != "":
+		parts.append("vocês estão em %s" % place)
+	return "; ".join(parts)
 
-const WORK := ["TreeChopping", "Farm_Harvest", "Farm_Watering", "Fixing_Kneeling", "Sitting_Idle"]
 
-func update(dt: float) -> void:
-	for p in people:
-		var root: Node3D = p.root
-		var d: Vector3 = main.player.position - root.position
-		if d.length_squared() > 3600.0 or main.dialog.visible:
-			continue
-		p.interact.pos = root.position
-		p.t -= dt
-		var works: bool = p.idle in WORK
-		if d.length() < 4.0:  # stop and turn to whoever comes close (the seated stay seated)
-			root.rotation.y = lerp_angle(root.rotation.y, atan2(d.x, d.z), 0.1)
-			p.target = root.position
-			var greet := "Sitting_Talking" if p.idle == "Sitting_Idle" else "Idle"
-			if p.ap.current_animation != greet:
-				p.ap.play(greet, 0.3)
-			continue
-		if works:  # at work: they stay at it
-			if p.ap.current_animation != p.idle:
-				p.ap.play(p.idle, 0.4)
-			continue
-		var to: Vector3 = p.target - root.position
-		to.y = 0.0
-		if to.length() > 0.4:
-			root.position += to.normalized() * 1.1 * dt
-			root.rotation.y = lerp_angle(root.rotation.y, atan2(to.x, to.z), 0.1)
-			root.position.y = main._ground_y(root.position, root.position.y)
-			var walk := "Walk_Carry" if p.get("carry", false) else "Walk"
-			if p.ap.current_animation != walk:
-				p.ap.play(walk, 0.3)
-		elif p.t <= 0.0:  # idle a while (a different stance each time), then stroll somewhere near home
-			p.t = randf_range(5.0, 12.0)
-			p.carry = randf() < 0.3
-			if randf() < 0.5:
-				p.target = p.home + Vector3(randf_range(-4, 4), 0, randf_range(-4, 4))
-			var stance: String = p.idle if randf() < 0.5 else IDLE_VARIANTS.pick_random()
-			if p.ap.current_animation != stance:
-				p.ap.play(stance, 0.4)
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS  # the world is paused while you talk
 
-# ------------------------------------------------------------------ Claude
-func system_prompt(p: Dictionary) -> String:
-	var s: Dictionary = main._quest_state()
-	return """Você é %s, %s, um personagem de um RPG sombrio de fantasia medieval (estilo Dark Souls) chamado Sementes do Dragão.
+
+func busy(role: String) -> bool:
+	return _busy.get(role, false)
+
+
+func forget(role: String) -> void:
+	_hist.erase(role)
+
+
+func system_prompt(role: String, context: String) -> String:
+	var p: Dictionary = info(role)
+	return """Você é %s, %s de Brasalume, num RPG de fantasia medieval chamado Sementes do Dragão.
 Quem é você: %s
+Como você fala: %s
+Seu segredo (não conte de cara; só deixe escapar aos poucos, se o viajante ganhar sua confiança ou tocar no assunto certo): %s
+Exemplos do seu jeito: %s
 %s
-O viajante com quem você fala: um %s de nível %d. Objetivo atual dele: %s. Onde vocês estão: %s.
-Regras: responda sempre em português do Brasil, em 1 a 3 frases curtas, como esse personagem falaria (vocabulário medieval, \
-tom sombrio). Nunca diga que é uma IA, um jogo ou um modelo. Se perguntarem algo que o personagem não saberia, responda \
-em personagem que não sabe. Dê dicas úteis só quando fizer sentido para o personagem. Não invente lugares, itens ou \
-mecânicas fora do que foi descrito.""" % [p.name, p.role, p.persona, LORE, Rpg.CLASSES[main.cls].name, main.level,
-		Rpg.current_objective(s), p.town if p.town != "" else "o vale do Santuário"]
+Agora: %s.
+Regras: responda sempre em português do Brasil, em 1 a 3 frases curtas, como essa pessoa falaria. Nunca diga que é uma IA, \
+um jogo ou um modelo. Se perguntarem algo que você não saberia, diga em personagem que não sabe. Não invente lugares, \
+itens ou mecânicas fora do que foi descrito. Dê dicas só quando fizer sentido para você.""" % [p.name, p.title, p.persona,
+		p.voice, p.secret, " / ".join(p.lines), LORE_SHORT, context if context != "" else "um dia comum na vila"]
 
-# sends the player's line; calls back cb(text) with the NPC's answer (or a scripted one when it cannot reach Claude)
-func ask(p: Dictionary, line: String, cb: Callable) -> void:
-	var key: String = main.menu.options.get("api_key", "")
-	if key.strip_edges() == "":
-		cb.call("(Para conversar livremente, coloque sua chave da API Anthropic em MENU > OPÇÕES.) " + p.quick.values()[0])
+
+# sends the player's line; cb.call(reply) with the NPC's answer (or a scripted one when it cannot reach Claude)
+func ask(role: String, line: String, context: String, cb: Callable) -> void:
+	var p: Dictionary = info(role)
+	var fallback: String = (p.lines as Array).pick_random()
+	var key: String = GameMenu.api_key()
+	if key == "":
+		cb.call(fallback + "\n(Para conversar livremente, coloque sua chave da API em MENU > OPÇÕES.)")
 		return
-	p.hist.append({"role": "user", "content": line})
-	var body := {"model": main.menu.options.get("ai_model", "claude-opus-5-5"), "max_tokens": 1024,
-		"output_config": {"effort": "low"}, "system": system_prompt(p), "messages": p.hist}
+	if busy(role):
+		return
+	var hist: Array = _hist.get(role, [])
+	hist.append({"role": "user", "content": line})
+	_hist[role] = hist
+	var body: Dictionary = {"model": str(GameMenu.options.get("ai_model", "claude-opus-5-5")), "max_tokens": 2048,
+		"output_config": {"effort": "low"}, "fallbacks": "default", "system": system_prompt(role, context), "messages": hist}
 	var req := HTTPRequest.new()
-	req.process_mode = Node.PROCESS_MODE_ALWAYS  # the world is paused while you talk
-	req.timeout = 30.0
+	req.process_mode = Node.PROCESS_MODE_ALWAYS
+	req.timeout = 45.0
 	add_child(req)
-	req.request_completed.connect(func(result: int, code: int, _h, data: PackedByteArray):
+	_busy[role] = true
+	req.request_completed.connect(func(result: int, code: int, _h: PackedStringArray, data: PackedByteArray) -> void:
 		req.queue_free()
-		var reply := ""
-		var j = JSON.parse_string(data.get_string_from_utf8()) if result == HTTPRequest.RESULT_SUCCESS else null
-		if code == 200 and j is Dictionary and j.get("stop_reason", "") != "refusal":
-			for blk in j.content:
-				if blk.get("type", "") == "text":
-					reply += blk.text
-			p.hist.append({"role": "assistant", "content": j.content})  # the whole content, thinking blocks included
+		_busy[role] = false
+		var reply: String = ""
+		var j: Variant = JSON.parse_string(data.get_string_from_utf8()) if result == HTTPRequest.RESULT_SUCCESS else null
+		if code == 200 and j is Dictionary and str(j.get("stop_reason", "")) != "refusal":
+			for blk: Variant in j.get("content", []):
+				if blk is Dictionary and str(blk.get("type", "")) == "text":
+					reply += str(blk.text)
+			hist.append({"role": "assistant", "content": j.content})  # whole content, thinking blocks included
 		else:
-			p.hist.pop_back()  # keep the history valid for the next try
-			var why: String = (j.get("error", {}).get("message", "") if j is Dictionary else "") if code != 0 else "sem conexão"
-			reply = "(Não consegui falar com a IA: %s) %s" % [why if why != "" else "erro %d" % code, p.quick.values()[0]]
+			hist.pop_back()  # keep the history valid for the next try
+			var why: String = "sem conexão" if result != HTTPRequest.RESULT_SUCCESS else "erro %d" % code
+			if code == 401:
+				why = "a chave foi recusada"
+			elif code == 429:
+				why = "muitas conversas seguidas, espere um pouco"
+			elif j is Dictionary and str(j.get("stop_reason", "")) == "refusal":
+				why = "a pergunta não pôde ser respondida"
+			reply = "%s\n(Não consegui falar com o Claude: %s.)" % [fallback, why]
+		if reply.strip_edges() == "":
+			reply = fallback
 		cb.call(reply.strip_edges()))
-	var err := req.request(API_URL, ["content-type: application/json", "x-api-key: " + key, "anthropic-version: 2023-06-01"],
+	var err: Error = req.request(API_URL, ["content-type: application/json", "x-api-key: " + key,
+		"anthropic-version: 2023-06-01", "anthropic-beta: server-side-fallback-2026-07-01"],
 		HTTPClient.METHOD_POST, JSON.stringify(body))
 	if err != OK:
-		p.hist.pop_back()
+		hist.pop_back()
+		_busy[role] = false
 		req.queue_free()
-		cb.call("(Sem conexão.) " + p.quick.values()[0])
+		cb.call(fallback + "\n(Sem conexão.)")
+
+
+# optional: puts the nine people at the map's npc_spots
+func spawn(map: Object, parent: Node3D) -> Array:
+	var out: Array = []
+	if map == null or not (map.get("npc_spots") is Array):
+		return out
+	for s: Dictionary in map.get("npc_spots"):
+		var role: String = str(s.get("role", ""))
+		var p: Dictionary = info(role)
+		var ch: Node3D = CharacterKit.make(p.look)
+		parent.add_child(ch)
+		ch.global_position = s.pos
+		ch.rotation.y = float(s.get("facing", 0.0))
+		ch.name = "NPC_" + role
+		var ap: AnimationPlayer = ch.get_meta("anim") as AnimationPlayer
+		var idle: String = {"blacksmith": "Idle_FoldArms", "elder": "Idle_Talking", "miner": "Idle_Lantern",
+			"merchant": "Idle_Talking", "farmer": "Farm_Harvest", "fisher": "Idle_Rail"}.get(role, "Idle")
+		if ap != null:
+			ap.play(idle if ap.has_animation(idle) else "Idle")
+		out.append({"role": role, "node": ch, "pos": s.pos})
+	return out

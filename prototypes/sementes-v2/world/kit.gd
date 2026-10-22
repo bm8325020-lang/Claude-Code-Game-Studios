@@ -113,6 +113,9 @@ func _tune(m: BaseMaterial3D, key: String) -> void:
 		m.cull_mode = BaseMaterial3D.CULL_DISABLED
 		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 		m.alpha_scissor_threshold = 0.4
+	if key.begins_with("Leaves") or key.begins_with("Bark") or key == "Grass" or key == "Flowers" or key == "Rocks" or key == "PathRocks" or key == "Leaves":
+		# lets MultiMesh instance colours tint vegetation (variation without new materials)
+		m.vertex_color_use_as_albedo = true
 	if key == "MI_WindowGlass":
 		m.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 		m.albedo_color = Color(0.22, 0.20, 0.17)

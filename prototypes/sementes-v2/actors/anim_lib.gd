@@ -1,10 +1,16 @@
 # PROTOTYPE - NOT FOR PRODUCTION
 # Shared AnimationLibrary for every Quaternius character (Universal Base Characters rig, Unreal-mannequin bone
-# names). Raw material: Universal Animation Library 1 and 2 (CC0 mocap). Each clip keeps its UAL name ("Walk",
-# "Sword_Idle", ...), loops where it should, and only the root/pelvis keep translation (scaled to the model's hip
-# height). Root motion is taken out of the pose and kept in ROOT_MOTION so the body (CharacterBody3D) moves instead.
-# On top of the raw clips this file AUTHORS the hero's actions (names of the HeroAnim.act contract: light1..light4,
-# heavy, dodge, roll...): trimmed, re-timed and stitched segments, with hit frames measured from the sword tip speed.
+# names; also the Imp and Puglin monsters). Raw material: Universal Animation Library 1 and 2 (CC0 mocap). Each clip
+# keeps its UAL name ("Walk", "Sword_Idle", ...), loops where it should, and only the root/pelvis keep translation
+# (scaled to the model's hip height). Root motion is taken out of the pose and kept as data so the body
+# (CharacterBody3D) moves instead.
+# On top of the raw clips this file AUTHORS the actions of the HeroAnim.act contract (light1..light4, heavy, dodge,
+# roll...): trimmed, re-timed and stitched segments, with hit frames measured from the weapon tip speed, plus short
+# lower-case aliases for simple AI use: idle, walk, run, sprint, attack, attack2, attack3, hit, hit_heavy, death,
+# knockdown, getup, dodge, block, taunt, cheer, talk (play them with Anim.play("walk")).
+# One library per skeleton size (Male, Female, Imp, Puglin); its measurements live in the library metadata:
+#   AnimLib.info(lib, "light1") -> {length, hit, cancel, invuln, move, in, out, hold}
+#   AnimLib.speed(lib, "Loco_Walk") -> m/s,  AnimLib.motion_between(lib, "roll", t0, t1) -> Vector3 (model space)
 class_name AnimLib
 extends RefCounted
 
@@ -15,13 +21,39 @@ const LOOPS: Array[String] = ["Idle", "Sword_Idle", "Jog_Fwd", "Walk", "Walk_For
 	"Idle_Rail", "Idle_Rail_Call", "Idle_No", "Push", "Farm_Harvest", "Farm_Watering", "Fixing_Kneeling", "Walk_Carry",
 	"TreeChopping", "Pistol_Idle", "Idle_TalkingPhone", "NinjaJump_Idle", "Slide", "Driving"]
 const FPS: float = 30.0
+const ALIASES: Dictionary = {"idle": "Idle", "walk": "Loco_Walk", "run": "Loco_Jog", "sprint": "Loco_Sprint",
+	"attack": "light1", "attack2": "light2", "attack3": "heavy", "hit": "hit_light", "hit_heavy": "hit_heavy",
+	"death": "death", "knockdown": "knockdown", "getup": "getup", "dodge": "dodge", "block": "Idle_Shield",
+	"taunt": "Idle_No", "cheer": "cheer", "talk": "Idle_Talking", "combat_idle": "Sword_Idle"}
 
 static var _libs: Dictionary = {}      # skeleton key -> AnimationLibrary
-static var ROOT_MOTION: Dictionary = {}  # clip -> PackedVector3Array (root offset per 1/FPS, model space, metres)
-static var INFO: Dictionary = {}         # authored action -> {length, hit, cancel, invuln, move}
-static var SPEED: Dictionary = {}        # locomotion clip -> ground speed in m/s (measured from the planted foot)
-static var CYCLE: Dictionary = {}        # locomotion clip -> natural cycle period in seconds
-static var _raw: Dictionary = {}         # clip -> Animation with the root travel still in it (authoring input)
+# Measurements of the first human (hero-sized) library, kept for code that reads them directly (enemy.gd):
+static var ROOT_MOTION: Dictionary = {}
+static var INFO: Dictionary = {}
+static var SPEED: Dictionary = {}
+static var CYCLE: Dictionary = {}
+# Build scratch (filled while one library is built, then stored in its metadata):
+static var _motion: Dictionary = {}    # clip -> PackedVector3Array (root offset per 1/FPS, model space, metres)
+static var _info: Dictionary = {}      # authored action -> {length, hit, cancel, invuln, move, in, out, hold}
+static var _speed: Dictionary = {}     # locomotion clip -> ground speed in m/s (measured from the planted foot)
+static var _cycle_len: Dictionary = {} # locomotion clip -> natural cycle period in seconds
+static var _raw: Dictionary = {}       # clip -> Animation with the root travel still in it (authoring input)
+
+
+static func info(lib: AnimationLibrary, action: String) -> Dictionary:
+	return (lib.get_meta("info") as Dictionary).get(action, {})
+
+
+static func has_action(lib: AnimationLibrary, action: String) -> bool:
+	return (lib.get_meta("info") as Dictionary).has(action)
+
+
+static func speed(lib: AnimationLibrary, clip: String) -> float:
+	return (lib.get_meta("speed") as Dictionary).get(clip, 1.0)
+
+
+static func cycle(lib: AnimationLibrary, clip: String) -> float:
+	return (lib.get_meta("cycle") as Dictionary).get(clip, 1.0)
 
 
 # The library for this skeleton (cached per bone count and hip height).
@@ -30,7 +62,22 @@ static func library(sk: Skeleton3D) -> AnimationLibrary:
 	var hip: float = sk.get_bone_rest(pelvis).origin.length()
 	var key: String = "%d|%.3f" % [sk.get_bone_count(), hip]
 	if not _libs.has(key):
-		_libs[key] = _build(sk, hip)
+		_motion = {}
+		_info = {}
+		_speed = {}
+		_cycle_len = {}
+		var lib: AnimationLibrary = _build(sk, hip)
+		lib.set_meta("motion", _motion)
+		lib.set_meta("info", _info)
+		lib.set_meta("speed", _speed)
+		lib.set_meta("cycle", _cycle_len)
+		_raw = {}
+		_libs[key] = lib
+		if INFO.is_empty() and sk.find_bone("pinky_01_r") >= 0:
+			ROOT_MOTION = _motion
+			INFO = _info
+			SPEED = _speed
+			CYCLE = _cycle_len
 	return _libs[key]
 
 
@@ -83,7 +130,7 @@ static func _strip_root(a: Animation, t: int, clip: String) -> void:
 	for f in frames + 1:
 		var p: Vector3 = a.position_track_interpolate(t, minf(a.length, f / FPS))
 		path.append(Vector3(p.x - first.x, p.y - first.y if lift else 0.0, p.z - first.z))
-	ROOT_MOTION[clip] = path
+	_motion[clip] = path
 	for k in n:
 		var v: Vector3 = a.track_get_key_value(t, k)
 		a.track_set_key_value(t, k, Vector3(first.x, first.y if lift else v.y, first.z))
@@ -133,15 +180,17 @@ const ACTS: Dictionary = {
 	"heavy": {"seg": [["Sword_Attack", 0.0, 1.57, 0.95]], "hits": 1, "cancel": 0.3, "in": 0.12, "out": 0.35},
 	"sprint_attack": {"seg": [["Sword_Dash_RM", 0.0, 1.57, 1.1]], "hits": 1, "cancel": 0.3, "in": 0.06, "out": 0.3},
 	"parry": {"seg": [["Shield_OneShot", 0.0, 0.83, 1.15]], "hits": 0, "cancel_at": 0.45, "in": 0.05, "out": 0.25},
+	"block_hit_shield": {"seg": [["Idle_Shield_Break", 0.0, 1.07, 1.5]], "hits": 0, "cancel_at": 0.35, "in": 0.04, "out": 0.25, "push": Vector3(0, 0, -0.35), "push_t": 0.25},
 	"block_hit": {"seg": [["Sword_Block", 0.0, 1.0, 1.4]], "hits": 0, "cancel_at": 0.35, "in": 0.04, "out": 0.25, "push": Vector3(0, 0, -0.35), "push_t": 0.25},
 	# movement
-	"dodge": {"seg": [["Roll", 0.0, 1.05, 1.45]], "hits": 0, "cancel_at": 0.6, "invuln": Vector2(0.04, 0.42), "in": 0.05, "out": 0.25, "push": Vector3(0, 0, 3.2), "push_t": 0.45},
-	"roll": {"seg": [["Roll", 0.0, 1.3, 1.2]], "hits": 0, "cancel_at": 0.85, "invuln": Vector2(0.05, 0.55), "in": 0.06, "out": 0.3, "push": Vector3(0, 0, 4.2), "push_t": 0.7},
+	# Roll starts with a dive; the dodges start where the hands reach for the ground (no floaty leap)
+	"dodge": {"seg": [["Roll", 0.38, 1.4, 1.45]], "hits": 0, "cancel_at": 0.5, "invuln": Vector2(0.0, 0.36), "in": 0.07, "out": 0.25, "push": Vector3(0, 0, 2.8), "push_t": 0.42},
+	"roll": {"seg": [["Roll", 0.3, 1.5, 1.2]], "hits": 0, "cancel_at": 0.75, "invuln": Vector2(0.02, 0.5), "in": 0.08, "out": 0.3, "push": Vector3(0, 0, 3.8), "push_t": 0.62},
 	"backstep": {"seg": [["Shield_Dash_RM", 0.0, 0.75, 1.3]], "hits": 0, "cancel_at": 0.4, "invuln": Vector2(0.03, 0.25), "in": 0.05, "out": 0.25, "push": Vector3(0, 0, -1.6), "push_t": 0.3, "mirror_travel": true},
 	"jump": {"seg": [["Jump_Start", 0.15, 1.37, 1.3]], "hits": 0, "cancel_at": 0.3, "in": 0.06, "out": 0.25},
 	"fall": {"seg": [["Jump", 0.0, 0.6, 1.0]], "hits": 0, "cancel_at": 0.0, "in": 0.25, "out": 0.25},
 	"land": {"seg": [["Jump_Land", 0.0, 1.3, 1.25]], "hits": 0, "cancel_at": 0.35, "in": 0.05, "out": 0.3},
-	"climb": {"seg": [["ClimbUp_1m_RM", 0.0, 0.67, 0.9]], "hits": 0, "cancel_at": 0.7, "in": 0.1, "out": 0.2, "center": false},
+	"climb": {"seg": [["ClimbUp_1m_RM", 0.0, 0.67, 0.9]], "hits": 0, "cancel_at": 0.7, "in": 0.1, "out": 0.2, "center": false, "root_travel": true},
 	# reactions
 	"hit_light": {"seg": [["Hit_Chest", 0.0, 0.37, 0.9]], "hits": 0, "cancel_at": 0.3, "in": 0.03, "out": 0.2},
 	"hit_heavy": {"seg": [["Idle_Shield_Break", 0.0, 1.07, 1.1]], "hits": 0, "cancel_at": 0.6, "in": 0.04, "out": 0.3},
@@ -150,7 +199,7 @@ const ACTS: Dictionary = {
 	"death": {"seg": [["Death01", 0.0, 2.43, 1.0]], "hits": 0, "cancel_at": 99.0, "in": 0.08, "out": 0.3, "center": false, "hold": true},
 	# life
 	"cast": {"seg": [["Spell_Simple_Enter", 0.0, 0.57, 1.1], ["Spell_Simple_Shoot", 0.0, 0.53, 1.0], ["Spell_Simple_Exit", 0.0, 0.47, 1.0]], "hits": 1, "hand": "both", "cancel": 0.3, "in": 0.12, "out": 0.3},
-	"drink": {"seg": [["Consume", 0.0, 1.33, 1.0]], "hits": 0, "cancel_at": 1.1, "in": 0.15, "out": 0.3},
+	"drink": {"seg": [["Consume", 0.0, 1.33, 1.0]], "hits": 0, "cancel_at": 1.1, "in": 0.15, "out": 0.3, "upper": true},
 	"interact": {"seg": [["Interact", 0.0, 2.03, 1.25]], "hits": 0, "cancel_at": 1.2, "in": 0.15, "out": 0.35},
 	"pickup": {"seg": [["PickUp_Table", 0.0, 0.87, 0.9]], "hits": 0, "cancel_at": 0.8, "in": 0.12, "out": 0.3},
 	"open_chest": {"seg": [["Chest_Open", 0.0, 1.37, 1.0]], "hits": 0, "cancel_at": 1.2, "in": 0.15, "out": 0.35},
@@ -177,6 +226,9 @@ static func _author(lib: AnimationLibrary, sk: Skeleton3D) -> void:
 	for nm in ACTS:
 		lib.add_animation(nm, _compose(sk, nm, ACTS[nm], idle_pelvis))
 	lib.add_animation("Grip", _grip(sk))
+	for al in ALIASES:
+		if lib.has_animation(ALIASES[al]):
+			lib.add_animation(al, lib.get_animation(ALIASES[al]))
 
 
 # Finds the left heel strike (left foot furthest forward), measures ground speed from the planted foot,
@@ -209,8 +261,8 @@ static func _cycle(sk: Skeleton3D, a: Animation, nm: String) -> Animation:
 		if pts[f].y < lowest + 0.05 and pts[f].x == pts[f - 1].x:
 			vels.append(absf(pts[f].z - pts[f - 1].z) * FPS)
 	vels.sort()
-	SPEED[nm] = vels[vels.size() / 2] if not vels.is_empty() else 1.0
-	CYCLE[nm] = a.length
+	_speed[nm] = vels[vels.size() / 2] if not vels.is_empty() else 1.0
+	_cycle_len[nm] = a.length
 	var out := Animation.new()
 	out.length = 1.0
 	out.loop_mode = Animation.LOOP_LINEAR
@@ -304,6 +356,12 @@ static func _compose(sk: Skeleton3D, nm: String, cfg: Dictionary, idle_pelvis: V
 		rots.append_array(seg_rots)
 		root_pos.append_array(seg_root)
 		pelvis_pos.append_array(seg_pel)
+	# clips whose travel is on the root bone (climb): the body moves by root motion, the pose stays on the capsule
+	if cfg.get("root_travel", false):
+		var base_r: Vector3 = root_pos[0]
+		for i in root_pos.size():
+			motion[i] = root_pos[i] - base_r
+			root_pos[i] = base_r
 	# authored extra travel (dodges): ease-out over push_t
 	var push: Vector3 = cfg.get("push", Vector3.ZERO)
 	var push_t: float = cfg.get("push_t", 0.3)
@@ -328,8 +386,8 @@ static func _compose(sk: Skeleton3D, nm: String, cfg: Dictionary, idle_pelvis: V
 		var arr: Array[Vector3] = pair[1]
 		for f in frames:
 			out.position_track_insert_key(tr, f / FPS, arr[f])
-	ROOT_MOTION[nm] = PackedVector3Array(motion)
-	INFO[nm] = _measure(sk, out, cfg, motion)
+	_motion[nm] = PackedVector3Array(motion)
+	_info[nm] = _measure(sk, out, cfg, motion)
 	return out
 
 
@@ -379,7 +437,7 @@ static func _measure(sk: Skeleton3D, a: Animation, cfg: Dictionary, motion: Arra
 		cancel = hits[hits.size() - 1] + float(cfg.get("cancel", 0.15))
 	return {"length": a.length, "hit": hits, "cancel": minf(cancel, a.length), "invuln": cfg.get("invuln", Vector2.ZERO),
 		"move": motion[motion.size() - 1] if not motion.is_empty() else Vector3.ZERO,
-		"in": cfg.get("in", 0.15), "out": cfg.get("out", 0.3), "hold": cfg.get("hold", false)}
+		"in": cfg.get("in", 0.15), "out": cfg.get("out", 0.3), "hold": cfg.get("hold", false), "upper": cfg.get("upper", false)}
 
 
 # One-frame clip with closed fists: right fingers from Sword_Idle, left from Idle_Shield.
@@ -403,10 +461,11 @@ static func _grip(sk: Skeleton3D) -> Animation:
 
 
 # Root motion of action `nm` between two moments (model space, metres).
-static func motion_between(nm: String, t0: float, t1: float) -> Vector3:
-	if not ROOT_MOTION.has(nm):
+static func motion_between(lib: AnimationLibrary, nm: String, t0: float, t1: float) -> Vector3:
+	var all: Dictionary = lib.get_meta("motion")
+	if not all.has(nm):
 		return Vector3.ZERO
-	var m: PackedVector3Array = ROOT_MOTION[nm]
+	var m: PackedVector3Array = all[nm]
 	return _motion_at(m, t1) - _motion_at(m, t0)
 
 
