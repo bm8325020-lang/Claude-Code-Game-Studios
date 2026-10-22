@@ -1,2 +1,0 @@
-Quaternius (quaternius.com) — License: Creative Commons Zero (CC0)
-- Medieval Village MegaKit [Standard]: glTF modules, textures scaled to 1024 px

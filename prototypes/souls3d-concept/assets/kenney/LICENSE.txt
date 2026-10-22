@@ -1,3 +1,0 @@
-Kenney 3D kits (castle, fantasy-town, graveyard, nature, retro-fantasy, modular-dungeon)
-Author: Kenney (www.kenney.nl) — License: Creative Commons Zero (CC0)
-Fetched from the shorepine/kenney mirror on GitHub. Recoloured in-game by kenney_dark.gdshader.
