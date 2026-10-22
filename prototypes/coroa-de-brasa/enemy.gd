@@ -24,7 +24,7 @@ var elite := false
 var dead := false
 var state := "spawn"
 var t := 0.0
-var cd := 1.0  # time until the next attack may start
+var cd := 1.8  # time until the next attack may start
 var warn: Node3D
 var burn_t := 0.0
 var stun_t := 0.0
@@ -166,7 +166,18 @@ func _anim(n: String, blend := 0.2) -> void:
 	if ap.current_animation != n:
 		ap.play(n, blend)
 
+# only two enemies wind up or strike at a time; the others wait their turn (keeps crowds fair on a phone)
+func _turn_free() -> bool:
+	var n := 0
+	for o in main.enemies:
+		if o != self and not o.dead and o.state in ["windup", "strike"]:
+			n += 1
+	return n < 2
+
 func _windup() -> void:
+	if not _turn_free():
+		cd = randf_range(0.3, 0.8)
+		return
 	state = "windup"
 	t = 0.0
 	ap.play(def.attack, 0.1)
@@ -213,6 +224,9 @@ func _shoot(dir: Vector3, spd: float, homing: float, col: Color) -> void:
 
 func hurt(amount: float, from: Vector3) -> void:
 	hp -= amount
+	var tw := create_tween()  # a squash on every hit: you feel each blow land
+	tw.tween_property(model, "scale", Vector3(1.15, 0.85, 1.15) * scale_k, 0.05)
+	tw.tween_property(model, "scale", Vector3.ONE * scale_k, 0.1)
 	if state == "spawn":
 		return
 	var away := global_position - from

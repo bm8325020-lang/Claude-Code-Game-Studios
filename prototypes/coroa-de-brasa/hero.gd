@@ -378,7 +378,7 @@ func hurt(amount: float, from: Vector3) -> void:
 	if guard_t > 0.0:
 		amount *= 0.5
 	hp -= amount
-	invuln = 0.5
+	invuln = 0.7
 	if hp <= 0.0:
 		hp = 0.0
 		dead = true

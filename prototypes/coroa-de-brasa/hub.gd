@@ -102,6 +102,12 @@ static func build(parent: Node3D) -> Dictionary:
 	pl.omni_range = 8.0
 	portal.add_child(pl)
 	Rig.merge_static(node)
+	var grass := ShaderMaterial.new()  # the kit's lime grass is too yellow on a phone screen
+	grass.shader = load("res://grass.gdshader")
+	grass.set_shader_parameter("atlas", load("res://assets/village/hexagons_medieval.png"))
+	for mi in node.get_children():
+		if mi is MeshInstance3D and mi.mesh.surface_get_material(0) is StandardMaterial3D and mi.mesh.surface_get_material(0).albedo_texture != null and mi.mesh.surface_get_material(0).albedo_texture.resource_path.ends_with("hexagons_medieval.png"):
+			mi.material_override = grass
 	# villagers: KayKit adventurers at work
 	var people := [["Barbarian", hex_pos(2, 0) + Vector3(-2.2, 0, 2.6), "Hammering", PI * 0.8, "axe_1handed", ""],
 		["Mage", hex_pos(-1, 3) + Vector3(2.5, 0, 0), "Sit_Floor_Idle", -PI / 2.0, "", ""],
@@ -114,12 +120,6 @@ static func build(parent: Node3D) -> Dictionary:
 		r[0].rotation.y = pp[3]
 		node.add_child(r[0])
 		r[1].play(pp[2])
-	var sun := OmniLight3D.new()
-	sun.position = Vector3(0, 10, 0)
-	sun.light_color = Color(1, 0.9, 0.75)
-	sun.light_energy = 0.5
-	sun.omni_range = 30
-	node.add_child(sun)
 	return {"node": node, "spawn": hex_pos(0, 2) + Vector3(0, 0, 0), "bounds": Rect2(-34, -32, 68, 64),
 		"stations": [
 			{"pos": portal.position, "label": "ENTRAR NA MASMORRA", "action": "portal"},

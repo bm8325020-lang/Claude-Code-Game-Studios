@@ -47,11 +47,11 @@ static func build(parent: Node3D, biome: String, rng: RandomNumberGenerator, bos
 				"fort":
 					f = ["floor_wood_large", "floor_wood_large", "floor_wood_large_dark"][rng.randi() % 3]
 			put.call("dungeon", f, c, rng.randi() % 4 * PI / 2.0)
-	var exit_i := w / 2
+	var exit_is := [w / 2] if boss else [w / 3, w - 1 - w / 3]  # two doors: you choose the next room's reward
 	# far walls: north (z0) and west (x0); near sides: low fences (or nothing in the forest)
 	for i in w:
 		var c := Vector3(x0 + (i + 0.5) * TILE, 0, z0)
-		if i == exit_i:
+		if i in exit_is:
 			continue
 		_wall(put, biome, c, 0.0, rng)
 	for j in d:
@@ -75,9 +75,13 @@ static func build(parent: Node3D, biome: String, rng: RandomNumberGenerator, bos
 	box.call(Vector3(0, 2, z0 + d * TILE + 0.3), Vector3(w * TILE + 2, 4, 0.6))
 	box.call(Vector3(x0 - 0.4, 2, 0), Vector3(1, 4, d * TILE + 2))
 	box.call(Vector3(x0 + w * TILE + 0.3, 2, 0), Vector3(0.6, 4, d * TILE + 2))
-	# the exit gate
-	var exit := Vector3(x0 + (exit_i + 0.5) * TILE, 0, z0)
-	var gate: Node3D = put.call("dungeon", "wall_gated" if biome != "forest" else "wall_doorway", exit, 0.0)
+	# the exit gates
+	var exits := []
+	for ei in exit_is:
+		var at := Vector3(x0 + (ei + 0.5) * TILE, 0, z0)
+		var g: Node3D = put.call("dungeon", "wall_gated" if biome != "forest" else "wall_doorway", at, 0.0)
+		g.set_meta("keep", true)  # swapped for an open doorway later: not merged
+		exits.append({"pos": at + Vector3(0, 0, 1.2), "gate": g, "at": at})
 	# obstacles: cover to fight around, never on the path from the entry to the exit
 	var obstacles: Array = {"crypt": [["dungeon", "pillar", 1.0], ["dungeon", "barrel_large", 1.0], ["dungeon", "crates_stacked", 1.0], ["dungeon", "column", 1.3], ["dungeon", "box_large", 1.0]],
 		"forest": [["forest", "Rock_1_A_Color1", 2.6], ["forest", "Rock_3_B_Color1", 1.6], ["forest", "Tree_2_A_Color1", 1.4], ["forest", "Tree_Bare_1_A_Color1", 1.4], ["forest", "Rock_2_C_Color1", 1.8]],
@@ -88,7 +92,7 @@ static func build(parent: Node3D, biome: String, rng: RandomNumberGenerator, bos
 		for tries in 12:
 			var gx := rng.randi_range(1, w - 2)
 			var gz := rng.randi_range(1, d - 2)
-			if gx == w / 2 or Vector2i(gx, gz) in taken:
+			if gx in exit_is or gx == w / 2 or Vector2i(gx, gz) in taken:
 				continue
 			taken.append(Vector2i(gx, gz))
 			var o: Array = obstacles[rng.randi() % obstacles.size()]
@@ -106,7 +110,6 @@ static func build(parent: Node3D, biome: String, rng: RandomNumberGenerator, bos
 				put.call("forest", ["Grass_1_A_Color1", "Grass_2_B_Color1", "Bush_1_A_Color1", "Grass_1_C_Color1"][rng.randi() % 4], pos, rng.randf() * TAU, 2.0)
 			"fort":
 				put.call("dungeon", ["box_small", "bottle_B_green", "coin_stack_medium", "candle_lit"][rng.randi() % 4], pos, rng.randf() * TAU)
-	gate.set_meta("keep", true)  # the gate is swapped for an open doorway later: not merged
 	Rig.merge_static(node)
 	# light: two warm lamps over the room (the far wall's torches are only decor)
 	for k in 2:
@@ -120,8 +123,8 @@ static func build(parent: Node3D, biome: String, rng: RandomNumberGenerator, bos
 	var spawns := []
 	for k in 12:
 		spawns.append(Vector3(rng.randf_range(x0 + 3, x0 + w * TILE - 3), 0, rng.randf_range(z0 + 3, z0 + d * TILE * 0.6)))
-	return {"node": node, "bounds": Rect2(x0 + 0.8, z0 + 0.8, w * TILE - 1.6, d * TILE - 1.6), "exit": exit + Vector3(0, 0, 1.2),
-		"entry": Vector3(x0 + (w / 2 + 0.5) * TILE, 0, z0 + d * TILE - 2.5), "spawns": spawns, "gate": gate, "w": w, "d": d}
+	return {"node": node, "bounds": Rect2(x0 + 0.8, z0 + 0.8, w * TILE - 1.6, d * TILE - 1.6), "exits": exits,
+		"entry": Vector3(x0 + (w / 2 + 0.5) * TILE, 0, z0 + d * TILE - 2.5), "spawns": spawns, "w": w, "d": d}
 
 static func _wall(put: Callable, biome: String, c: Vector3, rot: float, rng: RandomNumberGenerator) -> void:
 	if biome == "forest":  # a line of trees and rocks
@@ -138,4 +141,4 @@ static func _wall(put: Callable, biome: String, c: Vector3, rot: float, rng: Ran
 		put.call("dungeon", "banner_%s" % col if rng.randf() < 0.5 else "banner_patternA_%s" % col, c + inward * 0.3, rot)
 
 static func _bush(put: Callable, c: Vector3, rng: RandomNumberGenerator) -> void:
-	put.call("forest", ["Bush_1_A_Color1", "Bush_2_A_Color1", "Bush_4_B_Color1"][rng.randi() % 3], c, rng.randf() * TAU, 3.0)
+	put.call("forest", ["Bush_1_A_Color1", "Bush_2_A_Color1", "Bush_4_B_Color1"][rng.randi() % 3], c, rng.randf() * TAU, 1.8)

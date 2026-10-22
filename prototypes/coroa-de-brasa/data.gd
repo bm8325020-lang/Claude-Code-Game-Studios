@@ -52,13 +52,13 @@ const TINT_NAMES := ["Original", "Azul", "Rubi", "Esmeralda", "Ouro", "Ametista"
 # ------------------------------------------------------------------ enemies
 # kind: melee / ranged (shoots) / caster (slow homing orbs, summons); scale > 1 for elites and bosses
 const ENEMIES := {
-	"minion": {"name": "Esqueleto", "model": "Skeleton_Minion", "hp": 40, "dmg": 10, "speed": 4.2, "range": 1.8, "kind": "melee",
+	"minion": {"name": "Esqueleto", "model": "Skeleton_Minion", "hp": 40, "dmg": 8, "speed": 4.2, "range": 1.8, "kind": "melee",
 		"attack": "Melee_1H_Attack_Chop", "right": "Skeleton_Blade", "gold": 3, "xp": 4},
-	"warrior": {"name": "Guerreiro Ossudo", "model": "Skeleton_Warrior", "hp": 90, "dmg": 18, "speed": 3.4, "range": 2.2, "kind": "melee",
+	"warrior": {"name": "Guerreiro Ossudo", "model": "Skeleton_Warrior", "hp": 90, "dmg": 14, "speed": 3.4, "range": 2.2, "kind": "melee",
 		"attack": "Melee_2H_Attack_Chop", "right": "Skeleton_Axe", "left": "Skeleton_Shield_Large_A", "gold": 6, "xp": 8},
-	"rogue": {"name": "Atirador Ossudo", "model": "Skeleton_Rogue", "hp": 50, "dmg": 12, "speed": 4.6, "range": 11.0, "kind": "ranged",
+	"rogue": {"name": "Atirador Ossudo", "model": "Skeleton_Rogue", "hp": 50, "dmg": 9, "speed": 4.6, "range": 11.0, "kind": "ranged",
 		"attack": "Ranged_1H_Shoot", "right": "Skeleton_Crossbow", "gold": 4, "xp": 6},
-	"mage": {"name": "Necromante", "model": "Skeleton_Mage", "hp": 60, "dmg": 16, "speed": 3.2, "range": 10.0, "kind": "caster",
+	"mage": {"name": "Necromante", "model": "Skeleton_Mage", "hp": 60, "dmg": 13, "speed": 3.2, "range": 10.0, "kind": "caster",
 		"attack": "Ranged_Magic_Shoot", "right": "Skeleton_Staff", "gold": 6, "xp": 8},
 }
 # bosses: a giant of one enemy kind with extra moves; phase 2 under half HP

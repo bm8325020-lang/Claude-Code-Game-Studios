@@ -127,6 +127,17 @@ func _draw() -> void:
 		_text(main.room_title(), Vector2(vs.x * 0.5 - 260, 60), 30, Color(0.9, 0.9, 1))
 		var xb: float = float(main.run.xp_run)
 		_text("XP +%d" % int(xb), Vector2(40, 196), 24, Color(0.7, 0.9, 1))
+	# enemies' life over their heads (once hurt), and a red edge when your life is low
+	for e in main.enemies:
+		if e.dead or e.hp >= e.max_hp or e == main.boss_node() or main.cam.is_position_behind(e.global_position):
+			continue
+		var sp: Vector2 = main.cam.unproject_position(e.global_position + Vector3(0, 2.3 * e.scale_k, 0))
+		draw.draw_rect(Rect2(sp - Vector2(40, 0), Vector2(80, 9)), Color(0, 0, 0, 0.6))
+		draw.draw_rect(Rect2(sp - Vector2(39, -1), Vector2(78 * clampf(e.hp / e.max_hp, 0, 1), 7)), Color(1, 0.3, 0.9) if e.elite else Color(0.9, 0.2, 0.2))
+	if main.in_run() and h.hp < h.max_hp * 0.3 and not h.dead:
+		var pulse := 0.25 + 0.15 * sin(Time.get_ticks_msec() * 0.008)
+		for k in 6:
+			draw.draw_rect(Rect2(Vector2.ZERO, vs), Color(0.8, 0, 0, pulse * (1.0 - k / 6.0) * 0.4), false, 12.0 + k * 14.0)
 	# joystick
 	if stick_id >= 0:
 		draw.draw_circle(stick_origin, 110, Color(1, 1, 1, 0.08))

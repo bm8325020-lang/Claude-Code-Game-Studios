@@ -34,6 +34,8 @@ var waves := 0
 var cleared := false
 var boss: Node3D
 var sfx_pool: Array = []
+var music_player: AudioStreamPlayer
+var music_now := ""
 var autoplay := OS.get_environment("COROA_AUTOPLAY") != ""
 
 var paused_game: bool:
@@ -66,6 +68,9 @@ func _ready() -> void:
 	ui = UI.new()
 	add_child(ui)
 	ui.setup(self)
+	music_player = AudioStreamPlayer.new()
+	music_player.volume_db = -10.0
+	add_child(music_player)
 	for i in 8:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
@@ -107,22 +112,34 @@ func go_hub() -> void:
 	sun.light_color = Color(1, 0.93, 0.8)
 	sun.light_energy = 0.95
 	_spawn_hero(place.spawn)
+	music("town")
 	ui.banner("VILA DA BRASA", "Altar dos Heróis · Forja · Portal da Masmorra", Color(1, 0.85, 0.5))
 
 func in_run() -> bool:
 	return not run.is_empty()
 
+var starting := false
+
 func start_run() -> void:
+	if starting:
+		return  # the portal fade is already running
+	starting = true
 	var potions := 2 + int(save.upgrades.get("pocao", 0))
 	run = {"floor": 0, "room": 0, "potions": potions, "bless": {}, "gold": 0, "xp_run": 0, "rng": RandomNumberGenerator.new()}
 	run.rng.randomize()
 	save.runs += 1
-	ui.transition(func(): _next_room())
+	ui.transition(func():
+		starting = false
+		_next_room())
 
 func _next_room() -> void:
+	if run.is_empty():
+		return  # the run ended during the fade
 	var fl: Dictionary = Data.FLOORS[run.floor]
 	run.room += 1
 	var is_boss: bool = run.room > fl.rooms
+	if autoplay:
+		print("ROOM floor %d room %d hp %d reward %s" % [run.floor + 1, run.room, int(hero.hp), run.get("reward", "")])
 	_clear_world()
 	place = Room.build(world, fl.biome, run.rng, is_boss)
 	var bg: Color = {"crypt": Color(0.04, 0.03, 0.07), "forest": Color(0.03, 0.07, 0.05), "fort": Color(0.08, 0.03, 0.03)}[fl.biome]
@@ -142,10 +159,12 @@ func _next_room() -> void:
 		boss = b
 		waves = 0
 		ui.banner(Data.BOSSES[run.floor].name.to_upper(), fl.name, Color(1, 0.4, 0.3), 3.0)
+		music("boss")
 		sfx("impactBell_heavy_000")
 	else:
 		waves = 2 if run.room > 1 else 1
 		_wave()
+		music("forest" if fl.biome == "forest" else "dungeon")
 		ui.banner(fl.name.to_upper() if run.room == 1 else "SALA %d" % run.room, "Derrote todos os inimigos" if run.room == 1 else "", Color(0.9, 0.85, 1), 2.0)
 
 func _wave() -> void:
@@ -156,7 +175,7 @@ func _wave() -> void:
 	var spots: Array = place.spawns.duplicate()
 	spots.shuffle()
 	for i in mini(n, spots.size()):
-		var elite: bool = run.rng.randf() < 0.06 + depth * 0.015
+		var elite: bool = depth >= 3 and run.rng.randf() < 0.03 + depth * 0.012  # no elites in the first rooms
 		spawn_enemy(fl.pool[run.rng.randi() % fl.pool.size()], spots[i], elite)
 
 func spawn_enemy(kind: String, pos: Vector3, elite := false) -> void:
@@ -194,7 +213,7 @@ func _physics_process(dt: float) -> void:
 		_autoplay()
 	if ui.pressed("interact"):
 		_interact()
-	if in_run() and place.has("exit"):  # (not during the fade into the first room)
+	if in_run() and place.has("exits"):  # (not during the fade into the first room)
 		_update_room()
 	_update_pickups(dt)
 
@@ -225,8 +244,13 @@ func _update_room() -> void:
 		_wave()
 	elif not cleared and alive.is_empty() and waves <= 0:
 		_room_clear()
-	if cleared and hero.global_position.distance_to(place.exit) < 2.2 and not run.has("leaving"):
+	var door := -1
+	for i in place.exits.size():
+		if cleared and hero.global_position.distance_to(place.exits[i].pos) < 2.2:
+			door = i
+	if door >= 0 and not run.has("leaving"):
 		run.leaving = true
+		run.reward = place.exits[door].get("reward", "bless")
 		sfx("doorOpen_1")
 		ui.transition(func():
 			run.erase("leaving")
@@ -247,25 +271,66 @@ func _room_clear() -> void:
 		run.room = 0
 		hero.hp = minf(hero.max_hp, hero.hp + hero.max_hp * 0.5)
 	else:
-		ui.banner("SALA LIMPA", "", Color(0.6, 1, 0.6), 1.5)
-	_open_gate()
-	var pool := Data.BLESSINGS.duplicate()
-	pool.shuffle()
-	get_tree().create_timer(0.9).timeout.connect(func():
-		if in_run() and not hero.dead:
-			ui.blessings(pool.slice(0, 3), _take_blessing))
+		ui.banner("SALA LIMPA", "Escolha uma porta: cada uma leva a uma recompensa", Color(0.6, 1, 0.6), 2.0)
+	_open_gates()
+	_give_reward(run.get("reward", "bless"))
 
-func _open_gate() -> void:
-	var g: Node3D = place.gate
-	var at := g.position
-	g.queue_free()
-	var door := Rig.prop("dungeon", "wall_doorway")
-	door.position = at
-	place.node.add_child(door)
-	var glow := Fx.orb(1.0, Color(1, 0.6, 0.2))
-	glow.position = at + Vector3(0, 1.5, 0.6)
-	glow.scale = Vector3(1.2, 1.6, 0.2)
-	place.node.add_child(glow)
+# the reward of the room you chose (shown over its door), given when it is clear
+const REWARDS := {"bless": ["BÊNÇÃO", Color(1, 0.8, 0.3)], "gold": ["OURO", Color(1, 0.9, 0.2)], "heal": ["CURA", Color(0.4, 1, 0.5)],
+	"potion": ["POÇÃO", Color(1, 0.45, 0.65)]}
+
+func _give_reward(kind: String) -> void:
+	match kind:
+		"bless":
+			var pool := Data.BLESSINGS.duplicate()
+			pool.shuffle()
+			get_tree().create_timer(0.9).timeout.connect(func():
+				if in_run() and not hero.dead:
+					ui.blessings(pool.slice(0, 3), _take_blessing))
+		"gold":
+			var c := Rig.prop("dungeon", "chest_gold")
+			world.add_child(c)
+			c.global_position = hero.global_position + Vector3(0, 0, -2.5)
+			var n: int = 40 + run.floor * 30
+			for k in 6:
+				_coin(c.global_position, n / 6)
+			ui.banner("TESOURO", "+%d ouro" % int(n * gold_mult()), Color(1, 0.9, 0.3), 1.5)
+		"heal":
+			hero.hp = minf(hero.max_hp, hero.hp + hero.max_hp * 0.4)
+			Fx.burst(world, hero.global_position + Vector3(0, 1, 0), Color(0.4, 1, 0.5), 30, 5.0)
+			ui.banner("FONTE DE VIDA", "+40% de vida", Color(0.4, 1, 0.5), 1.5)
+		"potion":
+			run.potions += 1
+			ui.banner("POÇÃO", "+1 poção de cura", Color(1, 0.45, 0.65), 1.5)
+
+func _open_gates() -> void:
+	var kinds := ["bless", "bless", "gold", "heal", "potion"]
+	kinds.shuffle()
+	var used := []
+	for ex in place.exits:
+		var g: Node3D = ex.gate
+		g.queue_free()
+		var door := Rig.prop("dungeon", "wall_doorway")
+		door.position = ex.at
+		place.node.add_child(door)
+		var kind: String = kinds.filter(func(k): return k not in used)[0]
+		used.append(kind)
+		ex.reward = kind
+		var col: Color = REWARDS[kind][1]
+		var glow := Fx.orb(1.0, col)
+		glow.position = ex.at + Vector3(0, 1.5, 0.6)
+		glow.scale = Vector3(1.2, 1.6, 0.2)
+		place.node.add_child(glow)
+		var l := Label3D.new()
+		l.text = REWARDS[kind][0] if boss == null else "PRÓXIMO ANDAR"
+		l.font_size = 120
+		l.outline_size = 24
+		l.modulate = col
+		l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		l.no_depth_test = true
+		l.position = ex.at + Vector3(0, 4.8, 0.6)
+		l.pixel_size = 0.008
+		place.node.add_child(l)
 
 func _take_blessing(b: Dictionary) -> void:
 	run.bless[b.id] = run.bless.get(b.id, 0) + 1
@@ -285,6 +350,8 @@ func end_run(win: bool) -> void:
 	var gold: int = run.gold
 	var xp: int = run.xp_run
 	var floor_reached: int = run.floor + 1
+	if autoplay:
+		print("RUN %s %s floor %d room %d gold %d xp %d" % [save.hero, "WIN" if win else "DIED", run.floor + 1, run.room, run.gold, run.xp_run])
 	save.gold += gold
 	save.best = maxi(save.best, floor_reached)
 	var before := hero_level(save.hero)
@@ -509,6 +576,16 @@ func banner(t: String, sub: String, col: Color) -> void:
 func shake(a: float) -> void:
 	shake_t = maxf(shake_t, a)
 
+# one looping track at a time (assets/music, CC0)
+func music(name: String) -> void:
+	if name == music_now:
+		return
+	music_now = name
+	var st = load("res://assets/music/%s.ogg" % name)
+	st.loop = true
+	music_player.stream = st
+	music_player.play()
+
 func sfx(name: String) -> void:
 	var path := "res://assets/sfx/%s.ogg" % {"swing": ["knifeSlice", "knifeSlice2"].pick_random(), "dodge": "cloth1", "skill": "drawKnife1"}.get(name, name)
 	if not ResourceLoader.exists(path):
@@ -548,25 +625,37 @@ func _notification(what: int) -> void:
 
 # ------------------------------------------------------------------ test robot (COROA_AUTOPLAY=1)
 func _autoplay() -> void:
+	if OS.get_environment("COROA_HERO") != "" and save.hero != OS.get_environment("COROA_HERO"):
+		save.hero = OS.get_environment("COROA_HERO")
+		save.unlocked.append(save.hero)
+		_spawn_hero(hero.global_position)
+	if in_run() and hero.hp < hero.max_hp * 0.4:
+		ui.fresh["potion"] = true
 	if not in_run():
-		if not run.has("started"):
+		if ui.fade.color.a == 0.0:
 			start_run()
 		return
 	var tg: Node3D = hero.target(30.0)
 	var v := Vector2.ZERO
+	var right := Vector3(1, 0, -1).normalized()
+	var up := Vector3(-1, 0, -1).normalized()
+	for e in enemies:  # dodge away from a strike that is coming (the red ring), like a player would
+		if not e.dead and e.state == "windup" and e.t > 0.25 and e.global_position.distance_to(hero.global_position) < e.def.range * e.scale_k + 1.5:
+			var away: Vector3 = hero.global_position - e.global_position
+			ui.stick_vec = Vector2(away.dot(right), -away.dot(up)).normalized()
+			ui.fresh["dodge"] = true
+			return
 	if tg != null:
 		var d: Vector3 = tg.global_position - hero.global_position
-		if d.length() > 2.0:
-			var right := Vector3(1, 0, -1).normalized()
-			var up := Vector3(-1, 0, -1).normalized()
+		var reach: float = Data.HEROES[save.hero].attack[0].range
+		if d.length() > minf(reach, 10.0) * 0.8:
 			v = Vector2(d.dot(right), -d.dot(up)).normalized()
-		ui.fresh["attack"] = true
+		else:
+			ui.fresh["attack"] = true
 		if randf() < 0.02:
 			ui.fresh["skill%d" % randi_range(0, 2)] = true
-	elif cleared and place.has("exit"):
-		var d2: Vector3 = place.exit - hero.global_position
-		var right := Vector3(1, 0, -1).normalized()
-		var up := Vector3(-1, 0, -1).normalized()
+	elif cleared and place.has("exits"):
+		var d2: Vector3 = place.exits[0].pos - hero.global_position
 		v = Vector2(d2.dot(right), -d2.dot(up)).normalized()
 	ui.stick_vec = v
 	if ui.panel != null:
