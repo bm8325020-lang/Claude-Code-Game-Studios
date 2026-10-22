@@ -653,7 +653,9 @@ func _put(name: String, x: float, z: float, s: float, tint: Color = Color(1, 1, 
 func _scatter() -> void:
 	_rng = RandomNumberGenerator.new()
 	_rng.seed = 2024
+	print("SCAT a start t=", Time.get_ticks_msec())
 	_block_mask()
+	print("SCAT b mask t=", Time.get_ticks_msec())
 	var common: Array[String] = ["CommonTree_1", "CommonTree_2", "CommonTree_4"]
 	var pines: Array[String] = ["Pine_1", "Pine_2", "Pine_4"]
 	var twisted: Array[String] = ["TwistedTree_1", "TwistedTree_5"]
@@ -674,6 +676,7 @@ func _scatter() -> void:
 	veg.define("DeadTree_4", 200.0, true, 70.0)
 
 	# --- forest trees on a jittered 7 m grid
+	print("SCAT c defines t=", Time.get_ticks_msec())
 	var trees: Array = []
 	var gs: float = 7.0
 	var z: float = -310.0
@@ -720,6 +723,7 @@ func _scatter() -> void:
 				tint = tint * Color(0.9, 0.98, 0.88)
 			_put(nm, px, pz, s, tint, 0.2)
 			trees.append(Vector3(px, s, pz))
+	print("SCAT 0 t=", Time.get_ticks_msec())
 	stats["trees"] = trees.size()
 	# hand-placed shade trees: the square, the inn yard, the farm lane, the pier path, the chapel
 	var shade: Array = [Vector2(-10, -30), Vector2(13, 2), Vector2(-28, -46), Vector2(30, -8), Vector2(-24, 10),
@@ -744,6 +748,7 @@ func _scatter() -> void:
 		cs.position = Vector3(tv.x, terrain.sample(tv.x, tv.z) + 1.8, tv.z)
 		_static.add_child(cs)
 
+	print("SCAT 1 t=", Time.get_ticks_msec())
 	# --- understory: under and around trees
 	for tr in trees:
 		var tv2: Vector3 = tr
@@ -770,6 +775,7 @@ func _scatter() -> void:
 			else:
 				_put("Grass_Wispy_Short", ux, uz, _rng.randf_range(0.8, 1.2))
 
+	print("SCAT 2 t=", Time.get_ticks_msec())
 	# --- road shoulders: grass tufts, a pebble now and then, flowers near the village
 	for r in terrain.roads:
 		var pts: PackedVector3Array = r.pts
@@ -800,6 +806,7 @@ func _scatter() -> void:
 				elif Vector2(g.x, g.z).distance_to(SQUARE) < 140.0:
 					_put("Flower_3_Group" if _rng.randf() < 0.5 else "Flower_4_Group", g.x, g.z, _rng.randf_range(0.6, 0.9))
 
+	print("SCAT 3 t=", Time.get_ticks_msec())
 	# --- meadow patches of grass and clover (clumped, never a uniform carpet)
 	var mn: FastNoiseLite = FastNoiseLite.new()
 	mn.seed = 77
@@ -845,6 +852,7 @@ func _scatter() -> void:
 				continue
 			_put(["Flower_3_Group", "Flower_4_Group", "Clover_1", "Flower_3_Group"][_rng.randi() % 4], fx, fz, _rng.randf_range(0.55, 0.9))
 
+	print("SCAT 4 t=", Time.get_ticks_msec())
 	# --- river banks: reeds and stones; lake: reeds on the south/east shore, stones on the beach
 	var rp: PackedVector3Array = terrain.river_pts
 	for k in range(0, rp.size() - 1):
@@ -881,6 +889,7 @@ func _scatter() -> void:
 		elif _rng.randf() < 0.55:
 			_put("Grass_Wispy_Tall", lx, lz, _rng.randf_range(1.0, 1.5), Color(1.05, 1.0, 0.8))
 
+	print("SCAT 5 t=", Time.get_ticks_msec())
 	# --- boulders at the foot of steep ground (cliffs, quarry walls, the mine spur), never on roads
 	var bz: float = -300.0
 	while bz < 300.0:
@@ -902,6 +911,7 @@ func _scatter() -> void:
 			_put("Rock_Medium_%d" % (_rng.randi() % 3 + 1), qx, qz, _rng.randf_range(0.6, 1.6), Color(1, 1, 1).lerp(Color(0.85, 0.82, 0.78), _rng.randf()), 0.4)
 		bz += 6.0
 
+	print("SCAT 6 t=", Time.get_ticks_msec())
 	# --- crops: wheat rows (gold), the grey field (dead tufts), turnip rows
 	for fdef in FIELDS:
 		var c: Vector2 = fdef[0]
