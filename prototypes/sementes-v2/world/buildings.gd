@@ -55,7 +55,7 @@ func _insert(root: Transform3D, pos: Vector3, yaw: float, wall: String, shutters
 		if shutters:
 			put("WindowShutters_Thin_Round_Open", root, pos, yaw)
 	elif wall.contains("Door_Round"):
-		put("Door_2_Round", root, pos + rot_y(yaw) * Vector3(-0.53, 0, 0), yaw)
+		put("Door_1_Round", root, pos + rot_y(yaw) * Vector3(-0.53, 0, 0), yaw)
 	elif wall.contains("Door_Flat"):
 		put("Door_1_Flat", root, pos + rot_y(yaw) * Vector3(-0.53, 0, 0), yaw)
 
@@ -97,7 +97,7 @@ func house(root: Transform3D, spec: Dictionary) -> Vector3:
 				var off: float = (float(i) - float(n - 1) * 0.5) * 2.0
 				_insert(root, (s[0] as Vector3) + dir * off, s[1], kinds[i], rng.randf() < 0.6)
 		# corner posts
-		var post: String = "Corner_Exterior_Brick" if st == "brick" else "Corner_Exterior_Wood"
+		var post: String = "Corner_Exterior_Wood"
 		for cx in [-1.0, 1.0]:
 			for cz in [-1.0, 1.0]:
 				put(post, root, Vector3(cx * W * 0.5, y, cz * D * 0.5), atan2(cx, cz))
@@ -211,7 +211,7 @@ func tower(root: Transform3D, w: int, floors: int, ruined: bool, door: bool) -> 
 			for cz in [-1.0, 1.0]:
 				if ruined and top_storey and cx > 0.0:
 					continue
-				put("Corner_Exterior_Brick", root, Vector3(cx * W * 0.5, y, cz * W * 0.5), atan2(cx, cz))
+				put("Corner_Exterior_Wood", root, Vector3(cx * W * 0.5, y, cz * W * 0.5), atan2(cx, cz))
 		if f > 0:
 			for s2 in sides:
 				var dir2: Vector3 = rot_y(s2[1]) * Vector3.RIGHT

@@ -127,11 +127,13 @@ func build() -> void:
 	pl.bandit_camp()
 	pl.watchtower()
 	pl.mine()
-	pl.castle()
+	if OS.get_environment("NOCASTLE") == "":
+		pl.castle()
 	pl.commit_all()
 	stats["t_places_ms"] = Time.get_ticks_msec() - t0
 	veg = Veg.new(kit)
-	_scatter()
+	if OS.get_environment("NOSCATTER") == "":
+		_scatter()
 	var vh: Node3D = Node3D.new()
 	vh.name = "Vegetation"
 	add_child(vh)
@@ -653,7 +655,7 @@ func _scatter() -> void:
 	var pines: Array[String] = ["Pine_1", "Pine_2", "Pine_4"]
 	var twisted: Array[String] = ["TwistedTree_1", "TwistedTree_5"]
 	for n in common + pines + twisted:
-		veg.define(n, 240.0, true, 70.0)
+		veg.define(n, 200.0, true, 30.0)
 	for n in ["Bush_Common", "Bush_Common_Flowers", "Fern_1", "Plant_1_Big"]:
 		veg.define(n, 70.0, false)
 	veg.define("Mushroom_Common", 35.0, false)
@@ -662,15 +664,15 @@ func _scatter() -> void:
 	for n in ["Flower_3_Group", "Flower_4_Group", "Clover_1"]:
 		veg.define(n, 45.0, false)
 	for n in ["Rock_Medium_1", "Rock_Medium_2", "Rock_Medium_3"]:
-		veg.define(n, 200.0, true, 80.0)
+		veg.define(n, 170.0, true, 34.0)
 	veg.define("Pebble_Round_2", 30.0, false)
 	veg.define("Pebble_Square_3", 30.0, false)
-	veg.define("DeadTree_2", 200.0, true, 70.0)
-	veg.define("DeadTree_4", 200.0, true, 70.0)
+	veg.define("DeadTree_2", 180.0, true, 34.0)
+	veg.define("DeadTree_4", 180.0, true, 34.0)
 
 	# --- forest trees on a jittered 7 m grid
 	var trees: Array = []
-	var gs: float = 7.0
+	var gs: float = 8.5
 	var z: float = -310.0
 	while z < 310.0:
 		var x: float = -310.0
@@ -685,7 +687,7 @@ func _scatter() -> void:
 			if hy > 22.0 and hy < 58.0 and _slope(px, pz) < 0.45:
 				mt = 0.55 * (1.0 - Terrain.sstep(46.0, 58.0, hy))
 			f = maxf(f, mt)
-			if f < 0.2 or _rng.randf() > f * 0.9:
+			if f < 0.25 or _rng.randf() > f * 0.72:
 				continue
 			if not _free(px, pz, 6.0):
 				continue
