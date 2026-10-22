@@ -22,7 +22,7 @@ const VALLEY := [
 		{"Quem é você?": "Sou Maela. Cuido desta chama desde antes de o Burgo esquecer o próprio nome.",
 		"O que faço agora?": "Suba a escadaria ao norte, até o Burgo. Acenda a fogueira de lá: o fogo lembrará de você.",
 		"Fale das Sementes.": "Sete sementes caíram do Dragão quando ele adormeceu. Quem juntar todas pode acordá-lo... ou matá-lo."}],
-	["Ferreiro Brann", "ferreiro", "Male_Peasant.gltf", "Male", "Hair_Beard", Vector3(-6.0, 15.0, -79.0), "Idle_FoldArms",
+	["Ferreiro Brann", "ferreiro", "Male_Peasant.gltf", "Male", "Hair_Beard", Vector3(-6.0, 15.0, -79.0), "TreeChopping",
 		"Ferreiro do Burgo, rude e honesto, braços queimados. Reforça armas com titanita. Odeia os Cavaleiros Ocos que roubam seu ferro.",
 		{"Quem é você?": "Brann. Malho ferro desde que este lugar tinha gente viva. Tem titanita? Então temos negócio.",
 		"O que faço agora?": "Os telhados quebrados levam à Igreja. Cuidado com os besteiros nas torres de vigia.",
@@ -38,8 +38,13 @@ const VALLEY := [
 		"O que há no cemitério?": "Juramentados que não sabem que morreram. Fortes demais para você... por enquanto.",
 		"Alguma dica?": "Fogo queima os ossos de vez. Ossos queimados não se levantam."}],
 ]
+# [role, model, head, hair, what they do when nobody talks to them (work, sit or stand)]
 const TOWN_ROLES := [["taberneira", "Female_Peasant.gltf", "Female", "Hair_Buns", "Idle_Talking"], ["sentinela aposentado", "Male_Ranger.gltf", "Male", "Hair_Beard", "Idle_FoldArms"],
-	["camponês", "Male_Peasant.gltf", "Male", "Hair_SimpleParted", "Idle"], ["curandeira", "Female_Ranger.gltf", "Female", "Hair_Long", "Idle_Lantern"]]
+	["camponês", "Male_Peasant.gltf", "Male", "Hair_SimpleParted", "Farm_Harvest"], ["curandeira", "Female_Ranger.gltf", "Female", "Hair_Long", "Farm_Watering"],
+	["lenhador", "Male_Peasant.gltf", "Male", "Hair_Beard", "TreeChopping"], ["consertadora", "Female_Peasant.gltf", "Female", "Hair_Buns", "Fixing_Kneeling"],
+	["velho contador de histórias", "Male_Ranger.gltf", "Male", "Hair_Long", "Sitting_Idle"], ["vigia noturna", "Female_Ranger.gltf", "Female", "Hair_SimpleParted", "Idle_Torch"]]
+# idle variations a standing person drifts through now and then
+const IDLE_VARIANTS := ["Idle", "Idle_FoldArms", "Idle_Talking", "Idle_Lantern", "Idle_Rail"]
 const FIRST := ["Alda", "Bertram", "Cora", "Dimas", "Elvira", "Fausto", "Gilda", "Hugo", "Inês", "Jorge", "Leda", "Marco", "Nádia", "Otto"]
 
 var main: Node
@@ -59,6 +64,7 @@ func add(name: String, role: String, model: String, head: String, hair: String, 
 	var p := {"name": name, "role": role, "persona": persona, "quick": quick, "root": root, "ap": r[1], "home": pos, "target": pos,
 		"hist": [], "idle": idle, "town": town, "t": randf() * 4.0}
 	r[1].play(idle)
+	r[1].process_mode = Node.PROCESS_MODE_ALWAYS  # they keep moving while you talk (the world is paused)
 	p.interact = {"pos": pos, "r": 2.6, "label": "FALAR", "do": func(): main.dialog.open_with(p)}
 	main.interacts.append(p.interact)
 	people.append(p)
@@ -84,19 +90,27 @@ func remove_town(t: Dictionary) -> void:
 		p.root.queue_free()
 	t.npcs = []
 
+const WORK := ["TreeChopping", "Farm_Harvest", "Farm_Watering", "Fixing_Kneeling", "Sitting_Idle"]
+
 func update(dt: float) -> void:
 	for p in people:
 		var root: Node3D = p.root
 		var d: Vector3 = main.player.position - root.position
-		if d.length_squared() > 3600.0:
+		if d.length_squared() > 3600.0 or main.dialog.visible:
 			continue
 		p.interact.pos = root.position
 		p.t -= dt
-		if d.length() < 4.0:  # turn to face whoever comes close
+		var works: bool = p.idle in WORK
+		if d.length() < 4.0:  # stop and turn to whoever comes close (the seated stay seated)
 			root.rotation.y = lerp_angle(root.rotation.y, atan2(d.x, d.z), 0.1)
 			p.target = root.position
+			var greet := "Sitting_Talking" if p.idle == "Sitting_Idle" else "Idle"
+			if p.ap.current_animation != greet:
+				p.ap.play(greet, 0.3)
+			continue
+		if works:  # at work: they stay at it
 			if p.ap.current_animation != p.idle:
-				p.ap.play(p.idle, 0.3)
+				p.ap.play(p.idle, 0.4)
 			continue
 		var to: Vector3 = p.target - root.position
 		to.y = 0.0
@@ -104,14 +118,17 @@ func update(dt: float) -> void:
 			root.position += to.normalized() * 1.1 * dt
 			root.rotation.y = lerp_angle(root.rotation.y, atan2(to.x, to.z), 0.1)
 			root.position.y = main._ground_y(root.position, root.position.y)
-			if p.ap.current_animation != "Walk":
-				p.ap.play("Walk", 0.3)
-		elif p.t <= 0.0:  # idle a while, then stroll somewhere near home
+			var walk := "Walk_Carry" if p.get("carry", false) else "Walk"
+			if p.ap.current_animation != walk:
+				p.ap.play(walk, 0.3)
+		elif p.t <= 0.0:  # idle a while (a different stance each time), then stroll somewhere near home
 			p.t = randf_range(5.0, 12.0)
+			p.carry = randf() < 0.3
 			if randf() < 0.5:
 				p.target = p.home + Vector3(randf_range(-4, 4), 0, randf_range(-4, 4))
-			if p.ap.current_animation != p.idle:
-				p.ap.play(p.idle, 0.3)
+			var stance: String = p.idle if randf() < 0.5 else IDLE_VARIANTS.pick_random()
+			if p.ap.current_animation != stance:
+				p.ap.play(stance, 0.4)
 
 # ------------------------------------------------------------------ Claude
 func system_prompt(p: Dictionary) -> String:

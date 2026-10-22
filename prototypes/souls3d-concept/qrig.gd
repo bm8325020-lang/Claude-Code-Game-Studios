@@ -17,10 +17,11 @@ const ALIAS := {
 	"Death_C_Skeletons_Resurrect": "LayToIdle", "Skeletons_Inactive_Floor_Pose": "Idle", "Skeletons_Awaken_Floor": "Yes",
 	"Spellcasting": "Spell_Simple_Idle", "Spellcast_Raise": "Spell_Simple_Enter", "Spellcast_Shoot": "Spell_Simple_Shoot",
 	"2H_Ranged_Aiming": "Idle_Shield", "2H_Ranged_Shoot": "OverhandThrow",
-	"Taunt": "Idle_No", "Cheer": "Yes", "Dodge_Backward": "Roll", "Dodge_Left": "Roll", "Dodge_Right": "Roll",
+	"Taunt": "Idle_No", "Cheer": "Yes", "Stunned": "Idle_Shield_Break", "Dodge_Backward": "Roll", "Dodge_Left": "Roll", "Dodge_Right": "Roll",
 }
 const LOOPS := ["Idle", "Sword_Idle", "Jog_Fwd", "Walk", "Walk_Formal", "Sprint", "Idle_Talking", "Idle_Shield", "Spell_Simple_Idle",
-	"Zombie_Walk_Fwd", "Zombie_Idle", "Idle_FoldArms", "Idle_Lantern", "Idle_Torch", "Sitting_Idle", "Sitting_Talking", "Crouch_Idle", "TreeChopping"]
+	"Zombie_Walk_Fwd", "Zombie_Idle", "Idle_FoldArms", "Idle_Lantern", "Idle_Torch", "Sitting_Idle", "Sitting_Talking", "Crouch_Idle", "TreeChopping",
+	"Crouch_Fwd", "Swim_Fwd", "Swim_Idle", "Jump", "Dance", "Idle_Rail_Call", "Idle_No", "Push", "Farm_Harvest", "Farm_Watering", "Fixing_Kneeling", "Walk_Carry", "Idle_Rail"]
 
 static var libs := {}  # model path -> AnimationLibrary (pelvis heights scaled to the model)
 

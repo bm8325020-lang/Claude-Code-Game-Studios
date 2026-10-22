@@ -3,7 +3,8 @@
 # Date: 2026-10-21
 extends Node3D
 
-const HeroLook = preload("res://hero_look.gd")
+const HeroBody = preload("res://hero_body.gd")
+const Retarget = preload("res://retarget.gd")
 const HeroAnims = preload("res://hero_anims.gd")
 
 const Level = preload("res://level.gd")
@@ -93,6 +94,13 @@ const ITEMS := {
 var player: CharacterBody3D
 var model: Node3D
 var anim: AnimationPlayer
+var look := {}  # the hero you made (hero_body.gd keys)
+var crouching := false  # sneaking: slower, and sleeping enemies must be much closer to notice you
+var air_t := 0.0  # seconds off the ground: a long fall ends in a landing
+var pose_t := 0.0  # a one-shot clip (landing, pickup, chest, emote, celebration) plays out over the walk/idle clips
+var emote_i := -1
+var celebrate := false
+const EMOTES := [["Dance", "Dançar"], ["Yes", "Comemorar"], ["Idle_Rail_Call", "Acenar"], ["Idle_No", "Negar"], ["Sitting_Idle", "Sentar"], ["Push", "Flexões"]]
 var cam_pivot: Node3D
 var spring: SpringArm3D
 var camera: Camera3D
@@ -207,6 +215,12 @@ var step_t := 0.0
 
 func _ready() -> void:
 	randomize()
+	for a in [["crouch", KEY_C], ["emote", KEY_G]]:  # actions added after the project's input map
+		if not InputMap.has_action(a[0]):
+			InputMap.add_action(a[0])
+			var ev := InputEventKey.new()
+			ev.physical_keycode = a[1]
+			InputMap.action_add_event(a[0], ev)
 	stone_mat = StandardMaterial3D.new()  # props: clean warm stone, no brick texture
 	stone_mat.albedo_color = Color(0.72, 0.66, 0.58)
 	stone_mat.roughness = 0.9
@@ -248,7 +262,7 @@ func _save() -> void:
 	var d := {
 		"level": level, "max_flasks": max_flasks, "cls": cls, "attrs": attrs, "talents": talents.keys(), "upgrades": upgrades,
 		"titanite": titanite, "kills": kills, "sentinels_dead": sentinels_dead, "boss_kills": boss_kills, "bonus_hp": bonus_hp,
-		"shards_found": shards_found, "free_points": free_points, "found": world.found.keys(), "day_t": day_t,
+		"shards_found": shards_found, "free_points": free_points, "found": world.found.keys(), "day_t": day_t, "look": look, "opened": opened.keys(),
 		"embers": embers, "dropped_embers": dropped_embers, "seeds": seeds, "seed_i": seed_i, "dragon_seed": dragon_seed,
 		"gear": gear, "lit": lit.keys(), "elevator_open": elevator_open, "bells": bells,
 		"bonfire": [bonfire_pos.x, bonfire_pos.y, bonfire_pos.z],
@@ -290,6 +304,14 @@ func _load() -> void:
 	shards_found = int(d.get("shards_found", 0))
 	free_points = int(d.get("free_points", 0))
 	day_t = float(d.get("day_t", 0.3))
+	for k in d.get("opened", []):
+		opened[k] = true
+	look = {}
+	for k in d.get("look", {}):  # JSON gives numbers back as floats; the colour indices are ints
+		var v = d.look[k]
+		look[k] = int(v) if v is float else v
+	if model != null:
+		_make_hero()
 	for n in d.get("found", []):
 		world.found[n] = true
 	embers = int(d.embers)
@@ -408,7 +430,10 @@ func _class_choice(layer: CanvasLayer, box: VBoxContainer) -> void:
 			_show_banner("SANTUÁRIO DA CHAMA", "%s · siga a escadaria até o Burgo" % c.name, Color(0.95, 0.85, 0.65), 3.5)
 			layer.queue_free()
 			ui.visible = true
-			get_tree().paused = false)
+			get_tree().paused = false
+			look = {}
+			_make_hero()
+			menu.open("look"))  # a new hero: make your look first
 		row.add_child(btn)
 
 func _notification(what: int) -> void:
@@ -627,6 +652,81 @@ func _attach(skel: Skeleton3D, bone: String, prop_name: String, xf: Transform3D)
 	ba.add_child(p)
 	return ba
 
+# the hero you made (hero_body.gd), wearing the sword moves: they are tuned on the Mixamo X Bot (mocap and the
+# hand-made clips of hero_anims.gd) and moved onto your body by retarget.gd. The moved clips are cached per body
+# type in user://, so this costs time only the first run.
+const HERO_CACHE := "user://hero_moves_%s_v1.res"
+
+func _make_hero() -> void:
+	var old_rot := 0.0
+	if model != null:
+		old_rot = model.rotation.y
+		model.queue_free()
+	var r: Array = HeroBody.build(look)
+	model = r[0]
+	model.rotation.y = old_rot
+	player.add_child(model)
+	anim = r[1]
+	var path := HERO_CACHE % look.get("sex", "Male")
+	var lib: AnimationLibrary = load(path) if ResourceLoader.exists(path) else null
+	var dst: Skeleton3D = model.find_children("*", "Skeleton3D", true, false)[0]
+	var src_model: Node3D = load("res://assets/mixamo/x_bot.fbx").instantiate()
+	var src: Skeleton3D = src_model.find_children("*", "Skeleton3D", true, false)[0]
+	if lib == null or lib.get_animation_list().size() < ANIMS.size():
+		var src_ap: AnimationPlayer = src_model.find_children("*", "AnimationPlayer", true, false)[0]
+		_load_anims(src_ap)
+		var ctx := Retarget.pair(src, dst)
+		lib = AnimationLibrary.new()
+		var srclib := src_ap.get_animation_library("p")
+		for k in srclib.get_animation_list():
+			lib.add_animation(k, Retarget.clip(ctx, srclib.get_animation(k)))
+		ResourceSaver.save(lib, path)
+	anim.add_animation_library("p", lib)
+	# weapons: the X Bot's hand transforms carried over to the new hands (same place in model space at rest)
+	var into := func(src_bone: String, dst_bone: String, xf: Transform3D) -> Transform3D:
+		var q: Basis = Basis(dst.get_bone_global_rest(dst.find_bone(dst_bone)).basis.get_rotation_quaternion().inverse() * src.get_bone_global_rest(src.find_bone(src_bone)).basis.get_rotation_quaternion())
+		return Transform3D(q * xf.basis, q * xf.origin)
+	sword_props = [_attach(dst, "hand_r", "longsword", into.call("mixamorig_RightHand", "hand_r", Transform3D(Basis(Vector3.RIGHT, -PI / 2), Vector3(0, 0.07, 0.02))))]
+	great_prop = _attach(dst, "hand_r", "longsword", into.call("mixamorig_RightHand", "hand_r", Transform3D(Basis(Vector3.RIGHT, -PI / 2).scaled(Vector3(1.4, 1.4, 1.8)), Vector3(0, 0.07, 0.02))))
+	great_prop.visible = weapon == "great"
+	sword_props.append(_attach(dst, "lowerarm_l", "shield", into.call("mixamorig_LeftForeArm", "lowerarm_l", Transform3D(Basis(Vector3.UP, PI / 2).rotated(Vector3.FORWARD, PI / 2), Vector3(0.0, 0.18, 0.06)))))
+	for sp in sword_props:
+		sp.visible = weapon != "great"
+	src_model.free()
+	anim.process_mode = Node.PROCESS_MODE_ALWAYS  # the hero still moves in menus and conversations (paused world)
+	anim.play("p/idle")
+
+# the mirror: the camera turns to the hero's face, closer, with the hero to the right of the menu
+func mirror(on: bool) -> void:
+	if on:
+		cam_yaw = model.rotation.y + 0.45
+		cam_pitch = -0.12
+		spring.spring_length = 2.6
+		camera.h_offset = -1.3
+		anim.play("Idle", 0.2)  # relaxed, weapons away: see the face and the clothes
+	else:
+		spring.spring_length = 4.2
+		camera.h_offset = 0.0
+	great_prop.visible = weapon == "great" and not on
+	for sp in sword_props:
+		sp.visible = weapon == "sword" and not on
+	_update_camera(0.0)
+
+# menus and conversations pause the world; the hero rummages in the bag, talks, and cheers a level gained
+func on_pause_ui(what: String) -> void:
+	match what:
+		"menu":
+			anim.play("Interact", 0.2)
+		"talk":
+			anim.play("Idle_Talking", 0.2)
+		"close":
+			if celebrate:
+				celebrate = false
+				_one_shot("Yes", 2.2, 1.2)
+				_float("NÍVEL %d!" % level, player.position + Vector3(0, 2.4, 0), Color(1, 0.85, 0.3))
+			else:
+				anim.play(_a("idle"), 0.3)
+
 func _build_player() -> void:
 	player = CharacterBody3D.new()
 	player.position = bonfire_pos + Vector3(0, 0.5, -2.5)
@@ -638,18 +738,7 @@ func _build_player() -> void:
 	cs.position.y = 0.9
 	player.add_child(cs)
 	add_child(player)
-	model = load("res://assets/mixamo/x_bot.fbx").instantiate()
-	player.add_child(model)
-	anim = model.find_children("*", "AnimationPlayer", true, false)[0]
-	_load_anims(anim)
-	HeroLook.dress(model)
-	var skel: Skeleton3D = model.find_children("*", "Skeleton3D", true, false)[0]
-	# hand bones are scaled by 100 in Mixamo rigs exported to cm; the props are in metres
-	var s := 1.0 / skel.get_bone_global_rest(skel.find_bone("mixamorig_RightHand")).basis.get_scale().x
-	sword_props.append(_attach(skel, "mixamorig_RightHand", "longsword", Transform3D(Basis(Vector3.RIGHT, -PI / 2).scaled(Vector3.ONE * s), Vector3(0, 0.07, 0.02) * s)))
-	great_prop = _attach(skel, "mixamorig_RightHand", "longsword", Transform3D(Basis(Vector3.RIGHT, -PI / 2).scaled(Vector3(1.4, 1.4, 1.8) * s), Vector3(0, 0.07, 0.02) * s))
-	great_prop.visible = false
-	sword_props.append(_attach(skel, "mixamorig_LeftForeArm", "shield", Transform3D(Basis(Vector3.UP, PI / 2).rotated(Vector3.FORWARD, PI / 2).scaled(Vector3.ONE * s), Vector3(0.0, 0.18, 0.06) * s)))
+	_make_hero()
 	anim.play("p/idle")
 	cam_pivot = Node3D.new()
 	add_child(cam_pivot)
@@ -890,6 +979,8 @@ func _update_player(dt: float) -> void:
 		player.velocity.y -= 20.0 * dt
 	else:
 		player.velocity.y = 0.0
+		if air_t > 0.6 and state == "free":
+			_one_shot("Jump_Land", 0.45, 1.6)
 	var v := _input_vec()
 	var dir := _input_dir()
 	state_t += dt
@@ -905,7 +996,25 @@ func _update_player(dt: float) -> void:
 		"free":
 			sprint_t = sprint_t + dt if v.length() > 0.95 and lock_target == null else 0.0
 			sprinting = sprint_t > 0.6 and stamina > 1
+			var swimming := player.position.y < -1.6  # the lake floor is at -2.6, the water at -1.2
+			if _pressed("crouch"):
+				crouching = not crouching
+				_float("Agachado" if crouching else "De pé", player.position + Vector3(0, 2.0, 0), Color(0.8, 0.9, 1))
+			if dir.length() > 0.1 or not player.is_on_floor():
+				if emote_i >= 0:
+					emote_i = -1
+					pose_t = 0.0
+			model.position.y = 0.95 if swimming else 0.0
+			great_prop.visible = weapon == "great" and not swimming
+			for sp in sword_props:
+				sp.visible = weapon == "sword" and not swimming
 			var speed := 4.6
+			if swimming:
+				speed = 2.8
+				sprinting = false
+			elif crouching:
+				speed = 2.2
+				sprinting = false
 			if sprinting:
 				speed = 7.2
 				stamina -= 14.0 * dt
@@ -915,19 +1024,28 @@ func _update_player(dt: float) -> void:
 			var hv := dir * speed
 			player.velocity.x = hv.x
 			player.velocity.z = hv.z
-			if lock_target != null:
+			air_t = 0.0 if player.is_on_floor() else air_t + dt
+			pose_t -= dt
+			var moving := dir.length() > 0.1
+			if moving and lock_target == null:
+				_face(dir)
+			anim.speed_scale = 1.0
+			if air_t > 0.35:
+				_play("Jump", 0.25)  # falling
+			elif pose_t > 0.0:
+				pass  # a one-shot clip is playing
+			elif swimming:
+				_play("Swim_Fwd" if moving else "Swim_Idle", 0.3)
+			elif crouching:
+				_play("Crouch_Fwd" if moving else "Crouch_Idle", 0.25)
+			elif lock_target != null:
 				_face(lock_target.root.position - player.position)
 				_play_locomotion(dir)
+			elif moving:
+				_play("Sprint" if sprinting else _a("run"), 0.15)
 			else:
-				if dir.length() > 0.1:
-					_face(dir)
-				if dir.length() > 0.1:
-					anim.speed_scale = 1.35 if sprinting else 1.0
-					_play(_a("run"), 0.15)
-				else:
-					anim.speed_scale = 1.0
-					idle_t += dt
-					_play(_a("idle2" if idle_t > 6.0 else "idle"), 0.3)
+				idle_t += dt
+				_play(_a("idle2" if idle_t > 6.0 else "idle"), 0.3)
 			if dir.length() > 0.1:
 				idle_t = 0.0
 				step_t -= dt * (1.5 if sprinting else 1.0)
@@ -954,12 +1072,18 @@ func _update_player(dt: float) -> void:
 				anim.speed_scale = 1.0
 				_play(_a("drink"), 0.1)
 				_sfx("metalPot1", -6)
+			elif _pressed("emote"):
+				emote_i = (emote_i + 1) % EMOTES.size()
+				pose_t = 999.0  # until you move
+				anim.play(EMOTES[emote_i][0], 0.2)
+				_float(EMOTES[emote_i][1], player.position + Vector3(0, 2.2, 0), Color(1, 0.9, 0.5))
 			elif _pressed("jump") and player.is_on_floor() and stamina > 5:
 				player.velocity.y = 7.6
 				_spend(8.0)
-				anim.play(_a("jump"), 0.1, 1.4)
+				_one_shot("Jump_Start", 0.5, 1.4)
 				_sfx(["cloth1", "cloth3"], -6)
 			elif _pressed("interact") and _current_interact() != null:
+				_one_shot("Interact", 0.8, 1.6)
 				_current_interact().do.call()
 			elif _held("block") and stamina > 0:
 				_set_state("block")
@@ -1112,7 +1236,9 @@ func _fast_travel() -> void:
 	var i: int = names.find(here)
 	var to = names[(i + 1) % names.size()]
 	bonfire_pos = to[0]
+	_teleport_fade()
 	player.position = to[0] + Vector3(0, 0.5, -2.5)
+	_one_shot("Spell_Simple_Exit", 0.6, 0.8)
 	_respawn_enemies()
 	_sfx("fireball", -8)
 	_show_banner(to[1].to_upper(), "Viagem pelas chamas", Color(1, 0.7, 0.3), 2.5)
@@ -1132,21 +1258,21 @@ func _try_mantle() -> void:
 	chest.exclude = [player.get_rid()]
 	if space.intersect_ray(chest).is_empty():
 		return
-	var above := player.position + fwd * 0.75 + Vector3(0, 2.6, 0)
-	var down := PhysicsRayQueryParameters3D.create(above, above - Vector3(0, 2.4, 0))
+	var above := player.position + fwd * 0.75 + Vector3(0, 3.6, 0)  # the hex terraces are 3 m steps
+	var down := PhysicsRayQueryParameters3D.create(above, above - Vector3(0, 3.4, 0))
 	down.exclude = [player.get_rid()]
 	var top := space.intersect_ray(down)
 	if top.is_empty() or top.normal.y < 0.7:
 		return
 	var rise: float = top.position.y - player.position.y
-	if rise < 0.5 or rise > 2.4:
+	if rise < 0.5 or rise > 3.3:
 		return
 	_climb(top.position + fwd * 0.4 + Vector3(0, 0.05, 0), 0.55)
 
 # move the hero to a spot over time (ledge grab, ladder); no control meanwhile
 func _climb(to: Vector3, secs := 2.2) -> void:
 	_set_state("climb")
-	anim.play(_a("jump"), 0.1, 0.8)
+	anim.play("ClimbUp_1m_RM", 0.1, 0.7 / secs * 1.4)
 	_sfx("cloth3", -4)
 	var tw := create_tween()
 	tw.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
@@ -1265,6 +1391,24 @@ func _play(name: String, blend: float) -> void:
 	if anim.current_animation != name:
 		anim.play(name, blend)
 
+# a clip that plays once over the walk and idle clips (they come back after secs)
+func _one_shot(name: String, secs: float, speed := 1.0) -> void:
+	if not anim.has_animation(name):
+		return
+	anim.play(name, 0.1, speed)
+	pose_t = secs
+
+# the flames carry you: a flash of fire light, then the new bonfire fades in
+func _teleport_fade() -> void:
+	var cr := ColorRect.new()
+	cr.color = Color(1.0, 0.55, 0.2, 1.0)
+	cr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	cr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(cr)
+	var tw := create_tween()
+	tw.tween_property(cr, "color:a", 0.0, 1.2)
+	tw.tween_callback(cr.queue_free)
+
 # animation name for the weapon in hand
 func _a(n: String) -> String:
 	return "p/g_" + n if weapon == "great" and ANIMS.has("g_" + n) else "p/" + n
@@ -1350,6 +1494,7 @@ func _buy_attr(a: String) -> bool:
 	embers -= cost
 	level += 1
 	attrs[a] += 1
+	celebrate = true  # the hero cheers when the menu closes
 	_recalc()
 	hp = max_hp
 	stamina = max_stamina
@@ -1499,7 +1644,7 @@ func _break_guard(e: Dictionary) -> void:
 	e.state = "broken"
 	e.t = 0.0
 	e.poise = e.max_poise
-	_eplay(e, "Hit_B", 0.05, 0.5)
+	_eplay(e, "Stunned" if e.ap.has_animation("Stunned") else "Hit_B", 0.05, 0.7)  # the living stagger, dazed
 	_sfx("impactPlate_heavy_001", 0)
 	_float("ATORDOADO", e.root.position + Vector3(0, 2.4, 0), Color(1, 0.85, 0.3))
 
@@ -1544,11 +1689,17 @@ func _damage_boss(dmg: float) -> void:
 	_float(str(int(dmg)), boss.root.position + Vector3(0, 5, 0), Color(1, 0.9, 0.6))
 	if boss.phase == 1 and boss.hp < boss.max * 0.5:
 		boss.phase = 2
-		boss.state = "chase"
+		boss.state = "roar"  # phase change: it rears up, roars and calls its servants
 		boss.t = 0.0
+		boss.called = false
 		_sfx("dragon_roar", 4)
 		shake = 0.8
-		_show_banner("O DRAGÃO SE ENFURECE", "Ataques mais rápidos", Color(1, 0.25, 0.1), 2.5)
+		_show_banner("O DRAGÃO SE ENFURECE", "Ataques mais rápidos, e ele chama servos", Color(1, 0.25, 0.1), 2.5)
+	if boss.hp < boss.max * 0.2 and not boss.get("berserk", false) and boss.hp > 0:
+		boss.berserk = true  # last stand: faster still, combos every time
+		_sfx("dragon_roar", 6)
+		shake = 1.0
+		_show_banner("FÚRIA FINAL", "O dragão perdeu o controle", Color(1, 0.1, 0.05), 2.0)
 	if boss.hp <= 0 and not boss.dead:
 		boss.dead = true
 		boss.ap.play("d/die")
@@ -1653,6 +1804,35 @@ func _glow_marker(pos: Vector3, col: Color) -> Node3D:
 	add_child(n)
 	return n
 
+# a chest of the open world (world.gd places them): ABRIR plays the hero's and the lid's opening, then drops loot
+var opened := {}  # chest ids already opened (saved)
+
+func add_chest(id: String, pos: Vector3, rot: float, parent: Node3D) -> void:
+	var c: Node3D = load("res://assets/chest/Chest_Wood.gltf").instantiate()
+	c.position = pos
+	c.rotation.y = rot
+	c.scale = Vector3.ONE * 1.6
+	parent.add_child(c)
+	var cap: AnimationPlayer = c.find_children("*", "AnimationPlayer", true, false)[0]
+	if opened.has(id):
+		cap.play("Chest_Open")
+		cap.seek(cap.current_animation_length, true)
+		return
+	var it := {"pos": pos, "r": 2.4, "label": "ABRIR"}
+	it.do = func():
+		interacts.erase(it)
+		opened[id] = true
+		_one_shot("Chest_Open", 1.4, 1.0)
+		cap.play("Chest_Open")
+		_sfx("metalPot1", -4)
+		var gain := randi_range(150, 500)
+		embers += gain
+		_float("+%d brasas" % gain, pos + Vector3(0, 2.0, 0), Color(1, 0.75, 0.4))
+		_drop_item(pos + Vector3(cos(rot), 0, -sin(rot)) * 1.6, maxi(1, _roll_rarity()))
+		_save()
+	interacts.append(it)
+	c.tree_exiting.connect(func(): interacts.erase(it))  # the chunk was freed
+
 func _roll_rarity() -> int:
 	var r := randf()
 	return 3 if r < 0.01 else (2 if r < 0.08 else (1 if r < 0.3 else 0))
@@ -1702,6 +1882,7 @@ func _update_pickups() -> void:
 		l[0].rotation.y += 0.04
 		if l[0].position.distance_to(player.position) < 1.6:
 			_take_item(l[1])
+			_one_shot("PickUp_Table", 0.7, 1.4)
 			l[0].queue_free()
 			loot.erase(l)
 	for sm in seed_marks.duplicate():
@@ -1710,6 +1891,7 @@ func _update_pickups() -> void:
 			seed_i = seeds.size() - 1
 			sm[0].queue_free()
 			seed_marks.erase(sm)
+			_one_shot("Yes", 1.6, 1.2)
 			_sfx("jingle_win", -4)
 			_show_banner(sm[1][3], sm[1][4], SEEDS[sm[1][2]].col, 4.0)
 			_save()
@@ -1731,6 +1913,7 @@ func _update_pickups() -> void:
 			shards_found += 1
 			shards.erase(s)
 			s.queue_free()
+			_one_shot("PickUp_Table", 0.7, 1.4)
 			_sfx("jingle_win", -8)
 			_show_banner("FRAGMENTO DE SEIVA", "Frascos máximos: %d" % max_flasks, Color(0.5, 1, 0.6), 2.5)
 			_save()
@@ -1743,6 +1926,7 @@ func _respawn() -> void:
 	essence = max_essence
 	poison_t = 0.0
 	_set_state("free")
+	_one_shot("LayToIdle", 1.4, 1.0)  # you wake up at the bonfire
 	lock_target = null
 	_respawn_enemies()
 	for b in bosses:
@@ -1871,7 +2055,9 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 	var speed: float = Rpg.FOES[e.kind].speed
 	match e.state:
 		"dormant":
-			if (dist < 9 or e.get("alerted", false)) and state != "dead":
+			if Rpg.FOES[e.kind].get("rig", "") == "q" and dist > 9.0 * _notice():
+				_patrol(e, dt)  # the living (not risen skeletons) walk their beat until they see you
+			if (dist < 9 * _notice() or e.get("alerted", false)) and state != "dead":
 				_alert(e)
 				e.state = "awaken"
 				e.t = 0.0
@@ -1882,7 +2068,7 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 			if e.t > 1.9:
 				e.state = "chase"
 		"idle":
-			if (dist < 11 or e.get("alerted", false)) and state != "dead":
+			if (dist < 11 * _notice() or e.get("alerted", false)) and state != "dead":
 				_alert(e)
 				e.state = "chase"
 		"chase" when e.ai in ["caster", "archer"]:
@@ -2033,6 +2219,29 @@ func _update_enemy(e: Dictionary, dt: float) -> void:
 				e.t = 0.0
 
 # an enemy that notices you wakes the others around it
+# how close enemies must be to notice you: crouching halves it
+func _notice() -> float:
+	return 0.45 if crouching else 1.0
+
+# a guard's beat: idle a while, then walk to a spot near home
+func _patrol(e: Dictionary, dt: float) -> void:
+	var tgt: Vector3 = e.get("patrol_to", e.home)
+	var to: Vector3 = tgt - e.root.position
+	to.y = 0.0
+	if to.length() > 0.5:
+		e.root.position += to.normalized() * 1.3 * dt
+		e.root.rotation.y = lerp_angle(e.root.rotation.y, atan2(to.x, to.z), 0.1)
+		e.root.position.y = _ground_y(e.root.position, e.root.position.y)
+		if e.ap.current_animation != "Walking_D_Skeletons":
+			e.ap.play("Walking_D_Skeletons", 0.3)
+	else:
+		e.patrol_wait = e.get("patrol_wait", 0.0) - dt
+		if e.ap.current_animation != "Skeletons_Inactive_Floor_Pose":
+			e.ap.play("Skeletons_Inactive_Floor_Pose", 0.3)
+		if e.patrol_wait <= 0.0:
+			e.patrol_wait = randf_range(3.0, 7.0)
+			e.patrol_to = e.home + Vector3(randf_range(-6, 6), 0, randf_range(-6, 6))
+
 func _alert(e: Dictionary) -> void:
 	for o in enemies:
 		if o != e and not o.dead and o.state in ["dormant", "idle"] and o.root.position.distance_squared_to(e.root.position) < 144.0:
@@ -2066,7 +2275,7 @@ func _update_wolf(e: Dictionary, dt: float) -> void:
 	var walk := "WolfArmature|Walking"
 	match e.state:
 		"dormant", "idle":
-			if dist < 14 and state != "dead":
+			if dist < 14 * _notice() and state != "dead":
 				e.state = "chase"
 				e.t = 0.0
 				e.eye.light_energy = 0.6
@@ -2153,7 +2362,7 @@ func _update_boss(dt: float) -> void:
 	to.y = 0
 	var dist := to.length()
 	var ap: AnimationPlayer = boss.ap
-	var fury: float = 1.0 if boss.phase == 1 else 1.45
+	var fury: float = 1.8 if boss.get("berserk", false) else (1.0 if boss.phase == 1 else 1.45)
 	if not boss.awake:
 		var zone: bool = (player.position.z < -15.5 and player.position.z > -44.0 and absf(player.position.x) < 22.0) if boss.kind == "guardian" \
 			else player.position.distance_to(boss.home) < 26.0
@@ -2197,14 +2406,37 @@ func _update_boss(dt: float) -> void:
 				if dist < 6.0 * k and fwd.angle_to(to.normalized()) < 0.8:
 					_hurt_player(45.0 * fury, "Mordida do Dragão")
 			if boss.t > 1.0 / fury:
-				boss.state = "chase"
 				boss.t = 0.0
+				# combo: from phase 2 a second bite follows at once (always when berserk)
+				if boss.phase == 2 and not boss.get("combo", false) and (boss.get("berserk", false) or randf() < 0.5):
+					boss.combo = true
+					boss.state = "windup"
+					boss.next = "bite"
+					boss.t = 0.5 / fury
+				else:
+					boss.combo = false
+					boss.state = "chase"
 		"breath":
 			boss.mouth.light_energy = 9.0
 			var fwd2 := Vector3(sin(root.rotation.y), 0, cos(root.rotation.y))
 			if int(boss.t * 10) % 3 == 0 and dist < 10.0 * k and fwd2.angle_to(to.normalized()) < 0.5:
 				_hurt_player(14.0 * fury, "Sopro de Fogo")
 			if boss.t > 1.6:
+				boss.mouth.light_energy = 0.0
+				boss.state = "chase"
+				boss.t = 0.0
+		"roar":
+			ap.play("d/attack", 0.2, 0.35)
+			boss.mouth.light_energy = 6.0
+			shake = maxf(shake, 0.25)
+			if boss.t > 0.9 and not boss.called:
+				boss.called = true
+				for i in 3:  # summon: its servants rise around it
+					var a := i * TAU / 3.0
+					_spawn_enemy(root.position + Vector3(cos(a), 0, sin(a)) * 7.0 * k, ["minion", "warrior", "minion"][i])
+					enemies[-1].alerted = true
+				_float("SERVOS DO DRAGÃO!", root.position + Vector3(0, 6, 0), Color(1, 0.4, 0.2))
+			if boss.t > 2.2:
 				boss.mouth.light_energy = 0.0
 				boss.state = "chase"
 				boss.t = 0.0
@@ -2529,7 +2761,7 @@ func _build_ui() -> void:
 	joystick.set("joystick_size", 230)
 	joystick.set("tip_size", 100)
 	ui.add_child(joystick)
-	for a in ["attack", "roll", "lock", "seed", "flask", "block", "level", "weapon", "seed_next", "travel", "jump", "interact", "menu"]:
+	for a in ["attack", "roll", "lock", "seed", "flask", "block", "level", "weapon", "seed_next", "travel", "jump", "interact", "menu", "crouch", "emote"]:
 		var b := TouchScreenButton.new()
 		var s := CircleShape2D.new()
 		s.radius = _button_r(a)
@@ -2554,7 +2786,7 @@ func _build_ui() -> void:
 func _button_r(a: String) -> float:
 	match a:
 		"attack": return 115.0
-		"lock", "level", "weapon", "seed_next", "travel", "menu": return 62.0
+		"lock", "level", "weapon", "seed_next", "travel", "menu", "crouch", "emote": return 62.0
 	return 78.0
 
 func _button_pos(a: String, vs: Vector2) -> Vector2:
@@ -2572,6 +2804,8 @@ func _button_pos(a: String, vs: Vector2) -> Vector2:
 		"interact": return Vector2(vs.x - 610, vs.y - 330)
 		"level": return Vector2(vs.x * 0.5, vs.y - 120)
 		"menu": return Vector2(vs.x - 110, 260)
+		"crouch": return Vector2(vs.x - 760, vs.y - 110)
+		"emote": return Vector2(vs.x - 110, 400)
 	return Vector2.ZERO
 
 func _layout_ui() -> void:
@@ -2654,7 +2888,7 @@ func _draw_ui() -> void:
 		if a == "travel" and (_near_bonfire(3.0) == null or lit.size() < 2):
 			continue
 		var label: String = {"attack": "ATACAR", "roll": "ROLAR", "lock": "MIRA", "seed": SEEDS[seeds[seed_i]].name, "flask": "FRASCO", "block": "DEFESA",
-			"level": "NÍVEL", "weapon": "ARMA", "seed_next": "TROCAR", "travel": "VIAJAR", "jump": "PULAR", "menu": "MENU",
+			"level": "NÍVEL", "weapon": "ARMA", "seed_next": "TROCAR", "travel": "VIAJAR", "jump": "PULAR", "menu": "MENU", "crouch": "AGACHAR" if not crouching else "LEVANTAR", "emote": "EMOTE",
 			"interact": _current_interact().label if a == "interact" else ""}[a]
 		var col: Color = SEEDS[seeds[seed_i]].col if a == "seed" else Color(1, 1, 1)
 		ui_draw.draw_circle(pos, r, Color(col, 0.28 if Input.is_action_pressed(a) else 0.12))

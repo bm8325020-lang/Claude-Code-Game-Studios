@@ -32,8 +32,8 @@ func _process(_d: float) -> bool:
 		if main.boss != null:
 			main.boss.root.visible = false
 		var skel: Skeleton3D = main.model.find_children("*", "Skeleton3D", true, false)[0]
-		var hand: Vector3 = skel.get_bone_global_pose(skel.find_bone("mixamorig_RightHand")).origin
-		var sh: Vector3 = skel.get_bone_global_pose(skel.find_bone("mixamorig_RightArm")).origin
+		var hand: Vector3 = skel.get_bone_global_pose(skel.find_bone("hand_r")).origin
+		var sh: Vector3 = skel.get_bone_global_pose(skel.find_bone("upperarm_r")).origin
 		print("idle: right shoulder ", sh, " right hand ", hand, " model rot ", main.model.rotation.y)
 	if frame < 5:
 		return false

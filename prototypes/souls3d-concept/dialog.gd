@@ -71,6 +71,8 @@ func open_with(p: Dictionary) -> void:
 	visible = true
 	main.get_tree().paused = true
 	main.ui.visible = false
+	main.on_pause_ui("talk")
+	p.ap.play("Sitting_Talking" if p.idle == "Sitting_Idle" else "Idle_Talking", 0.3)
 	title.text = p.name + "  ·  " + p.role
 	text.text = p.quick.values()[0]
 	_quick_buttons()
@@ -132,4 +134,5 @@ func close_dialog() -> void:
 	visible = false
 	main.get_tree().paused = false
 	main.ui.visible = true
+	main.on_pause_ui("close")
 	main._save()

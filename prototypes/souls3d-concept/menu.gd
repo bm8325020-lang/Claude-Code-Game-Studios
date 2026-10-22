@@ -4,13 +4,16 @@
 extends Control
 
 const Rpg = preload("res://rpg.gd")
-const TABS := [["status", "PERSONAGEM"], ["talents", "TALENTOS"], ["gear", "EQUIPAMENTO"], ["quests", "MISSÕES"], ["map", "MAPA"], ["options", "OPÇÕES"]]
+const HeroBody = preload("res://hero_body.gd")
+const TABS := [["look", "APARÊNCIA"], ["status", "PERSONAGEM"], ["talents", "TALENTOS"], ["gear", "EQUIPAMENTO"], ["quests", "MISSÕES"], ["map", "MAPA"], ["options", "OPÇÕES"]]
 const OPTIONS_PATH := "user://sementes_options.json"
 
 var main: Node
 var tab := "status"
 var body: VBoxContainer
 var tab_buttons := {}
+var bg: ColorRect
+var margin: MarginContainer
 var options := {"shadows": true, "res": 0.7, "fps": 60, "show_fps": true, "sens": 1.0, "api_key": "", "ai_model": "claude-opus-5-5"}
 
 func setup(m: Node) -> void:
@@ -20,11 +23,11 @@ func setup(m: Node) -> void:
 	visible = false
 	theme = Theme.new()
 	theme.default_font_size = 34
-	var bg := ColorRect.new()
+	bg = ColorRect.new()
 	bg.color = Color(0.02, 0.015, 0.015, 0.9)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
-	var margin := MarginContainer.new()
+	margin = MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right", "top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 40)
@@ -37,7 +40,7 @@ func setup(m: Node) -> void:
 	col.add_child(bar)
 	for t in TABS:
 		var b := _button(t[1], func(): _show(t[0]))
-		b.custom_minimum_size = Vector2(225, 90)
+		b.custom_minimum_size = Vector2(200, 90)
 		bar.add_child(b)
 		tab_buttons[t[0]] = b
 	var close := _button("FECHAR", close_menu)
@@ -57,13 +60,16 @@ func open(which := "status") -> void:
 	visible = true
 	main.get_tree().paused = true
 	main.ui.visible = false
+	main.on_pause_ui("menu")
 	_show(which)
 
 func close_menu() -> void:
+	main.mirror(false)
 	main.smith_open = false
 	visible = false
 	main.get_tree().paused = false
 	main.ui.visible = true
+	main.on_pause_ui("close")
 	_save_options()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -73,6 +79,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _show(which: String) -> void:
 	tab = which
+	bg.color.a = 0.35 if tab == "look" else 0.9  # the mirror: see the hero while you dress them
+	margin.add_theme_constant_override("margin_right", int(get_viewport_rect().size.x * 0.42) if tab == "look" else 40)
+	main.mirror(tab == "look")
 	for k in tab_buttons:
 		tab_buttons[k].modulate = Color(1, 0.75, 0.4) if k == tab else Color.WHITE
 	for c in body.get_children():
@@ -109,6 +118,62 @@ func _at_bonfire() -> bool:
 	return main._near_bonfire(3.0) != null or main.smith_open
 
 # ------------------------------------------------------------------ tabs
+# make your hero: every piece and colour; the better ones unlock with your level (hero_body.gd LOCKS)
+func _tab_look() -> void:
+	body.add_child(_label("Seu herói  ·  peças e cores novas liberam com o nível", 34, Color(1, 0.75, 0.4)))
+	var lk: Dictionary = HeroBody.DEFAULT.merged(main.look, true)
+	var yes_no := [[false, "Não"], [true, "Sim"]]
+	var styles := [["Peasant", "Camponês"], ["Ranger", "Patrulheiro"]]
+	var idx := func(n: int, names: Array) -> Array:
+		var out := []
+		for i in n:
+			out.append([i, names[i]])
+		return out
+	var hairs := []
+	for i in HeroBody.HAIRS.size():
+		hairs.append([HeroBody.HAIRS[i], HeroBody.HAIR_NAMES[i]])
+	var rows := [["Corpo", "sex", [["Male", "Masculino"], ["Female", "Feminino"]]], ["Tronco", "body", styles], ["Braços", "arms", styles],
+		["Pernas", "legs", styles], ["Pés", "feet", styles], ["Ombreira", "pauldron", yes_no], ["Capuz", "hood", yes_no],
+		["Cabelo", "hair", hairs], ["Barba", "beard", yes_no],
+		["Cor da roupa", "cloth", idx.call(HeroBody.CLOTH.size(), HeroBody.CLOTH_NAMES)], ["Pele", "skin", idx.call(HeroBody.SKIN.size(), HeroBody.SKIN_NAMES)],
+		["Cor do cabelo", "hair_col", idx.call(HeroBody.HAIR_COL.size(), HeroBody.HAIR_COL_NAMES)]]
+	for row in rows:
+		var vals: Array = row[2]
+		var cur := 0
+		for i in vals.size():
+			if vals[i][0] == lk[row[1]]:
+				cur = i
+		var r := _row()
+		var l := _label(row[0], 32)
+		l.custom_minimum_size = Vector2(250, 0)
+		r.add_child(l)
+		for step in [-1, 1]:
+			var b := _button("◀" if step < 0 else "▶", func():
+				var i: int = cur
+				for k in vals.size():  # the next value you have unlocked
+					i = posmod(i + step, vals.size())
+					if HeroBody.level_needed(row[1], vals[i][0]) <= main.level:
+						break
+				main.look[row[1]] = vals[i][0]
+				main._make_hero()
+				main.mirror(true)
+				_refresh())
+			b.custom_minimum_size = Vector2(90, 76)
+			if step < 0:
+				r.add_child(b)
+				var v := _label(vals[cur][1], 32, Color(1, 0.9, 0.6))
+				v.custom_minimum_size = Vector2(240, 0)
+				v.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				r.add_child(v)
+			else:
+				r.add_child(b)
+	var locked := []
+	for lock in HeroBody.LOCKS:
+		if lock[2] > main.level:
+			locked.append("nível %d: %s" % [lock[2], {"pauldron": "ombreira", "hood": "capuz", "cloth": "roupa " + HeroBody.CLOTH_NAMES[lock[1]] if lock[1] is int else "", "hair_col": "cabelo " + HeroBody.HAIR_COL_NAMES[lock[1]] if lock[1] is int else ""}.get(lock[0], lock[0])])
+	if not locked.is_empty():
+		body.add_child(_label("A liberar: " + ", ".join(locked), 26, Color(0.75, 0.75, 0.75)))
+
 func _tab_status() -> void:
 	var cost := Rpg.level_cost(main.level)
 	body.add_child(_label("%s  ·  Nível %d  ·  %d brasas  ·  %d titanita" % [Rpg.CLASSES[main.cls].name, main.level, main.embers, main.titanite], 40, Color(1, 0.75, 0.4)))
