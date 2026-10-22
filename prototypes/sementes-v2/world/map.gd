@@ -134,7 +134,8 @@ func build() -> void:
 	stats["t_places_ms"] = Time.get_ticks_msec() - t0
 	print("  phase ", Time.get_ticks_msec() - t0, "ms")
 	veg = Veg.new(kit)
-	_scatter()
+	if OS.get_environment("NOSCATTER") == "":
+		_scatter()
 	var vh: Node3D = Node3D.new()
 	vh.name = "Vegetation"
 	add_child(vh)

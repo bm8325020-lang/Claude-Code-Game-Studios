@@ -7,23 +7,26 @@ extends SceneTree
 
 const MapT = preload("res://world/map.gd")
 
-var OUT: String = "/tmp/claude-0/-home-user/09449103-5068-5eff-93a6-3d4914815589/scratchpad/v2shots/map/"
+var OUT: String = "/home/user/Claude-Code-Game-Studios/prototypes/sementes-v2/tools/shots/"
 
 # name, eye (x, z, height above ground or absolute if > 60), target (x, y_above_ground, z)
+# Third-person player view: eye ~3.5 m (over the hero's shoulder), looking at the set piece.
 var views: Array = [
-	["01_square_to_castle", Vector3(-3, 1.7, 2), Vector3(8, 40, -214)],
-	["02_north_street", Vector3(4, 1.7, -78), Vector3(0, 2, -20)],
-	["03_mill_bridge", Vector3(-30, 1.7, 92), Vector3(-62, 2, 60)],
-	["04_forest_carvalha", Vector3(-160, 1.7, 36), Vector3(-185, 6, 25)],
-	["05_bandit_camp", Vector3(-180, 1.7, 156), Vector3(-214, 3, 166)],
-	["06_watchtower", Vector3(160, 1.7, -24), Vector3(186, 6, -46)],
-	["07_mine", Vector3(170, 1.7, -150), Vector3(178, 4, -192)],
-	["08_castle_road", Vector3(110, 1.7, -196), Vector3(8, 8, -214)],
-	["09_lake_pier", Vector3(54, 1.7, 146), Vector3(30, 0, 220)],
-	["10_farm", Vector3(66, 1.7, 46), Vector3(112, 2, 74)],
-	["11_over_south", Vector3(20, 200, 330), Vector3(0, 0, -40)],
-	["12_over_west", Vector3(-340, 170, -60), Vector3(0, 0, 10)],
-	["13_over_northeast", Vector3(260, 160, -300), Vector3(-20, 0, 60)],
+	["map_01_square", Vector3(6, 3.6, -34), Vector3(-4, 2, -14)],
+	["map_02_square_to_castle", Vector3(-6, 4.2, 4), Vector3(8, 42, -214)],
+	["map_03_forge", Vector3(26, 3.4, -30), Vector3(14, 2, -34)],
+	["map_04_north_street", Vector3(6, 3.8, -74), Vector3(-2, 3, -30)],
+	["map_05_mill_bridge", Vector3(-34, 3.6, 92), Vector3(-56, 3, 58)],
+	["map_06_forest_carvalha", Vector3(-168, 3.4, 36), Vector3(-185, 7, 24)],
+	["map_07_bandit_camp", Vector3(-194, 3.8, 152), Vector3(-214, 3, 168)],
+	["map_08_watchtower", Vector3(162, 4.0, -26), Vector3(186, 10, -50)],
+	["map_09_mine", Vector3(176, 3.6, -158), Vector3(180, 4, -188)],
+	["map_10_castle_road", Vector3(96, 4.2, -196), Vector3(10, 14, -214)],
+	["map_11_lake_pier", Vector3(54, 3.6, 150), Vector3(46, 1, 184)],
+	["map_12_farm", Vector3(72, 3.8, 48), Vector3(104, 3, 70)],
+	["map_13_over_south", Vector3(20, 200, 330), Vector3(0, 0, -40)],
+	["map_14_over_west", Vector3(-340, 175, -40), Vector3(0, 0, 10)],
+	["map_15_over_northeast", Vector3(270, 170, -300), Vector3(-10, 0, 40)],
 ]
 
 
