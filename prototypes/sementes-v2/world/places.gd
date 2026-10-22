@@ -80,7 +80,7 @@ func _make_mats() -> void:
 func region(name: String) -> void:
 	cur = name
 	if not regions.has(name):
-		regions[name] = {"big": kit.batch(), "small": kit.batch(), "procs": {}}
+		regions[name] = {"big": kit.batch(64.0), "small": kit.batch(9000.0), "procs": {}}
 
 
 func _proc(mat: String) -> SurfaceTool:

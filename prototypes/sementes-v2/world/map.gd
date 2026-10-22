@@ -127,13 +127,11 @@ func build() -> void:
 	pl.bandit_camp()
 	pl.watchtower()
 	pl.mine()
-	if OS.get_environment("NOCASTLE") == "":
-		pl.castle()
+	pl.castle()
 	pl.commit_all()
 	stats["t_places_ms"] = Time.get_ticks_msec() - t0
 	veg = Veg.new(kit)
-	if OS.get_environment("NOSCATTER") == "":
-		_scatter()
+	_scatter()
 	var vh: Node3D = Node3D.new()
 	vh.name = "Vegetation"
 	add_child(vh)
@@ -657,12 +655,12 @@ func _scatter() -> void:
 	for n in common + pines + twisted:
 		veg.define(n, 200.0, true, 30.0)
 	for n in ["Bush_Common", "Bush_Common_Flowers", "Fern_1", "Plant_1_Big"]:
-		veg.define(n, 70.0, false)
+		veg.define(n, 46.0, false)
 	veg.define("Mushroom_Common", 35.0, false)
 	for n in ["Grass_Common_Short", "Grass_Wispy_Short", "Grass_Wispy_Tall", "Grass_Common_Short#wheat", "Grass_Wispy_Short#grey"]:
-		veg.define(n, 45.0, false)
+		veg.define(n, 28.0, false)
 	for n in ["Flower_3_Group", "Flower_4_Group", "Clover_1"]:
-		veg.define(n, 45.0, false)
+		veg.define(n, 30.0, false)
 	for n in ["Rock_Medium_1", "Rock_Medium_2", "Rock_Medium_3"]:
 		veg.define(n, 170.0, true, 34.0)
 	veg.define("Pebble_Round_2", 30.0, false)

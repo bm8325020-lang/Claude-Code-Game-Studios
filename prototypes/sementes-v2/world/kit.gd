@@ -131,29 +131,38 @@ func material(key: String) -> Material:
 # ---------------------------------------------------------------- batching
 class Batch:
 	extends RefCounted
+	# Static merge: one SurfaceTool per (spatial cell, material). Sharding by a CELL-metre grid keeps draw calls
+	# low while letting frustum culling drop the off-screen half of a big region (village, castle), which a single
+	# region-wide mesh could never do (its AABB always intersects the view).
+	var cell: float = 64.0
 	var kit: RefCounted
-	var tools: Dictionary = {}   # mat key -> SurfaceTool
+	var tools: Dictionary = {}   # "cx,cz|matkey" -> SurfaceTool
 	var tris: int = 0
 
-	func _init(k: RefCounted) -> void:
+	func _init(k: RefCounted, cell_size: float = 64.0) -> void:
 		kit = k
+		cell = cell_size
 
 	func add(name: String, xf: Transform3D) -> void:
 		add_mesh(kit.mesh(name), xf)
 
 	func add_mesh(m: ArrayMesh, xf: Transform3D) -> void:
+		var cx: int = floori(xf.origin.x / cell)
+		var cz: int = floori(xf.origin.z / cell)
+		var prefix: String = "%d,%d|" % [cx, cz]
 		for s in m.get_surface_count():
-			var key: String = m.surface_get_name(s)
-			if key == "":
-				key = str(m.surface_get_material(s).get_instance_id())
-				kit._mat_by_name[key] = m.surface_get_material(s)
+			var mkey: String = m.surface_get_name(s)
+			if mkey == "":
+				mkey = str(m.surface_get_material(s).get_instance_id())
+				kit._mat_by_name[mkey] = m.surface_get_material(s)
+			var key: String = prefix + mkey
 			if not tools.has(key):
 				var st: SurfaceTool = SurfaceTool.new()
 				st.begin(Mesh.PRIMITIVE_TRIANGLES)
 				tools[key] = st
 			(tools[key] as SurfaceTool).append_from(m, s, xf)
 
-	# One MeshInstance3D per material under parent.
+	# One MeshInstance3D per (cell, material) under parent.
 	func commit(parent: Node3D, label: String, shadows: bool, vis_end: float = 0.0) -> void:
 		for key in tools.keys():
 			var st: SurfaceTool = tools[key]
@@ -161,7 +170,8 @@ class Batch:
 			var am: ArrayMesh = st.commit()
 			if am.get_surface_count() == 0:
 				continue
-			am.surface_set_material(0, kit.material(key))
+			var mkey: String = (key as String).split("|")[1]
+			am.surface_set_material(0, kit.material(mkey))
 			var mi: MeshInstance3D = MeshInstance3D.new()
 			mi.name = "%s_%s" % [label, key]
 			mi.mesh = am
@@ -177,5 +187,5 @@ class Batch:
 		tools.clear()
 
 
-func batch() -> Batch:
-	return Batch.new(self)
+func batch(cell_size: float = 64.0) -> Batch:
+	return Batch.new(self, cell_size)
