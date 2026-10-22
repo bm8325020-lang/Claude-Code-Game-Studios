@@ -46,6 +46,7 @@ func _initialize() -> void:
 # Built on the first frame: nodes added during _initialize are not inside the tree yet.
 func _setup() -> void:
 	headless = DisplayServer.get_name() == "headless"
+	_wall_start = Time.get_ticks_msec()
 	world = Node3D.new()
 	var gs := GDScript.new()
 	gs.source_code = MAIN_SRC
@@ -161,6 +162,7 @@ func _build_arena() -> void:
 		world.add_child(n)
 
 
+var _wall_start: int = 0
 var _wave_hits: int = 0
 func _next_wave() -> void:
 	if wave >= 0:
@@ -247,8 +249,9 @@ func _process(dt: float) -> bool:
 		alive.clear()
 	if alive.is_empty() and _pending_shot == "":
 		_next_wave()
-	if sim_t > 900.0:
-		print("SIM CAP")
+	# hard safety: always exit, by simulated time or by wall clock (slow software rendering under xvfb)
+	if sim_t > 900.0 or (Time.get_ticks_msec() - _wall_start) > 1500000:
+		print("SIM CAP sim_t=", snappedf(sim_t, 0.1), " wall_s=", (Time.get_ticks_msec() - _wall_start) / 1000)
 		_finish()
 		return true
 	_update_hud()
