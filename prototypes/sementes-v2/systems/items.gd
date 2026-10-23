@@ -69,6 +69,41 @@ const DEFS: Dictionary = {
 	"elmo_vigilia": {"name": "Elmo da Vigília", "kind": "quest", "desc": "Ainda tem brasa nas frestas."},
 	"peixe_lua": {"name": "Peixe-Lua", "kind": "quest", "desc": "Brilha fraquinho. Sabe quando vai chover."},
 	"lasca_bene": {"name": "Lasca do Seu Bené", "kind": "quest", "desc": "Uma lasca de semente costurada num forro."},
+	# loot from enemy chests (systems/loot.gd rolls these by "rarity"; rarer = stronger)
+	"espada_enferrujada": {"name": "Espada Enferrujada", "kind": "weapon", "rarity": "comum", "tier": 1, "dmg": 10, "prop": "Sword_Bronze", "tint": "",
+		"desc": "Tirada de um bandido. Corta, mais ou menos."},
+	"machado_rachado": {"name": "Machado Rachado", "kind": "weapon", "rarity": "comum", "tier": 1, "dmg": 13, "prop": "Axe_Bronze", "tint": "",
+		"desc": "O cabo range a cada golpe."},
+	"escudo_remendado": {"name": "Escudo Remendado", "kind": "shield", "rarity": "comum", "tier": 1, "block": 0.45, "prop": "Shield_Wooden", "tint": "",
+		"desc": "Mais remendo que escudo."},
+	"espada_soldado": {"name": "Espada de Soldado", "kind": "weapon", "rarity": "incomum", "tier": 1, "dmg": 18, "prop": "Sword_Bronze", "tint": "",
+		"desc": "Lâmina reta da guarda do vale."},
+	"picareta_reforcada": {"name": "Picareta Reforçada", "kind": "weapon", "rarity": "incomum", "tier": 1, "dmg": 19, "prop": "Pickaxe_Bronze", "tint": "",
+		"desc": "Ponta de aço, cabo de freixo."},
+	"escudo_ferro": {"name": "Escudo de Ferro", "kind": "shield", "rarity": "incomum", "tier": 1, "block": 0.65, "prop": "Shield_Wooden", "tint": "",
+		"desc": "Pesado. Aguenta pancada de verdade."},
+	"gibao_couro": {"name": "Gibão de Couro", "kind": "outfit", "rarity": "incomum", "tier": 1, "armor": 5, "look": "Ranger",
+		"desc": "Couro grosso, costura dupla."},
+	"pocao_grande": {"name": "Poção Grande", "kind": "consumable", "rarity": "incomum", "heal": 90, "refill": false,
+		"desc": "Cura bastante."},
+	"machado_guerra": {"name": "Machado de Guerra", "kind": "weapon", "rarity": "raro", "tier": 2, "dmg": 28, "prop": "Axe_Bronze", "tint": "",
+		"desc": "Dois gumes. Feito para gente, não para lenha."},
+	"espada_vigilia": {"name": "Espada da Vigília", "kind": "weapon", "rarity": "raro", "tier": 2, "dmg": 30, "prop": "Sword_Bronze", "tint": "",
+		"desc": "Arma de cavaleiro do castelo. Nunca enferruja."},
+	"escudo_vigilia": {"name": "Escudo da Vigília", "kind": "shield", "rarity": "raro", "tier": 2, "block": 0.8, "prop": "Shield_Wooden", "tint": "",
+		"desc": "O brasão foi raspado, mas o ferro ficou."},
+	"cota_vigilia": {"name": "Cota da Vigília", "kind": "outfit", "rarity": "raro", "tier": 2, "armor": 14, "look": "Ranger",
+		"desc": "Malha de ferro sob o couro."},
+	"elixir_brasa": {"name": "Elixir de Brasa", "kind": "consumable", "rarity": "raro", "heal": 200, "refill": false,
+		"desc": "Quente na garganta. Cura quase tudo."},
+	"espada_brasa": {"name": "Espada de Brasa Viva", "kind": "weapon", "rarity": "epico", "tier": 3, "dmg": 40, "prop": "Sword_Bronze", "tint": "",
+		"desc": "A lâmina brilha no escuro como carvão soprado."},
+	"escudo_escamas": {"name": "Escudo de Escamas", "kind": "shield", "rarity": "epico", "tier": 3, "block": 0.9, "prop": "Shield_Wooden", "tint": "",
+		"desc": "Escamas de dragão pregadas na madeira."},
+	"machado_dragao": {"name": "Machado do Dragão", "kind": "weapon", "rarity": "lendario", "tier": 4, "dmg": 58, "prop": "Axe_Bronze", "tint": "",
+		"desc": "Dizem que foi forjado com uma unha da Lumeira."},
+	"manto_lumeira": {"name": "Manto da Lumeira", "kind": "outfit", "rarity": "lendario", "tier": 4, "armor": 26, "look": "Ranger",
+		"desc": "Tecido que nunca esfria. Proteção de dragão."},
 	# materials and keepsakes
 	"minerio_brasa": {"name": "Minério de Brasa", "kind": "material", "desc": "Pedra morna da Mina do Fôlego."},
 	"mapa_vale": {"name": "Mapa das Covas", "kind": "keepsake", "keep": true, "desc": "O vale com cada cova marcada."},
@@ -218,7 +253,7 @@ func list() -> Array:
 	for id: String in bag:
 		var d: Dictionary = def(id)
 		out.append({"id": id, "name": str(d.get("name", id)), "kind": str(d.get("kind", "")), "count": count(id),
-			"equipped": slots.values().has(id), "desc": str(d.get("desc", ""))})
+			"equipped": slots.values().has(id), "desc": str(d.get("desc", "")), "rarity": str(d.get("rarity", ""))})
 	return out
 
 

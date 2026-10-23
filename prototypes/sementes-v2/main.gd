@@ -30,6 +30,19 @@ var _wake_timer: float = 0.0
 var _taken: Dictionary = {}  # interactable id -> true, so a pickup is collected once
 var _dialog_role: String = ""
 
+# Blox-Fruits-style loop: zone levels, hunters with repeatable contracts, chests dropped by defeated enemies
+const CHEST_LIFE: float = 120.0
+const WEAPON_BASE: Dictionary = {"Sword_Bronze": 12.0, "Axe_Bronze": 15.0, "Pickaxe_Bronze": 13.0}  # Items dmg the hero.gd numbers assume
+var farm: Farm = Farm.new()
+var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var _hunters: Array[Dictionary] = []   # {place, kind, pos, node}
+var _chests: Array[Dictionary] = []    # {pos, level, boss, node, age}
+var _plates: Dictionary = {}           # Enemy -> Label3D
+var _quest_marks: Array[Dictionary] = []  # {role, label}
+var _farm_label: Label
+var _zone: String = ""
+var _hunter_offer: Dictionary = {}
+
 
 func _ready() -> void:
 	Engine.max_fps = 60
@@ -77,6 +90,12 @@ func _ready() -> void:
 	# townsfolk
 	for n in npcs.spawn(map, self):
 		if n is Node3D: _actors.append(n)
+	_spawn_hunters()
+	for sp: Dictionary in map.npc_spots:
+		var mark := _label3d("!", Color(1.0, 0.82, 0.25), 0.0028)
+		add_child(mark)
+		mark.global_position = (sp.pos as Vector3) + Vector3(0, 2.4, 0)
+		_quest_marks.append({"role": str(sp.role), "label": mark})
 
 	# interface on its own CanvasLayer so it never clips into the 3D world
 	var layer := CanvasLayer.new()
@@ -97,7 +116,31 @@ func _ready() -> void:
 	menu.item_used.connect(_on_item_used)
 	dialog.npcs = npcs
 	dialog.context_fn = func() -> String: return Npcs.context_line(prog, quests, _area())
-	dialog.talked.connect(func(role: String) -> void: quests.notify("talk", role))
+	dialog.talked.connect(func(role: String) -> void:
+		if role != "cacador":
+			quests.notify("talk", role))
+	dialog.choice_made.connect(_on_choice)
+
+	# hunting contract tracker, under the quest card
+	_farm_label = Label.new()
+	_farm_label.add_theme_font_override("font", Hud.font(true))
+	_farm_label.add_theme_font_size_override("font_size", 24)
+	_farm_label.add_theme_color_override("font_color", Color(1.0, 0.93, 0.75))
+	_farm_label.add_theme_color_override("font_outline_color", Color(0.15, 0.08, 0.03))
+	_farm_label.add_theme_constant_override("outline_size", 8)
+	_farm_label.anchor_left = 1.0
+	_farm_label.anchor_right = 1.0
+	_farm_label.offset_left = -460.0
+	_farm_label.offset_right = -22.0
+	_farm_label.offset_top = 292.0  # below the quest card (HUD is laid out at a larger base size and scaled down)
+	_farm_label.offset_bottom = 332.0
+	_farm_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	layer.add_child(_farm_label)
+	farm.progress.connect(func(_h: int, _n: int) -> void: _update_farm_label())
+	farm.accepted.connect(func(_c: Dictionary) -> void: _update_farm_label())
+	farm.finished.connect(func(_c: Dictionary) -> void: _update_farm_label())
+	_update_farm_label()
+	rng.seed = Time.get_ticks_usec()
 
 	# keep the touch HUD uncluttered: only the buttons the hero can actually use right now are shown.
 	# Heavy/block/skill appear as the quest chain unlocks them (start-from-zero).
@@ -126,15 +169,40 @@ func damage(target: Node, amount: float, source: Node, kind: String) -> Dictiona
 	if source is Hero:
 		amt *= prog.stats(items.armor()).dmg_mult
 		if kind == "skill": amt *= prog.stats(items.armor()).skill_mult
+		var prop: String = str(items.look().get("weapon", ""))
+		if WEAPON_BASE.has(prop):
+			amt *= float(items.weapon_damage()) / float(WEAPON_BASE[prop])  # better loot weapons hit harder
+		if target is Enemy:
+			# fighting above your level barely scratches them
+			amt *= clampf(1.0 - 0.08 * float((target as Enemy).level - prog.level), 0.25, 1.0)
 	elif target is Hero:
 		amt *= prog.stats(items.armor()).armor_mult
+		if source is Enemy:
+			# and they hit much harder than their numbers when you are under-levelled
+			amt *= clampf(1.0 + 0.12 * float((source as Enemy).level - prog.level), 1.0, 3.0)
+	var was_alive: bool = target is Enemy and not (target as Enemy).dead
 	var res: Dictionary = target.take_hit(amt, source, kind)
-	if res.get("dead", false):
-		if target is Boss:
-			quests.notify("kill", "boss")
-		elif target is Enemy:
-			quests.notify("kill", (target as Enemy).kind)
+	if was_alive and (target as Enemy).dead:  # covers "result": "dead" and the boss falling asleep
+		_on_enemy_killed(target as Enemy)
 	return res
+
+
+func _on_enemy_killed(e: Enemy) -> void:
+	if e is Boss:
+		quests.notify("kill", "boss")
+	else:
+		quests.notify("kill", e.kind)
+	prog.gain_xp(e.xp)
+	if _plates.has(e):
+		(_plates[e] as Node).queue_free()
+		_plates.erase(e)
+	var c: Dictionary = farm.on_kill(e.kind)
+	if not c.is_empty():
+		prog.gain_xp(int(c.xp))
+		prog.add_gold(int(c.gold))
+		hud.toast("Caça concluída!", "+%d XP   +%d ouro · fale com o caçador de novo" % [int(c.xp), int(c.gold)], "quest")
+	if e is Boss or rng.randf() < Loot.DROP_CHANCE:
+		_spawn_chest(e.global_position, e.level, e is Boss)
 
 
 func _process(dt: float) -> void:
@@ -144,7 +212,14 @@ func _process(dt: float) -> void:
 	hud.set_life(hero.hp, s.max_hp)
 	hud.set_stamina(hero.stamina, s.max_stamina)
 	hud.set_player(hero.global_position, hero.cam_yaw)
-	hud.show_area(_area())
+	var zone: String = _place_id(hero.global_position)
+	var area: String = _area()
+	hud.show_area(Zones.label(zone, area) if area != "" else "")
+	if zone != _zone:
+		_zone = zone
+		if Zones.LEVELS.has(zone) and int(Zones.range_of(zone)[0]) >= prog.level + 3:
+			hud.toast("Perigo!", "Inimigos Nv %d+ aqui. Você é Nv %d." % [int(Zones.range_of(zone)[0]), prog.level], "info")
+	_age_chests(dt)
 	_update_interact_prompt()
 	_update_boss_bar()
 
@@ -157,6 +232,7 @@ func _process(dt: float) -> void:
 	if _wake_timer >= 0.25:
 		_wake_timer = 0.0
 		_sleep_far_actors()
+		_refresh_marks()
 
 	_save_timer += dt
 	if _save_timer >= SAVE_EVERY:
@@ -189,19 +265,24 @@ func _spawn_camps() -> void:
 		if kinds.is_empty() or "boss" in kinds:
 			continue  # the boss is placed on its own spawn, not as a camp body
 		var n: int = mini(int(c.get("count", kinds.size())), 3)  # cap bodies per camp: lighter on a phone
-		var lvl: int = int(c.get("level", 1))
+		var place: String = str(c.get("place", ""))
 		var base: Vector3 = c.get("pos", Vector3.ZERO)
 		for i in n:
 			var k: String = kinds[i % kinds.size()]
 			var off := Vector3(randf_range(-4.0, 4.0), 0.0, randf_range(-4.0, 4.0))
-			_actors.append(Enemy.spawn(self, k, lvl, base + off))
+			var lvl: int = Zones.level_for(place, i) if Zones.LEVELS.has(place) else int(c.get("level", 1))
+			var e: Enemy = Enemy.spawn(self, k, lvl, base + off)
+			_actors.append(e)
+			_add_plate(e)
 
 
 func _spawn_boss() -> void:
 	var sp: Dictionary = map.spawns
 	if sp.has("boss"):
 		_boss = Boss.spawn_boss(self, sp["boss"])
+		_boss.level = Zones.BOSS_LEVEL
 		_actors.append(_boss)
+		_add_plate(_boss)
 
 
 func _area() -> String:
@@ -212,8 +293,10 @@ func _area() -> String:
 func _update_interact_prompt() -> void:
 	var it: Dictionary = _nearest_interactable()
 	var npc: Dictionary = _nearest_npc()
-	if not npc.is_empty():
+	if not npc.is_empty() or not _nearest_hunter().is_empty():
 		touch.show_interact("Falar")
+	elif not _nearest_chest().is_empty():
+		touch.show_interact("Abrir")
 	elif not it.is_empty():
 		touch.show_interact(_prompt_for(it))
 	else:
@@ -234,6 +317,14 @@ func _on_interact() -> void:
 	var npc: Dictionary = _nearest_npc()
 	if not npc.is_empty():
 		_open_dialog(npc.role)
+		return
+	var h: Dictionary = _nearest_hunter()
+	if not h.is_empty():
+		_open_hunter(h)
+		return
+	var ch: Dictionary = _nearest_chest()
+	if not ch.is_empty():
+		_open_chest(ch)
 		return
 	var it: Dictionary = _nearest_interactable()
 	if it.is_empty():
@@ -367,3 +458,167 @@ func _sleep_far_actors() -> void:
 		var awake: bool = near or busy
 		a.process_mode = Node.PROCESS_MODE_INHERIT if awake else Node.PROCESS_MODE_DISABLED
 		a.visible = awake
+
+
+
+# ---- zones, hunters, chests, nameplates ----
+func _place_id(pos: Vector3) -> String:
+	var best: String = ""
+	var bd: float = 1e12
+	for p: Dictionary in map.places:
+		var d: float = Vector2(pos.x, pos.z).distance_to(Vector2((p.pos as Vector3).x, (p.pos as Vector3).z))
+		if d < float(p.get("radius", 40.0)) and d < bd:
+			bd = d
+			best = str(p.id)
+	return best
+
+
+func _label3d(text: String, col: Color, px: float = 0.0011) -> Label3D:
+	var l := Label3D.new()
+	l.text = text
+	l.modulate = col
+	l.outline_modulate = Color(0.1, 0.05, 0.02)
+	l.outline_size = 10
+	l.font_size = 34
+	l.pixel_size = px
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.no_depth_test = false
+	l.fixed_size = true  # same size on screen near or far, so a close enemy's name never covers the fight
+	l.visibility_range_end = 28.0
+	return l
+
+
+func _add_plate(e: Enemy) -> void:
+	var l := _label3d("", Color.WHITE)
+	e.add_child(l)
+	l.position = Vector3(0, e.target_height + 0.55, 0)
+	_plates[e] = l
+	_paint_plate(e)
+
+
+func _paint_plate(e: Enemy) -> void:
+	var l: Label3D = _plates.get(e)
+	if l == null:
+		return
+	l.text = "%s · Nv %d" % [e.display_name, e.level]
+	match Zones.danger(e.level, prog.level):
+		2: l.modulate = Color(1.0, 0.25, 0.2)
+		1: l.modulate = Color(1.0, 0.7, 0.25)
+		_: l.modulate = Color(0.95, 0.95, 0.9)
+
+
+func _spawn_hunters() -> void:
+	var seen: Dictionary = {}
+	var village: Vector3 = _spawn("village_square")
+	for c: Dictionary in map.camps:
+		var place: String = str(c.get("place", ""))
+		var kinds: Array = c.get("kinds", [])
+		if seen.has(place) or kinds.is_empty() or "boss" in kinds or not Zones.LEVELS.has(place):
+			continue
+		seen[place] = true
+		var camp: Vector3 = c.pos
+		var toward: Vector3 = (village - camp)
+		toward.y = 0.0
+		var p: Vector3 = camp + toward.normalized() * 16.0  # on the village side of the camp, out of the fight
+		p.y = map.ground_y(p.x, p.z)
+		var ch: Node3D = CharacterKit.make({"body": "Male", "outfit": "Ranger", "hood": true, "weapon": "Axe_Bronze"})
+		add_child(ch)
+		ch.global_position = p
+		ch.look_at(p - toward.normalized(), Vector3.UP)  # models face +Z: this turns them toward the village side
+		var ap: AnimationPlayer = ch.get_meta("anim") as AnimationPlayer
+		if ap and ap.has_animation("idle"):
+			ap.play("idle")
+		var mark := _label3d("!", Color(0.45, 0.85, 1.0), 0.0028)
+		ch.add_child(mark)
+		mark.position = Vector3(0, 2.4, 0)
+		var tag := _label3d("Caçador · Nv %d–%d" % [int(Zones.range_of(place)[0]), int(Zones.range_of(place)[1])], Color(0.75, 0.9, 1.0))
+		ch.add_child(tag)
+		tag.position = Vector3(0, 2.05, 0)
+		_hunters.append({"place": place, "kind": str(kinds[0]), "pos": p, "node": ch})
+		_actors.append(ch)
+
+
+func _nearest_hunter() -> Dictionary:
+	for h: Dictionary in _hunters:
+		if hero.global_position.distance_to(h.pos) < TALK_RANGE:
+			return h
+	return {}
+
+
+func _open_hunter(h: Dictionary) -> void:
+	hero.perform("talk")
+	if farm.has_active():
+		var a: Dictionary = farm.active
+		dialog.open("cacador", ["Ainda tá na caça: %s. Faltam %d." % [Farm.text(a), int(a.need) - int(a.have)]], [])
+		return
+	_hunter_offer = Farm.offer(h.place, h.kind)
+	dialog.open("cacador", ["Tem serviço: %s." % Farm.text(_hunter_offer),
+		"Pago %d de experiência e %d de ouro. Topa?" % [int(_hunter_offer.xp), int(_hunter_offer.gold)]],
+		[{"id": "aceitar", "text": "Aceitar a caça"}])
+
+
+func _on_choice(role: String, id: String) -> void:
+	if role == "cacador" and id == "aceitar" and not _hunter_offer.is_empty():
+		farm.accept(_hunter_offer)
+		_hunter_offer = {}
+		dialog.close()
+		hud.toast("Caça aceita", Farm.text(farm.active), "quest")
+
+
+func _update_farm_label() -> void:
+	if _farm_label == null:
+		return
+	if farm.has_active():
+		var a: Dictionary = farm.active
+		_farm_label.text = "Caça: %s  %d/%d" % [str(Farm.KIND_NAME.get(a.kind, a.kind)), int(a.have), int(a.need)]
+	else:
+		_farm_label.text = ""
+
+
+func _spawn_chest(pos: Vector3, level: int, boss: bool) -> void:
+	var scene: PackedScene = load("res://assets/props/Chest_Wood.gltf")
+	var node: Node3D = scene.instantiate()
+	add_child(node)
+	node.global_position = Vector3(pos.x, map.ground_y(pos.x, pos.z), pos.z)
+	node.rotation.y = rng.randf() * TAU
+	var tag := _label3d("Baú" if not boss else "Baú do Conde", Color(1.0, 0.85, 0.4))
+	node.add_child(tag)
+	tag.position = Vector3(0, 1.1, 0)
+	_chests.append({"pos": node.global_position, "level": level, "boss": boss, "node": node, "age": 0.0})
+
+
+func _nearest_chest() -> Dictionary:
+	for c: Dictionary in _chests:
+		if hero.global_position.distance_to(c.pos) < INTERACT_RANGE:
+			return c
+	return {}
+
+
+func _open_chest(c: Dictionary) -> void:
+	hero.perform("open_chest")
+	var r: Dictionary = Loot.roll(int(c.level), rng, bool(c.boss))
+	prog.add_gold(int(r.gold))
+	if str(r.item) != "":
+		items.add(str(r.item))
+		hud.toast("%s: %s" % [str(Loot.NAME[r.rarity]), Items.item_name(str(r.item))], "+%d ouro · veja no Inventário" % int(r.gold), "reward")
+	else:
+		hud.toast("Baú", "+%d ouro" % int(r.gold), "reward")
+	(c.node as Node).queue_free()
+	_chests.erase(c)
+
+
+func _age_chests(dt: float) -> void:
+	for c: Dictionary in _chests.duplicate():
+		c.age = float(c.age) + dt
+		if float(c.age) > CHEST_LIFE:
+			(c.node as Node).queue_free()
+			_chests.erase(c)
+
+
+# "!" over townsfolk who have story work for you; nameplate colours follow the hero's level
+func _refresh_marks() -> void:
+	for m: Dictionary in _quest_marks:
+		(m.label as Label3D).visible = quests.is_target("talk", str(m.role))
+	for e: Enemy in _plates:
+		if is_instance_valid(e) and e.visible:
+			_paint_plate(e)

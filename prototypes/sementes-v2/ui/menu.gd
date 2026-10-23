@@ -473,8 +473,12 @@ func _item_tile(e: Dictionary) -> Control:
 	v.add_theme_constant_override("separation", 2)
 	b.add_child(v)
 	var kind: String = str(e.kind)
-	var top := _label(str(KIND_NAME.get(kind, kind)).to_upper() + ("  · EQUIPADO" if e.equipped else ""), 17,
-		Hud.EMBER if (kind == "seed" or e.equipped) else Hud.INK_SOFT, true)
+	var rar: String = str(e.get("rarity", ""))
+	var top_col: Color = Hud.EMBER if (kind == "seed" or e.equipped) else Hud.INK_SOFT
+	if rar != "" and rar != "comum":
+		top_col = (Loot.COLOR[rar] as Color).darkened(0.35)  # loot rarity reads at a glance on parchment
+	var top := _label(str(KIND_NAME.get(kind, kind)).to_upper() + ("  · " + str(Loot.NAME[rar]).to_upper() if rar != "" else "")
+		+ ("  · EQUIPADO" if e.equipped else ""), 17, top_col, true)
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(top)
 	var n := _label(str(e.name) + ("  ×%d" % int(e.count) if int(e.count) > 1 else ""), 25, Hud.INK, true)

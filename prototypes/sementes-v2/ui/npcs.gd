@@ -28,6 +28,13 @@ Pé-Molhado, veio das Terras Frias do norte e foi tirado do rio no moinho; não 
 Tom: conto popular medieval, caloroso, com sombra. Nunca chame o herói de escolhido."""
 
 const PEOPLE: Dictionary = {
+	"cacador": {"name": "Caçador Bento", "title": "caçador de recompensas",
+		"look": {"body": "Male", "outfit": "Ranger", "hood": true, "weapon": "Axe_Bronze"},
+		"persona": "Homem calado de capuz que paga por cada bicho e bandido abatido perto do seu posto.",
+		"voice": "Seco, prático, fala de serviço e pagamento.",
+		"secret": "Já foi bandido da Pedreira; caça os antigos companheiros para pagar a dívida.",
+		"lines": ["Serviço tem sempre. Quem volta vivo recebe.", "Cada área tem sua laia. Mais longe da vila, mais braba.",
+			"Não entra onde não aguenta. Eu já enterrei muito valente."]},
 	"blacksmith": {"name": "Mestra Joana Malho", "title": "ferreira",
 		"look": {"body": "Female", "outfit": "Peasant", "hair": "Hair_Buns", "tint": Color(0.8, 0.7, 0.62), "weapon": ""},
 		"persona": "Mulher grande, de antebraços queimados e risada que assusta galinha. Fala pouco, trabalha muito.",
