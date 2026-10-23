@@ -308,6 +308,19 @@ de pão quente na boca, porque é disso que a dragoa lembra quando lembra do val
   píer como mariposas.
 - **O que o herói encontra.** O píer com o barco de Celeste, Insones à beira d'água, a semente afogada, peixe-lua.
 
+### Pastos da Cauda (`cauda`, `cauda_ponta`, `passo_escama`) — depois do fim
+- **História.** Quando a Lumeira se deitou, enrolou o rabo em volta do vale. A ponta do rabo virou um planalto alto a
+  leste, atrás das montanhas: os **Pastos da Cauda**. Toda primavera o vale subia com o gado pelo **Passo da Escama**,
+  uma garganta estreita atrás da Atalaia, e os pastores passavam o verão no curral de cima. A segunda semente do vale
+  foi plantada ali pelos primeiros pastores; o Marco da Cauda ainda está morno. Há nove anos ninguém sobe: os Guardas
+  da Vigília fecharam o passo e foram cavar as "escamas" da dragoa na **Ponta da Cauda**. Os últimos deles não
+  acreditam que o conde dorme e continuam cavando, de fogueira acesa, sem dormir.
+- **O que o herói encontra.** O moledo dos tropeiros e o Marco da Cauda no alto do passo; o curral abandonado com o
+  poste do sino vazio, o balde chutado e o fogão frio do pastor; Insones que eram pastores e ainda fazem a ronda; e na
+  Ponta, a cova das escamas, a carroça dos guardas com o Sino-Mãe roubado em cima.
+- **Níveis.** Conteúdo pós-jogo: Pastos 26–29, Ponta 29–32 (depois do conde, Nv 26, junto dos elites das Noites de
+  Brasa, ~30).
+
 ---
 
 ## Inimigos
@@ -457,7 +470,7 @@ uma semana inteira e acorda velho, mas acorda.
 
 ---
 
-## Missões secundárias (6)
+## Missões secundárias (7)
 
 ### S1. Cartas Que Não Foram
 - **Quem dá:** Rosa (`innkeeper`), depois da missão 10.
@@ -501,6 +514,13 @@ uma semana inteira e acorda velho, mas acorda.
 - **Momento:** Celeste devolve o terceiro peixe à água. "Esse aí sabe quando vai chover. Não se come quem sabe das
   coisas."
 
+### S7. O Sino-Mãe
+- **Quem dá:** Matias (`farmer`), depois da missão 14.
+- **Passos:** `reach cauda` · `kill knight x3` (Ponta da Cauda) · `interact sino_mae` · `talk farmer`.
+- **Recompensa:** 300 XP, 120 de ouro, queijo da quinta.
+- **Momento:** o vale vai ter inverno, e no inverno as vacas precisam do sino para achar o caminho de casa na neve.
+  Matias bate o sino uma vez. Lá do pasto, a Santa Inês responde com um mugido ofendido.
+
 ---
 
 ## Ids para os módulos
@@ -509,7 +529,8 @@ Ids novos usados nas missões (sugestão; quem possui o módulo decide os nomes 
 
 - **Interativos (map `interactables`):** `marco_vila`, `marco_quinta`, `marco_bosque`, `marco_atalaia`, `marco_fundo`
   (kind de descanso), `forja_joana`, `poste_treino`, `pombal`, `moinho_comporta`, `ponte_rio`, `carvalha_mae`,
-  `tenda_tobias`, `farol_atalaia`, `barco_celeste`, `insone_tome`, `mina_portao`, `castelo_portao`, `relicario`.
+  `tenda_tobias`, `farol_atalaia`, `barco_celeste`, `insone_tome`, `mina_portao`, `castelo_portao`, `relicario`, `marco_cauda`,
+  `sino_mae`.
 - **Lugar extra para `reach`:** `mina_fundo` (câmara funda da mina; pode ser um spawn em vez de um `place`).
 - **Itens para `collect`:** `nabo`, `relha_velha`, `farinha`, `semente_carvalha`, `semente_sem_terra`,
   `semente_afogada`, `semente_funda`, `livro_desenterro`, `cartas_rosa`, `sino_vaca`, `elmo_vigilia`, `peixe_lua`,

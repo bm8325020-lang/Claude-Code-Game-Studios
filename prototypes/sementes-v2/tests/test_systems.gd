@@ -5,13 +5,13 @@
 extends SceneTree
 
 const PLACES: Array[String] = ["village", "farm", "river", "forest", "bandit_camp", "watchtower", "mine", "castle", "lake",
-	"mina_fundo"]
+	"mina_fundo", "passo_escama", "cauda", "cauda_ponta"]
 const ROLES: Array[String] = ["blacksmith", "merchant", "elder", "farmer", "fisher", "guard_captain", "innkeeper", "miner",
 	"priest"]
 const KINDS: Array[String] = ["wolf_imp", "bandit", "bandit_archer", "puglin", "possessed", "knight", "boss"]
 const INTERACTABLES: Array[String] = ["marco_vila", "marco_quinta", "marco_bosque", "marco_atalaia", "marco_fundo",
 	"forja_joana", "poste_treino", "pombal", "moinho_comporta", "ponte_rio", "carvalha_mae", "tenda_tobias",
-	"farol_atalaia", "barco_celeste", "insone_tome", "mina_portao", "castelo_portao", "relicario"]
+	"farol_atalaia", "barco_celeste", "insone_tome", "mina_portao", "castelo_portao", "relicario", "marco_cauda", "sino_mae"]
 const TEST_SAVE: String = "user://sementes2_test_save.json"
 
 var fails: int = 0
@@ -71,13 +71,18 @@ func _check_data() -> void:
 			ok(Items.DEFS.has(it), "%s reward item %s" % [id, it])
 		for u: Variant in r.get("unlocks", []) as Array:
 			ok(Progression.UNLOCKS.has(str(u)), "%s unlock %s" % [id, u])
-	ok(mains == 14 and sides == 6, "14 main + 6 side quests")
+	ok(mains == 14 and sides == 7, "14 main + 7 side quests")
 	ok(int(Quests.quest("m01").minutes) <= 2, "first quest about 2 minutes")
 	ok(all_min >= 120 and all_min <= 180, "whole chain 2-3 h (%d min)" % all_min)
 	print("  design time: main %d min, all %d min" % [main_min, all_min])
 
 
 func _check_basics() -> void:
+	# quest() is an id index now: same entries as a scan of DATA, {} for unknown ids
+	var all_found: bool = true
+	for qd: Dictionary in Quests.DATA:
+		all_found = all_found and Quests.quest(str(qd.id)).get("id") == qd.id
+	ok(all_found and Quests.quest("nao_existe").is_empty(), "quest() index matches DATA")
 	var p: Progression = Progression.new()
 	var lv: Array[int] = []
 	p.leveled_up.connect(func(l: int) -> void: lv.append(l))

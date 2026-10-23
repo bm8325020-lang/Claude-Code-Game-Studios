@@ -74,6 +74,42 @@ func _init() -> void:
 	quit(1 if fails > 0 else 0)
 
 
+# the Pastos da Cauda: the place, its Marco, camps and the s7 targets exist, and the drove road up the Passo da
+# Escama never gets steeper than a walkable grade
+func _check_cauda(g: Node3D) -> void:
+	var ids: Dictionary = {}
+	for p: Dictionary in g.map.places:
+		ids[str(p.id)] = p
+	ok(ids.has("cauda") and ids.has("cauda_ponta") and ids.has("passo_escama"), "Pastos da Cauda places exist")
+	ok(Zones.LEVELS.has("cauda") and int(Zones.range_of("cauda_ponta")[1]) > int(Zones.range_of("castle")[1]), "Cauda levels continue past the castle")
+	var it_ids: Dictionary = {}
+	for it: Dictionary in g.map.interactables:
+		it_ids[str(it.id)] = it
+	ok(it_ids.has("marco_cauda") and it_ids.has("sino_mae"), "Marco da Cauda and the Sino-Mãe are on the map")
+	var q: Dictionary = Quests.quest("s7")
+	var kinds_at: Dictionary = {}
+	for c: Dictionary in g.map.camps:
+		for k: String in c.kinds:
+			kinds_at[str(c.place) + ":" + k] = true
+	for i in (q.steps as Array).size():
+		var s: Dictionary = Quests.step_of(q, i)
+		match s.type:
+			"reach": ok(ids.has(s.target), "s7 reach target %s is a place" % s.target)
+			"interact": ok(it_ids.has(s.target), "s7 interact target %s is on the map" % s.target)
+			"kill": ok(kinds_at.has(s.where + ":" + s.target), "s7 kill target %s camps at %s" % [s.target, s.where])
+	var road: Dictionary = {}
+	for r: Dictionary in g.map.terrain.roads:
+		if str(r.id) == "cauda":
+			road = r
+	var pts: PackedVector3Array = road.pts
+	var steep: float = 0.0
+	for k in pts.size() - 1:
+		var run: float = Vector2(pts[k + 1].x - pts[k].x, pts[k + 1].z - pts[k].z).length()
+		steep = maxf(steep, absf(g.map.ground_y(pts[k + 1].x, pts[k + 1].z) - g.map.ground_y(pts[k].x, pts[k].z)) / maxf(run, 0.5))
+	ok(steep < 0.5, "the drove road up the pass is walkable (max grade %.2f)" % steep)
+	ok(g.map.ground_y(376, 12) > 25.0 and g.map.ground_y(292, 30) > g.map.ground_y(292, 11) + 25.0, "the Cauda is a plateau reached through a gorge")
+
+
 func _live() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://sementes2_save.json"))  # start from a new game
 	var g: Node3D = load("res://main.tscn").instantiate()
@@ -81,6 +117,33 @@ func _live() -> void:
 	for i in 5:
 		await process_frame
 	ok(not g._hunters.is_empty(), "hunters spawned")
+	# audio: buses exist, the ambience bed follows the area and the music follows the mood
+	ok(AudioServer.get_bus_index("Music") >= 0 and AudioServer.get_bus_index("SFX") >= 0 and AudioServer.get_bus_index("Ambience") >= 0, "audio buses Music/SFX/Ambience")
+	var w: AudioStreamWAV = GameAudio.bed("forest", 2.0)
+	ok(w.loop_end == 2 * GameAudio.RATE and w.data.size() == 4 * GameAudio.RATE and w.data.count(0) < w.data.size() / 2, "a synthesised ambience bed loops and is not silent")
+	var au: GameAudio = g.audio
+	ok(au != null and au.is_inside_tree(), "the audio node exists")
+	au.update("village", "calm")
+	for i in 600:
+		if au.amb_key == "village":
+			break
+		await process_frame
+	var village_bed: AudioStream = au.amb[au._amb_i].stream
+	ok(au.amb_key == "village" and village_bed != null and au.music_key == "town", "village ambience + town music (%s, %s)" % [au.amb_key, au.music_key])
+	au.update("mine", "calm")
+	for i in 600:
+		if au.amb_key == "mine":
+			break
+		await process_frame
+	ok(au.amb_key == "mine" and au.amb[au._amb_i].stream != village_bed and au.music_key == "dungeon", "entering the mine switches the ambience stream and music")
+	au.update("forest", "fight")
+	ok(au.music_key == "dungeon", "a fight nearby swaps to the fight track")
+	au.update("forest", "boss")
+	ok(au.music_key == "boss", "the Conde gets the boss track")
+	au._hold = 0.0
+	au.update("forest", "calm")
+	ok(au.music_key == "forest", "calm again: exploration track")
+	ok(GameAudio.mood([], Vector3.ZERO, null) == "calm", "no enemies, calm mood")
 	ok(g._boss != null and is_instance_valid(g._boss), "the final boss exists in the world (it did not, so the game could not be finished)")
 	var guard: Enemy = g._spawn_enemy("knight", 24, g._boss.global_position + Vector3(6, 0, 0))
 	g._clear_duel()
@@ -100,6 +163,7 @@ func _live() -> void:
 	ok(fm.material_overlay != null, "wind-up glow on")
 	fb._set_state("combat")
 	ok(fm.material_overlay == null, "wind-up glow off when the attack ends")
+	_check_cauda(g)
 	# a pickup the quest is collecting beats the townsperson standing next to it (Rosa at her inn door)
 	var cartas: Dictionary = {}
 	for it: Dictionary in g.map.interactables:
