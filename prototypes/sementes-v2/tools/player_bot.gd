@@ -128,7 +128,7 @@ func _enemy_threat() -> Enemy:
 		if e == null or e.dead or not e.visible:
 			continue
 		var d: float = e.global_position.distance_to(hero.global_position)
-		if d < bd and (e.state in ["combat", "attack", "alert"] or d < 3.0 or (g._plates.has(e) and str((g._plates[e] as Label3D).text).begins_with("⚔"))):
+		if d < bd and (e.state in ["combat", "attack", "alert"] or d < 3.0):
 			bd = d
 			best = e
 	return best
@@ -172,7 +172,8 @@ func _bot(h: Hero) -> Dictionary:
 		if en == null or en.dead or not en.visible or not g._plates.has(en):
 			continue
 		var d: float = en.global_position.distance_to(h.global_position)
-		if d < best_e and str((g._plates[en] as Label3D).text).begins_with("⚔") and Zones.danger(en.level, g.prog.level) < 2:
+		var story_kill: bool = str(g.quests.current().get("type", "")) == "kill" and en.kind == str(g.quests.current().get("target", ""))
+		if d < best_e and story_kill and Zones.danger(en.level, g.prog.level) < 2:
 			best_e = d
 			target = en.global_position
 	# a quest star visible on screen nearby beats the far arrow (players walk to what glows)

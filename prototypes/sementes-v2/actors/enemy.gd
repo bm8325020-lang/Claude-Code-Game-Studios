@@ -263,7 +263,7 @@ func _physics_process(dt: float) -> void:
 			var th: Vector3 = home - global_position
 			th.y = 0
 			want = th.normalized() * speed * 0.8
-			if heals_home:
+			if heals_home and dist > 15.0:  # no healing in the player's face while they chase it
 				hp = minf(max_hp, hp + max_hp * 0.2 * dt)
 			if th.length() < 1.0:
 				_set_state("idle")
@@ -345,7 +345,7 @@ func _engaged_count() -> int:
 
 
 func _combat(dt: float, to: Vector3, dist: float) -> Array:
-	if not _hero_alive() or (global_position.distance_to(home) > 30.0 and dist > 8.0):
+	if not _hero_alive() or (global_position.distance_to(home) > 45.0 and dist > 8.0):
 		_set_state("return")
 		return [Vector3.ZERO, false]
 	var dirv: Vector3 = to.normalized() if dist > 0.01 else Vector3.FORWARD
