@@ -27,6 +27,11 @@ var views: Array = [
 	["map_13_over_south", Vector3(20, 200, 330), Vector3(0, 0, -40)],
 	["map_14_over_west", Vector3(-340, 175, -40), Vector3(0, 0, 10)],
 	["map_15_over_northeast", Vector3(270, 170, -300), Vector3(-10, 0, 40)],
+	["map_16_escama_mouth", Vector3(226, 4.0, 18), Vector3(300, 12, 11)],
+	["map_17_escama_pinch", Vector3(274, 3.6, 13), Vector3(312, 5, 9)],
+	["map_18_cauda_fold", Vector3(362, 4.0, 22), Vector3(390, 2, 4)],
+	["map_19_cauda_ponta", Vector3(376, 4.0, -28), Vector3(394, 2, -56)],
+	["map_20_over_east", Vector3(470, 190, 190), Vector3(300, 0, 0)],
 ]
 
 

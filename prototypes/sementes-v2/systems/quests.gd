@@ -1,5 +1,5 @@
 # PROTOTYPE - NOT FOR PRODUCTION
-# Quests: the LORE.md chain (14 main + 6 side) as data, quest state, rewards, resting at the Marcos de Lume and the
+# Quests: the LORE.md chain (14 main + 7 side) as data, quest state, rewards, resting at the Marcos de Lume and the
 # save file. Owns the Progression and Items it is given and applies rewards to them.
 #
 # Glue (main.gd) calls notify(event, target) for everything that happens in the world:
@@ -213,6 +213,15 @@ const DATA: Array = [
 		"steps": [["collect", "peixe_lua", 3, "lake", "Pesque 3 peixes-lua perto do píer"],
 			["talk", "fisher", 1, "lake", "Leve os peixes para Dona Celeste"]],
 		"rewards": {"xp": 40, "items": {"anzol_celeste": 1}}},
+	{"id": "s7", "kind": "side", "title": "O Sino-Mãe", "giver": "farmer", "requires": ["m14"],
+		"level": 12, "minutes": 6,  # fast travel: the Marco da Cauda sits at the head of the pass
+		"offer": "Antes do Desenterro a gente subia com o gado pros Pastos da Cauda, pelo Passo da Escama, atrás da Atalaia. Meu pai deixou o Sino-Mãe no curral de lá. Se vai ter inverno, as vacas vão precisar dele pra achar o caminho de casa na neve.",
+		"done": "Matias bate o sino uma vez. Lá do pasto, a Santa Inês responde com um mugido ofendido.",
+		"steps": [["reach", "cauda", 1, "cauda", "Suba pelo Passo da Escama até os Pastos da Cauda"],
+			["kill", "knight", 3, "cauda_ponta", "O poste do curral está vazio: derrote os guardas que cavam a Ponta da Cauda"],
+			["interact", "sino_mae", 1, "cauda_ponta", "Pegue o Sino-Mãe na carroça dos guardas"],
+			["talk", "farmer", 1, "farm", "Leve o Sino-Mãe ao Matias"]],
+		"rewards": {"xp": 300, "gold": 120, "items": {"queijo_quinta": 3}}},
 ]
 
 var prog: Progression
@@ -233,11 +242,15 @@ func start_new() -> void:
 	_refresh()
 
 
+static var _by_id: Dictionary = {}  # id -> DATA entry; quest() runs hundreds of times a frame via is_target
+
+
 static func quest(id: String) -> Dictionary:
-	for q: Dictionary in DATA:
-		if str(q.id) == id:
-			return q
-	return {}
+	if _by_id.is_empty():
+		for q: Dictionary in DATA:
+			if not _by_id.has(str(q.id)):  # first one wins, like the old linear search
+				_by_id[str(q.id)] = q
+	return _by_id.get(id, {})
 
 
 static func step_of(q: Dictionary, i: int) -> Dictionary:
@@ -283,8 +296,8 @@ func notify(event: String, target: String) -> void:
 func is_target(event: String, target: String) -> bool:
 	for id: String in state:
 		if state[id] == "active":
-			var s: Dictionary = step_of(quest(id), int(step_i[id]))
-			if s.type == event and s.target == target:
+			var a: Array = quest(id).steps[int(step_i[id])] as Array  # step_of() without its per-call Dictionary
+			if str(a[0]) == event and str(a[1]) == target:
 				return true
 		elif state[id] == "offered" and (event == "talk" or event == "interact") and str(quest(id).giver) == target:
 			return true

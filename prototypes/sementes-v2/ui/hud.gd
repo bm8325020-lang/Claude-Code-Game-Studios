@@ -559,7 +559,7 @@ func _poll_systems() -> void:
 # ------------------------------------------------------------------ animation
 func _process(dt: float) -> void:
 	_time += dt
-	if _prog != null or _quests != null:
+	if (_prog != null or _quests != null) and Engine.get_process_frames() % 3 == 0:  # 20 Hz at 60 fps: quest lookup + GPS route is too much per frame on a phone
 		_poll_systems()
 	_update_hint(dt)
 	_mark_places(dt)
