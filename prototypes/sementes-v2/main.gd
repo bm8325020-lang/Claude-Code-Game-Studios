@@ -44,7 +44,7 @@ var _farm_label: Label
 var _zone: String = ""
 var _hunter_offer: Dictionary = {}
 const RESPAWN_S: float = 40.0
-const RESPAWN_MIN_DIST: float = 30.0
+const RESPAWN_MIN_DIST: float = 20.0
 var _respawns: Array[Dictionary] = []
 const DROPS: Dictionary = {"elmo_vigilia": "knight"}  # quest items that drop from an enemy kind instead of lying around
 var _marcos_seen: Dictionary = {}   # marco id -> pos, discovered by walking within 20 m
@@ -436,11 +436,21 @@ func _apply_stats() -> void:
 
 
 func _spawn_camps() -> void:
+	# a camp may hold up to 3 bodies (phones), or as many as a quest asks for of its kind (6 puglins in the mine)
+	var need: Dictionary = {}
+	for q: Dictionary in Quests.DATA:
+		for i in (q.steps as Array).size():
+			var st: Dictionary = Quests.step_of(q, i)
+			if str(st.type) == "kill":
+				need[str(st.target)] = maxi(int(need.get(str(st.target), 0)), int(st.count))
 	for c: Dictionary in map.camps:
 		var kinds: Array = c.get("kinds", [])
 		if kinds.is_empty() or "boss" in kinds:
 			continue  # the boss is placed on its own spawn, not as a camp body
-		var n: int = mini(int(c.get("count", kinds.size())), 3)  # cap bodies per camp: lighter on a phone
+		var cap: int = 3
+		for k: String in kinds:
+			cap = maxi(cap, int(need.get(k, 0)))
+		var n: int = mini(int(c.get("count", kinds.size())), cap)
 		var place: String = str(c.get("place", ""))
 		var base: Vector3 = c.get("pos", Vector3.ZERO)
 		for i in n:
