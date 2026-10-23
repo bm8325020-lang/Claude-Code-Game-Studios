@@ -2,3 +2,4 @@
 export_presets.cfg
 *.apk
 tools/playtest_report.json
+override.cfg
