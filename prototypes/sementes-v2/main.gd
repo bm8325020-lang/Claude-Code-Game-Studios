@@ -233,6 +233,7 @@ func _ready() -> void:
 	_place_missing_quest_items()
 	await get_tree().physics_frame
 	_unbury_interactables()
+	_sync_gates()
 
 
 # Every quest "collect" must have enough pickups in the world. Any shortfall is placed around the best anchor:
@@ -593,6 +594,18 @@ func _use_interactable(it: Dictionary) -> void:
 		_:
 			hero.perform("interact")
 			quests.notify("interact", id)
+			_sync_gates()
+
+
+# a gate the story has opened stops blocking the way (its collider was permanent before)
+func _sync_gates() -> void:
+	var mine_open: bool = quests.is_done("m11") or (quests.status("m11") == "active" and int(quests.step_i.get("m11", 0)) >= 2)
+	for it: Dictionary in map.interactables:
+		if str(it.get("id", "")) == "mina_portao" and mine_open:
+			var cs: Variant = it.get("col")
+			if cs is CollisionShape3D and is_instance_valid(cs):
+				(cs as CollisionShape3D).disabled = true
+			_taken["mina_portao"] = true
 
 
 func _open_dialog(role: String) -> void:

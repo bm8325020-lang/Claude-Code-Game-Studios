@@ -142,13 +142,14 @@ func PL(name: String, root: Transform3D, lp: Vector3, yaw: float = 0.0, s: float
 	PX(name, root * Transform3D(rot(yaw).scaled(Vector3.ONE * s), lp), big)
 
 
-func col_box(c: Vector3, size: Vector3, yaw: float) -> void:
+func col_box(c: Vector3, size: Vector3, yaw: float) -> CollisionShape3D:
 	var cs: CollisionShape3D = CollisionShape3D.new()
 	var bs: BoxShape3D = BoxShape3D.new()
 	bs.size = size
 	cs.shape = bs
 	cs.transform = Transform3D(rot(yaw), c)
 	body.add_child(cs)
+	return cs
 
 
 # A sloped walkable slab whose top surface runs from `a` to `b` (both on the walking surface).
@@ -1053,8 +1054,8 @@ func mine() -> void:
 	var gpy: float = gy(gp.x, gp.y)
 	for i in 3:
 		PX("Prop_MetalFence_Simple", Transform3D(bb, Vector3(gp.x, gpy, gp.y) + bb * Vector3(-2.0 + i * 2.0, 0, 0)), true)
-	col_box(Vector3(gp.x, gpy + 1.5, gp.y), Vector3(hw * 2.0, 3.0, 0.4), yaw)
-	inter("mina_portao", "gate", Vector3(gp.x, gpy, gp.y) - Vector3(dirv.x, 0, dirv.y) * 1.6, {"name": "Portão da Mina", "key": "chave_gaspar", "collision_size": Vector3(hw * 2.0, 3.0, 0.4)})
+	var gate_col: CollisionShape3D = col_box(Vector3(gp.x, gpy + 1.5, gp.y), Vector3(hw * 2.0, 3.0, 0.4), yaw)
+	inter("mina_portao", "gate", Vector3(gp.x, gpy, gp.y) - Vector3(dirv.x, 0, dirv.y) * 1.6, {"name": "Portão da Mina", "key": "chave_gaspar", "col": gate_col})
 	# rib arches in the gallery: the mountain is the Lumeira, the miners dug between her ribs
 	var torus: TorusMesh = TorusMesh.new()
 	torus.inner_radius = hw - 0.5
