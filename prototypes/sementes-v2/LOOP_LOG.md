@@ -64,3 +64,14 @@ Reviewer-approved content: Joana's forge (+1..+5 for 100–1000 gold), selling l
 12 achievements with gold, discovered Marcos saved, quest card "Recomendado: Nv X · treine com o Caçador".
 
 Bot (30 min, seeds 3/4): level 13–14, m01–m08 + s2 + s4, stuck events 9–10 (were 60–90).
+
+## Iterations 6–7
+
+- Skills on the attack button's neighbour: INVESTIDA at level 10, GIRO at level 20 (6 s cooldown ring).
+- Ending panel "A Festa da Semeadura" after m14, with "Continuar explorando".
+- Boss never spawned (no spawn point): it now uses the boss camp position.
+- Mine camp held 3 puglins but the quest asked for 6: camp caps follow the largest quest kill count.
+- Mine gate: its collider was permanent, so the galleries stayed shut after "Abra o portão da mina" and the
+  puglin step stalled 40–55 min. The collider is now disabled once the story opens the gate (also on load).
+
+Bot (160 min, seeds 5/6, before the gate fix): story finished (m14), level 29–30, 10 areas.
