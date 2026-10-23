@@ -297,6 +297,7 @@ func damage(target: Node, amount: float, source: Node, kind: String) -> Dictiona
 	var amt: float = amount
 	if source is Hero:
 		amt *= prog.stats(items.armor()).dmg_mult
+		amt *= 1.0 + 0.04 * float(prog.level - 1)  # every level hits a little harder, points or not
 		if kind == "skill": amt *= prog.stats(items.armor()).skill_mult
 		var prop: String = str(items.look().get("weapon", ""))
 		if WEAPON_BASE.has(prop):
