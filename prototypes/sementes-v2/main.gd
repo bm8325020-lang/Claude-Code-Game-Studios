@@ -51,6 +51,7 @@ func _ready() -> void:
 	map = load("res://world/map.gd").new()
 	add_child(map)
 	map.build()
+	_lighten_world()
 
 	# the hero at the start spawn, wearing whatever the save says (peasant rags by default)
 	hero = Hero.new()
@@ -59,6 +60,8 @@ func _ready() -> void:
 	hero.equip(items.look())
 	_apply_stats()
 	hero.refill()
+	if hero.camera:
+		hero.camera.far = 200.0  # pull the far plane in: fewer distant draws on a phone
 	hero.hurt.connect(_on_hero_hurt)
 	hero.died.connect(_on_hero_died)
 	hero.interact_requested.connect(_on_interact)
@@ -91,10 +94,16 @@ func _ready() -> void:
 	dialog.context_fn = func() -> String: return Npcs.context_line(prog, quests, _area())
 	dialog.talked.connect(func(role: String) -> void: quests.notify("talk", role))
 
+	# keep the touch HUD uncluttered: only the buttons the hero can actually use right now are shown.
+	# Heavy/block/skill appear as the quest chain unlocks them (start-from-zero).
+	_refresh_buttons()
+	prog.unlocked.connect(func(_id: String) -> void: _refresh_buttons())
+
 	# gear changes rebuild the hero's look; a new weapon or armour shows at once
 	items.equipped.connect(func(_slot: String, _id: String) -> void:
 		hero.equip(items.look())
-		_apply_stats())
+		_apply_stats()
+		_refresh_buttons())
 	prog.leveled_up.connect(func(_l: int) -> void: _apply_stats())
 
 	# the quest that is running decides what the first Marco bed, the boss bar and the castle gate do
@@ -169,7 +178,7 @@ func _spawn_camps() -> void:
 		var kinds: Array = c.get("kinds", [])
 		if kinds.is_empty() or "boss" in kinds:
 			continue  # the boss is placed on its own spawn, not as a camp body
-		var n: int = int(c.get("count", kinds.size()))
+		var n: int = mini(int(c.get("count", kinds.size())), 3)  # cap bodies per camp: lighter on a phone
 		var lvl: int = int(c.get("level", 1))
 		var base: Vector3 = c.get("pos", Vector3.ZERO)
 		for i in n:
@@ -296,3 +305,37 @@ func _on_item_used(_id: String, heal: int) -> void:
 
 func _save() -> void:
 	quests.save_game()
+
+
+# Cheaper environment for phones: shorter shadows, no screen-space heavy effects, tighter fog.
+func _lighten_world() -> void:
+	for n in _all_nodes(map):
+		if n is DirectionalLight3D:
+			var dl := n as DirectionalLight3D
+			dl.directional_shadow_max_distance = 80.0
+			dl.shadow_blur = 1.0
+		elif n is WorldEnvironment:
+			var env: Environment = (n as WorldEnvironment).environment
+			if env:
+				env.ssao_enabled = false
+				env.ssil_enabled = false
+				env.sdfgi_enabled = false
+				env.glow_enabled = false
+
+
+func _all_nodes(root: Node) -> Array:
+	var out: Array = [root]
+	for c in root.get_children():
+		out.append_array(_all_nodes(c))
+	return out
+
+
+# Show only the buttons the hero can use now; reveal heavy/block/skill as progression grants them.
+func _refresh_buttons() -> void:
+	if touch == null:
+		return
+	var has_weapon: bool = String(items.look().get("weapon", "")) != ""
+	touch.set_button("heavy", has_weapon)
+	touch.set_button("lock", has_weapon)
+	touch.set_button("block", prog.has_unlock("bloqueio"))
+	touch.set_button("skill", prog.has_unlock("sopro_brasa") or prog.has_unlock("calor_lar"))
