@@ -82,6 +82,14 @@ func _live() -> void:
 		await process_frame
 	ok(not g._hunters.is_empty(), "hunters spawned")
 	ok(g._boss != null and is_instance_valid(g._boss), "the final boss exists in the world (it did not, so the game could not be finished)")
+	# hidden treasure: 12 chests that never expire, found ones counted and saved
+	var tr: Array = g._chests.filter(func(c: Dictionary) -> bool: return c.has("treasure"))
+	ok(tr.size() == g.TREASURES, "all 12 hidden treasures placed (%d)" % tr.size())
+	var t0: Dictionary = tr[0]
+	g._age_chests(1000.0)
+	ok(g._chests.has(t0), "a treasure does not expire like an enemy chest")
+	g._open_chest(t0)
+	ok(g._treasures_found() == 1 and g.prog.has_unlock(str(t0.treasure)), "opening a treasure counts and saves it")
 	var h: Dictionary = g._hunters[0]
 	g.hero.global_position = h.pos + Vector3(1, 0, 0)
 	g._open_hunter(h)

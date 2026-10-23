@@ -32,6 +32,7 @@ var _dialog_role: String = ""
 
 # Blox-Fruits-style loop: zone levels, hunters with repeatable contracts, chests dropped by defeated enemies
 const CHEST_LIFE: float = 120.0
+const TREASURES: int = 12  # hidden chests that stay put until found; found ones are saved as unlocks
 const WEAPON_BASE: Dictionary = {"Sword_Bronze": 12.0, "Axe_Bronze": 15.0, "Pickaxe_Bronze": 13.0}  # Items dmg the hero.gd numbers assume
 var farm: Farm = Farm.new()
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -235,6 +236,7 @@ func _ready() -> void:
 	await get_tree().physics_frame
 	_unbury_interactables()
 	_sync_gates()
+	_spawn_treasures()
 
 
 # Every quest "collect" must have enough pickups in the world. Any shortfall is placed around the best anchor:
@@ -970,8 +972,8 @@ func _route(goal: Vector3) -> Vector3:
 
 # Pushing the stick for 10 s without getting 4 m anywhere (river channel, a gap between rocks): put the hero back
 # on the nearest road. A casual player should never need to restart because of terrain.
-func _in_river() -> bool:
-	var p: Vector3 = hero.global_position
+func _in_river(at: Variant = null) -> bool:
+	var p: Vector3 = at if at is Vector3 else hero.global_position
 	var t: Object = map.terrain
 	if (t.get("river_d") as PackedFloat32Array).is_empty():
 		return false
@@ -1040,7 +1042,7 @@ func _check_achievements() -> void:
 		if str(q.kind) == "main" and quests.is_done(str(q.id)):
 			mains += 1
 	var stats: Dictionary = {"level": prog.level, "kills": total, "kills_imp": int(prog.kills.get("wolf_imp", 0)),
-		"marcos": _marcos_seen.size(), "chests": int(prog.kills.get("_chests", 0)), "rarity": best,
+		"marcos": _marcos_seen.size(), "chests": int(prog.kills.get("_chests", 0)), "treasures": _treasures_found(), "rarity": best,
 		"main_quests": mains, "contracts": int(prog.kills.get("_contracts", 0))}
 	for a: Dictionary in Achievements.reached(stats, prog.has_unlock):
 		prog.unlock(Achievements.key(str(a.id)))
@@ -1138,6 +1140,49 @@ func _spawn_chest(pos: Vector3, level: int, boss: bool) -> void:
 	_chests.append({"pos": node.global_position, "level": level, "boss": boss, "node": node, "age": 0.0})
 
 
+# Hidden treasure: a fixed spot off the beaten path in every area (two in the larger ones). The same map always
+# puts them in the same places, so a found one never comes back.
+func _spawn_treasures() -> void:
+	var r := RandomNumberGenerator.new()
+	r.seed = 7331
+	var ss: PhysicsDirectSpaceState3D = hero.get_world_3d().direct_space_state
+	var q := PhysicsPointQueryParameters3D.new()
+	q.collision_mask = 1
+	# open-air areas only (the deep mine is under the terrain surface)
+	var places: Array = (map.places as Array).filter(func(pl: Dictionary) -> bool:
+		var pp: Vector3 = pl.pos
+		return absf(map.ground_y(pp.x, pp.z) - pp.y) < 2.0)
+	places.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a.get("radius", 0)) > float(b.get("radius", 0)))
+	for i in TREASURES:
+		var pl: Dictionary = places[i % places.size()]
+		var ctr: Vector3 = pl.pos
+		var rad: float = maxf(float(pl.get("radius", 20.0)), 12.0)
+		var spot: Variant = null
+		for tries in 40:
+			var a: float = r.randf() * TAU
+			var c := ctr + Vector3(cos(a), 0, sin(a)) * rad * r.randf_range(0.5, 0.95)
+			c.y = map.ground_y(c.x, c.z)
+			q.position = c + Vector3(0, 0.9, 0)
+			if ss.intersect_point(q, 1).is_empty() and not _in_river(c + Vector3(0, 0.5, 0)):
+				spot = c
+				break
+		var id: String = "tesouro_%d" % i
+		if spot == null or prog.has_unlock(id):
+			continue
+		_spawn_chest(spot, Zones.level_for(str(pl.id), i), false)
+		var c: Dictionary = _chests.back()
+		c["treasure"] = id
+		((c.node as Node).get_child(-1) as Label3D).text = "Tesouro"
+
+
+func _treasures_found() -> int:
+	var n: int = 0
+	for i in TREASURES:
+		if prog.has_unlock("tesouro_%d" % i):
+			n += 1
+	return n
+
+
 func _nearest_chest() -> Dictionary:
 	for c: Dictionary in _chests:
 		if hero.global_position.distance_to(c.pos) < INTERACT_RANGE:
@@ -1157,12 +1202,16 @@ func _open_chest(c: Dictionary) -> void:
 	(c.node as Node).queue_free()
 	_chests.erase(c)
 	prog.kills["_chests"] = int(prog.kills.get("_chests", 0)) + 1
+	if c.has("treasure"):
+		prog.unlock(str(c.treasure))
+		prog.add_gold(50)
+		hud.toast("Tesouro escondido! %d/%d" % [_treasures_found(), TREASURES], "+50 ouro extra", "reward")
 
 
 func _age_chests(dt: float) -> void:
 	for c: Dictionary in _chests.duplicate():
 		c.age = float(c.age) + dt
-		if float(c.age) > CHEST_LIFE:
+		if float(c.age) > CHEST_LIFE and not c.has("treasure"):
 			(c.node as Node).queue_free()
 			_chests.erase(c)
 

@@ -4,7 +4,7 @@
 class_name Achievements
 extends RefCounted
 
-# stat: level | kills | kills_imp | marcos | chests | rarity (best rarity index, 2 = raro) | main_quests | contracts
+# stat: level | kills | kills_imp | marcos | chests | rarity (best rarity index, 2 = raro) | main_quests | contracts | treasures
 const DATA: Array[Dictionary] = [
 	{"id": "primeiro_passo", "title": "Primeiro Passo", "desc": "Chegue ao nível 2", "stat": "level", "need": 2, "gold": 20},
 	{"id": "primeira_caca", "title": "Primeira Caça", "desc": "Derrote 10 inimigos", "stat": "kills", "need": 10, "gold": 30},
@@ -17,6 +17,7 @@ const DATA: Array[Dictionary] = [
 	{"id": "raro", "title": "Olho Bom", "desc": "Consiga um item Raro ou melhor", "stat": "rarity", "need": 2, "gold": 80},
 	{"id": "cem", "title": "Cem Vitórias", "desc": "Derrote 100 inimigos", "stat": "kills", "need": 100, "gold": 150},
 	{"id": "nivel_20", "title": "Guardião do Vale", "desc": "Chegue ao nível 20", "stat": "level", "need": 20, "gold": 250},
+	{"id": "tesouros", "title": "Caça-Tesouros", "desc": "Ache os 12 tesouros escondidos", "stat": "treasures", "need": 12, "gold": 200},
 	{"id": "lendario", "title": "Sorte de Dragão", "desc": "Consiga um item Lendário", "stat": "rarity", "need": 4, "gold": 300},
 ]
 
