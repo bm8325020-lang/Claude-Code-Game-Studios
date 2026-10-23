@@ -47,3 +47,20 @@ counter with a ding every 5 hits. Vetoed for now: horse (redundant with fast tra
 Bot (60 min, seeds 1/2): level 17 / 14, m01–m08 + s4, 6 areas, deaths 15–20. Stalls found: archers kited the
 player for 34 min (now stand their ground away from home) and watchtower knights blocked everything (guard less,
 light hits wear the guard down).
+
+## Iterations 4–5
+
+New seeds (3/4) exposed new blockers, all fixed:
+- Enemies spawned on slopes started inside the hill and fell under the map (quest arrow pointed at y = −44).
+  Spawns snap to the terrain; anything 5 m under ground is put back.
+- Quest spot vs. nearby hunter/dropped chest on the interact button (554 presses at Tobias' tent).
+- Watchtower knights: on-level discount at every level; enemy damage +10%/level past 10; enemy HP +18%/level
+  (was +30%: a level-17 knight had 812 HP); hero damage +4%/level. Camps on an area's edge use its name.
+- Toll bridge: no ramps (road ran under the deck) → 10 m-wide ramps; river trap → lifted to the nearest open
+  road point after 4 s in the water; generic stuck rescue; arrow routes over the terrain's real roads;
+  reach steps notify every containing area (a neighbouring camp hid "forest").
+
+Reviewer-approved content: Joana's forge (+1..+5 for 100–1000 gold), selling loot (one-tap duplicate commons),
+12 achievements with gold, discovered Marcos saved, quest card "Recomendado: Nv X · treine com o Caçador".
+
+Bot (30 min, seeds 3/4): level 13–14, m01–m08 + s2 + s4, stuck events 9–10 (were 60–90).
