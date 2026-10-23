@@ -94,7 +94,7 @@ func commit(parent: Node3D) -> void:
 			var near: MultiMeshInstance3D = _mmi(name, mesh, arr, cols, key)
 			near.visibility_range_end = far if far > 0.0 else vis_end
 			near.visibility_range_end_margin = 8.0
-			if s.shadow:
+			if s.shadow and not OS.has_feature("mobile"):  # tree shadows re-draw the forest; too much for phones
 				near.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 			else:
 				near.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

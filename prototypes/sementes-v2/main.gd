@@ -25,11 +25,14 @@ var dialog: DialogBox
 
 var _save_timer: float = 0.0
 var _boss: Boss = null
+var _actors: Array[Node3D] = []  # enemies, boss and townsfolk that sleep when far from the hero
+var _wake_timer: float = 0.0
 var _taken: Dictionary = {}  # interactable id -> true, so a pickup is collected once
 var _dialog_role: String = ""
 
 
 func _ready() -> void:
+	Engine.max_fps = 60
 	# the hero reads an action named "heavy"; the project has no key for it, so bind one (I) at runtime.
 	if not InputMap.has_action("heavy"):
 		InputMap.add_action("heavy")
@@ -57,6 +60,7 @@ func _ready() -> void:
 	hero = Hero.new()
 	add_child(hero)
 	hero.global_position = _spawn("player_start")
+	hero.reset_physics_interpolation()
 	hero.equip(items.look())
 	_apply_stats()
 	hero.refill()
@@ -71,7 +75,8 @@ func _ready() -> void:
 	_spawn_boss()
 
 	# townsfolk
-	npcs.spawn(map, self)
+	for n in npcs.spawn(map, self):
+		if n is Node3D: _actors.append(n)
 
 	# interface on its own CanvasLayer so it never clips into the 3D world
 	var layer := CanvasLayer.new()
@@ -148,6 +153,11 @@ func _process(dt: float) -> void:
 		menu.toggle()
 	hero.input_enabled = not menu.is_open and not dialog.visible
 
+	_wake_timer += dt
+	if _wake_timer >= 0.25:
+		_wake_timer = 0.0
+		_sleep_far_actors()
+
 	_save_timer += dt
 	if _save_timer >= SAVE_EVERY:
 		_save_timer = 0.0
@@ -184,13 +194,14 @@ func _spawn_camps() -> void:
 		for i in n:
 			var k: String = kinds[i % kinds.size()]
 			var off := Vector3(randf_range(-4.0, 4.0), 0.0, randf_range(-4.0, 4.0))
-			Enemy.spawn(self, k, lvl, base + off)
+			_actors.append(Enemy.spawn(self, k, lvl, base + off))
 
 
 func _spawn_boss() -> void:
 	var sp: Dictionary = map.spawns
 	if sp.has("boss"):
 		_boss = Boss.spawn_boss(self, sp["boss"])
+		_actors.append(_boss)
 
 
 func _area() -> String:
@@ -297,6 +308,7 @@ func _on_hero_died() -> void:
 	await get_tree().create_timer(2.5).timeout
 	if is_instance_valid(hero):
 		hero.revive(_spawn("player_start"))
+		hero.reset_physics_interpolation()  # teleport: don't smear from the death spot
 
 
 func _on_item_used(_id: String, heal: int) -> void:
@@ -312,7 +324,7 @@ func _lighten_world() -> void:
 	for n in _all_nodes(map):
 		if n is DirectionalLight3D:
 			var dl := n as DirectionalLight3D
-			dl.directional_shadow_max_distance = 55.0
+			dl.directional_shadow_max_distance = 25.0 if OS.has_feature("mobile") else 55.0
 			dl.shadow_blur = 1.0
 		elif n is WorldEnvironment:
 			var env: Environment = (n as WorldEnvironment).environment
@@ -339,3 +351,19 @@ func _refresh_buttons() -> void:
 	touch.set_button("lock", has_weapon)
 	touch.set_button("block", prog.has_unlock("bloqueio"))
 	touch.set_button("skill", prog.has_unlock("sopro_brasa") or prog.has_unlock("calor_lar"))
+
+
+# Far enemies/NPCs stop thinking, moving and animating (the phone's CPU was spent on 50 skeletons nobody saw).
+# An enemy that is chasing or fighting stays awake so it can follow the hero out of range.
+const WAKE_RANGE: float = 45.0
+
+func _sleep_far_actors() -> void:
+	var hp: Vector3 = hero.global_position
+	for a in _actors:
+		if not is_instance_valid(a):
+			continue
+		var near: bool = a.global_position.distance_to(hp) < WAKE_RANGE
+		var busy: bool = a is Enemy and not (a as Enemy).dead and String(a.get("state")) not in ["patrol", "idle", "return", "sleep", "guard"]
+		var awake: bool = near or busy
+		a.process_mode = Node.PROCESS_MODE_INHERIT if awake else Node.PROCESS_MODE_DISABLED
+		a.visible = awake

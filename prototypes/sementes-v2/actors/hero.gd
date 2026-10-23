@@ -211,6 +211,9 @@ func set_bot(c: Callable) -> void:
 
 # ---------------------------------------------------------------- input
 
+var _touch_methods: Dictionary = {}
+
+
 func _find_touch() -> void:
 	var n: Node = get_tree().root.get_node_or_null("Touch")
 	if n == null:
@@ -231,12 +234,10 @@ func _tcall(method: String, arg: Variant = null) -> Variant:
 		if not (_touch as Node).has_method(method):
 			return null
 	elif _touch is Script:
-		var found: bool = false
-		for m in (_touch as Script).get_script_method_list():
-			if String(m["name"]) == method:
-				found = true
-				break
-		if not found:
+		if _touch_methods.is_empty():  # build once: rebuilding the method list per input query cost ~10 ms/frame
+			for m in (_touch as Script).get_script_method_list():
+				_touch_methods[String(m["name"])] = true
+		if not _touch_methods.has(method):
 			return null
 	return _touch.call(method) if arg == null else _touch.call(method, arg)
 

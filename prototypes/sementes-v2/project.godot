@@ -51,3 +51,8 @@ anti_aliasing/quality/msaa_3d.mobile=0
 scaling_3d/scale.mobile=0.7
 lights_and_shadows/directional_shadow/size.mobile=1024
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality.mobile=0
+
+[physics]
+
+common/physics_ticks_per_second=30
+common/physics_interpolation=true
