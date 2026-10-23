@@ -621,7 +621,7 @@ func _update_interact_prompt() -> void:
 		touch.show_interact("Falar")
 	elif not _nearest_chest().is_empty():
 		touch.show_interact("Abrir")
-	elif not it.is_empty():
+	elif not it.is_empty() and _does_something(it):
 		touch.show_interact(_prompt_for(it))
 	else:
 		touch.hide_interact()
@@ -661,7 +661,7 @@ func _on_interact() -> void:
 		_open_chest(ch)
 		return
 	var it: Dictionary = _nearest_interactable()
-	if it.is_empty():
+	if it.is_empty() or not _does_something(it):
 		return
 	_use_interactable(it)
 
@@ -750,6 +750,12 @@ func _nearest_interactable() -> Dictionary:
 func _wanted(it: Dictionary) -> bool:
 	return quests.is_target("interact", str(it.get("id", ""))) or (
 		str(it.get("kind", "")) in ["pickup", "chest", "fishing"] and quests.is_target("collect", str(it.get("item", ""))))
+
+
+# scenery a quest is not asking about (the toll bridge, a lever, a gate) gets no button: tapping "Agir" for
+# nothing only froze the hero in an animation (1920 taps on the bridge in a playtest)
+func _does_something(it: Dictionary) -> bool:
+	return _wanted(it) or str(it.get("kind", "")) in ["pickup", "chest", "rest", "fishing"]
 
 
 # a wanted pickup goes first even next to someone with a "!": it disappears once taken, so the talk is still there
