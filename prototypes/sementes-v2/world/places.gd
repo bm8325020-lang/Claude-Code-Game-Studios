@@ -824,7 +824,9 @@ func river_place() -> void:
 	var bp: Vector3 = Vector3(a1.x, 0, a1.z) + dir * 2.5
 	wbox(Transform3D(bb, Vector3(bp.x, gy(bp.x, bp.z) + 0.55, bp.z) + bb * Vector3(-2.4, 0, 0)), Vector3(0.3, 1.1, 0.3))
 	wbox(Transform3D(bb * Basis(Vector3(0, 0, 1), 1.15), Vector3(bp.x, gy(bp.x, bp.z) + 1.9, bp.z) + bb * Vector3(-1.8, 0, 0)), Vector3(3.6, 0.12, 0.12), Color(1.1, 0.6, 0.5))
-	camp("bridge_toll", "river", mid, ["bandit"], 3, 2)
+	# the toll gang waits on firm ground past the barrier: camped mid-deck, its spread dropped them into the gully
+	var tc: Vector3 = Vector3(a1.x, 0, a1.z) + dir * 7.0
+	camp("bridge_toll", "river", at(tc.x, tc.z), ["bandit"], 3, 2)
 	inter("sino_vaca_2", "pickup", Vector3(a1.x, gy(a1.x, a1.z), a1.z) + bb * Vector3(4.0, 0, 3.0), {"item": "sino_vaca"})
 	spawn("river", (dr * Vector3(0, 0, 4)).x, (dr * Vector3(0, 0, 4)).z)
 	spawn("bridge", bp.x, bp.z)

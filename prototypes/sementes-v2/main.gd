@@ -241,6 +241,7 @@ func _ready() -> void:
 	_place_missing_quest_items()
 	await get_tree().physics_frame
 	_unbury_interactables()
+	_lift_onto_floors()
 	_sync_gates()
 	_spawn_treasures()
 
@@ -378,7 +379,7 @@ func _on_enemy_killed(e: Enemy) -> void:
 		prog.gain_xp(int(c.xp))
 		prog.add_gold(int(c.gold))
 		hud.toast("Caça concluída!", "+%d XP   +%d ouro · fale com o caçador de novo" % [int(c.xp), int(c.gold)], "quest")
-	if e is Boss or rng.randf() < Loot.DROP_CHANCE:
+	if not e.has_meta("elite") and (e is Boss or rng.randf() < Loot.DROP_CHANCE):
 		_spawn_chest(e.global_position, e.level, e is Boss)
 
 
@@ -485,12 +486,34 @@ func _spawn_camps() -> void:
 
 
 func _spawn_enemy(k: String, lvl: int, pos: Vector3) -> Enemy:
-	pos.y = map.ground_y(pos.x, pos.z) + 0.3  # camp height + a random offset on a slope can start them inside the hill
+	pos.y = _floor_y(pos) + 0.3  # camp height + a random offset on a slope can start them inside the hill
 	var e: Enemy = Enemy.spawn(self, k, lvl, pos)
 	_actors.append(e)
 	_add_plate(e)
 	e.set_meta("home", pos)
 	return e
+
+
+# the walkable top at x,z: the toll bridge camp sits on the deck, and the bare terrain height put its
+# bandits under it, where the hero could see them but never reach them
+func _floor_y(pos: Vector3) -> float:
+	var gy: float = map.ground_y(pos.x, pos.z)
+	var q := PhysicsRayQueryParameters3D.create(Vector3(pos.x, gy + 3.0, pos.z), Vector3(pos.x, gy - 1.0, pos.z), 1)  # low start: never a roof
+	var h: Dictionary = hero.get_world_3d().direct_space_state.intersect_ray(q)
+	return maxf(gy, (h.position as Vector3).y) if not h.is_empty() else gy
+
+
+# camps spawned before the first physics frame could not see the bridge deck yet
+func _lift_onto_floors() -> void:
+	for a: Node in _actors:
+		if a is Enemy and a.has_meta("home"):
+			var e: Enemy = a
+			var p: Vector3 = e.get_meta("home")
+			p.y = _floor_y(p) + 0.3
+			if p.y > e.global_position.y + 0.5:
+				e.global_position = p
+				e.set_meta("home", p)
+				e.reset_physics_interpolation()
 
 
 func _tick_respawns(dt: float) -> void:

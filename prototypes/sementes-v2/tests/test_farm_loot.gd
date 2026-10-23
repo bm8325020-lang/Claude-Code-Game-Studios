@@ -116,7 +116,7 @@ func _live() -> void:
 	var nchest: int = g._chests.size()
 	while not el.dead:
 		g.damage(el, 99999.0, g.hero, "light")
-	ok(g._elites_beaten() == 1 and g._chests.size() == nchest + 1 and g._chests.back().has("epic"), "a beaten elite is saved and leaves an epic chest")
+	ok(g._elites_beaten() == 1 and g._chests.filter(func(c: Dictionary) -> bool: return c.has("epic")).size() == 1, "a beaten elite is saved and leaves an epic chest")
 	ok(Loot.RARITIES.find(Loot.roll(30, g.rng, false, "epico").rarity) >= 3, "an elite chest rolls epico or better")
 	g.quests.state.erase("m14")
 	# hidden treasure: 12 chests that never expire, found ones counted and saved

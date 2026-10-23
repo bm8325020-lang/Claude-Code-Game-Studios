@@ -93,3 +93,14 @@ Bot (110 min, seed 8): story + all side quests but s6 done, level 30. Rosa's let
   thanks to two spare fish dropped as pickups. Each cast now lands a fish ("Pescar" prompt).
 - The arrow's road start was the nearest road node even behind a house: 15 min pushing into a village wall on
   the way to the bandit camp. It now takes the nearest node in clear line of sight.
+
+## Iterations 11–12
+
+- Reviewer pick for the empty endgame: "Noites de Brasa" — after the ending, one golden elite per area (3x HP),
+  each beaten once and saved, epic-or-better chest; the quest card and arrow follow the nearest elite.
+  (Vetoed/parked: daily gift, paid treasure hints; mine fence slide is polish for later.)
+- Toll bridge, seed 9 stuck 97 min then 92 min: the deck was walkable underneath near its ends (now solid
+  to the river bed), the arrow's road start ignored height (now must be within 1.8 m), and the toll gang
+  camped mid-deck so its spread dropped bandits into the gully where the bot locked on forever. The camp now
+  sits on firm ground past the barrier, and spawns land on the walkable top (deck) instead of bare terrain.
+- Bot samples now log height, velocity and aim, so a stall shows what the bot was walking to.

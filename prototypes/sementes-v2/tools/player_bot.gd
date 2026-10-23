@@ -20,6 +20,7 @@ var dialog_opened: int = 0
 var talk_targets_ignored: int = 0
 var _wander: Vector3 = Vector3.ZERO
 var _wander_t: float = 0.0
+var _dbg_target: Variant = null  # last aim, logged with each sample so a stall shows what the bot was walking to
 var _last_pos: Vector3 = Vector3.ZERO
 var _still: float = 0.0
 var _atk_cd: float = 0.0
@@ -123,7 +124,8 @@ func _tick(dt: float) -> void:
 	if _sample_t >= 30.0:
 		_sample_t = 0.0
 		log.append({"t": snappedf(t, 0.1), "area": area, "level": g.prog.level, "hp": int(hero.hp), "gold": g.prog.gold,
-			"quest": str(q.get("text", "")), "pos": [snappedf(hero.global_position.x, 1), snappedf(hero.global_position.z, 1)]})
+			"quest": str(q.get("text", "")), "pos": [snappedf(hero.global_position.x, 1), snappedf(hero.global_position.z, 1)],
+			"y": snappedf(hero.global_position.y, 0.1), "aim": str(_dbg_target), "vel": snappedf(hero.velocity.length(), 0.1)})
 
 
 func _enemy_threat() -> Enemy:
@@ -214,6 +216,7 @@ func _bot(h: Hero) -> Dictionary:
 		if d < best_d:
 			best_d = d
 			target = l.global_position
+	_dbg_target = target
 	var dir: Vector3 = Vector3.ZERO
 	if target is Vector3 and _wander_t <= 0.0:
 		dir = (target as Vector3) - h.global_position
