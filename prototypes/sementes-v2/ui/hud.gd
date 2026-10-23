@@ -372,6 +372,26 @@ func bind(progression: Progression, quests: Quests, map: Object = null) -> void:
 
 # world position of a Quests.current() target, or null
 static func quest_pos(q: Dictionary, map: Object) -> Variant:
+	var base: Variant = _quest_base_pos(q, map)
+	# "defeat N X": point at the nearest living X to the quest area, not at the empty middle of the area
+	if str(q.get("type", "")) == "kill" and map is Node and (map as Node).is_inside_tree():
+		var anchor: Vector3 = base if base is Vector3 else Vector3.ZERO
+		var want: String = str(q.get("target", ""))
+		var best: Variant = null
+		var bd: float = 1e12
+		for n in (map as Node).get_tree().get_nodes_in_group("enemies"):
+			if str(n.get("kind")) != want or bool(n.get("dead")):
+				continue
+			var d: float = (n as Node3D).global_position.distance_squared_to(anchor)
+			if d < bd:
+				bd = d
+				best = (n as Node3D).global_position
+		if best != null:
+			return best
+	return base
+
+
+static func _quest_base_pos(q: Dictionary, map: Object) -> Variant:
 	if map == null or q.is_empty():
 		return null
 	var key: String = str(q.get("pos_key", ""))

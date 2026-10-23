@@ -51,6 +51,7 @@ func _init() -> void:
 
 
 func _live() -> void:
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://sementes2_save.json"))  # start from a new game
 	var g: Node3D = load("res://main.tscn").instantiate()
 	root.add_child(g)
 	for i in 5:

@@ -39,9 +39,13 @@ var _hunters: Array[Dictionary] = []   # {place, kind, pos, node}
 var _chests: Array[Dictionary] = []    # {pos, level, boss, node, age}
 var _plates: Dictionary = {}           # Enemy -> Label3D
 var _quest_marks: Array[Dictionary] = []  # {role, label}
+var _item_marks: Dictionary = {}  # interactable id -> Label3D shown while the current quest wants that item
 var _farm_label: Label
 var _zone: String = ""
 var _hunter_offer: Dictionary = {}
+const RESPAWN_S: float = 40.0
+const RESPAWN_MIN_DIST: float = 30.0
+var _respawns: Array[Dictionary] = []  # {kind, level, pos, at}: farm needs camps that fill up again
 
 
 func _ready() -> void:
@@ -161,6 +165,35 @@ func _ready() -> void:
 	# start or continue
 	if not quests.load_game():
 		quests.start_new()
+	await get_tree().physics_frame
+	_unbury_interactables()
+
+
+# Some quest props sit inside a building's collision box (the relha in the barn): a player can never reach them.
+# Move each such spot to the nearest free ground around it.
+func _unbury_interactables() -> void:
+	var ss: PhysicsDirectSpaceState3D = hero.get_world_3d().direct_space_state
+	var q := PhysicsPointQueryParameters3D.new()
+	q.collision_mask = 1
+	for it: Dictionary in map.interactables:
+		var p: Vector3 = it.pos
+		q.position = p + Vector3(0, 0.9, 0)
+		if ss.intersect_point(q, 1).is_empty():
+			continue
+		var found: bool = false
+		for ring in range(1, 13):
+			var r: float = ring * 0.5
+			for k in 12:
+				var a: float = TAU * k / 12.0
+				var c := Vector3(p.x + cos(a) * r, 0.0, p.z + sin(a) * r)
+				c.y = map.ground_y(c.x, c.z)
+				q.position = c + Vector3(0, 0.9, 0)
+				if ss.intersect_point(q, 1).is_empty():
+					it.pos = c
+					found = true
+					break
+			if found:
+				break
 
 
 # ---- the damage router every attack calls (actors/fx.gd Fx.deal -> get_tree().current_scene.damage) ----
@@ -196,6 +229,9 @@ func _on_enemy_killed(e: Enemy) -> void:
 	if _plates.has(e):
 		(_plates[e] as Node).queue_free()
 		_plates.erase(e)
+	_actors.erase(e)
+	if not e is Boss and e.has_meta("home"):
+		_respawns.append({"kind": e.kind, "level": e.level, "pos": e.get_meta("home"), "at": RESPAWN_S})
 	var c: Dictionary = farm.on_kill(e.kind)
 	if not c.is_empty():
 		prog.gain_xp(int(c.xp))
@@ -220,6 +256,7 @@ func _process(dt: float) -> void:
 		if Zones.LEVELS.has(zone) and int(Zones.range_of(zone)[0]) >= prog.level + 3:
 			hud.toast("Perigo!", "Inimigos Nv %d+ aqui. Você é Nv %d." % [int(Zones.range_of(zone)[0]), prog.level], "info")
 	_age_chests(dt)
+	_tick_respawns(dt)
 	_update_interact_prompt()
 	_update_boss_bar()
 
@@ -233,6 +270,8 @@ func _process(dt: float) -> void:
 		_wake_timer = 0.0
 		_sleep_far_actors()
 		_refresh_marks()
+		if _zone != "":
+			quests.notify("reach", _zone)  # harmless when repeated; also counts if you are already there
 
 	_save_timer += dt
 	if _save_timer >= SAVE_EVERY:
@@ -271,9 +310,23 @@ func _spawn_camps() -> void:
 			var k: String = kinds[i % kinds.size()]
 			var off := Vector3(randf_range(-4.0, 4.0), 0.0, randf_range(-4.0, 4.0))
 			var lvl: int = Zones.level_for(place, i) if Zones.LEVELS.has(place) else int(c.get("level", 1))
-			var e: Enemy = Enemy.spawn(self, k, lvl, base + off)
-			_actors.append(e)
-			_add_plate(e)
+			_spawn_enemy(k, lvl, base + off)
+
+
+func _spawn_enemy(k: String, lvl: int, pos: Vector3) -> Enemy:
+	var e: Enemy = Enemy.spawn(self, k, lvl, pos)
+	_actors.append(e)
+	_add_plate(e)
+	e.set_meta("home", pos)
+	return e
+
+
+func _tick_respawns(dt: float) -> void:
+	for r: Dictionary in _respawns.duplicate():
+		r.at = float(r.at) - dt
+		if float(r.at) <= 0.0 and hero.global_position.distance_to(r.pos) > RESPAWN_MIN_DIST:
+			_respawns.erase(r)
+			_spawn_enemy(str(r.kind), int(r.level), r.pos)
 
 
 func _spawn_boss() -> void:
@@ -293,7 +346,9 @@ func _area() -> String:
 func _update_interact_prompt() -> void:
 	var it: Dictionary = _nearest_interactable()
 	var npc: Dictionary = _nearest_npc()
-	if not npc.is_empty() or not _nearest_hunter().is_empty():
+	if not it.is_empty() and quests.is_target("interact", str(it.get("id", ""))) and not (not npc.is_empty() and quests.is_target("talk", str(npc.role))):
+		touch.show_interact(_prompt_for(it))
+	elif not npc.is_empty() or not _nearest_hunter().is_empty():
 		touch.show_interact("Falar")
 	elif not _nearest_chest().is_empty():
 		touch.show_interact("Abrir")
@@ -315,6 +370,10 @@ func _on_interact() -> void:
 	if dialog.visible:
 		return
 	var npc: Dictionary = _nearest_npc()
+	var near_it: Dictionary = _nearest_interactable()
+	# what the quest asks for wins over whoever happens to stand closest (Joana stands at her own forge)
+	if not near_it.is_empty() and quests.is_target("interact", str(near_it.get("id", ""))) and not (not npc.is_empty() and quests.is_target("talk", str(npc.role))):
+		npc = {}
 	if not npc.is_empty():
 		_open_dialog(npc.role)
 		return
@@ -349,10 +408,21 @@ func _on_interact() -> void:
 
 func _open_dialog(role: String) -> void:
 	_dialog_role = role
-	var q: Dictionary = quests.current()
+	# tapping FALAR is talking: a player should not have to type to the NPC to move the story on
 	var lines: Array = []
-	if q.get("pos_kind", "") == "npc" and q.get("pos_key", "") == role:
-		lines = [q.get("text", "")]
+	var before: Dictionary = quests.current()
+	if quests.is_target("talk", role):
+		var qid: String = str(before.get("id", ""))
+		quests.notify("talk", role)
+		var d: Dictionary = Quests.quest(qid)
+		var after: Dictionary = quests.current()
+		if quests.is_done(qid) and str(d.get("done", "")) != "":
+			lines.append(str(d.done))
+		var nd: Dictionary = Quests.quest(str(after.get("id", "")))
+		if str(after.get("id", "")) != qid and str(nd.get("offer", "")) != "":
+			lines.append(str(nd.offer))
+		if not after.is_empty():
+			lines.append("Próximo: " + str(after.get("text", "")))
 	dialog.open(role, lines, [])
 	hero.perform("talk")
 
@@ -363,7 +433,10 @@ func _nearest_interactable() -> Dictionary:
 	for it: Dictionary in map.interactables:
 		if _taken.has(it.get("id", "")):
 			continue
-		var d: float = hero.global_position.distance_squared_to(it.get("pos", Vector3.ZERO))
+		var ip: Vector3 = it.get("pos", Vector3.ZERO)
+		if absf(ip.y - hero.global_position.y) > 3.0:
+			continue
+		var d: float = Vector2(hero.global_position.x, hero.global_position.z).distance_squared_to(Vector2(ip.x, ip.z))
 		if d < bd:
 			bd = d
 			best = it
@@ -500,7 +573,8 @@ func _paint_plate(e: Enemy) -> void:
 	var l: Label3D = _plates.get(e)
 	if l == null:
 		return
-	l.text = "%s · Nv %d" % [e.display_name, e.level]
+	var wanted: bool = quests.is_target("kill", "boss" if e is Boss else e.kind) or (farm.has_active() and str(farm.active.kind) == e.kind)
+	l.text = ("⚔ " if wanted else "") + "%s · Nv %d" % [e.display_name, e.level]
 	match Zones.danger(e.level, prog.level):
 		2: l.modulate = Color(1.0, 0.25, 0.2)
 		1: l.modulate = Color(1.0, 0.7, 0.25)
@@ -619,6 +693,22 @@ func _age_chests(dt: float) -> void:
 func _refresh_marks() -> void:
 	for m: Dictionary in _quest_marks:
 		(m.label as Label3D).visible = quests.is_target("talk", str(m.role))
+	# a glowing star over every pickup or quest spot the current quest needs: small props are easy to miss
+	for it: Dictionary in map.interactables:
+		var id: String = str(it.get("id", ""))
+		var kind: String = str(it.get("kind", ""))
+		var want: bool = not _taken.has(id) and (
+			(kind in ["pickup", "chest"] and quests.is_target("collect", str(it.get("item", ""))))
+			or quests.is_target("interact", id))
+		if want and not _item_marks.has(id):
+			var l := _label3d("✦", Color(1.0, 0.85, 0.3), 0.0022)
+			l.visibility_range_end = 45.0
+			add_child(l)
+			l.global_position = (it.pos as Vector3) + Vector3(0, 1.4, 0)
+			_item_marks[id] = l
+		elif not want and _item_marks.has(id):
+			(_item_marks[id] as Node).queue_free()
+			_item_marks.erase(id)
 	for e: Enemy in _plates:
 		if is_instance_valid(e) and e.visible:
 			_paint_plate(e)
