@@ -430,6 +430,7 @@ func _spawn_camps() -> void:
 
 
 func _spawn_enemy(k: String, lvl: int, pos: Vector3) -> Enemy:
+	pos.y = map.ground_y(pos.x, pos.z) + 0.3  # camp height + a random offset on a slope can start them inside the hill
 	var e: Enemy = Enemy.spawn(self, k, lvl, pos)
 	_actors.append(e)
 	_add_plate(e)
@@ -672,9 +673,19 @@ const WAKE_RANGE: float = 45.0
 
 func _sleep_far_actors() -> void:
 	var hp: Vector3 = hero.global_position
+	# safety net: anything that slipped through the terrain comes back to the surface
+	if hp.y < map.ground_y(hp.x, hp.z) - 5.0:
+		hero.global_position = Vector3(hp.x, map.ground_y(hp.x, hp.z) + 0.5, hp.z)
+		hero.velocity = Vector3.ZERO
+		hero.reset_physics_interpolation()
 	for a in _actors:
 		if not is_instance_valid(a):
 			continue
+		var ap: Vector3 = a.global_position
+		if a is Enemy and ap.y < map.ground_y(ap.x, ap.z) - 5.0:
+			var home: Vector3 = (a as Enemy).home
+			a.global_position = Vector3(home.x, map.ground_y(home.x, home.z) + 0.3, home.z)
+			(a as Enemy).velocity = Vector3.ZERO
 		var near: bool = a.global_position.distance_to(hp) < WAKE_RANGE
 		var busy: bool = a is Enemy and not (a as Enemy).dead and String(a.get("state")) not in ["patrol", "idle", "return", "sleep", "guard"]
 		var awake: bool = near or busy
