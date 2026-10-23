@@ -587,6 +587,10 @@ func _elite_goal() -> Dictionary:
 		if is_instance_valid(e) and not e.dead and (best == null or e.global_position.distance_squared_to(hero.global_position) < best.global_position.distance_squared_to(hero.global_position)):
 			best = e
 	if best == null:
+		# every elite down: what is left to find is the hidden treasure (a count, no arrow: finding is the fun)
+		var found: int = _treasures_found()
+		if quests.is_done("m14") and _elites_up and found < TREASURES:
+			return {"title": "Tesouros escondidos", "step": "%d/%d achados · explore o vale" % [found, TREASURES], "pos": null}
 		return {}
 	return {"title": "Noites de Brasa", "step": "Derrote os elites (%d/%d)\n%s · %s" % [_elites_beaten(), _elite_places().size(), best.display_name, map.area_name(best.global_position)], "pos": best.global_position}
 
@@ -951,7 +955,8 @@ func _label3d(text: String, col: Color, px: float = 0.0011) -> Label3D:
 func _add_plate(e: Enemy) -> void:
 	var l := _label3d("", Color.WHITE)
 	e.add_child(l)
-	l.position = Vector3(0, e.target_height + 0.55, 0)
+	# three heights in turn: a camp's plates stood on one line and overlapped into an unreadable smear
+	l.position = Vector3(0, e.target_height + 0.55 + 0.4 * float(_plates.size() % 3), 0)
 	_plates[e] = l
 	_paint_plate(e)
 

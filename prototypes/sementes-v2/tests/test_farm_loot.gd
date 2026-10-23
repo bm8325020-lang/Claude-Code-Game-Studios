@@ -118,6 +118,10 @@ func _live() -> void:
 		g.damage(el, 99999.0, g.hero, "light")
 	ok(g._elites_beaten() == 1 and g._chests.filter(func(c: Dictionary) -> bool: return c.has("epic")).size() == 1, "a beaten elite is saved and leaves an epic chest")
 	ok(Loot.RARITIES.find(Loot.roll(30, g.rng, false, "epico").rarity) >= 3, "an elite chest rolls epico or better")
+	var keep: Array = g._elites.duplicate()
+	g._elites.clear()
+	ok(str(Hud.idle_fn.call().get("title", "")) == "Tesouros escondidos", "with every elite down the card counts the hidden treasure")
+	g._elites.assign(keep)
 	g.quests.state.erase("m14")
 	# hidden treasure: 12 chests that never expire, found ones counted and saved
 	var tr: Array = g._chests.filter(func(c: Dictionary) -> bool: return c.has("treasure"))

@@ -114,3 +114,10 @@ Bot (110 min, seed 8): story + all side quests but s6 done, level 30. Rosa's let
 - Bot (110 min, seed 9): whole story + all six side quests (first full clear on this seed), level 30.
   After that it stood at Rosa's door re-tapping "Falar"; the bot now repeats the same talk once a minute.
 - Preview video recorded and sent (24 s, real gameplay). Seen in it: overlapping enemy nameplates in groups.
+
+## Iteration 16
+
+Bot (110 min, seed 10): whole story + all six side quests in 58 min, then all 9 elites (Noites de Brasa)
+and 6/12 treasures; 6 stuck events all game. With nothing left the card was empty: it now counts the
+hidden treasure ("x/12 achados · explore o vale", no arrow). Enemy nameplates take three heights in turn
+so a camp's plates no longer smear into one line (seen in the preview video).
