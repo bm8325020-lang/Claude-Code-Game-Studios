@@ -1107,7 +1107,9 @@ func _road_start(from: Vector2) -> int:
 			continue
 		var q := PhysicsRayQueryParameters3D.create(eye, Vector3(p.x, map.ground_y(p.x, p.y) + 0.9, p.y), 1)
 		q.exclude = [hero.get_rid()]
-		if ss.intersect_ray(q).is_empty():
+		var hit: Dictionary = ss.intersect_ray(q)
+		# a hit right next to the node is fine: the drawn road over the bridge runs just past its rail
+		if hit.is_empty() or Vector2((hit.position as Vector3).x, (hit.position as Vector3).z).distance_to(p) < 2.5:
 			best = int(ids[k])
 			break
 	_start_cache = {"at": from, "id": best}
