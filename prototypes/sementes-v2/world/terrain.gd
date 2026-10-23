@@ -3,12 +3,21 @@
 # Shapes are explicit (valley tilt, village rise, castle plateau with a south cliff, mine spur, watchtower hill,
 # quarry hill, lake bowl, border mountains) and gentle noise only adds small undulation.
 # Then the river spline is carved, roads are levelled into the slope, and building pads are flattened.
-# Grid: 321 x 321 samples, 2 m apart, covering x,z in -320..320 (play area is about -300..300).
+# Grid: 481 x 481 samples, 2 m apart, covering x,z in -480..480. The old valley (-300..300) is unchanged; around it
+# the Lumeira's stone body goes on to a taller outer rim, and east of the valley, through the Passo da Escama gorge,
+# lie the Pastos da Cauda (a highland plateau on the dragon's tail). Pure-mountain chunks are meshed at half
+# resolution (they are only ever seen from afar); collision keeps the full grid everywhere.
 extends RefCounted
 
-const N: int = 321
+const N: int = 481
 const STEP: float = 2.0
-const HALF: float = 320.0
+const HALF: float = 480.0
+# Pastos da Cauda: plateau ellipse (centre, radii) and the Passo da Escama gorge (A in the valley, B on the plateau)
+const CAUDA_C: Vector2 = Vector2(382, 0)
+const CAUDA_R: Vector2 = Vector2(76, 124)
+const CAUDA_Y: float = 30.0
+const PASS_A: Vector2 = Vector2(244, 14)
+const PASS_B: Vector2 = Vector2(338, 8)
 const LAKE_Y: float = 1.0
 const LAKE_C: Vector2 = Vector2(30, 224)
 const LAKE_R: Vector2 = Vector2(88, 54)
@@ -85,8 +94,33 @@ func base(x: float, z: float) -> float:
 	v = _plateau_castle(x, z, v)
 	v = _spur_mine(x, z, v)
 	v = _mountains(x, z, v)
+	v = _cauda(x, z, v)
 	return v
 
+
+# 0..1: how much of the Pastos da Cauda plateau this point is (1 = open pasture)
+func cauda_mask(x: float, z: float) -> float:
+	var q: Vector2 = Vector2((x - CAUDA_C.x) / CAUDA_R.x, (z - CAUDA_C.y) / CAUDA_R.y)
+	return 1.0 - sstep(0.72, 1.0, q.length() + n_edge.get_noise_2d(x * 0.7, z * 0.7) * 0.08)
+
+
+# The Pastos da Cauda: a rolling plateau set into the mountains, rising to the Ponta da Cauda in the north-east,
+# and the Passo da Escama: the only way up, a gorge that climbs from the valley and pinches to ~10 m halfway.
+func _cauda(x: float, z: float, v: float) -> float:
+	var pm: float = cauda_mask(x, z)
+	if pm > 0.0:
+		var top: float = CAUDA_Y + n_big.get_noise_2d(x, z) * 3.0 + n_small.get_noise_2d(x, z) * 0.4
+		top += 7.0 * gauss(x, z, 398, -64, 22) + 3.0 * gauss(x, z, 360, 64, 28)
+		v = lerpf(v, top, pm)
+	var ab: Vector2 = PASS_B - PASS_A
+	var t: float = clampf((Vector2(x, z) - PASS_A).dot(ab) / ab.length_squared(), 0.0, 1.0)
+	var d: float = Vector2(x, z).distance_to(PASS_A + ab * t) + n_edge.get_noise_2d(x * 2.0, z * 2.0) * 1.5
+	var hw: float = 8.0 - 3.5 * exp(-pow((t - 0.5) / 0.12, 2.0))
+	var cm: float = 1.0 - sstep(hw, hw + 13.0, d)
+	if cm > 0.0:
+		var floor_y: float = lerpf(13.5, CAUDA_Y + 0.5, sstep(0.0, 1.0, t))
+		v = lerpf(v, minf(v, floor_y), cm)
+	return v
 
 # Castle of Vigília: a rock table 40 m above the valley. Sheer cliff to the south and west (the village sees it),
 # a long sloping spur to the east that carries the road.
@@ -138,7 +172,10 @@ func _mountains(x: float, z: float, v: float) -> float:
 	var broad: float = n_big.get_noise_2d(x * 1.7 + 400.0, z * 1.7) * 0.5 + 0.5
 	var crag: float = n_ridge.get_noise_2d(x, z) * 0.5 + 0.5
 	var peak: float = (26.0 + 34.0 * broad + 9.0 * crag) * north
-	return v + foot + pow(m, 1.35) * peak
+	# the outer rim (new land beyond the old border) climbs higher still, so the world's edge is never seen
+	var eo: float = pow(pow(absf(x) / 470.0, 5.0) + pow(absf(z) / 470.0, 5.0), 0.2)
+	var rim: float = sstep(0.82, 1.0, eo) * (30.0 + 20.0 * crag)
+	return v + foot + pow(m, 1.35) * peak + rim
 
 
 # ------------------------------------------------------------------ build
@@ -147,10 +184,24 @@ func _mountains(x: float, z: float, v: float) -> float:
 func generate(river_ctrl: Array, road_defs: Array, pads: Array) -> void:
 	h = PackedFloat32Array()
 	h.resize(N * N)
+	# bare mountain outside the valley and the Cauda (meshed at half resolution, never walked) is sampled every
+	# other cell and filled in bilinearly: a quarter of the noise work on half the grid
 	for j in N:
 		var z: float = -HALF + j * STEP
 		for i in N:
-			h[j * N + i] = base(-HALF + i * STEP, z)
+			var x: float = -HALF + i * STEP
+			if (i % 2 == 0 and j % 2 == 0) or _fine(x, z):
+				h[j * N + i] = base(x, z)
+	for j in N:
+		var z2: float = -HALF + j * STEP
+		for i in N:
+			if (i % 2 == 0 and j % 2 == 0) or _fine(-HALF + i * STEP, z2):
+				continue
+			var ia: int = i - i % 2
+			var ja: int = j - j % 2
+			var ib: int = mini(ia + 2, N - 1) if i % 2 == 1 else ia
+			var jb: int = mini(ja + 2, N - 1) if j % 2 == 1 else ja
+			h[j * N + i] = (h[ja * N + ia] + h[ja * N + ib] + h[jb * N + ia] + h[jb * N + ib]) * 0.25
 	_carve_lake()
 	_river(river_ctrl)
 	_roads(road_defs)
@@ -158,6 +209,11 @@ func generate(river_ctrl: Array, road_defs: Array, pads: Array) -> void:
 	_smooth_cells(1)
 	for tr in trenches:
 		_trench(tr)
+
+
+# full-resolution heights: the old valley with its border, the pass and the Cauda (a margin past the walk rects)
+static func _fine(x: float, z: float) -> bool:
+	return (absf(x) <= 324.0 and absf(z) <= 324.0) or (x >= 232.0 and absf(z) <= 154.0)
 
 
 # Trenches cut into the rock after everything else (the mine gallery): {pts: Array[Vector2], hw: float, y0: float, y1: float}
@@ -213,9 +269,14 @@ static func catmull(pts: Array, step: float) -> PackedVector3Array:
 
 
 func _carve_lake() -> void:
-	for j in N:
+	# only the lake's box (lake_norm > 1.5 is untouched): the grid is mostly mountain
+	var i0: int = maxi(0, int((LAKE_C.x - LAKE_R.x * 1.7 + HALF) / STEP))
+	var i1: int = mini(N, int((LAKE_C.x + LAKE_R.x * 1.7 + HALF) / STEP) + 1)
+	var j0: int = maxi(0, int((LAKE_C.y - LAKE_R.y * 1.7 + HALF) / STEP))
+	var j1: int = mini(N, int((LAKE_C.y + LAKE_R.y * 1.7 + HALF) / STEP) + 1)
+	for j in range(j0, j1):
 		var z: float = -HALF + j * STEP
-		for i in N:
+		for i in range(i0, i1):
 			var x: float = -HALF + i * STEP
 			var d: float = lake_norm(x, z)
 			if d > 1.5:
@@ -406,7 +467,10 @@ func _smooth_cells(passes: int) -> void:
 	for p in passes:
 		var c: PackedFloat32Array = h.duplicate()
 		for j in range(1, N - 1):
+			var z: float = -HALF + j * STEP
 			for i in range(1, N - 1):
+				if not _fine(-HALF + i * STEP, z):
+					continue  # interpolated mountain is smooth already
 				var k: int = j * N + i
 				var avg: float = (c[k - 1] + c[k + 1] + c[k - N] + c[k + N]) * 0.25
 				if absf(avg - c[k]) < 0.6:
@@ -466,11 +530,17 @@ func river_nearest(x: float, z: float) -> Array:
 
 # ------------------------------------------------------------------ mesh + collision
 func build_nodes(parent: Node3D, mat: Material) -> void:
-	var CH: int = 64                    # quads per chunk side
+	var CH: int = 80                    # quads per chunk side (160 m): the old valley is exactly the inner 4 x 4
 	var chunks: int = (N - 1) / CH
+	var walk: Array[Rect2] = [Rect2(-320, -320, 640, 640), Rect2(236, -150, 244, 300)]  # valley; pass + Cauda
 	for cj in chunks:
 		for ci in chunks:
-			parent.add_child(_chunk(ci * CH, cj * CH, CH, mat))
+			var r: Rect2 = Rect2(-HALF + ci * CH * STEP, -HALF + cj * CH * STEP, CH * STEP, CH * STEP)
+			var stride: int = 2
+			for w in walk:
+				if r.intersects(w):
+					stride = 1
+			parent.add_child(_chunk(ci * CH, cj * CH, CH, mat, stride))
 	var body: StaticBody3D = StaticBody3D.new()
 	body.name = "TerrainBody"
 	body.collision_layer = 1
@@ -488,17 +558,20 @@ func build_nodes(parent: Node3D, mat: Material) -> void:
 	parent.add_child(body)
 
 
-func _chunk(i0: int, j0: int, CH: int, mat: Material) -> MeshInstance3D:
+# stride 2: every other sample (a quarter of the triangles), with a skirt hanging from the border so the
+# T-junctions against full-resolution neighbours never show a crack
+func _chunk(i0: int, j0: int, CH: int, mat: Material, stride: int = 1) -> MeshInstance3D:
 	var verts: PackedVector3Array = PackedVector3Array()
 	var norms: PackedVector3Array = PackedVector3Array()
 	var tangents: PackedFloat32Array = PackedFloat32Array()
 	var uvs: PackedVector2Array = PackedVector2Array()
 	var idx: PackedInt32Array = PackedInt32Array()
-	var V: int = CH + 1
+	var Q: int = CH / stride
+	var V: int = Q + 1
 	for j in V:
 		for i in V:
-			var gi: int = i0 + i
-			var gj: int = j0 + j
+			var gi: int = i0 + i * stride
+			var gj: int = j0 + j * stride
 			var x: float = -HALF + gi * STEP
 			var z: float = -HALF + gj * STEP
 			verts.append(Vector3(x, h[gj * N + gi], z))
@@ -512,14 +585,36 @@ func _chunk(i0: int, j0: int, CH: int, mat: Material) -> MeshInstance3D:
 			t = t.normalized()
 			tangents.append_array([t.x, t.y, t.z, 1.0])
 			uvs.append(Vector2((x + HALF) / (2.0 * HALF), (z + HALF) / (2.0 * HALF)))
-	for j in CH:
-		for i in CH:
+	for j in Q:
+		for i in Q:
 			var a: int = j * V + i
 			var b2: int = a + 1
 			var c: int = a + V
 			var d: int = c + 1
 			# diagonal a-d, matches sample()
 			idx.append_array([a, b2, d, a, d, c])
+	if stride > 1:
+		var rim: Array[int] = []
+		for i in V:
+			rim.append(i)
+		for j in range(1, V):
+			rim.append(j * V + Q)
+		for i in range(Q - 1, -1, -1):
+			rim.append(Q * V + i)
+		for j in range(Q - 1, -1, -1):
+			rim.append(j * V)
+		var base_i: int = verts.size()
+		for k in rim:
+			verts.append(verts[k] - Vector3(0, 6.0, 0))
+			norms.append(norms[k])
+			tangents.append_array([tangents[k * 4], tangents[k * 4 + 1], tangents[k * 4 + 2], 1.0])
+			uvs.append(uvs[k])
+		for k in rim.size() - 1:
+			var a2: int = rim[k]
+			var b3: int = rim[k + 1]
+			var c2: int = base_i + k
+			var d2: int = base_i + k + 1
+			idx.append_array([a2, b3, d2, a2, d2, c2, a2, d2, b3, a2, c2, d2])  # both faces: no winding bookkeeping
 	var arr: Array = []
 	arr.resize(Mesh.ARRAY_MAX)
 	arr[Mesh.ARRAY_VERTEX] = verts

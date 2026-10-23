@@ -16,6 +16,9 @@ const LEVELS: Dictionary = {
 	"mine": [18, 21],
 	"mina_fundo": [19, 22],
 	"castle": [22, 25],
+	# post-game, past the Passo da Escama: after the Conde (26) and level with the Noites de Brasa elites (~30)
+	"cauda": [26, 29],
+	"cauda_ponta": [29, 32],
 }
 const BOSS_LEVEL: int = 26
 

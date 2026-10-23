@@ -74,6 +74,42 @@ func _init() -> void:
 	quit(1 if fails > 0 else 0)
 
 
+# the Pastos da Cauda: the place, its Marco, camps and the s7 targets exist, and the drove road up the Passo da
+# Escama never gets steeper than a walkable grade
+func _check_cauda(g: Node3D) -> void:
+	var ids: Dictionary = {}
+	for p: Dictionary in g.map.places:
+		ids[str(p.id)] = p
+	ok(ids.has("cauda") and ids.has("cauda_ponta") and ids.has("passo_escama"), "Pastos da Cauda places exist")
+	ok(Zones.LEVELS.has("cauda") and int(Zones.range_of("cauda_ponta")[1]) > int(Zones.range_of("castle")[1]), "Cauda levels continue past the castle")
+	var it_ids: Dictionary = {}
+	for it: Dictionary in g.map.interactables:
+		it_ids[str(it.id)] = it
+	ok(it_ids.has("marco_cauda") and it_ids.has("sino_mae"), "Marco da Cauda and the Sino-Mãe are on the map")
+	var q: Dictionary = Quests.quest("s7")
+	var kinds_at: Dictionary = {}
+	for c: Dictionary in g.map.camps:
+		for k: String in c.kinds:
+			kinds_at[str(c.place) + ":" + k] = true
+	for i in (q.steps as Array).size():
+		var s: Dictionary = Quests.step_of(q, i)
+		match s.type:
+			"reach": ok(ids.has(s.target), "s7 reach target %s is a place" % s.target)
+			"interact": ok(it_ids.has(s.target), "s7 interact target %s is on the map" % s.target)
+			"kill": ok(kinds_at.has(s.where + ":" + s.target), "s7 kill target %s camps at %s" % [s.target, s.where])
+	var road: Dictionary = {}
+	for r: Dictionary in g.map.terrain.roads:
+		if str(r.id) == "cauda":
+			road = r
+	var pts: PackedVector3Array = road.pts
+	var steep: float = 0.0
+	for k in pts.size() - 1:
+		var run: float = Vector2(pts[k + 1].x - pts[k].x, pts[k + 1].z - pts[k].z).length()
+		steep = maxf(steep, absf(g.map.ground_y(pts[k + 1].x, pts[k + 1].z) - g.map.ground_y(pts[k].x, pts[k].z)) / maxf(run, 0.5))
+	ok(steep < 0.5, "the drove road up the pass is walkable (max grade %.2f)" % steep)
+	ok(g.map.ground_y(376, 12) > 25.0 and g.map.ground_y(292, 30) > g.map.ground_y(292, 11) + 25.0, "the Cauda is a plateau reached through a gorge")
+
+
 func _live() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://sementes2_save.json"))  # start from a new game
 	var g: Node3D = load("res://main.tscn").instantiate()
@@ -116,6 +152,7 @@ func _live() -> void:
 	for it: Dictionary in g.map.interactables:
 		mc = mc or str(it.id) == "marco_castelo"
 	ok(mc, "a Marco waits outside the castle gate")
+	_check_cauda(g)
 	# a pickup the quest is collecting beats the townsperson standing next to it (Rosa at her inn door)
 	var cartas: Dictionary = {}
 	for it: Dictionary in g.map.interactables:
