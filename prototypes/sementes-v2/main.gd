@@ -60,7 +60,8 @@ const COMBO_WINDOW: float = 2.0
 var _combo: int = 0
 var _combo_t: float = 0.0
 var _combo_label: Label
-var _combo_sfx: AudioStreamPlayer  # {kind, level, pos, at}: farm needs camps that fill up again
+var _combo_sfx: AudioStreamPlayer
+var _ach_t: float = 0.0  # {kind, level, pos, at}: farm needs camps that fill up again
 
 
 func _ready() -> void:
@@ -215,6 +216,10 @@ func _ready() -> void:
 	# start or continue
 	if not quests.load_game():
 		quests.start_new()
+	# discovered Marcos are remembered in the save (fast travel survives closing the game)
+	for it: Dictionary in map.interactables:
+		if str(it.get("kind", "")) == "rest" and prog.has_unlock("marco_seen:" + str(it.id)):
+			_marcos_seen[str(it.id)] = it.pos
 	_place_missing_quest_items()
 	await get_tree().physics_frame
 	_unbury_interactables()
@@ -341,6 +346,7 @@ func _on_enemy_killed(e: Enemy) -> void:
 		_respawns.append({"kind": e.kind, "level": e.level, "pos": e.get_meta("home"), "at": RESPAWN_S})
 	var c: Dictionary = farm.on_kill(e.kind)
 	if not c.is_empty():
+		prog.kills["_contracts"] = int(prog.kills.get("_contracts", 0)) + 1
 		prog.gain_xp(int(c.xp))
 		prog.add_gold(int(c.gold))
 		hud.toast("Caça concluída!", "+%d XP   +%d ouro · fale com o caçador de novo" % [int(c.xp), int(c.gold)], "quest")
@@ -373,6 +379,12 @@ func _process(dt: float) -> void:
 	for it: Dictionary in map.interactables:
 		if str(it.get("kind", "")) == "rest" and not _marcos_seen.has(str(it.id)) and hero.global_position.distance_to(it.pos) < 20.0:
 			_marcos_seen[str(it.id)] = it.pos
+			prog.unlock("marco_seen:" + str(it.id))
+			hud.toast("Marco de Lume encontrado", "Descanse nele para viajar entre Marcos.", "info")
+	_ach_t += dt
+	if _ach_t >= 1.0:
+		_ach_t = 0.0
+		_check_achievements()
 	_update_interact_prompt()
 	_update_boss_bar()
 
@@ -850,6 +862,27 @@ func _route(goal: Vector3) -> Vector3:
 	return goal
 
 
+func _check_achievements() -> void:
+	var total: int = 0
+	for k: String in prog.kills:
+		if not k.begins_with("_"):
+			total += int(prog.kills[k])
+	var best: int = -1
+	for e: Dictionary in items.list():
+		best = maxi(best, Loot.RARITIES.find(str(e.get("rarity", ""))))
+	var mains: int = 0
+	for q: Dictionary in Quests.DATA:
+		if str(q.kind) == "main" and quests.is_done(str(q.id)):
+			mains += 1
+	var stats: Dictionary = {"level": prog.level, "kills": total, "kills_imp": int(prog.kills.get("wolf_imp", 0)),
+		"marcos": _marcos_seen.size(), "chests": int(prog.kills.get("_chests", 0)), "rarity": best,
+		"main_quests": mains, "contracts": int(prog.kills.get("_contracts", 0))}
+	for a: Dictionary in Achievements.reached(stats, prog.has_unlock):
+		prog.unlock(Achievements.key(str(a.id)))
+		prog.add_gold(int(a.gold))
+		hud.toast("Conquista: " + str(a.title), "%s · +%d ouro" % [str(a.desc), int(a.gold)], "reward")
+
+
 func _auto_points() -> void:
 	if not bool(GameMenu.options.get("auto_points", true)) or prog.points <= 0:
 		return
@@ -924,6 +957,7 @@ func _open_chest(c: Dictionary) -> void:
 		hud.toast("Baú", "+%d ouro" % int(r.gold), "reward")
 	(c.node as Node).queue_free()
 	_chests.erase(c)
+	prog.kills["_chests"] = int(prog.kills.get("_chests", 0)) + 1
 
 
 func _age_chests(dt: float) -> void:
