@@ -222,6 +222,9 @@ func _live() -> void:
 	g.rng.seed = 1
 	var killed: int = 0
 	var lvl0: int = g.prog.level
+	var far_camps: int = g._camps_todo.size()
+	g._spawn_near_camps(true)  # camps are built lazily near the hero; this test kills across the whole map
+	ok(far_camps > 0 and g._camps_todo.is_empty(), "far camps wait until the hero is near (%d waited)" % far_camps)
 	for e in get_nodes_in_group("enemies"):
 		if e is Enemy and not (e as Enemy).dead and (e as Enemy).kind == kind and not e is Boss and killed < 5:
 			g.damage(e, 99999.0, null, "heavy")

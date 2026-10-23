@@ -74,7 +74,20 @@ var _water_t: float = 0.0
 const SKILL_NAMES: Array[String] = ["", "INVESTIDA", "GIRO"]  # {kind, level, pos, at}: farm needs camps that fill up again
 
 
+var booted: bool = false  # true once the world is built and the hero can move (tests and tools wait on it)
+var _boot_ms: Dictionary = {}
+var _boot_t: int = 0
+
+
+func _boot_mark(step: String) -> void:
+	var now: int = Time.get_ticks_msec()
+	_boot_ms[step] = now - _boot_t
+	_boot_t = now
+
+
 func _ready() -> void:
+	_boot_t = Time.get_ticks_msec()
+	set_meta("boot_ms", _boot_ms)
 	Engine.max_fps = 60
 	# the hero reads an action named "heavy"; the project has no key for it, so bind one (I) at runtime.
 	if not InputMap.has_action("heavy"):
@@ -93,10 +106,19 @@ func _ready() -> void:
 	npcs = Npcs.new()
 	add_child(npcs)
 
-	# the world
+	# the world: a loading screen is drawn first, then the (blocking) map build runs behind it. Not on a worker
+	# thread: off-main-thread RenderingServer calls made the build ~20x slower and skinned meshes failed to build.
+	set_process(false)
+	var loading := Loading.new()
+	add_child(loading)
+	for i in 2:
+		await get_tree().process_frame  # the first frame only queues the loading screen; the second shows it
 	map = load("res://world/map.gd").new()
 	add_child(map)
 	map.build()
+	_boot_mark("map")
+	loading.progress = 0.7
+	await get_tree().process_frame
 	_lighten_world()
 
 	# the hero at the start spawn, wearing whatever the save says (peasant rags by default)
@@ -113,15 +135,22 @@ func _ready() -> void:
 	hero.hurt.connect(_on_hero_hurt)
 	hero.died.connect(_on_hero_died)
 	hero.interact_requested.connect(_on_interact)
+	_boot_mark("hero")
+	loading.progress = 0.85
+	await get_tree().process_frame
 
 	# enemies and the boss
 	_spawn_camps()
+	_boot_mark("camps")
 	_spawn_boss()
+	_boot_mark("boss")
 
 	# townsfolk
 	for n in npcs.spawn(map, self):
 		if n is Node3D: _actors.append(n)
+	_boot_mark("npcs")
 	_spawn_hunters()
+	_boot_mark("hunters")
 	for sp: Dictionary in map.npc_spots:
 		var mark := _label3d("!", Color(1.0, 0.82, 0.25), 0.0028)
 		add_child(mark)
@@ -243,11 +272,16 @@ func _ready() -> void:
 		if str(it.get("kind", "")) == "rest" and prog.has_unlock("marco_seen:" + str(it.id)):
 			_marcos_seen[str(it.id)] = it.pos
 	_place_missing_quest_items()
+	_boot_mark("ui")
 	await get_tree().physics_frame
 	_unbury_interactables()
 	_lift_onto_floors()
 	_sync_gates()
 	_spawn_treasures()
+	_boot_mark("rest")
+	booted = true
+	set_process(true)
+	loading.queue_free()
 
 
 # Every quest "collect" must have enough pickups in the world. Any shortfall is placed around the best anchor:
@@ -427,6 +461,7 @@ func _process(dt: float) -> void:
 	_wake_timer += dt
 	if _wake_timer >= 0.25:
 		_wake_timer = 0.0
+		_spawn_near_camps()
 		_sleep_far_actors()
 		_refresh_marks()
 		# Marco discovery (20 m) at 4 Hz: nobody notices a quarter second, the phone notices 60 scans/s
@@ -448,8 +483,8 @@ func _process(dt: float) -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_WM_GO_BACK_REQUEST:
-		_save()
+	if booted and (what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_WM_GO_BACK_REQUEST):
+		_save()  # not while loading: the save is not read yet and would be overwritten by an empty game
 
 
 # ---- helpers ----
@@ -464,6 +499,12 @@ func _apply_stats() -> void:
 	hero.max_stamina = s.max_stamina
 	hero.power = s.dmg_mult
 	hero.potions = items.count("frasco") if items.has("frasco") else hero.potions
+
+
+# Camps are built only when the hero comes within CAMP_RANGE (wake range is 45 m): building all 55 bodies at boot,
+# most of them with their own skeleton's animation library, was ~3 s of a black screen on desktop.
+const CAMP_RANGE: float = 90.0
+var _camps_todo: Array[Dictionary] = []  # {pos, bodies: [[kind, level, pos]]} not built yet
 
 
 func _spawn_camps() -> void:
@@ -484,11 +525,23 @@ func _spawn_camps() -> void:
 		var n: int = mini(int(c.get("count", kinds.size())), cap)
 		var place: String = str(c.get("place", ""))
 		var base: Vector3 = c.get("pos", Vector3.ZERO)
+		var bodies: Array = []
 		for i in n:
 			var k: String = kinds[i % kinds.size()]
 			var off := Vector3(randf_range(-4.0, 4.0), 0.0, randf_range(-4.0, 4.0))
 			var lvl: int = Zones.level_for(place, i) if Zones.LEVELS.has(place) else int(c.get("level", 1))
-			_spawn_enemy(k, lvl, base + off)
+			bodies.append([k, lvl, base + off])
+		_camps_todo.append({"pos": base, "bodies": bodies})
+	_spawn_near_camps()
+
+
+# builds the camps within CAMP_RANGE of the hero (all of them with everywhere = true)
+func _spawn_near_camps(everywhere: bool = false) -> void:
+	for c: Dictionary in _camps_todo.duplicate():
+		if everywhere or hero.global_position.distance_to(c.pos) < CAMP_RANGE:
+			_camps_todo.erase(c)
+			for b: Array in c.bodies:
+				_spawn_enemy(b[0], b[1], b[2])
 
 
 func _spawn_enemy(k: String, lvl: int, pos: Vector3) -> Enemy:
