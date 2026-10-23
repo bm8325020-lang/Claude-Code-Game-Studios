@@ -60,7 +60,8 @@ const KINDS: Dictionary = {
 		"xp": 45, "armor": true, "guard": 0.25, "idle": "Idle", "combat_idle": "Sword_Idle", "walk": "Loco_Walk", "run": "Loco_Jog",
 		"hurt": "hit_light", "stagger": "hit_heavy", "die": "death", "block": "block_hit", "guard_idle": "Idle_Shield",
 		"attacks": [{"anim": "light1", "slow": 0.55, "lunge": 2.5, "mult": 1.0, "next": 1}, {"anim": "light2", "slow": 0.9, "lunge": 2.0, "mult": 1.0, "chain_only": true},
-			{"anim": "heavy", "slow": 0.45, "lunge": 2.5, "mult": 1.7, "kind": "heavy"}, {"anim": "sprint_attack", "slow": 0.6, "lunge": 1.0, "mult": 1.4, "kind": "heavy", "far": true}]},
+			# heavy swings wind up longer than other enemies' (slow 0.45 -> 0.33): the watchtower knights were a third of all deaths
+			{"anim": "heavy", "slow": 0.33, "lunge": 2.5, "mult": 1.7, "kind": "heavy"}, {"anim": "sprint_attack", "slow": 0.45, "lunge": 1.0, "mult": 1.4, "kind": "heavy", "far": true}]},
 }
 
 var kind: String = "bandit"

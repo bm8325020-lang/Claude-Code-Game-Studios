@@ -121,3 +121,10 @@ Bot (110 min, seed 10): whole story + all six side quests in 58 min, then all 9 
 and 6/12 treasures; 6 stuck events all game. With nothing left the card was empty: it now counts the
 hidden treasure ("x/12 achados · explore o vale", no arrow). Enemy nameplates take three heights in turn
 so a camp's plates no longer smear into one line (seen in the preview video).
+
+## Iteration 17
+
+Bot (110 min, seed 11): full clear in 60 min + all 9 elites. Deaths over seeds 9–11: 22–25 per run, and
+10–17 of them at A Atalaia to the Vigília knights, even at or above their level. Reviewer pick (B + C):
+the road camp holds 2 knights instead of 3, and the knights' heavy swings wind up longer (slow 0.45 -> 0.33,
+sprint attack 0.6 -> 0.45) so a dodge is fair. Damage cut (A) held back unless deaths stay above ~4 there.

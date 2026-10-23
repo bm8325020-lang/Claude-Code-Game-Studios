@@ -1030,7 +1030,7 @@ func watchtower() -> void:
 	inter("farol_atalaia", "beacon", at(c.x, c.y + 4.4), {"name": "Farol da Atalaia"})
 	marco("marco_atalaia", c.x + 12.0, c.y + 10.0, false, false)
 	camp("tower_guards", "watchtower", at(c.x, c.y + 8), ["knight"], 2, 4)
-	camp("tower_road_guards", "watchtower", at(150, -30), ["knight"], 3, 4)
+	camp("tower_road_guards", "watchtower", at(150, -30), ["knight"], 2, 4)  # 3 knights at once was a wall for new players
 	spawn("watchtower", c.x, c.y + 14)
 
 
