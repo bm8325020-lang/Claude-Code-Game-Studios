@@ -138,6 +138,7 @@ func _ready() -> void:
 	_build_roads()
 	Hud.route_fn = _route
 	Hud.note_fn = _quest_note
+	Hud.taken = _taken
 	hud.bind(prog, quests, map)
 	menu.bind(prog, quests, items, map)
 	menu.player = hero

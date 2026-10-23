@@ -224,6 +224,7 @@ var quest_step: String = ""
 var quest_target: Variant = null
 static var route_fn: Callable  # optional: turns the quest's goal into the next road waypoint toward it (main.gd)
 static var note_fn: Callable   # optional: extra line for the quest card, e.g. the recommended level (main.gd)
+static var taken: Dictionary = {}  # interactable ids already used up (main.gd shares its _taken)
 
 var _life_ghost: float = 100.0
 var _life_show: float = 100.0
@@ -389,6 +390,20 @@ static func quest_pos(q: Dictionary, map: Object) -> Variant:
 			if d < bd:
 				bd = d
 				best = (n as Node3D).global_position
+		if best != null:
+			return best
+	# "find N X" scattered over several areas: point at the nearest one still lying around
+	if str(q.get("type", "")) == "collect" and map != null:
+		var anchor: Vector3 = base if base is Vector3 else Vector3.ZERO
+		var best: Variant = null
+		var bd: float = 1e12
+		for it: Dictionary in map.get("interactables"):
+			if str(it.get("item", "")) != str(q.get("target", "")) or taken.has(str(it.get("id", ""))):
+				continue
+			var d: float = (it.pos as Vector3).distance_squared_to(anchor)
+			if d < bd:
+				bd = d
+				best = it.pos
 		if best != null:
 			return best
 	return base
