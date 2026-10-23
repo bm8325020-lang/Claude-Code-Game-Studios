@@ -259,7 +259,11 @@ func damage(target: Node, amount: float, source: Node, kind: String) -> Dictiona
 		if source is Enemy:
 			# gentle on the intended path, steep only well above your level (reviewed for casual players)
 			var diff: int = (source as Enemy).level - prog.level
-			if diff <= 1:
+			if diff <= -5:
+				amt *= 0.3  # outlevelled areas stop being a threat, like going back to an old island
+			elif diff <= -3:
+				amt *= 0.5
+			elif diff <= 1:
 				amt *= 0.8 if (source as Enemy).level <= 12 else 1.0
 			elif diff == 2:
 				amt *= 1.5

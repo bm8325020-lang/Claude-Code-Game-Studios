@@ -150,7 +150,7 @@ func stats(armor: int = 0) -> Dictionary:
 	var forc: int = int(attrs.forca)
 	var fe: int = int(attrs.fe)
 	return {
-		"max_hp": 100.0 + 12.0 * (vig - 1) + 3.0 * (level - 1),
+		"max_hp": 100.0 + 12.0 * (vig - 1) + 10.0 * (level - 1),  # levels alone keep you alive, points are a bonus
 		"max_stamina": 80.0 + 6.0 * (fol - 1),
 		"dmg_mult": 1.0 + 0.06 * (forc - 1),
 		"skill_mult": 1.0 + 0.08 * (fe - 1),

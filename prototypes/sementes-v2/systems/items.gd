@@ -4,7 +4,7 @@
 #
 # Contract assumptions (other modules):
 # - CharacterKit.make(look) reads look keys "outfit" ("Peasant"/"Ranger"), "weapon" (prop name in assets/props or ""),
-#   "shield" (prop name or ""). look() also adds "tier" (0..2) and "tint" (Color as html string or "") as hints;
+#   "shield" (prop name or ""). look() also adds "tier" (0..2) and "weapon_tint" (html string or "") as hints;
 #   CharacterKit may ignore them.
 # - Only Sword_Bronze, Axe_Bronze, Pickaxe_Bronze and Shield_Wooden exist in assets/props, so higher tiers reuse
 #   the same mesh with a tint.
@@ -244,7 +244,7 @@ func look() -> Dictionary:
 	var sh: Dictionary = def(str(slots.shield))
 	var o: Dictionary = def(str(slots.outfit))
 	return {"outfit": str(o.get("look", "Peasant")), "weapon": str(w.get("prop", "")), "shield": str(sh.get("prop", "")),
-		"tier": int(w.get("tier", 0)), "tint": str(w.get("tint", ""))}
+		"tier": int(w.get("tier", 0)), "weapon_tint": str(w.get("tint", ""))}  # not "tint": CharacterKit reads that as cloth dye
 
 
 # inventory for the menu: [{id, name, kind, count, equipped, desc}]

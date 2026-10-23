@@ -94,8 +94,13 @@ func _tick(dt: float) -> void:
 	if _still > 6.0:
 		stuck_events += 1
 		stuck_spots.append([snappedf(hero.global_position.x, 1), snappedf(hero.global_position.z, 1), area])
-		_wander = Vector3(_rng.randf_range(-1, 1), 0, _rng.randf_range(-1, 1)).normalized()
-		_wander_t = 4.0
+		# walk around it like a person would: sidestep left or right of where we were heading, then try again
+		var tgt: Variant = Hud.quest_pos(g.quests.current(), g.map)
+		var fwd: Vector3 = ((tgt as Vector3) - hero.global_position) if tgt is Vector3 else Vector3.FORWARD
+		fwd.y = 0.0
+		var side: Vector3 = fwd.normalized().cross(Vector3.UP) * (1.0 if stuck_events % 2 == 0 else -1.0)
+		_wander = (side * 0.9 - fwd.normalized() * 0.3).normalized()
+		_wander_t = 3.0
 		_still = 0.0
 	# how long the same quest step stays unfinished
 	var q: Dictionary = g.quests.current()
