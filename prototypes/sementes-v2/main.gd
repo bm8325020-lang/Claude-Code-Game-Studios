@@ -219,7 +219,9 @@ func _ready() -> void:
 
 	# the quest that is running decides what the first Marco bed, the boss bar and the castle gate do
 	quests.quest_done.connect(func(id: String, _r: Dictionary) -> void:
-		if id == "m14": _save())
+		if id == "m14":
+			_save()
+			_show_ending())
 
 	# start or continue
 	if not quests.load_game():
@@ -1174,3 +1176,68 @@ func _refresh_marks() -> void:
 	for e: Enemy in _plates:
 		if is_instance_valid(e) and e.visible:
 			_paint_plate(e)
+
+
+
+# The story's close: the count sleeps, the seeds go into the ground, and the player can keep exploring.
+const ENDING: Array[String] = [
+	"Dom Aurélio caiu de joelhos. Você pôs na mão dele o cavalinho de pau da Vó Cândida. O conde riu como menino e dormiu ali mesmo, no chão da cripta, pela primeira vez em nove anos.",
+	"No outono, o vale fez a última Festa da Semeadura. As doze sementes foram para a terra, uma em cada lugar que você conheceu.",
+	"A Lumeira sonha em paz. O vale vai aprender a viver com as próprias mãos, como o resto do mundo.",
+]
+
+
+func _show_ending() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 30
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(layer)
+	var dim := ColorRect.new()
+	dim.color = Color(0.05, 0.03, 0.01, 0.82)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(dim)
+	var panel := PanelContainer.new()
+	panel.theme = Hud.ui_theme()
+	panel.add_theme_stylebox_override("panel", Hud.box(Hud.PARCH, Hud.WOOD, 4, 18, 36.0))
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(1100, 0)
+	panel.position = Vector2(-550, -330)
+	layer.add_child(panel)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 16)
+	panel.add_child(v)
+	var title := Label.new()
+	title.text = "A Festa da Semeadura"
+	title.add_theme_font_override("font", Hud.font(true))
+	title.add_theme_font_size_override("font_size", 52)
+	title.add_theme_color_override("font_color", Hud.EMBER)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(title)
+	for line: String in ENDING:
+		var l := Label.new()
+		l.text = line
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.add_theme_font_override("font", Hud.font(false))
+		l.add_theme_font_size_override("font_size", 28)
+		l.add_theme_color_override("font_color", Hud.INK)
+		v.add_child(l)
+	var got: int = 0
+	for a: Dictionary in Achievements.DATA:
+		if prog.has_unlock(Achievements.key(str(a.id))):
+			got += 1
+	var stats := Label.new()
+	stats.text = "Nível %d  ·  %d sementes  ·  %d de %d conquistas" % [prog.level, prog.seeds.size(), got, Achievements.DATA.size()]
+	stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stats.add_theme_font_size_override("font_size", 26)
+	stats.add_theme_color_override("font_color", Hud.INK_SOFT)
+	v.add_child(stats)
+	var go := Button.new()
+	go.text = "Continuar explorando"
+	go.custom_minimum_size = Vector2(0, 88)
+	go.add_theme_font_size_override("font_size", 30)
+	v.add_child(go)
+	var was: bool = get_tree().paused
+	get_tree().paused = true
+	go.pressed.connect(func() -> void:
+		get_tree().paused = was
+		layer.queue_free())
