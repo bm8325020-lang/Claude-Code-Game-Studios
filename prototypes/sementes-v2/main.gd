@@ -63,7 +63,8 @@ var _combo_label: Label
 var _combo_sfx: AudioStreamPlayer
 var _ach_t: float = 0.0
 var _stuck_t: float = 0.0
-var _stuck_from: Vector3 = Vector3.ZERO  # {kind, level, pos, at}: farm needs camps that fill up again
+var _stuck_from: Vector3 = Vector3.ZERO
+var _water_t: float = 0.0  # {kind, level, pos, at}: farm needs camps that fill up again
 
 
 func _ready() -> void:
@@ -101,6 +102,7 @@ func _ready() -> void:
 	hero.refill()
 	if hero.camera:
 		hero.camera.far = 150.0  # pull the far plane in: fewer distant draws on a phone
+	hero.floor_max_angle = deg_to_rad(60.0)  # river banks and hill sides are climbable: no pits to get trapped in
 	hero.hurt.connect(_on_hero_hurt)
 	hero.died.connect(_on_hero_died)
 	hero.interact_requested.connect(_on_interact)
@@ -403,8 +405,10 @@ func _process(dt: float) -> void:
 		_wake_timer = 0.0
 		_sleep_far_actors()
 		_refresh_marks()
+		for pid: String in _places_at(hero.global_position):
+			quests.notify("reach", pid)  # harmless when repeated; also counts if you are already there
 		if _zone != "":
-			quests.notify("reach", _zone)  # harmless when repeated; also counts if you are already there
+			quests.notify("reach", _zone)
 
 	_save_timer += dt
 	if _save_timer >= SAVE_EVERY:
@@ -738,17 +742,28 @@ func _sleep_far_actors() -> void:
 
 
 # ---- zones, hunters, chests, nameplates ----
+# every place whose circle contains pos (areas overlap at their edges)
+func _places_at(pos: Vector3) -> Array[String]:
+	var out: Array[String] = []
+	for p: Dictionary in map.places:
+		if Vector2(pos.x, pos.z).distance_to(Vector2((p.pos as Vector3).x, (p.pos as Vector3).z)) < float(p.get("radius", 40.0)):
+			out.append(str(p.id))
+	return out
+
+
 func _place_id(pos: Vector3) -> String:
 	var best: String = ""
 	var bd: float = 1e12
-	for c: Dictionary in map.camps:
-		if pos.distance_to(c.pos) < 35.0 and Zones.LEVELS.has(str(c.place)):
-			return str(c.place)
 	for p: Dictionary in map.places:
 		var d: float = Vector2(pos.x, pos.z).distance_to(Vector2((p.pos as Vector3).x, (p.pos as Vector3).z))
 		if d < float(p.get("radius", 40.0)) and d < bd:
 			bd = d
 			best = str(p.id)
+	if best == "":
+		# camps on an area's edge still belong to it (name + level hint)
+		for c: Dictionary in map.camps:
+			if pos.distance_to(c.pos) < 35.0 and Zones.LEVELS.has(str(c.place)):
+				return str(c.place)
 	return best
 
 
@@ -850,28 +865,29 @@ func _offer_travel(here: String) -> void:
 	dialog.open("marco", lines, choices)
 
 
-# Densify every road polyline into nodes ~8 m apart and join roads that meet.
+# The road network as the terrain actually draws it (smoothed, bridges included), thinned to nodes ~5 m apart.
+# The raw road_defs bend where the bridge deck runs straight, which pointed the arrow into the bridge rail.
 func _build_roads() -> void:
 	var id: int = 0
 	var all: Array[int] = []
-	for r: Dictionary in map.road_defs:
-		var pts: Array = r.pts
+	for r: Dictionary in map.terrain.roads:
+		var pts: PackedVector3Array = r.pts
 		var prev: int = -1
-		for i in pts.size() - 1:
-			var a: Vector2 = pts[i]
-			var b: Vector2 = pts[i + 1]
-			var n: int = maxi(1, ceili(a.distance_to(b) / 8.0))
-			for k in n + (1 if i == pts.size() - 2 else 0):
-				var p: Vector2 = a.lerp(b, float(k) / n)
-				_roads.add_point(id, p)
-				all.append(id)
-				if prev >= 0:
-					_roads.connect_points(prev, id)
-				prev = id
-				id += 1
+		var last := Vector2(INF, INF)
+		for i in pts.size():
+			var p := Vector2(pts[i].x, pts[i].z)
+			if i != pts.size() - 1 and p.distance_to(last) < 5.0:
+				continue
+			_roads.add_point(id, p)
+			all.append(id)
+			if prev >= 0:
+				_roads.connect_points(prev, id)
+			prev = id
+			last = p
+			id += 1
 	for i in all:
 		for j in all:
-			if i < j and not _roads.are_points_connected(i, j) and _roads.get_point_position(i).distance_to(_roads.get_point_position(j)) < 3.0:
+			if i < j and not _roads.are_points_connected(i, j) and _roads.get_point_position(i).distance_to(_roads.get_point_position(j)) < 4.0:
 				_roads.connect_points(i, j)
 
 
@@ -891,40 +907,68 @@ func _route(goal: Vector3) -> Vector3:
 	if from.distance_to(path[0]) > 12.0:
 		return Vector3(path[0].x, goal.y, path[0].y)  # get onto the road first
 	for p: Vector2 in path:
-		if from.distance_to(p) > 10.0:
+		if from.distance_to(p) > 6.0:  # short look-ahead: keeps the arrow on the road (and onto bridges, not off their sides)
 			return Vector3(p.x, goal.y, p.y)
 	return goal
 
 
-# Pushing the stick for 6 s without getting anywhere (river channel, a gap between rocks): put the hero back
+# Pushing the stick for 10 s without getting 4 m anywhere (river channel, a gap between rocks): put the hero back
 # on the nearest road. A casual player should never need to restart because of terrain.
+func _in_river() -> bool:
+	var p: Vector3 = hero.global_position
+	var t: Object = map.terrain
+	if (t.get("river_d") as PackedFloat32Array).is_empty():
+		return false
+	var dist: float = t.call("river_dist", p.x, p.z)
+	var half: float = t.call("cell", p.x, p.z, t.get("river_w"))
+	var level: float = t.call("cell", p.x, p.z, t.get("river_l"))
+	return dist < half and p.y < level + 0.3
+
+
 func _check_stuck(dt: float) -> void:
+	# fell in the river: the banks are steep, so after a few seconds lift the hero back onto the road
+	_water_t = _water_t + dt if _in_river() else 0.0
+	if _water_t > 4.0:
+		_water_t = 0.0
+		_rescue("Você saiu do rio", "A correnteza te levou de volta ao caminho.")
+		return
 	if hero.state != "free" or hero.stick_len < 0.5 or dialog.visible or menu.is_open:
 		_stuck_t = 0.0
 		_stuck_from = hero.global_position
 		return
 	_stuck_t += dt
-	if _stuck_t < 6.0:
+	if _stuck_t < 10.0:
 		return
-	if hero.global_position.distance_to(_stuck_from) < 1.5:
-		# nearest road point on solid ground (skip bridge spans: the terrain under them is the river bed)
-		var best: Vector3 = _spawn("player_start")
-		var bd: float = 1e12
-		for r: Dictionary in map.terrain.roads:
-			var pts: PackedVector3Array = r.pts
-			for i in pts.size():
-				if (r.bridge as Array)[i]:
-					continue
-				var d: float = Vector2(pts[i].x, pts[i].z).distance_squared_to(Vector2(hero.global_position.x, hero.global_position.z))
-				if d < bd:
-					bd = d
-					best = pts[i]
-		hero.global_position = best + Vector3(0, 0.6, 0)
-		hero.velocity = Vector3.ZERO
-		hero.reset_physics_interpolation()
-		hud.toast("De volta à estrada", "Você estava preso e foi levado ao caminho.", "info")
+	if hero.global_position.distance_to(_stuck_from) < 4.0:  # 10 s of trying, still within 4 m: wiggling in a hole
+		_rescue("De volta à estrada", "Você estava preso e foi levado ao caminho.")
 	_stuck_t = 0.0
 	_stuck_from = hero.global_position
+
+
+func _rescue(title: String, sub: String) -> void:
+	# nearest road point with open sky above it (the deck reaches past the points the terrain marks as bridge,
+	# so the ground under its ends is ruled out by the ray, not by the flags)
+	var cands: Array = []
+	for r: Dictionary in map.terrain.roads:
+		var pts: PackedVector3Array = r.pts
+		for i in pts.size():
+			# bridge points carry the deck's height: landing there puts you on the bridge, past the river
+			cands.append(pts[i] + (Vector3(0, 0.4, 0) if (r.bridge as Array)[i] else Vector3.ZERO))
+	var here := Vector2(hero.global_position.x, hero.global_position.z)
+	cands.sort_custom(func(a: Vector3, b: Vector3) -> bool: return Vector2(a.x, a.z).distance_squared_to(here) < Vector2(b.x, b.z).distance_squared_to(here))
+	var ss: PhysicsDirectSpaceState3D = hero.get_world_3d().direct_space_state
+	var best: Vector3 = _spawn("player_start")
+	for c: Vector3 in cands:
+		var q := PhysicsRayQueryParameters3D.create(c + Vector3(0, 0.3, 0), c + Vector3(0, 2.6, 0))
+		q.exclude = [hero.get_rid()]
+		if ss.intersect_ray(q).is_empty() and Vector2(c.x, c.z).distance_to(here) > 3.0:
+			best = c
+			break
+	hero.global_position = best + Vector3(0, 0.6, 0)
+	hero.velocity = Vector3.ZERO
+	hero.reset_physics_interpolation()
+
+	hud.toast(title, sub, "info")
 
 
 func _check_achievements() -> void:

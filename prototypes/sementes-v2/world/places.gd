@@ -793,12 +793,15 @@ func river_place() -> void:
 	for end in [[a0, -dir], [a1, dir]]:
 		var e: Vector3 = end[0]
 		var out: Vector3 = end[1]
-		var top := Vector3(e.x, deck_y, e.z)
-		var g := Vector3(e.x, 0.0, e.z) + out * 5.0
-		g.y = gy(g.x, g.z) + 0.02
-		if g.y >= deck_y - 0.1:
-			continue
-		col_ramp(top, g, 3.6)
+		# three slabs side by side: ~10 m wide, so a thumb steering diagonally still lands on the ramp
+		for off in [-3.2, 0.0, 3.2]:
+			var side: Vector3 = bb * Vector3(off, 0, 0)
+			var top := Vector3(e.x, deck_y, e.z) + side
+			var g := Vector3(e.x, 0.0, e.z) + side + out * 7.0
+			g.y = gy(g.x, g.z) + 0.02
+			if g.y >= deck_y - 0.1:
+				continue
+			col_ramp(top, g, 3.6)
 	for side in [-1.0, 1.0]:
 		col_box(Vector3(a0.x, deck_y + 0.6, a0.z) + dir * (L * 0.5) + bb * Vector3(side * 1.85, 0, 0), Vector3(0.2, 1.2, L), yaw)
 	var mid: Vector3 = Vector3(a0.x, deck_y, a0.z) + dir * (L * 0.5)
