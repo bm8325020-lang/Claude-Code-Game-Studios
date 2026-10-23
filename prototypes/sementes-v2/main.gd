@@ -60,6 +60,7 @@ const ATTR_NAME: Dictionary = {"vigor": "Vigor", "folego": "Fôlego", "forca": "
 const AUTO_ORDER: Array[String] = ["vigor", "forca", "vigor", "folego"]  # balanced build for players who never open the menu
 var _auto_i: int = 0
 var _roads := AStar2D.new()  # road network for the quest arrow ("GPS")
+var _road_y: Dictionary = {}  # road node id -> height of the drawn road (bridge decks sit above the banks)
 const ROUTE_DIRECT: float = 45.0
 const COMBO_WINDOW: float = 2.0
 var _combo: int = 0
@@ -1019,6 +1020,7 @@ func _build_roads() -> void:
 			if i != pts.size() - 1 and p.distance_to(last) < 5.0:
 				continue
 			_roads.add_point(id, p)
+			_road_y[id] = pts[i].y
 			all.append(id)
 			if prev >= 0:
 				_roads.connect_points(prev, id)
@@ -1063,8 +1065,10 @@ func _road_start(from: Vector2) -> int:
 	var best: int = int(ids[0])
 	var ss: PhysicsDirectSpaceState3D = hero.get_world_3d().direct_space_state
 	var eye: Vector3 = hero.global_position + Vector3(0, 0.9, 0)
-	for k in mini(10, ids.size()):
+	for k in mini(20, ids.size()):
 		var p: Vector2 = _roads.get_point_position(int(ids[k]))
+		if absf(float(_road_y.get(int(ids[k]), eye.y - 0.9)) - (eye.y - 0.9)) > 1.8:
+			continue
 		var q := PhysicsRayQueryParameters3D.create(eye, Vector3(p.x, map.ground_y(p.x, p.y) + 0.9, p.y), 1)
 		q.exclude = [hero.get_rid()]
 		if ss.intersect_ray(q).is_empty():

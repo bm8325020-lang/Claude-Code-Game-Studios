@@ -789,7 +789,14 @@ func river_place() -> void:
 			var depth: float = deck_y - gyp
 			if depth > 0.8:
 				wbox(Transform3D(bb, Vector3(pp.x, (deck_y + gyp) * 0.5 - 0.3, pp.z)), Vector3(0.28, depth + 0.6, 0.28), Color(0.55, 0.5, 0.45))
-	col_box(Vector3(a0.x, deck_y - 0.2, a0.z) + dir * (L * 0.5), Vector3(3.6, 0.4, L + 1.0), yaw)
+	# solid under the deck down to the river bed: near the ends the deck is ~2 m over the bank, and a hero who
+	# wandered in under it could not climb out (the arrow aimed at the deck overhead: 97 min stuck)
+	var low: float = deck_y
+	for i in 21:
+		var sp: Vector3 = a0 + dir * (L * i / 20.0)
+		low = minf(low, gy(sp.x, sp.z))
+	var fill: float = deck_y - low + 1.0
+	col_box(Vector3(a0.x, deck_y - fill * 0.5, a0.z) + dir * (L * 0.5), Vector3(3.6, fill, L + 1.0), yaw)
 	# ramps from the banks up to the deck: without them the road ran under a deck the hero could not climb onto
 	for end in [[a0, -dir], [a1, dir]]:
 		var e: Vector3 = end[0]
