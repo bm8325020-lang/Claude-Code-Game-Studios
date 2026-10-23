@@ -40,8 +40,8 @@ static func roll_rarity(level: int, rng: RandomNumberGenerator, min_rarity: Stri
 
 
 # {item: id, rarity, gold}
-static func roll(level: int, rng: RandomNumberGenerator, boss: bool = false) -> Dictionary:
-	var rarity: String = roll_rarity(level, rng, "raro" if boss else "comum")
+static func roll(level: int, rng: RandomNumberGenerator, boss: bool = false, min_rarity: String = "") -> Dictionary:
+	var rarity: String = roll_rarity(level, rng, min_rarity if min_rarity != "" else ("raro" if boss else "comum"))
 	var p: Array[String] = pool(rarity)
 	var item: String = p[rng.randi_range(0, p.size() - 1)] if not p.is_empty() else ""
 	var gold: int = rng.randi_range(3 * level, 6 * level) + (50 if boss else 0)

@@ -105,6 +105,20 @@ func _live() -> void:
 	for k in 3:
 		g._use_interactable(spot)
 	ok(g.items.count("peixe_lua") == fish0 + 3 and int(g.quests.step_i["s6"]) >= 1, "three casts at the pier land three peixes-lua")
+	# Noites de Brasa: after the story one golden elite per area, each beaten once and saved, epic chest
+	g._elites_tick()
+	ok(g._elites.is_empty(), "no elites before the ending")
+	g.quests.state["m14"] = "done"
+	g._elites_tick()
+	ok(g._elites.size() == g._elite_places().size() and g._elites.size() >= 8, "one elite per area after the ending (%d)" % g._elites.size())
+	ok(not Hud.idle_fn.call().is_empty(), "with no quest the card points at an elite")
+	var el: Enemy = g._elites[0]
+	var nchest: int = g._chests.size()
+	while not el.dead:
+		g.damage(el, 99999.0, g.hero, "light")
+	ok(g._elites_beaten() == 1 and g._chests.size() == nchest + 1 and g._chests.back().has("epic"), "a beaten elite is saved and leaves an epic chest")
+	ok(Loot.RARITIES.find(Loot.roll(30, g.rng, false, "epico").rarity) >= 3, "an elite chest rolls epico or better")
+	g.quests.state.erase("m14")
 	# hidden treasure: 12 chests that never expire, found ones counted and saved
 	var tr: Array = g._chests.filter(func(c: Dictionary) -> bool: return c.has("treasure"))
 	ok(tr.size() == g.TREASURES, "all 12 hidden treasures placed (%d)" % tr.size())

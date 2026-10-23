@@ -25,6 +25,10 @@ var dialog: DialogBox
 
 var _save_timer: float = 0.0
 var _boss: Boss = null
+# post-game "Noites de Brasa": one roaming elite per area once the story is over; each one beaten is saved
+const ELITE_HP: float = 3.0
+var _elites: Array[Enemy] = []
+var _elites_up: bool = false
 var _actors: Array[Node3D] = []  # enemies, boss and townsfolk that sleep when far from the hero
 var _wake_timer: float = 0.0
 var _taken: Dictionary = {}  # interactable id -> true, so a pickup is collected once
@@ -139,6 +143,7 @@ func _ready() -> void:
 	_build_roads()
 	Hud.route_fn = _route
 	Hud.note_fn = _quest_note
+	Hud.idle_fn = _elite_goal
 	Hud.taken = _taken
 	hud.bind(prog, quests, map)
 	menu.bind(prog, quests, items, map)
@@ -358,7 +363,13 @@ func _on_enemy_killed(e: Enemy) -> void:
 		(_plates[e] as Node).queue_free()
 		_plates.erase(e)
 	_actors.erase(e)
-	if not e is Boss and e.has_meta("home"):
+	if e.has_meta("elite"):
+		_elites.erase(e)
+		prog.unlock("elite_" + str(e.get_meta("elite")))
+		_spawn_chest(e.global_position, e.level, false)
+		(_chests.back() as Dictionary)["epic"] = true
+		hud.toast("Elite derrotado! %d/%d" % [_elites_beaten(), _elite_places().size()], "O baú dele guarda algo épico", "reward")
+	elif not e is Boss and e.has_meta("home"):
 		_respawns.append({"kind": e.kind, "level": e.level, "pos": e.get_meta("home"), "at": RESPAWN_S})
 	var c: Dictionary = farm.on_kill(e.kind)
 	if not c.is_empty():
@@ -403,6 +414,7 @@ func _process(dt: float) -> void:
 	if _ach_t >= 1.0:
 		_ach_t = 0.0
 		_check_achievements()
+		_elites_tick()
 	_update_interact_prompt()
 	_update_boss_bar()
 
@@ -504,6 +516,56 @@ func _spawn_boss() -> void:
 		_boss.level = Zones.BOSS_LEVEL
 		_actors.append(_boss)
 		_add_plate(_boss)
+
+
+# one camp per area with enemies (no boss): where that area's elite roams
+func _elite_places() -> Dictionary:
+	var out: Dictionary = {}
+	for c: Dictionary in map.camps:
+		var place: String = str(c.get("place", ""))
+		var kinds: Array = c.get("kinds", [])
+		if not out.has(place) and not kinds.is_empty() and not "boss" in kinds and Zones.LEVELS.has(place):
+			out[place] = c
+	return out
+
+
+func _elites_beaten() -> int:
+	var n: int = 0
+	for place: String in _elite_places():
+		if prog.has_unlock("elite_" + place):
+			n += 1
+	return n
+
+
+func _elites_tick() -> void:
+	if _elites_up or not quests.is_done("m14"):
+		return
+	_elites_up = true
+	var places: Dictionary = _elite_places()
+	for place: String in places:
+		if prog.has_unlock("elite_" + place):
+			continue
+		var c: Dictionary = places[place]
+		var e: Enemy = _spawn_enemy(str((c.kinds as Array)[0]), maxi(prog.level, int(Zones.range_of(place)[1])), c.pos)
+		e.remove_meta("home")
+		e.set_meta("elite", place)
+		e.max_hp *= ELITE_HP
+		e.hp = e.max_hp
+		e.display_name = "Elite " + e.display_name
+		_elites.append(e)
+	if not _elites.is_empty():
+		hud.toast("Noites de Brasa", "%d elites rondam o vale. Cada um guarda um baú épico." % _elites.size(), "reward")
+
+
+# with the story over the quest card follows the nearest elite still out there
+func _elite_goal() -> Dictionary:
+	var best: Enemy = null
+	for e: Enemy in _elites:
+		if is_instance_valid(e) and not e.dead and (best == null or e.global_position.distance_squared_to(hero.global_position) < best.global_position.distance_squared_to(hero.global_position)):
+			best = e
+	if best == null:
+		return {}
+	return {"title": "Noites de Brasa", "step": "Derrote os elites (%d/%d)\n%s · %s" % [_elites_beaten(), _elite_places().size(), best.display_name, map.area_name(best.global_position)], "pos": best.global_position}
 
 
 func _area() -> String:
@@ -871,6 +933,9 @@ func _paint_plate(e: Enemy) -> void:
 		return
 	var wanted: bool = quests.is_target("kill", "boss" if e is Boss else e.kind) or (farm.has_active() and str(farm.active.kind) == e.kind)
 	l.text = ("⚔ " if wanted else "") + "%s · Nv %d" % [e.display_name, e.level]
+	if e.has_meta("elite"):
+		l.modulate = Color(1.0, 0.82, 0.25)
+		return
 	match Zones.danger(e.level, prog.level):
 		2: l.modulate = Color(1.0, 0.25, 0.2)
 		1: l.modulate = Color(1.0, 0.7, 0.25)
@@ -1231,7 +1296,7 @@ func _nearest_chest() -> Dictionary:
 
 func _open_chest(c: Dictionary) -> void:
 	hero.perform("open_chest")
-	var r: Dictionary = Loot.roll(int(c.level), rng, bool(c.boss))
+	var r: Dictionary = Loot.roll(int(c.level), rng, bool(c.boss), "epico" if c.has("epic") else "")
 	prog.add_gold(int(r.gold))
 	if str(r.item) != "":
 		items.add(str(r.item))

@@ -224,6 +224,7 @@ var quest_step: String = ""
 var quest_target: Variant = null
 static var route_fn: Callable  # optional: turns the quest's goal into the next road waypoint toward it (main.gd)
 static var note_fn: Callable   # optional: extra line for the quest card, e.g. the recommended level (main.gd)
+static var idle_fn: Callable   # optional: {title, step, pos} for the card and arrow when no quest is running
 static var taken: Dictionary = {}  # interactable ids already used up (main.gd shares its _taken)
 
 var _life_ghost: float = 100.0
@@ -440,7 +441,13 @@ func _poll_systems() -> void:
 		set_gold(_prog.gold)
 	if _quests != null:
 		var q: Dictionary = _quests.current()
-		if q.is_empty():
+		var idle: Dictionary = idle_fn.call() if q.is_empty() and idle_fn.is_valid() else {}
+		if not idle.is_empty():
+			var at: Variant = idle.get("pos")
+			if at is Vector3 and route_fn.is_valid():
+				at = route_fn.call(at)
+			set_quest(str(idle.title), str(idle.step), at)
+		elif q.is_empty():
 			clear_quest()
 		else:
 			var goal: Variant = quest_pos(q, _map)
