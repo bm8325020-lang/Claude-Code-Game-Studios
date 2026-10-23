@@ -544,6 +544,7 @@ func take_hit(amount: float, source: Node, k: String = "light") -> Dictionary:
 			_set_state("guard", maxf(0.6, _state_len - t))
 			return {"result": "blocked", "damage": 0.0}
 		Fx.text(self, global_position + Vector3(0, target_height + 0.6, 0), "GUARDA QUEBRADA", Color(1.0, 0.8, 0.3), 64)
+		Fx.sfx(self, "impactPlate_heavy_001", global_position + Vector3(0, 1.2, 0), 2.0)  # the guard break should feel good
 		_stagger(1.4)
 		return {"result": "hit", "damage": 0.0}
 	hp -= amount

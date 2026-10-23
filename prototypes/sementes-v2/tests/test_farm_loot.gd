@@ -105,6 +105,13 @@ func _live() -> void:
 	g._offer_travel(str(rests[0].id))
 	g._on_choice("marco", "tp:" + str(rests[1].id))
 	ok(g.hero.global_position.distance_to(rests[1].pos) < 3.0, "fast travel lands at the chosen Marco")
+	# special moves unlock by level
+	g.prog.level = 10
+	g._update_skill(true)
+	ok(g.hero.skill_tier == 1 and str(Touch.label_override.get("skill", "")) == "INVESTIDA", "Investida at level 10")
+	g.prog.level = 20
+	g._update_skill(true)
+	ok(g.hero.skill_tier == 2 and str(Touch.label_override.get("skill", "")) == "GIRO", "Giro at level 20")
 	# force a chest and open it
 	var bag0: int = g.items.list().size()
 	g._spawn_chest(g.hero.global_position, 10, true)

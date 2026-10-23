@@ -64,7 +64,8 @@ var _combo_sfx: AudioStreamPlayer
 var _ach_t: float = 0.0
 var _stuck_t: float = 0.0
 var _stuck_from: Vector3 = Vector3.ZERO
-var _water_t: float = 0.0  # {kind, level, pos, at}: farm needs camps that fill up again
+var _water_t: float = 0.0
+const SKILL_NAMES: Array[String] = ["", "INVESTIDA", "GIRO"]  # {kind, level, pos, at}: farm needs camps that fill up again
 
 
 func _ready() -> void:
@@ -212,7 +213,9 @@ func _ready() -> void:
 		_refresh_buttons())
 	prog.leveled_up.connect(func(_l: int) -> void:
 		_auto_points()
-		_apply_stats())
+		_apply_stats()
+		_update_skill(true))
+	_update_skill(false)
 
 	# the quest that is running decides what the first Marco bed, the boss bar and the castle gate do
 	quests.quest_done.connect(func(id: String, _r: Dictionary) -> void:
@@ -388,6 +391,7 @@ func _process(dt: float) -> void:
 			prog.unlock("marco_seen:" + str(it.id))
 			hud.toast("Marco de Lume encontrado", "Descanse nele para viajar entre Marcos.", "info")
 	_check_stuck(dt)
+	Touch.set_cooldown("skill", hero.skill_cd / Hero.SKILL_CD if hero.skill_tier > 0 else 0.0)
 	_ach_t += dt
 	if _ach_t >= 1.0:
 		_ach_t = 0.0
@@ -673,10 +677,12 @@ func _death_tip(unused_flasks: bool) -> void:
 	for d: Dictionary in _deaths:
 		if str(d.zone) == _zone and _clock - float(d.t) < 300.0:
 			recent += 1
-	if recent < 3 or _tips_shown.has(_zone):
+	if recent < 2 or _tips_shown.has(_zone):
 		return
 	_tips_shown[_zone] = true
-	if unused_flasks:
+	if _zone == "watchtower" and String(items.look().get("weapon", "")) != "":
+		hud.toast("Dica", "Os Guardas se defendem com escudo: use o golpe FORTE para quebrar a guarda.", "info")
+	elif unused_flasks:
 		hud.toast("Dica", "Use o frasco quando a vida estiver baixa.", "info")
 	else:
 		hud.toast("Dica", "Suba de nível na área anterior — o Caçador paga por caça.", "info")
@@ -721,7 +727,7 @@ func _refresh_buttons() -> void:
 	touch.set_button("heavy", has_weapon)
 	touch.set_button("lock", has_weapon)
 	touch.set_button("block", prog.has_unlock("bloqueio"))
-	touch.set_button("skill", prog.has_unlock("sopro_brasa") or prog.has_unlock("calor_lar"))
+	touch.set_button("skill", hero != null and hero.skill_tier > 0)
 
 
 # Far enemies/NPCs stop thinking, moving and animating (the phone's CPU was spent on 50 skeletons nobody saw).
@@ -1011,6 +1017,21 @@ func _quest_note(q: Dictionary) -> String:
 	if rec >= prog.level + 2:
 		return "Recomendado: Nv %d · treine com o Caçador" % rec
 	return ""
+
+
+# special move by level: Investida at 10, Giro at 20, with a one-time "Novo golpe!" popup
+func _update_skill(announce: bool) -> void:
+	var tier: int = 2 if prog.level >= 20 else (1 if prog.level >= 10 else 0)
+	var was: int = hero.skill_tier
+	hero.skill_tier = tier
+	if tier > 0:
+		Touch.label_override["skill"] = SKILL_NAMES[tier]
+	_refresh_buttons()
+	if announce and tier > was:
+		if tier == 1:
+			hud.toast("Novo golpe: Investida!", "Botão INVESTIDA: avança e corta forte tudo à frente. Recarrega em 6 s.", "level")
+		else:
+			hud.toast("Novo golpe: Giro!", "Botão GIRO: golpe em volta de você, ótimo contra grupos.", "level")
 
 
 func _auto_points() -> void:

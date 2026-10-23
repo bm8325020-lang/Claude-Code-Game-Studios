@@ -68,6 +68,9 @@ const MOVES: Dictionary = {
 	"light4": {"mult": 1.6, "stam": 18.0, "reach": 1.1, "kind": "heavy", "stop": 0.08},
 	"heavy": {"mult": 2.2, "stam": 28.0, "reach": 1.15, "kind": "heavy", "stop": 0.1},
 	"sprint_attack": {"mult": 1.7, "stam": 20.0, "reach": 1.2, "kind": "heavy", "stop": 0.08},
+	# special moves on the skill button, unlocked by level (main sets skill_tier); reuse existing clips
+	"skill_dash": {"mult": 2.6, "stam": 10.0, "reach": 2.2, "kind": "heavy", "stop": 0.1, "clip": "sprint_attack", "arc": 75.0},
+	"skill_spin": {"mult": 2.3, "stam": 10.0, "reach": 1.7, "kind": "heavy", "stop": 0.12, "clip": "heavy", "arc": 180.0},
 }
 const DODGE_COST: Dictionary = {"backstep": 10.0, "dodge": 15.0, "roll": 20.0}
 const STEPS: Array[String] = ["footstep_concrete_000", "footstep_concrete_001", "footstep_concrete_002",
@@ -85,7 +88,10 @@ var potions: int = 3
 var max_potions: int = 3
 var potion_heal: float = 45.0
 var input_enabled: bool = true
-var stick_len: float = 0.0  # how hard the player pushes the stick this frame (main's "stuck" rescue reads it)
+var stick_len: float = 0.0
+var skill_tier: int = 0      # 0 none, 1 Investida (dash-strike), 2 Giro (hits all around)
+var skill_cd: float = 0.0    # seconds until the skill is ready again
+const SKILL_CD: float = 6.0  # how hard the player pushes the stick this frame (main's "stuck" rescue reads it)
 var swimming: bool = false
 var look: Dictionary = {}
 
@@ -485,6 +491,11 @@ func _free_actions(pressed: Array, held: Array, dir: Vector3) -> void:
 		_start_attack("sprint_attack" if _sprinting else "light1", dir)
 	elif "heavy" in pressed and stamina > 1.0:
 		_start_attack("heavy", dir)
+	elif "skill" in pressed and skill_tier > 0 and skill_cd <= 0.0:
+		skill_cd = SKILL_CD
+		_start_attack("skill_spin" if skill_tier >= 2 else "skill_dash", dir)
+		if skill_tier >= 2:
+			Fx.burst(self, global_position + Vector3(0, 0.9, 0), Color(1.0, 0.7, 0.3), 18, 3.0, 0.6, 0.14, -1.0, true)
 	elif "dodge" in pressed and stamina > 1.0 and is_on_floor():
 		_start_dodge(dir)
 	elif "jump" in pressed and is_on_floor() and stamina > 1.0:
@@ -506,6 +517,7 @@ func _free_actions(pressed: Array, held: Array, dir: Vector3) -> void:
 
 
 func _regen(dt: float) -> void:
+	skill_cd = maxf(0.0, skill_cd - dt)
 	_stam_delay -= dt
 	_poise_delay -= dt
 	if _stam_delay <= 0.0 and state in ["free", "block", "drink", "action"] and not _sprinting:
@@ -532,7 +544,7 @@ func _set_state(s: String, reset_act: bool = true) -> void:
 
 
 func _play(nm: String) -> Dictionary:
-	_act = anim.act(nm)
+	_act = anim.act(str((MOVES.get(nm, {}) as Dictionary).get("clip", nm)))
 	_act_name = nm
 	_act_t = 0.0
 	_hit_i = 0
@@ -620,7 +632,7 @@ func _melee_hit() -> void:
 		var d: float = to.length() - _radius_of(en)
 		if d > reach or absf(dy) > 2.4:
 			continue
-		if d > 0.4 and rad_to_deg(fwd.angle_to(to.normalized())) > float(w["arc"]):
+		if d > 0.4 and rad_to_deg(fwd.angle_to(to.normalized())) > float(mv.get("arc", w["arc"])):
 			continue
 		var dmg: float = float(w["dmg"]) * float(mv["mult"]) * power * randf_range(0.92, 1.08)
 		var kind: String = mv["kind"]

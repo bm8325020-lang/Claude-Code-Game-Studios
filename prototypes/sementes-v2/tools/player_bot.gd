@@ -152,6 +152,8 @@ func _bot(h: Hero) -> Dictionary:
 		elif e.state == "attack" and _rng.randf() < 0.05:
 			pressed.append("dodge")
 			out.move = h.stick_for(to.normalized().cross(Vector3.UP))
+		elif h.skill_tier > 0 and h.skill_cd <= 0.0:
+			pressed.append("skill")  # a player uses the shiny new button
 		elif _atk_cd <= 0.0:
 			_atk_cd = 0.4
 			pressed.append("attack")

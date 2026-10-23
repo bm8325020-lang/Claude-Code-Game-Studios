@@ -26,6 +26,7 @@ extends Control
 
 const ACTIONS: Array[String] = ["attack", "heavy", "dodge", "block", "skill", "potion", "interact", "lock", "jump", "menu"]
 const ALIASES: Dictionary = {"dodge": "roll", "skill": "seed", "potion": "flask"}
+static var label_override: Dictionary = {}  # action -> text, e.g. the skill button names the move it does now
 const LABELS: Dictionary = {"attack": "ATACAR", "heavy": "FORTE", "dodge": "ESQUIVA", "block": "DEFESA", "skill": "SOPRO",
 	"potion": "POÇÃO", "lock": "MIRA", "jump": "PULAR", "menu": ""}
 const STICK_R: float = 135.0
@@ -391,7 +392,7 @@ func _draw_button(id: String, c: Vector2, r: float) -> void:
 		draw_colored_polygon(pts, Color(0, 0, 0, 0.55))
 	var ink := Color(Hud.CREAM, alpha)
 	_glyph(id, c + Vector2(0, -6 if LABELS.get(id, "") != "" and r > 60.0 else 0), s * 0.42, ink)
-	var lbl: String = LABELS.get(id, "")
+	var lbl: String = label_override.get(id, LABELS.get(id, ""))
 	if lbl != "" and r > 60.0:
 		var f: Font = Hud.font(true)
 		var fs: int = 20 if r > 90.0 else 16
