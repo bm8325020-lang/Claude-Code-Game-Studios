@@ -183,7 +183,7 @@ const DATA: Array = [
 			["reach", "river", 1, "river", "Leve a lasca até o rio"],
 			["interact", "ponte_rio", 1, "river", "Jogue a lasca da ponte"]],
 		"rewards": {"xp": 60, "unlocks": ["desconto_bene"]}},
-	{"id": "s3", "kind": "side", "title": "Os Sinos das Santas", "giver": "farmer", "requires": ["m02"],
+	{"id": "s3", "kind": "side", "title": "Os Sinos das Santas", "giver": "farmer", "requires": ["m05"],  # bells and imps lie past the toll bridge (world/gates.gd)
 		"level": 3, "minutes": 10,
 		"offer": "A Santa Inês fugiu de novo. E as outras foram atrás. Se achar sino torto, é delas.",
 		"done": "Santa Inês volta sozinha para casa, tocando nada, ofendida.",

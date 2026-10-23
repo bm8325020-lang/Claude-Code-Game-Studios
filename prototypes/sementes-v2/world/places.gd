@@ -1058,13 +1058,10 @@ func mine() -> void:
 		if k < 3:
 			for i in 6:
 				wbox(Transform3D(bb, Vector3(p.x, py + 3.62, p.y) + bb * Vector3(0, 0, 0.25 + i * 0.5)), Vector3(hw * 2.0 + 0.6, 0.1, 0.48), Color(0.6, 0.55, 0.5))
-	# the gate (Gaspar's key) just inside the mouth
+	# the gate (Gaspar's key) just inside the mouth: its grate and collider live in world/gates.gd
 	var gp: Vector2 = mouth + dirv * 1.5
 	var gpy: float = gy(gp.x, gp.y)
-	for i in 3:
-		PX("Prop_MetalFence_Simple", Transform3D(bb, Vector3(gp.x, gpy, gp.y) + bb * Vector3(-2.0 + i * 2.0, 0, 0)), true)
-	var gate_col: CollisionShape3D = col_box(Vector3(gp.x, gpy + 1.5, gp.y), Vector3(hw * 2.0, 3.0, 0.4), yaw)
-	inter("mina_portao", "gate", Vector3(gp.x, gpy, gp.y) - Vector3(dirv.x, 0, dirv.y) * 1.6, {"name": "Portão da Mina", "key": "chave_gaspar", "col": gate_col})
+	inter("mina_portao", "gate", Vector3(gp.x, gpy, gp.y) - Vector3(dirv.x, 0, dirv.y) * 1.6, {"name": "Portão da Mina", "key": "chave_gaspar"})
 	# rib arches in the gallery: the mountain is the Lumeira, the miners dug between her ribs
 	var torus: TorusMesh = TorusMesh.new()
 	torus.inner_radius = hw - 0.5

@@ -34,6 +34,9 @@ var _actors: Array[Node3D] = []  # enemies, boss and townsfolk that sleep when f
 var _wake_timer: float = 0.0
 var _taken: Dictionary = {}  # interactable id -> true, so a pickup is collected once
 var _dialog_role: String = ""
+var gates: Node3D  # world/gates.gd: story gates that open the valley in stages
+var _gates_live: bool = false  # false while loading: earned gates open at once, without a toast
+var _gate_hint_t: float = 0.0
 
 # Blox-Fruits-style loop: zone levels, hunters with repeatable contracts, chests dropped by defeated enemies
 const CHEST_LIFE: float = 120.0
@@ -97,6 +100,9 @@ func _ready() -> void:
 	map = load("res://world/map.gd").new()
 	add_child(map)
 	map.build()
+	gates = load("res://world/gates.gd").new()
+	map.add_child(gates)
+	gates.build(map)
 	_lighten_world()
 
 	# the hero at the start spawn, wearing whatever the save says (peasant rags by default)
@@ -247,6 +253,10 @@ func _ready() -> void:
 	_unbury_interactables()
 	_lift_onto_floors()
 	_sync_gates()
+	_gates_live = true
+	quests.step_done.connect(func(_id: String, _s: int) -> void: _sync_gates.call_deferred())
+	quests.quest_started.connect(func(_id: String) -> void: _sync_gates.call_deferred())
+	quests.quest_done.connect(func(_id: String, _r: Dictionary) -> void: _sync_gates.call_deferred())
 	_spawn_treasures()
 
 
@@ -440,6 +450,12 @@ func _process(dt: float) -> void:
 		if _zone != "":
 			quests.notify("reach", _zone)
 		audio.update(_zone, GameAudio.mood(_actors, hero.global_position, _boss))
+		# bumping into a closed gate says who or what opens it
+		_gate_hint_t -= 0.25
+		var gh: String = gates.hint_near(hero.global_position)
+		if gh != "" and _gate_hint_t <= 0.0:
+			_gate_hint_t = 8.0
+			hud.toast("Caminho fechado", gh, "info")
 
 	_save_timer += dt
 	if _save_timer >= SAVE_EVERY:
@@ -703,15 +719,16 @@ func _use_interactable(it: Dictionary) -> void:
 			_sync_gates()
 
 
-# a gate the story has opened stops blocking the way (its collider was permanent before)
+# gates the story has earned open (on load: all at once, quietly); the arrow's road graph skips closed ones
 func _sync_gates() -> void:
-	var mine_open: bool = quests.is_done("m11") or (quests.status("m11") == "active" and int(quests.step_i.get("m11", 0)) >= 2)
-	for it: Dictionary in map.interactables:
-		if str(it.get("id", "")) == "mina_portao" and mine_open:
-			var cs: Variant = it.get("col")
-			if cs is CollisionShape3D and is_instance_valid(cs):
-				(cs as CollisionShape3D).disabled = true
-			_taken["mina_portao"] = true
+	for d: Dictionary in gates.sync(quests, _gates_live):
+		if _gates_live:
+			hud.toast("Caminho aberto: " + str(d.area), "", "quest")
+	if gates.is_open("mina_portao"):
+		_taken["mina_portao"] = true
+	for id: int in _roads.get_point_ids():
+		_roads.set_point_disabled(id, gates.blocks(_roads.get_point_position(id)))
+	_start_cache.id = -1
 
 
 func _open_dialog(role: String) -> void:
@@ -1130,6 +1147,10 @@ func _road_start(from: Vector2) -> int:
 	var best: int = int(ids[0])
 	var ss: PhysicsDirectSpaceState3D = hero.get_world_3d().direct_space_state
 	var eye: Vector3 = hero.global_position + Vector3(0, 0.9, 0)
+	ids = ids.filter(func(i: int) -> bool: return not _roads.is_point_disabled(i))
+	if ids.is_empty():
+		return best
+	best = int(ids[0])
 	for k in mini(20, ids.size()):
 		var p: Vector2 = _roads.get_point_position(int(ids[k]))
 		var q := PhysicsRayQueryParameters3D.create(eye, Vector3(p.x, map.ground_y(p.x, p.y) + 0.9, p.y), 1)
@@ -1141,6 +1162,19 @@ func _road_start(from: Vector2) -> int:
 			break
 	_start_cache = {"at": from, "id": best}
 	return best
+
+
+# road nodes reachable from the village square without passing a closed gate
+func _reachable() -> Dictionary:
+	var sq: Vector3 = _spawn("village_square")
+	var todo: Array[int] = [_roads.get_closest_point(Vector2(sq.x, sq.z))]
+	var seen: Dictionary = {todo[0]: true}
+	while not todo.is_empty():
+		for n: int in _roads.get_point_connections(todo.pop_back()):
+			if not seen.has(n) and not _roads.is_point_disabled(n):
+				seen[n] = true
+				todo.append(n)
+	return seen
 
 
 # Pushing the stick for 10 s without getting 4 m anywhere (river channel, a gap between rocks): put the hero back
@@ -1189,7 +1223,10 @@ func _rescue(title: String, sub: String) -> void:
 	cands.sort_custom(func(a: Vector3, b: Vector3) -> bool: return Vector2(a.x, a.z).distance_squared_to(here) < Vector2(b.x, b.z).distance_squared_to(here))
 	var ss: PhysicsDirectSpaceState3D = hero.get_world_3d().direct_space_state
 	var best: Vector3 = _spawn("player_start")
+	var reach: Dictionary = _reachable()
 	for c: Vector3 in cands:
+		if gates.blocks(Vector2(c.x, c.z)) or not reach.has(_roads.get_closest_point(Vector2(c.x, c.z))):
+			continue  # never land past a closed gate (the far bank of the river, beyond the toll bridge)
 		var q := PhysicsRayQueryParameters3D.create(c + Vector3(0, 0.3, 0), c + Vector3(0, 2.6, 0))
 		q.exclude = [hero.get_rid()]
 		if ss.intersect_ray(q).is_empty() and Vector2(c.x, c.z).distance_to(here) > 3.0:

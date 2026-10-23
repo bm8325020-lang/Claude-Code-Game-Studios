@@ -153,6 +153,7 @@ func _live() -> void:
 		mc = mc or str(it.id) == "marco_castelo"
 	ok(mc, "a Marco waits outside the castle gate")
 	_check_cauda(g)
+	await _check_gates(g)
 	# a pickup the quest is collecting beats the townsperson standing next to it (Rosa at her inn door)
 	var cartas: Dictionary = {}
 	for it: Dictionary in g.map.interactables:
@@ -241,3 +242,37 @@ func _live() -> void:
 	g._open_chest(c)
 	ok(g.items.list().size() > bag0, "chest item lands in the inventory")
 	g.queue_free()
+
+
+# story gates in the live game: closed on a new game with a hint and a collider that stops a hero walking into it,
+# the arrow's road graph skips them, and they open (collider off) once the quest reaches their step
+func _check_gates(g: Node3D) -> void:
+	var gates: Node3D = g.gates
+	var data: Array = gates.DATA
+	ok(gates != null and data.size() >= 4, "story gates built")
+	var bridge: Dictionary = data[data.map(func(d: Dictionary) -> String: return str(d.id)).find("ponte_dizimo")]
+	ok(not gates.is_open("ponte_dizimo") and not gates.is_open("passo_escama"), "gates start closed on a new game")
+	var c: Vector2 = bridge.pos
+	var fwd := Vector3(sin(float(bridge.facing)), 0, cos(float(bridge.facing)))
+	var start: Vector3 = Vector3(c.x, g.map.ground_y(c.x, c.y), c.y) - fwd * 5.0
+	ok(gates.hint_near(start + fwd * 3.5).contains("Vó Cândida"), "bumping the toll bridge says who opens it")
+	var blocked: bool = false
+	for id: int in g._roads.get_point_ids():
+		blocked = blocked or (g._roads.is_point_disabled(id) and g._roads.get_point_position(id).distance_to(c) < 5.0)
+	ok(blocked, "the arrow's road graph skips the closed bridge")
+	var hero: Hero = g.hero
+	hero.set_bot(func(h: Hero) -> Dictionary: return {"move": h.stick_for(fwd), "pressed": [], "held": []})
+	hero.global_position = start + Vector3(0, 1.0, 0)
+	hero.velocity = Vector3.ZERO
+	hero.reset_physics_interpolation()
+	for i in 90:
+		await physics_frame
+	ok((hero.global_position - Vector3(c.x, 0, c.y)).dot(fwd) < 0.0, "a hero walking into the closed bridge gate stays on the near side")
+	hero.set_bot(Callable())
+	g.quests.state["m05"] = "active"
+	g.quests.step_i["m05"] = 1
+	g._sync_gates()
+	ok(gates.is_open("ponte_dizimo") and not gates.is_open("passo_escama"), "the bridge opens at m05 step 1, the pass stays shut")
+	ok(gates.hint_near(start + fwd * 3.5) == "", "an open gate gives no hint")
+	g.quests.state.erase("m05")
+	g.quests.step_i.erase("m05")
