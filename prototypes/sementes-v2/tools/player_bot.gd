@@ -20,6 +20,7 @@ var dialog_opened: int = 0
 var talk_targets_ignored: int = 0
 var _wander: Vector3 = Vector3.ZERO
 var _wander_t: float = 0.0
+var _tapped: Dictionary = {}  # button label + rough spot -> last time pressed
 var _dbg_target: Variant = null  # last aim, logged with each sample so a stall shows what the bot was walking to
 var _last_pos: Vector3 = Vector3.ZERO
 var _still: float = 0.0
@@ -168,11 +169,14 @@ func _bot(h: Hero) -> Dictionary:
 		out.pressed = pressed
 		return out
 	# the FALAR / ABRIR / PEGAR button is on screen: press it
+	# (a player taps the same "Falar" once, not every 3 s while walking past: only repeat after a minute)
 	if _interact_shown():
-		if _int_cd <= 0.0:
+		var key: String = Touch._interact_label + str((h.global_position / 6.0).round())
+		if _int_cd <= 0.0 and (Touch._interact_label != "Falar" or t - float(_tapped.get(key, -999.0)) > 60.0):
 			pressed.append("interact")
 			dialog_opened += 1
 			_int_cd = 3.0
+			_tapped[key] = t
 	# follow the quest arrow (the HUD's own target), else wander
 	# follow the arrow on screen (it goes along roads); fall back to the raw goal if the HUD has none
 	var target: Variant = g.hud.quest_target if g.hud.quest_target is Vector3 else Hud.quest_pos(g.quests.current(), g.map)

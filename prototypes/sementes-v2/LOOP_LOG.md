@@ -104,3 +104,13 @@ Bot (110 min, seed 8): story + all side quests but s6 done, level 30. Rosa's let
   camped mid-deck so its spread dropped bandits into the gully where the bot locked on forever. The camp now
   sits on firm ground past the barrier, and spawns land on the walkable top (deck) instead of bare terrain.
 - Bot samples now log height, velocity and aim, so a stall shows what the bot was walking to.
+
+## Iterations 13–15
+
+- Toll bridge, finally: the arrow's line-of-sight test hit the deck rail (the drawn road runs just past it),
+  its height check read the river under the deck nodes, and the look-ahead aimed back at the end just
+  passed, so the hero paced mid-deck for 90+ min. A driven-hero repro (real physics) now crosses and reaches
+  the forest. "Agir" is no longer shown for scenery a quest is not asking about (1920 useless taps).
+- Bot (110 min, seed 9): whole story + all six side quests (first full clear on this seed), level 30.
+  After that it stood at Rosa's door re-tapping "Falar"; the bot now repeats the same talk once a minute.
+- Preview video recorded and sent (24 s, real gameplay). Seen in it: overlapping enemy nameplates in groups.
