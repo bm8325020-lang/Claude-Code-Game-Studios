@@ -81,6 +81,12 @@ func _tick(dt: float) -> void:
 		return
 	if g.menu.is_open:
 		g.menu.close()
+	# a full-screen panel (the ending) pauses the game: tap its button like a player would
+	if paused:
+		for b: Node in g.find_children("*", "Button", true, false):
+			if (b as Button).is_visible_in_tree() and (b as Button).text == "Continuar explorando":
+				(b as Button).pressed.emit()
+		return
 	_atk_cd -= dt
 	_int_cd -= dt
 	var area: String = g._area()
