@@ -630,13 +630,13 @@ func _draw() -> void:
 		_draw_boss(w, h)
 	if not _toasts.is_empty():
 		_draw_toast(w)
-	if _hint_a > 0.01 and _hint != "":
+	if _hint_a > 0.01 and _hint != "" and _toasts.is_empty():  # one message at a time in the middle
 		_draw_hint(w, h)
 	else:
 		Touch.tap_zone = Rect2()
 
 
-# Hint bubble low in the middle (between the thumbs), a pulsing ring on the thing to touch and a "Pular" pill.
+# Hint bubble high in the middle (under the quest card, clear of the thumb buttons), a pulsing ring on the thing to touch and a "Pular" pill.
 func _draw_hint(w: float, h: float) -> void:
 	var a: float = _hint_a
 	var target: Vector2
@@ -657,7 +657,7 @@ func _draw_hint(w: float, h: float) -> void:
 	var tw: float = f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 34).x
 	var bw: float = tw + 80.0
 	var skip := Rect2(0, 0, 170, 96)
-	var r := Rect2(w * 0.5 - (bw + skip.size.x + 16.0) * 0.5, h - 330.0, bw, 96)
+	var r := Rect2(w * 0.5 - (bw + skip.size.x + 16.0) * 0.5, 360.0, bw, 96)
 	skip.position = Vector2(r.end.x + 16.0, r.position.y)
 	var from := Vector2(clampf(target.x, r.position.x + 30.0, r.end.x - 30.0), r.position.y if target.y < r.position.y else r.end.y)
 	if target.x < r.position.x:
@@ -731,7 +731,7 @@ func _draw_quest(w: float) -> void:
 	var pw: float = QUEST_W
 	var f: Font = font(false)
 	var step_h: float = f.get_multiline_string_size(quest_step, HORIZONTAL_ALIGNMENT_LEFT, pw - 132.0, 26).y
-	var ph: float = maxf(150.0, 98.0 + step_h)
+	var ph: float = maxf(166.0, 98.0 + step_h)
 	var r := Rect2(w - pw - 26.0 + (1.0 - a) * 60.0, 140, pw, ph)
 	draw_set_transform(Vector2.ZERO)
 	var sb := box(Color(PARCH, 0.93 * a), Color(WOOD, a), 4, 12, 0.0, 6)

@@ -105,9 +105,10 @@ func _ready() -> void:
 	head.add_theme_constant_override("separation", 16)
 	col.add_child(head)
 	_name = _mk_label(40, Hud.INK, true)
+	_name.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(_name)
 	_title = _mk_label(26, Hud.EMBER, false)
-	_title.size_flags_vertical = Control.SIZE_SHRINK_END
+	_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(_title)
 	var bye := Button.new()
