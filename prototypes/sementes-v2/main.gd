@@ -55,7 +55,12 @@ const ATTR_NAME: Dictionary = {"vigor": "Vigor", "folego": "Fôlego", "forca": "
 const AUTO_ORDER: Array[String] = ["vigor", "forca", "vigor", "folego"]  # balanced build for players who never open the menu
 var _auto_i: int = 0
 var _roads := AStar2D.new()  # road network for the quest arrow ("GPS")
-const ROUTE_DIRECT: float = 45.0  # {kind, level, pos, at}: farm needs camps that fill up again
+const ROUTE_DIRECT: float = 45.0
+const COMBO_WINDOW: float = 2.0
+var _combo: int = 0
+var _combo_t: float = 0.0
+var _combo_label: Label
+var _combo_sfx: AudioStreamPlayer  # {kind, level, pos, at}: farm needs camps that fill up again
 
 
 func _ready() -> void:
@@ -157,6 +162,37 @@ func _ready() -> void:
 	farm.finished.connect(func(_c: Dictionary) -> void: _update_farm_label())
 	_update_farm_label()
 	rng.seed = Time.get_ticks_usec()
+
+	# small combo counter: hits chained within 2 s; a bright ding every 5
+	_combo_label = Label.new()
+	_combo_label.add_theme_font_override("font", Hud.font(true))
+	_combo_label.add_theme_font_size_override("font_size", 40)
+	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.35))
+	_combo_label.add_theme_color_override("font_outline_color", Color(0.2, 0.08, 0.02))
+	_combo_label.add_theme_constant_override("outline_size", 10)
+	_combo_label.anchor_left = 0.5
+	_combo_label.anchor_right = 0.5
+	_combo_label.offset_left = 120.0
+	_combo_label.offset_right = 420.0
+	_combo_label.offset_top = 210.0
+	_combo_label.offset_bottom = 270.0
+	layer.add_child(_combo_label)
+	_combo_sfx = AudioStreamPlayer.new()
+	_combo_sfx.stream = load("res://assets/sfx/impactGlass_heavy_000.ogg")
+	_combo_sfx.pitch_scale = 1.7
+	_combo_sfx.volume_db = -6.0
+	_combo_sfx.bus = "SFX" if AudioServer.get_bus_index("SFX") >= 0 else "Master"
+	add_child(_combo_sfx)
+	hero.hit_landed.connect(func(_t: Node3D, _a: float, result: String) -> void:
+		if result in ["blocked", "ignored"]:
+			return
+		_combo = _combo + 1 if _combo_t > 0.0 else 1
+		_combo_t = COMBO_WINDOW
+		if _combo >= 3:
+			_combo_label.text = "%d× COMBO" % _combo
+			_combo_label.modulate.a = 1.0
+		if _combo % 5 == 0:
+			_combo_sfx.play())
 
 	# keep the touch HUD uncluttered: only the buttons the hero can actually use right now are shown.
 	# Heavy/block/skill appear as the quest chain unlocks them (start-from-zero).
@@ -329,6 +365,11 @@ func _process(dt: float) -> void:
 	_age_chests(dt)
 	_tick_respawns(dt)
 	_clock += dt
+	if _combo_t > 0.0:
+		_combo_t -= dt
+		if _combo_t <= 0.0:
+			_combo = 0
+	_combo_label.modulate.a = move_toward(_combo_label.modulate.a, 0.0 if _combo_t <= 0.0 else 1.0, dt * 3.0)
 	for it: Dictionary in map.interactables:
 		if str(it.get("kind", "")) == "rest" and not _marcos_seen.has(str(it.id)) and hero.global_position.distance_to(it.pos) < 20.0:
 			_marcos_seen[str(it.id)] = it.pos
