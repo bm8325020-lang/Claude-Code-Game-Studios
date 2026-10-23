@@ -195,7 +195,8 @@ func _bot(h: Hero) -> Dictionary:
 		if en == null or en.dead or not en.visible or not g._plates.has(en):
 			continue
 		var d: float = en.global_position.distance_to(h.global_position)
-		var story_kill: bool = str(g.quests.current().get("type", "")) == "kill" and en.kind == str(g.quests.current().get("target", ""))
+		var want_k: String = str(g.quests.current().get("target", ""))
+		var story_kill: bool = str(g.quests.current().get("type", "")) == "kill" and ((want_k == "boss" and en is Boss) or (want_k != "boss" and en.kind == want_k))
 		if d < best_e and story_kill and Zones.danger(en.level, g.prog.level) < 2:
 			best_e = d
 			target = en.global_position

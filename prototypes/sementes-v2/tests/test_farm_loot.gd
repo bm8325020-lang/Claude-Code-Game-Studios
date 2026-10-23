@@ -81,6 +81,7 @@ func _live() -> void:
 	for i in 5:
 		await process_frame
 	ok(not g._hunters.is_empty(), "hunters spawned")
+	ok(g._boss != null and is_instance_valid(g._boss), "the final boss exists in the world (it did not, so the game could not be finished)")
 	var h: Dictionary = g._hunters[0]
 	g.hero.global_position = h.pos + Vector3(1, 0, 0)
 	g._open_hunter(h)

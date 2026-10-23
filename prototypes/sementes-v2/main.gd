@@ -482,9 +482,18 @@ func _tick_respawns(dt: float) -> void:
 
 
 func _spawn_boss() -> void:
+	# the map names the boss by a spawn point or (as it does now) by a camp of kind "boss": the game was not
+	# finishable while only the spawn point was read
 	var sp: Dictionary = map.spawns
-	if sp.has("boss"):
-		_boss = Boss.spawn_boss(self, sp["boss"])
+	var at: Variant = sp.get("boss", null)
+	if at == null:
+		for c: Dictionary in map.camps:
+			if "boss" in (c.get("kinds", []) as Array):
+				at = c.pos
+	if at is Vector3:
+		var p: Vector3 = at
+		p.y = map.ground_y(p.x, p.z) + 0.3
+		_boss = Boss.spawn_boss(self, p)
 		_boss.level = Zones.BOSS_LEVEL
 		_actors.append(_boss)
 		_add_plate(_boss)
@@ -505,7 +514,9 @@ func _area() -> String:
 
 # the contextual "Falar/Agir" button: show it when a person or an interactable is in reach
 func _update_interact_prompt() -> void:
-	var it: Dictionary = _nearest_interactable()
+	var it: Dictionary = _quest_interactable()
+	if it.is_empty():
+		it = _nearest_interactable()
 	var npc: Dictionary = _nearest_npc()
 	if not it.is_empty() and quests.is_target("interact", str(it.get("id", ""))) and not (not npc.is_empty() and quests.is_target("talk", str(npc.role))):
 		touch.show_interact(_prompt_for(it))
@@ -535,7 +546,9 @@ func _on_interact() -> void:
 	if dialog.visible:
 		return
 	var npc: Dictionary = _nearest_npc()
-	var near_it: Dictionary = _nearest_interactable()
+	var near_it: Dictionary = _quest_interactable()
+	if near_it.is_empty():
+		near_it = _nearest_interactable()
 	# what the quest asks for wins over whoever happens to stand closest (Joana stands at her own forge)
 	if not near_it.is_empty() and quests.is_target("interact", str(near_it.get("id", ""))) and not (not npc.is_empty() and quests.is_target("talk", str(npc.role))):
 		npc = {}
@@ -621,6 +634,17 @@ func _nearest_interactable() -> Dictionary:
 			bd = d
 			best = it
 	return best
+
+
+# the interactable the current quest wants, if one is in reach (it may not be the closest thing)
+func _quest_interactable() -> Dictionary:
+	for it: Dictionary in map.interactables:
+		if _taken.has(it.get("id", "")) or not quests.is_target("interact", str(it.get("id", ""))):
+			continue
+		var ip: Vector3 = it.get("pos", Vector3.ZERO)
+		if absf(ip.y - hero.global_position.y) < 3.0 and Vector2(hero.global_position.x, hero.global_position.z).distance_to(Vector2(ip.x, ip.z)) < INTERACT_RANGE + 0.6:
+			return it
+	return {}
 
 
 func _nearest_npc() -> Dictionary:

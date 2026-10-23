@@ -382,7 +382,8 @@ static func quest_pos(q: Dictionary, map: Object) -> Variant:
 		var best: Variant = null
 		var bd: float = 1e12
 		for n in (map as Node).get_tree().get_nodes_in_group("enemies"):
-			if str(n.get("kind")) != want or bool(n.get("dead")):
+			var is_boss: bool = n.get_script() != null and str((n.get_script() as Script).get_global_name()) == "Boss"
+			if (want == "boss" and not is_boss) or (want != "boss" and (is_boss or str(n.get("kind")) != want)) or bool(n.get("dead")):
 				continue
 			var d: float = (n as Node3D).global_position.distance_squared_to(anchor)
 			if d < bd:
