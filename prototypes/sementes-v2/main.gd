@@ -936,6 +936,8 @@ func _lighten_world() -> void:
 		if n is DirectionalLight3D:
 			var dl := n as DirectionalLight3D
 			dl.directional_shadow_max_distance = 25.0 if OS.has_feature("mobile") else 55.0
+			if OS.has_feature("mobile"):
+				dl.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL  # one split: the 2-split pass cost ~180 draws in the village
 			dl.shadow_blur = 1.0
 		elif n is WorldEnvironment:
 			var env: Environment = (n as WorldEnvironment).environment
