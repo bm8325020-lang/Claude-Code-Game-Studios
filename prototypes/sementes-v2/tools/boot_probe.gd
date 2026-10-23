@@ -13,9 +13,12 @@ func _init() -> void:
 	current_scene = g
 	var t1: int = Time.get_ticks_msec()
 	var frames: int = 0
-	while not g.get("booted"):
+	while g.get("booted") == false:
 		await process_frame
 		frames += 1
+	if g.get("booted") == null:  # an older main.gd without the flag: its _ready ends one physics frame in
+		await physics_frame
+		await process_frame
 	var t2: int = Time.get_ticks_msec()
 	print("BOOT engine->main=%d first_frame_blocked=%d playable=%d frames=%d enemies=%d steps=%s map=%s" % [
 		t0, t1 - t0, t2, frames, get_nodes_in_group("enemies").size(), str(g.get_meta("boot_ms", {})), str(g.map.stats)])

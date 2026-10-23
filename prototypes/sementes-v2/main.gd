@@ -106,22 +106,19 @@ func _ready() -> void:
 	npcs = Npcs.new()
 	add_child(npcs)
 
-	# the world: built off the tree on a worker thread (nothing in world/ touches the scene tree) while a loading
-	# screen animates; a second worker builds every character body once so AnimLib's clip libraries and the model
-	# files are cached before the hero and the camps are made
+	# the world: a loading screen is drawn first, then the (blocking) map build runs behind it. Not on a worker
+	# thread: off-main-thread RenderingServer calls made the build ~20x slower and skinned meshes failed to build.
 	set_process(false)
 	var loading := Loading.new()
 	add_child(loading)
+	for i in 2:
+		await get_tree().process_frame  # the first frame only queues the loading screen; the second shows it
 	map = load("res://world/map.gd").new()
-	var tasks: Array[int] = [WorkerThreadPool.add_task(map.build), WorkerThreadPool.add_task(_warm_characters)]
-	var t0: int = Time.get_ticks_msec()
-	while not tasks.all(func(id: int) -> bool: return WorkerThreadPool.is_task_completed(id)):
-		loading.progress = 0.9 * (1.0 - exp(-float(Time.get_ticks_msec() - t0) / 2500.0))
-		await get_tree().process_frame
-	for id in tasks:
-		WorkerThreadPool.wait_for_task_completion(id)
 	add_child(map)
+	map.build()
 	_boot_mark("map")
+	loading.progress = 0.7
+	await get_tree().process_frame
 	_lighten_world()
 
 	# the hero at the start spawn, wearing whatever the save says (peasant rags by default)
@@ -139,6 +136,8 @@ func _ready() -> void:
 	hero.died.connect(_on_hero_died)
 	hero.interact_requested.connect(_on_interact)
 	_boot_mark("hero")
+	loading.progress = 0.85
+	await get_tree().process_frame
 
 	# enemies and the boss
 	_spawn_camps()
@@ -283,15 +282,6 @@ func _ready() -> void:
 	booted = true
 	set_process(true)
 	loading.queue_free()
-
-
-# Worker thread: one throwaway body of every look so the first real spawns find their libraries and models cached.
-func _warm_characters() -> void:
-	var looks: Array = [items.look()]
-	for k: String in Enemy.KINDS:
-		looks.append(Enemy.KINDS[k].look)
-	for lk: Dictionary in looks:
-		CharacterKit.make(lk).free()
 
 
 # Every quest "collect" must have enough pickups in the world. Any shortfall is placed around the best anchor:
@@ -471,6 +461,7 @@ func _process(dt: float) -> void:
 	_wake_timer += dt
 	if _wake_timer >= 0.25:
 		_wake_timer = 0.0
+		_spawn_near_camps()
 		_sleep_far_actors()
 		_refresh_marks()
 		# Marco discovery (20 m) at 4 Hz: nobody notices a quarter second, the phone notices 60 scans/s
@@ -510,6 +501,12 @@ func _apply_stats() -> void:
 	hero.potions = items.count("frasco") if items.has("frasco") else hero.potions
 
 
+# Camps are built only when the hero comes within CAMP_RANGE (wake range is 45 m): building all 55 bodies at boot,
+# most of them with their own skeleton's animation library, was ~3 s of a black screen on desktop.
+const CAMP_RANGE: float = 90.0
+var _camps_todo: Array[Dictionary] = []  # {pos, bodies: [[kind, level, pos]]} not built yet
+
+
 func _spawn_camps() -> void:
 	# a camp may hold up to 3 bodies (phones), or as many as a quest asks for of its kind (6 puglins in the mine)
 	var need: Dictionary = {}
@@ -528,11 +525,23 @@ func _spawn_camps() -> void:
 		var n: int = mini(int(c.get("count", kinds.size())), cap)
 		var place: String = str(c.get("place", ""))
 		var base: Vector3 = c.get("pos", Vector3.ZERO)
+		var bodies: Array = []
 		for i in n:
 			var k: String = kinds[i % kinds.size()]
 			var off := Vector3(randf_range(-4.0, 4.0), 0.0, randf_range(-4.0, 4.0))
 			var lvl: int = Zones.level_for(place, i) if Zones.LEVELS.has(place) else int(c.get("level", 1))
-			_spawn_enemy(k, lvl, base + off)
+			bodies.append([k, lvl, base + off])
+		_camps_todo.append({"pos": base, "bodies": bodies})
+	_spawn_near_camps()
+
+
+# builds the camps within CAMP_RANGE of the hero (all of them with everywhere = true)
+func _spawn_near_camps(everywhere: bool = false) -> void:
+	for c: Dictionary in _camps_todo.duplicate():
+		if everywhere or hero.global_position.distance_to(c.pos) < CAMP_RANGE:
+			_camps_todo.erase(c)
+			for b: Array in c.bodies:
+				_spawn_enemy(b[0], b[1], b[2])
 
 
 func _spawn_enemy(k: String, lvl: int, pos: Vector3) -> Enemy:
