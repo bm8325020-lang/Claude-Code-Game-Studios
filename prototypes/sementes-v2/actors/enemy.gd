@@ -57,7 +57,7 @@ const KINDS: Dictionary = {
 	"knight": {"name": "Guarda da Vigília", "scale": 1.04,
 		"look": {"body": "Male", "outfit": "Ranger", "pauldrons": true, "hair": "Hair_Buzzed", "beard": true, "tint": Color(0.5, 0.47, 0.52), "weapon": "Sword_Bronze", "shield": "Shield_Wooden"},
 		"hp": 140.0, "dmg": 17.0, "speed": 3.2, "poise": 55.0, "radius": 0.42, "height": 1.8, "reach": 2.0, "notice": 15.0,
-		"xp": 45, "armor": true, "guard": 0.45, "idle": "Idle", "combat_idle": "Sword_Idle", "walk": "Loco_Walk", "run": "Loco_Jog",
+		"xp": 45, "armor": true, "guard": 0.25, "idle": "Idle", "combat_idle": "Sword_Idle", "walk": "Loco_Walk", "run": "Loco_Jog",
 		"hurt": "hit_light", "stagger": "hit_heavy", "die": "death", "block": "block_hit", "guard_idle": "Idle_Shield",
 		"attacks": [{"anim": "light1", "slow": 0.55, "lunge": 2.5, "mult": 1.0, "next": 1}, {"anim": "light2", "slow": 0.9, "lunge": 2.0, "mult": 1.0, "chain_only": true},
 			{"anim": "heavy", "slow": 0.45, "lunge": 2.5, "mult": 1.7, "kind": "heavy"}, {"anim": "sprint_attack", "slow": 0.6, "lunge": 1.0, "mult": 1.4, "kind": "heavy", "far": true}]},
@@ -356,8 +356,12 @@ func _combat(dt: float, to: Vector3, dist: float) -> Array:
 		if dist < 2.6 and _cooldown <= 0.0:
 			_start_attack(_pick(func(a: Dictionary) -> bool: return a.get("melee_only", false)))
 			return [Vector3.ZERO, true]
+		if dist < keep.x and global_position.distance_to(home) < 8.0:  # backs off a little, then stands its ground
+			return [-dirv * speed * 0.45, true]
 		if dist < keep.x:
-			return [-dirv * speed * 0.7, true]
+			if _cooldown <= 0.0 and dist < 3.2:
+				_start_attack(_pick(func(a: Dictionary) -> bool: return a.get("melee_only", false)))
+			return [dirv * 0.0, true]
 		if dist > keep.y:
 			return [dirv * speed, false]
 		if _cooldown <= 0.0:
@@ -534,7 +538,7 @@ func take_hit(amount: float, source: Node, k: String = "light") -> Dictionary:
 		to.y = 0
 		front = to.length() < 0.05 or Vector3(sin(_yaw), 0, cos(_yaw)).dot(to.normalized()) > 0.3
 	if state == "guard" and front and k != "riposte":
-		poise -= amount * (2.2 if k == "heavy" else 0.8)
+		poise -= amount * (2.2 if k == "heavy" else 1.2)  # light hits also wear the guard down (casual players rarely use heavy)
 		if poise > 0.0:
 			_play(data.get("block", "block_hit"), 0.05)
 			_set_state("guard", maxf(0.6, _state_len - t))
