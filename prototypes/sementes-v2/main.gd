@@ -404,11 +404,6 @@ func _process(dt: float) -> void:
 		if _combo_t <= 0.0:
 			_combo = 0
 	_combo_label.modulate.a = move_toward(_combo_label.modulate.a, 0.0 if _combo_t <= 0.0 else 1.0, dt * 3.0)
-	for it: Dictionary in map.interactables:
-		if str(it.get("kind", "")) == "rest" and not _marcos_seen.has(str(it.id)) and hero.global_position.distance_to(it.pos) < 20.0:
-			_marcos_seen[str(it.id)] = it.pos
-			prog.unlock("marco_seen:" + str(it.id))
-			hud.toast("Marco de Lume encontrado", "Descanse nele para viajar entre Marcos.", "info")
 	_check_stuck(dt)
 	Touch.set_cooldown("skill", hero.skill_cd / Hero.SKILL_CD if hero.skill_tier > 0 else 0.0)
 	_ach_t += dt
@@ -429,6 +424,12 @@ func _process(dt: float) -> void:
 		_wake_timer = 0.0
 		_sleep_far_actors()
 		_refresh_marks()
+		# Marco discovery (20 m) at 4 Hz: nobody notices a quarter second, the phone notices 60 scans/s
+		for it: Dictionary in map.interactables:
+			if str(it.get("kind", "")) == "rest" and not _marcos_seen.has(str(it.id)) and hero.global_position.distance_to(it.pos) < 20.0:
+				_marcos_seen[str(it.id)] = it.pos
+				prog.unlock("marco_seen:" + str(it.id))
+				hud.toast("Marco de Lume encontrado", "Descanse nele para viajar entre Marcos.", "info")
 		for pid: String in _places_at(hero.global_position):
 			quests.notify("reach", pid)  # harmless when repeated; also counts if you are already there
 		if _zone != "":
@@ -769,10 +770,11 @@ func _one_shot(it: Dictionary) -> bool:
 # the interactable the current quest wants, if one is in reach (it may not be the closest thing)
 func _quest_interactable() -> Dictionary:
 	for it: Dictionary in map.interactables:
-		if _taken.has(it.get("id", "")) or not _wanted(it):
+		if _taken.has(it.get("id", "")):
 			continue
 		var ip: Vector3 = it.get("pos", Vector3.ZERO)
-		if absf(ip.y - hero.global_position.y) < 3.0 and Vector2(hero.global_position.x, hero.global_position.z).distance_to(Vector2(ip.x, ip.z)) < INTERACT_RANGE + 0.6:
+		# range first: _wanted() walks the quest list, too slow to run for every interactable every frame
+		if absf(ip.y - hero.global_position.y) < 3.0 and Vector2(hero.global_position.x, hero.global_position.z).distance_to(Vector2(ip.x, ip.z)) < INTERACT_RANGE + 0.6 and _wanted(it):
 			return it
 	return {}
 

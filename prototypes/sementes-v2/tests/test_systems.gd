@@ -78,6 +78,11 @@ func _check_data() -> void:
 
 
 func _check_basics() -> void:
+	# quest() is an id index now: same entries as a scan of DATA, {} for unknown ids
+	var all_found: bool = true
+	for qd: Dictionary in Quests.DATA:
+		all_found = all_found and Quests.quest(str(qd.id)).get("id") == qd.id
+	ok(all_found and Quests.quest("nao_existe").is_empty(), "quest() index matches DATA")
 	var p: Progression = Progression.new()
 	var lv: Array[int] = []
 	p.leveled_up.connect(func(l: int) -> void: lv.append(l))

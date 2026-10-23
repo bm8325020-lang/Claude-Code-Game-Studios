@@ -233,11 +233,15 @@ func start_new() -> void:
 	_refresh()
 
 
+static var _by_id: Dictionary = {}  # id -> DATA entry; quest() runs hundreds of times a frame via is_target
+
+
 static func quest(id: String) -> Dictionary:
-	for q: Dictionary in DATA:
-		if str(q.id) == id:
-			return q
-	return {}
+	if _by_id.is_empty():
+		for q: Dictionary in DATA:
+			if not _by_id.has(str(q.id)):  # first one wins, like the old linear search
+				_by_id[str(q.id)] = q
+	return _by_id.get(id, {})
 
 
 static func step_of(q: Dictionary, i: int) -> Dictionary:
@@ -283,8 +287,8 @@ func notify(event: String, target: String) -> void:
 func is_target(event: String, target: String) -> bool:
 	for id: String in state:
 		if state[id] == "active":
-			var s: Dictionary = step_of(quest(id), int(step_i[id]))
-			if s.type == event and s.target == target:
+			var a: Array = quest(id).steps[int(step_i[id])] as Array  # step_of() without its per-call Dictionary
+			if str(a[0]) == event and str(a[1]) == target:
 				return true
 		elif state[id] == "offered" and (event == "talk" or event == "interact") and str(quest(id).giver) == target:
 			return true
