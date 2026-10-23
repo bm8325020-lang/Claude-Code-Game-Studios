@@ -314,7 +314,7 @@ func damage(target: Node, amount: float, source: Node, kind: String) -> Dictiona
 			elif diff <= -3:
 				amt *= 0.5
 			elif diff <= 1:
-				amt *= 0.8 if (source as Enemy).level <= 12 else 1.0
+				amt *= 0.8
 			elif diff == 2:
 				amt *= 1.5
 			elif diff == 3:
@@ -468,7 +468,16 @@ func _spawn_boss() -> void:
 
 
 func _area() -> String:
-	return map.area_name(hero.global_position)
+	var n: String = map.area_name(hero.global_position)
+	if n != "":
+		return n
+	# camps on the edge of an area still belong to it: name it, so the banner and level hint show up
+	for c: Dictionary in map.camps:
+		if hero.global_position.distance_to(c.pos) < 35.0:
+			for p: Dictionary in map.places:
+				if str(p.id) == str(c.place):
+					return str(p.name)
+	return ""
 
 
 # the contextual "Falar/Agir" button: show it when a person or an interactable is in reach
@@ -721,6 +730,9 @@ func _sleep_far_actors() -> void:
 func _place_id(pos: Vector3) -> String:
 	var best: String = ""
 	var bd: float = 1e12
+	for c: Dictionary in map.camps:
+		if pos.distance_to(c.pos) < 35.0 and Zones.LEVELS.has(str(c.place)):
+			return str(c.place)
 	for p: Dictionary in map.places:
 		var d: float = Vector2(pos.x, pos.z).distance_to(Vector2((p.pos as Vector3).x, (p.pos as Vector3).z))
 		if d < float(p.get("radius", 40.0)) and d < bd:

@@ -128,7 +128,7 @@ func _apply_stats() -> void:
 	display_name = data["name"]
 	max_hp = float(data["hp"]) * (1.0 + 0.3 * lv)
 	hp = max_hp
-	dmg = float(data["dmg"]) * (1.0 + 0.15 * lv)
+	dmg = float(data["dmg"]) * (1.0 + 0.15 * minf(lv, 9.0) + 0.10 * maxf(lv - 9.0, 0.0))  # gentler past level 10
 	max_poise = float(data["poise"]) * (1.0 + 0.1 * lv)
 	poise = max_poise
 	speed = float(data["speed"])
