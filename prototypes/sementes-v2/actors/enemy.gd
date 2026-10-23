@@ -56,7 +56,7 @@ const KINDS: Dictionary = {
 		"attacks": [{"anim": "Zombie_Scratch", "hit": 0.7, "slow": 0.5, "lunge": 1.5, "mult": 1.0}]},
 	"knight": {"name": "Guarda da Vigília", "scale": 1.04,
 		"look": {"body": "Male", "outfit": "Ranger", "pauldrons": true, "hair": "Hair_Buzzed", "beard": true, "tint": Color(0.5, 0.47, 0.52), "weapon": "Sword_Bronze", "shield": "Shield_Wooden"},
-		"hp": 140.0, "dmg": 17.0, "speed": 3.2, "poise": 55.0, "radius": 0.42, "height": 1.8, "reach": 2.0, "notice": 15.0,
+		"hp": 140.0, "dmg": 14.0, "speed": 3.2, "poise": 55.0, "radius": 0.42, "height": 1.8, "reach": 2.0, "notice": 15.0,
 		"xp": 45, "armor": true, "guard": 0.25, "idle": "Idle", "combat_idle": "Sword_Idle", "walk": "Loco_Walk", "run": "Loco_Jog",
 		"hurt": "hit_light", "stagger": "hit_heavy", "die": "death", "block": "block_hit", "guard_idle": "Idle_Shield",
 		"attacks": [{"anim": "light1", "slow": 0.55, "lunge": 2.5, "mult": 1.0, "next": 1}, {"anim": "light2", "slow": 0.9, "lunge": 2.0, "mult": 1.0, "chain_only": true},

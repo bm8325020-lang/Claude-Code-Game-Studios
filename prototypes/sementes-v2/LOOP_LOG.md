@@ -128,3 +128,5 @@ Bot (110 min, seed 11): full clear in 60 min + all 9 elites. Deaths over seeds 9
 10–17 of them at A Atalaia to the Vigília knights, even at or above their level. Reviewer pick (B + C):
 the road camp holds 2 knights instead of 3, and the knights' heavy swings wind up longer (slow 0.45 -> 0.33,
 sprint attack 0.6 -> 0.45) so a dodge is fair. Damage cut (A) held back unless deaths stay above ~4 there.
+Retest (seed 11): Atalaia deaths 10 -> 6, its quest 764 s -> 487 s, total deaths 22 -> 18. Still above ~4, so
+the knights' base damage goes 17 -> 14 as the reviewer suggested (castle knights get it too: 5 deaths there).
