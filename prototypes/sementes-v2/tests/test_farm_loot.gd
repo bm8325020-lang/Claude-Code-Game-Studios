@@ -46,11 +46,11 @@ func _init() -> void:
 	var done: Dictionary = f.on_kill("wolf_imp")
 	ok(not done.is_empty() and not f.has_active(), "5th kill finishes")
 	# achievements: quick first goals, nothing twice
-	var done: Dictionary = {}
-	var got: Array = Achievements.reached({"level": 2, "kills": 10}, func(k: String) -> bool: return done.has(k))
+	var ach_done: Dictionary = {}
+	var got: Array = Achievements.reached({"level": 2, "kills": 10}, func(k: String) -> bool: return ach_done.has(k))
 	ok(got.size() == 2, "level 2 + 10 kills unlock the first two achievements")
-	for a in got: done[Achievements.key(str(a.id))] = true
-	ok(Achievements.reached({"level": 2, "kills": 10}, func(k: String) -> bool: return done.has(k)).is_empty(), "no achievement twice")
+	for a in got: ach_done[Achievements.key(str(a.id))] = true
+	ok(Achievements.reached({"level": 2, "kills": 10}, func(k: String) -> bool: return ach_done.has(k)).is_empty(), "no achievement twice")
 	await _live()
 	print("%s: %d checks, %d failed" % ["PASS" if fails == 0 else "FAIL", checks, fails])
 	quit(1 if fails > 0 else 0)

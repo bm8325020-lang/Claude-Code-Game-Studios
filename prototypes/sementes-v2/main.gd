@@ -477,7 +477,11 @@ func _update_interact_prompt() -> void:
 	var npc: Dictionary = _nearest_npc()
 	if not it.is_empty() and quests.is_target("interact", str(it.get("id", ""))) and not (not npc.is_empty() and quests.is_target("talk", str(npc.role))):
 		touch.show_interact(_prompt_for(it))
-	elif not npc.is_empty() or not _nearest_hunter().is_empty():
+	elif not npc.is_empty():
+		touch.show_interact("Falar")
+	elif not it.is_empty() and quests.is_target("interact", str(it.get("id", ""))):
+		touch.show_interact(_prompt_for(it))
+	elif not _nearest_hunter().is_empty():
 		touch.show_interact("Falar")
 	elif not _nearest_chest().is_empty():
 		touch.show_interact("Abrir")
@@ -506,6 +510,9 @@ func _on_interact() -> void:
 	if not npc.is_empty():
 		_open_dialog(npc.role)
 		return
+	if not near_it.is_empty() and quests.is_target("interact", str(near_it.get("id", ""))):
+		_use_interactable(near_it)  # the quest spot beats hunters and dropped chests standing nearby
+		return
 	var h: Dictionary = _nearest_hunter()
 	if not h.is_empty():
 		_open_hunter(h)
@@ -517,6 +524,10 @@ func _on_interact() -> void:
 	var it: Dictionary = _nearest_interactable()
 	if it.is_empty():
 		return
+	_use_interactable(it)
+
+
+func _use_interactable(it: Dictionary) -> void:
 	var kind: String = it.get("kind", "")
 	var id: String = it.get("id", "")
 	match kind:
