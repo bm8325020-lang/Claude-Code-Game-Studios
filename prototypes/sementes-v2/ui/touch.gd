@@ -21,6 +21,8 @@
 #   Touch.set_cooldown(action, frac)    0..1 dark pie over a button (skill recharge)
 #   Touch.sensitivity                   camera drag multiplier (menu options write it)
 #   Touch.release_all()                 forget every finger (called on pause and on focus loss)
+#   Touch.tap_zone                      Rect2 the HUD draws a tappable pill in (the hint's "Pular"); a tap there fires
+#                                       the action "hint_skip". Rect2() = none.
 class_name Touch
 extends Control
 
@@ -47,6 +49,7 @@ static var _shown: Dictionary = {}
 static var _enabled: Dictionary = {}
 static var _badges: Dictionary = {}
 static var _cooldowns: Dictionary = {}
+static var tap_zone: Rect2 = Rect2()
 
 var _fingers: Dictionary = {}     # touch index -> {kind: "stick"|"btn"|"look", action, origin, pos}
 var _stick_origin: Vector2 = Vector2.ZERO
@@ -297,7 +300,7 @@ func _input(event: InputEvent) -> void:
 
 
 func _finger_down(idx: int, p: Vector2) -> void:
-	var b: String = _hit(p)
+	var b: String = "hint_skip" if tap_zone.has_area() and tap_zone.grow(12.0).has_point(p) else _hit(p)
 	if b != "":
 		_fingers[idx] = {"kind": "btn", "action": b}
 		_fire(b)
@@ -395,7 +398,7 @@ func _draw_button(id: String, c: Vector2, r: float) -> void:
 	var lbl: String = label_override.get(id, LABELS.get(id, ""))
 	if lbl != "" and r > 60.0:
 		var f: Font = Hud.font(true)
-		var fs: int = 20 if r > 90.0 else 16
+		var fs: int = 23 if r > 90.0 else 19
 		draw_string_outline(f, c + Vector2(-r, s * 0.62), lbl, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, 4, Color(0, 0, 0, 0.6 * alpha))
 		draw_string(f, c + Vector2(-r, s * 0.62), lbl, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, Color(Hud.GOLD, alpha))
 	var badge: String = _badges.get(id, "")

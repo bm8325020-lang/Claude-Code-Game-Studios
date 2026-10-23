@@ -22,6 +22,7 @@ func _init() -> void:
 	_check_data()
 	_check_basics()
 	_play_chain()
+	_check_hints()
 	print("%s: %d checks, %d failed" % ["PASS" if fails == 0 else "FAIL", checks, fails])
 	quit(0 if fails == 0 else 1)
 
@@ -206,3 +207,12 @@ func _round_trip(q: Quests) -> Quests:
 	ok(not Quests.new().load_game("user://nope_missing.json"), "missing save returns false")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SAVE))
 	return q2
+
+
+# first-time hints: basics in order, arrow/talk only when their moment has come, nothing once all are seen
+func _check_hints() -> void:
+	ok(Hud.next_hint([], true, true) == "move", "hint: move first")
+	ok(Hud.next_hint(["move"], true, true) == "attack", "hint: attack second")
+	ok(Hud.next_hint(["move", "attack"], false, false) == "", "hint: arrow waits for a target")
+	ok(Hud.next_hint(["move", "attack"], false, true) == "talk", "hint: talk when someone has a !")
+	ok(Hud.next_hint(["move", "attack", "arrow", "talk"], true, true) == "", "hint: none left")
