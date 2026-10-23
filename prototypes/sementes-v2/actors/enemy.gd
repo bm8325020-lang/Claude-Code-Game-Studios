@@ -106,6 +106,10 @@ var _flee_rolled: bool = false
 var _loco_clip: String = ""
 var _open: bool = false
 var _sink_t: float = -1.0
+var _meshes: Array = []
+var _flash_t: float = 0.0
+var _warn: Material = null  # wind-up glow, shown from the glint until the strike
+static var _flash_mats: Dictionary = {}
 
 
 static func spawn(parent: Node, k: String, lvl: int, pos: Vector3) -> Enemy:
@@ -200,6 +204,10 @@ func _hero_alive() -> bool:
 func _physics_process(dt: float) -> void:
 	if dt <= 0.0:
 		return
+	if _flash_t > 0.0:
+		_flash_t -= dt
+		if _flash_t <= 0.0:
+			_overlay(_warn)
 	if dead:
 		_dead_update(dt)
 		return
@@ -294,6 +302,8 @@ func _physics_process(dt: float) -> void:
 
 
 func _set_state(s: String, secs: float = 0.0) -> void:
+	if _warn != null:
+		_end_warn()
 	state = s
 	t = 0.0
 	_state_len = secs
@@ -468,6 +478,7 @@ func _attack_update(_dt: float, to: Vector3, dist: float) -> Vector3:
 				want = fwd * minf(float(a["lunge"]), gap * 6.0)
 		if pos >= _atk_hit:
 			_atk_done = true
+			_end_warn()
 			_strike(a, to, dist)
 	if pos >= _atk_end - 0.05 or not ap.is_playing():
 		_cooldown = randf_range(1.2, 2.4) / maxf(0.5, _attack_speed())
@@ -484,7 +495,10 @@ func _telegraph() -> void:
 	var fwd := Vector3(sin(_yaw), 0, cos(_yaw))
 	var at: Vector3 = global_position + Vector3(0, target_height * 0.85, 0) + fwd * 0.35
 	var heavy: bool = String(_atk.get("kind", "light")) == "heavy"
-	Fx.glint(self, at, Color(1.0, 0.45, 0.2) if heavy else Color(1.0, 0.9, 0.6), 1.2 if heavy else 0.8)
+	Fx.glint(self, at, Color(1.0, 0.45, 0.2) if heavy else Color(1.0, 0.9, 0.6), 1.6 if heavy else 1.1)
+	_warn = _flash_mat(Color(0.55, 0.16, 0.0) if heavy else Color(0.4, 0.3, 0.05))
+	if _flash_t <= 0.0:
+		_overlay(_warn)
 
 
 func _strike(a: Dictionary, to: Vector3, dist: float) -> void:
@@ -550,6 +564,7 @@ func take_hit(amount: float, source: Node, k: String = "light") -> Dictionary:
 		return {"result": "hit", "damage": 0.0}
 	hp -= amount
 	damaged.emit(self, amount)
+	flash(Color(0.42, 0.36, 0.3), 0.1)  # warm, not a white ghost in full sun
 	if hp <= 0.0:
 		_die()
 		return {"result": "dead", "damage": amount}
@@ -566,6 +581,12 @@ func take_hit(amount: float, source: Node, k: String = "light") -> Dictionary:
 		_flinches += 1.0
 		_play(data["hurt"], 0.05, 1.2)
 		_set_state("hurt", 0.38)
+	if state in ["hurt", "stagger"] and source is Node3D:
+		# small shove away from the hit; move_and_slide stops it at walls and the hero's lunge closes the gap
+		var away: Vector3 = global_position - (source as Node3D).global_position
+		away.y = 0.0
+		if away.length() > 0.01:
+			velocity += away.normalized() * (5.0 if k in ["heavy", "riposte"] else 2.5)
 	if not _flee_rolled and hp < max_hp * float(data.get("flee_at", 0.0)):
 		_flee_rolled = true
 		if randf() < float(data.get("flee_chance", 0.0)):
@@ -613,6 +634,7 @@ func _die() -> void:
 	collision_mask = 1
 	_set_state("dead")
 	var chest: Vector3 = global_position + Vector3(0, target_height * 0.6, 0)
+	Fx.burst(self, chest, Color(1.0, 0.82, 0.3), 16, 5.0, 0.8, 0.1, 9.0, true)  # gold sparkle: the reward moment
 	if kind == "wolf_imp":
 		# bursts into sparks that smell of bread
 		Fx.embers(self, chest, 40)
@@ -622,7 +644,7 @@ func _die() -> void:
 	else:
 		_play(data["die"], 0.1)
 		Fx.dust(self, global_position, 10, 0.6)
-		_sink_t = 10.0
+		_sink_t = 4.0
 		if kind == "possessed":
 			Fx.text(self, chest + Vector3(0, 0.6, 0), "Zzz", Color(0.75, 0.85, 1.0), 70, 1.2, 2.5)
 	died.emit(self)
@@ -635,13 +657,49 @@ func _dead_update(dt: float) -> void:
 	move_and_slide()
 	if _sink_t > 0.0:
 		_sink_t -= dt
-		if _sink_t < 1.5:
-			model.position.y -= dt * 0.6
+		if _sink_t < 0.4 and _sink_t + dt >= 0.4 and model.visible:
+			# poof instead of a slow sink: the body shrinks into a puff of dust and sparkles
+			Fx.dust(self, global_position + Vector3(0, 0.3, 0), 12, 0.8)
+			Fx.burst(self, global_position + Vector3(0, 0.6, 0), Color(1.0, 0.9, 0.6), 10, 2.5, 0.6, 0.12, -1.0, true)
+			model.create_tween().tween_property(model, "scale", Vector3.ONE * 0.01, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 		if _sink_t <= 0.0:
 			queue_free()
 
 
 # ---------------------------------------------------------------- locomotion clips
+
+# Tints the whole body for `secs` (hit flash, wind-up warning). One extra unshaded pass, only while it shows.
+func flash(c: Color, secs: float) -> void:
+	if model == null:
+		return
+	_overlay(_flash_mat(c))
+	_flash_t = secs
+
+
+func _end_warn() -> void:
+	_warn = null
+	if _flash_t <= 0.0:
+		_overlay(null)
+
+
+static func _flash_mat(c: Color) -> Material:
+	if not _flash_mats.has(c):
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		m.albedo_color = c
+		m.disable_receive_shadows = true
+		_flash_mats[c] = m
+	return _flash_mats[c]
+
+
+func _overlay(m: Material) -> void:
+	if _meshes.is_empty():
+		_meshes = model.find_children("*", "MeshInstance3D", true, false)
+	for mi in _meshes:
+		if is_instance_valid(mi):
+			(mi as MeshInstance3D).material_overlay = m
+
 
 func _loco_anim(hv: Vector3) -> void:
 	if state not in ["idle", "alert", "combat", "retreat", "flee", "cower", "return"]:

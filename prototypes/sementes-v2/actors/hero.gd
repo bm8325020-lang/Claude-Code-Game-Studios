@@ -132,6 +132,7 @@ var _bot: Callable = Callable()
 var _trail: Fx.Trail
 var _tip_len: float = -1.0
 var _marker: Sprite3D
+var _dodge_fx: bool = false
 
 
 func _ready() -> void:
@@ -698,6 +699,7 @@ func _start_dodge(dir: Vector3) -> void:
 	_spend(DODGE_COST[nm])
 	_play(nm)
 	_set_state("dodge", false)
+	_dodge_fx = false
 	Fx.sfx(self, ["cloth1", "cloth3"], global_position, -3.0)
 	Fx.dust(self, global_position, 6, 0.4)
 
@@ -724,7 +726,13 @@ func take_hit(amount: float, source: Node, kind: String = "light") -> Dictionary
 	if state == "dead":
 		return {"result": "ignored", "damage": 0.0}
 	if _invulnerable():
-		Fx.text(self, global_position + Vector3(0, 2.1, 0), "esquiva", Color(0.7, 0.9, 1.0), 48)
+		if state == "dodge" and kind != "fire" and not _dodge_fx:
+			# once per roll: a short slow-motion beat tells the player the dodge beat the swing
+			_dodge_fx = true
+			Fx.text(self, global_position + Vector3(0, 2.1, 0), "ESQUIVA!", Color(0.7, 0.9, 1.0), 64)
+			Fx.burst(self, global_position + Vector3(0, 1.0, 0), Color(0.6, 0.85, 1.0), 14, 3.0, 0.45, 0.12, 0.0, true)
+			Fx.sfx(self, "cloth3", global_position, 0.0, 0.0)
+			Fx.hit_stop(self, 0.22, 0.3)
 		return {"result": "dodged", "damage": 0.0}
 	var from_front: bool = true
 	if source is Node3D and is_instance_valid(source):

@@ -89,6 +89,17 @@ func _live() -> void:
 	for it: Dictionary in g.map.interactables:
 		mc = mc or str(it.id) == "marco_castelo"
 	ok(mc, "a Marco waits outside the castle gate")
+	# combat feel: a hit flashes the body and shoves it back; the wind-up glow lasts until the attack ends
+	var fb: Enemy = g._spawn_enemy("bandit", 1, g.hero.global_position + Vector3(3, 0, 0))
+	var fm: MeshInstance3D = fb.model.find_children("*", "MeshInstance3D", true, false)[0]
+	fb.take_hit(1.0, g.hero, "heavy")
+	ok(fm.material_overlay != null and fb.velocity.x > 2.0, "hit flash + knockback away from the hero")
+	fb._atk = {"kind": "heavy"}
+	fb._flash_t = 0.0
+	fb._telegraph()
+	ok(fm.material_overlay != null, "wind-up glow on")
+	fb._set_state("combat")
+	ok(fm.material_overlay == null, "wind-up glow off when the attack ends")
 	# a pickup the quest is collecting beats the townsperson standing next to it (Rosa at her inn door)
 	var cartas: Dictionary = {}
 	for it: Dictionary in g.map.interactables:
