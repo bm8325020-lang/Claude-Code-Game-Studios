@@ -151,6 +151,19 @@ func col_box(c: Vector3, size: Vector3, yaw: float) -> void:
 	body.add_child(cs)
 
 
+# A sloped walkable slab whose top surface runs from `a` to `b` (both on the walking surface).
+func col_ramp(a: Vector3, b: Vector3, width: float) -> void:
+	var f: Vector3 = (b - a).normalized()
+	var r: Vector3 = f.cross(Vector3.UP).normalized()
+	var u: Vector3 = r.cross(f).normalized()
+	var cs: CollisionShape3D = CollisionShape3D.new()
+	var bs: BoxShape3D = BoxShape3D.new()
+	bs.size = Vector3(width, 0.4, a.distance_to(b) + 0.4)
+	cs.shape = bs
+	cs.transform = Transform3D(Basis(r, u, f), (a + b) * 0.5 - u * 0.2)
+	body.add_child(cs)
+
+
 func col_cyl(x: float, z: float, r: float, hgt: float) -> void:
 	var cs: CollisionShape3D = CollisionShape3D.new()
 	var sh: CylinderShape3D = CylinderShape3D.new()
@@ -776,6 +789,16 @@ func river_place() -> void:
 			if depth > 0.8:
 				wbox(Transform3D(bb, Vector3(pp.x, (deck_y + gyp) * 0.5 - 0.3, pp.z)), Vector3(0.28, depth + 0.6, 0.28), Color(0.55, 0.5, 0.45))
 	col_box(Vector3(a0.x, deck_y - 0.2, a0.z) + dir * (L * 0.5), Vector3(3.6, 0.4, L + 1.0), yaw)
+	# ramps from the banks up to the deck: without them the road ran under a deck the hero could not climb onto
+	for end in [[a0, -dir], [a1, dir]]:
+		var e: Vector3 = end[0]
+		var out: Vector3 = end[1]
+		var top := Vector3(e.x, deck_y, e.z)
+		var g := Vector3(e.x, 0.0, e.z) + out * 5.0
+		g.y = gy(g.x, g.z) + 0.02
+		if g.y >= deck_y - 0.1:
+			continue
+		col_ramp(top, g, 3.6)
 	for side in [-1.0, 1.0]:
 		col_box(Vector3(a0.x, deck_y + 0.6, a0.z) + dir * (L * 0.5) + bb * Vector3(side * 1.85, 0, 0), Vector3(0.2, 1.2, L), yaw)
 	var mid: Vector3 = Vector3(a0.x, deck_y, a0.z) + dir * (L * 0.5)
