@@ -188,6 +188,7 @@ static func sfx(n: Node, names: Variant, pos: Vector3, db: float = 0.0, pitch_ji
 	var p := AudioStreamPlayer3D.new()
 	p.stream = _streams[nm]
 	p.volume_db = db
+	p.bus = &"SFX"
 	p.pitch_scale = 1.0 + randf_range(-pitch_jitter, pitch_jitter)
 	p.unit_size = 6.0
 	p.max_distance = 40.0

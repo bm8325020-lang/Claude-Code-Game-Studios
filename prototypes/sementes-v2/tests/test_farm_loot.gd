@@ -81,6 +81,33 @@ func _live() -> void:
 	for i in 5:
 		await process_frame
 	ok(not g._hunters.is_empty(), "hunters spawned")
+	# audio: buses exist, the ambience bed follows the area and the music follows the mood
+	ok(AudioServer.get_bus_index("Music") >= 0 and AudioServer.get_bus_index("SFX") >= 0 and AudioServer.get_bus_index("Ambience") >= 0, "audio buses Music/SFX/Ambience")
+	var w: AudioStreamWAV = GameAudio.bed("forest", 2.0)
+	ok(w.loop_end == 2 * GameAudio.RATE and w.data.size() == 4 * GameAudio.RATE and w.data.count(0) < w.data.size() / 2, "a synthesised ambience bed loops and is not silent")
+	var au: GameAudio = g.audio
+	ok(au != null and au.is_inside_tree(), "the audio node exists")
+	au.update("village", "calm")
+	for i in 600:
+		if au.amb_key == "village":
+			break
+		await process_frame
+	var village_bed: AudioStream = au.amb[au._amb_i].stream
+	ok(au.amb_key == "village" and village_bed != null and au.music_key == "town", "village ambience + town music (%s, %s)" % [au.amb_key, au.music_key])
+	au.update("mine", "calm")
+	for i in 600:
+		if au.amb_key == "mine":
+			break
+		await process_frame
+	ok(au.amb_key == "mine" and au.amb[au._amb_i].stream != village_bed and au.music_key == "dungeon", "entering the mine switches the ambience stream and music")
+	au.update("forest", "fight")
+	ok(au.music_key == "dungeon", "a fight nearby swaps to the fight track")
+	au.update("forest", "boss")
+	ok(au.music_key == "boss", "the Conde gets the boss track")
+	au._hold = 0.0
+	au.update("forest", "calm")
+	ok(au.music_key == "forest", "calm again: exploration track")
+	ok(GameAudio.mood([], Vector3.ZERO, null) == "calm", "no enemies, calm mood")
 	ok(g._boss != null and is_instance_valid(g._boss), "the final boss exists in the world (it did not, so the game could not be finished)")
 	var guard: Enemy = g._spawn_enemy("knight", 24, g._boss.global_position + Vector3(6, 0, 0))
 	g._clear_duel()
