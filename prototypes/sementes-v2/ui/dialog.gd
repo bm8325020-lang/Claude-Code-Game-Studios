@@ -105,14 +105,15 @@ func _ready() -> void:
 	head.add_theme_constant_override("separation", 16)
 	col.add_child(head)
 	_name = _mk_label(40, Hud.INK, true)
+	_name.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(_name)
 	_title = _mk_label(26, Hud.EMBER, false)
-	_title.size_flags_vertical = Control.SIZE_SHRINK_END
+	_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(_title)
 	var bye := Button.new()
 	bye.text = "Adeus"
-	bye.custom_minimum_size = Vector2(170, 72)
+	bye.custom_minimum_size = Vector2(170, 88)
 	bye.pressed.connect(close)
 	head.add_child(bye)
 	_you = _mk_label(22, Hud.INK_SOFT, false)
@@ -125,7 +126,7 @@ func _ready() -> void:
 	_text.mouse_filter = Control.MOUSE_FILTER_STOP
 	_text.gui_input.connect(_on_text_input)
 	col.add_child(_text)
-	_more = _mk_label(22, Hud.EMBER, true)
+	_more = _mk_label(24, Hud.EMBER, true)
 	_more.text = "toque para continuar  ▸"
 	_more.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_more.add_theme_font_override("font", ThemeDB.fallback_font)
@@ -140,13 +141,13 @@ func _ready() -> void:
 	_input = LineEdit.new()
 	_input.placeholder_text = "Pergunte o que quiser..."
 	_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_input.custom_minimum_size = Vector2(0, 78)
+	_input.custom_minimum_size = Vector2(0, 88)
 	_input.max_length = 300
 	_input.text_submitted.connect(func(_t: String) -> void: _ask())
 	ask.add_child(_input)
 	_send = Button.new()
 	_send.text = "Perguntar"
-	_send.custom_minimum_size = Vector2(230, 78)
+	_send.custom_minimum_size = Vector2(230, 88)
 	_send.pressed.connect(_ask)
 	ask.add_child(_send)
 
@@ -245,7 +246,7 @@ func _build_choices() -> void:
 func _choice_button(text: String, quest: bool, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(0, 74)
+	b.custom_minimum_size = Vector2(0, 88)
 	b.add_theme_font_size_override("font_size", 26)
 	if quest:
 		var sb := Hud.box(Color(0.66, 0.32, 0.1), Color(0.36, 0.16, 0.05), 3, 12, 14.0, 4)

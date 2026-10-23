@@ -1,16 +1,18 @@
 # PROTOTYPE - NOT FOR PRODUCTION
 # Pause menu (owner: UI agent): Personagem (attributes, spend points), Inventário (equip/use), Missões (follow one),
-# Mapa (painted from the map's places, roads and river), Opções (volume, camera sensitivity, Claude API key).
+# Mapa (painted from the map's places, roads and river; only places walked into and Marcos found are named),
+# Conquistas (Achievements.DATA, done ones lit), Opções (volume, camera sensitivity, hints again, Claude API key).
 #
 # Use:  var menu := GameMenu.new(); ui_layer.add_child(menu); menu.bind(progression, quests, items, map)
-#   menu.open(tab: String = "char")   tabs: "char", "inv", "quests", "map", "options"; pauses the tree
+#   menu.open(tab: String = "char")   tabs: "char", "inv", "quests", "map", "ach", "options"; pauses the tree
 #   menu.close() / menu.toggle()      close restores the pause state it found; Esc/Start/the menu action closes too
 #   menu.player: Node3D               optional, for the "você está aqui" marker and the camera-relative map
 #   signal closed
 #   signal item_used(id: String, heal: int)     a consumable was used from the bag: glue heals the hero by heal
 #   signal options_changed                      after any option changes (already saved and applied)
 # Options are static and persist in user://sementes2_options.json (GameMenu.load_options() runs on first use):
-#   GameMenu.options = {music: 0..1, sfx: 0..1, sens: 0.3..2.5, api_key: String, ai_model: String}
+#   GameMenu.options = {music: 0..1, sfx: 0..1, sens: 0.3..2.5, api_key: String, ai_model: String, auto_points: bool,
+#     hints: Array of first-time hint ids already shown (ui/hud.gd)}
 #   Volumes go to the "Music" and "SFX" audio buses when they exist (music falls back to "Master").
 #   The API key never leaves the device except in requests to api.anthropic.com (ui/npcs.gd); never logged.
 class_name GameMenu
@@ -21,12 +23,13 @@ signal item_used(id: String, heal: int)
 signal options_changed
 
 const OPTIONS_PATH: String = "user://sementes2_options.json"
-const TABS: Array = [["char", "PERSONAGEM"], ["inv", "INVENTÁRIO"], ["quests", "MISSÕES"], ["map", "MAPA"], ["options", "OPÇÕES"]]
+const TABS: Array = [["char", "PERSONAGEM"], ["inv", "INVENTÁRIO"], ["quests", "MISSÕES"], ["map", "MAPA"], ["ach", "CONQUISTAS"],
+	["options", "OPÇÕES"]]
 const KIND_NAME: Dictionary = {"weapon": "Arma", "shield": "Escudo", "outfit": "Roupa", "consumable": "Consumível",
 	"seed": "Semente do Dragão", "quest": "Item de missão", "material": "Material", "keepsake": "Lembrança"}
 
 static var options: Dictionary = {"music": 0.8, "sfx": 0.9, "sens": 1.0, "api_key": "", "ai_model": "claude-opus-5-5",
-	"auto_points": true}
+	"auto_points": true, "hints": []}
 static var _loaded: bool = false
 
 var prog: Progression
@@ -116,7 +119,8 @@ func _ready() -> void:
 		b.text = t[1]
 		b.custom_minimum_size = Vector2(0, 92)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.add_theme_font_size_override("font_size", 28)
+		b.add_theme_font_size_override("font_size", 25)
+		b.clip_text = true
 		var id: String = t[0]
 		b.pressed.connect(func() -> void: show_tab(id))
 		bar.add_child(b)
@@ -215,6 +219,8 @@ func show_tab(which: String) -> void:
 			_tab_quests()
 		"map":
 			_tab_map()
+		"ach":
+			_tab_ach()
 		"options":
 			_tab_options()
 
@@ -410,7 +416,7 @@ func _tab_inv() -> void:
 			det.add_child(_label("Cura %d de vida" % int(d.heal), 22, Hud.INK))
 		var slot: String = Items.slot_of(_sel_item)
 		var act := Button.new()
-		act.custom_minimum_size = Vector2(0, 84)
+		act.custom_minimum_size = Vector2(0, 88)
 		if slot != "":
 			var on: bool = str(items.slots.get(slot, "")) == _sel_item
 			act.text = "Tirar" if on else "Equipar"
@@ -425,7 +431,7 @@ func _tab_inv() -> void:
 		var price: int = items.sell_price(_sel_item)
 		if price > 0:
 			var sell := Button.new()
-			sell.custom_minimum_size = Vector2(0, 72)
+			sell.custom_minimum_size = Vector2(0, 88)
 			sell.text = "Vender (+%d ouro)" % price
 			sell.pressed.connect(func() -> void:
 				items.sell(_sel_item, prog)
@@ -452,7 +458,8 @@ func _tab_inv() -> void:
 	head.add_child(t)
 	var dup := Button.new()
 	dup.text = "Vender comuns repetidos"
-	dup.custom_minimum_size = Vector2(0, 64)
+	dup.custom_minimum_size = Vector2(0, 88)
+	dup.add_theme_font_size_override("font_size", 25)
 	dup.pressed.connect(func() -> void:
 		var g: int = items.sell_duplicate_commons(prog)
 		dup.text = ("+%d ouro" % g) if g > 0 else "Nada repetido"
@@ -472,7 +479,7 @@ func _tab_inv() -> void:
 	for e: Dictionary in entries:
 		grid.add_child(_item_tile(e))
 	if entries.is_empty():
-		list.add_child(_label("A bolsa está vazia.", 26, Hud.INK_SOFT))
+		list.add_child(_label("A bolsa está vazia. Baús, inimigos e missões enchem ela.", 26, Hud.INK_SOFT, false, true))
 
 
 func _item_tile(e: Dictionary) -> Control:
@@ -499,7 +506,7 @@ func _item_tile(e: Dictionary) -> Control:
 	if rar != "" and rar != "comum":
 		top_col = (Loot.COLOR[rar] as Color).darkened(0.35)  # loot rarity reads at a glance on parchment
 	var top := _label(str(KIND_NAME.get(kind, kind)).to_upper() + ("  · " + str(Loot.NAME[rar]).to_upper() if rar != "" else "")
-		+ ("  · EQUIPADO" if e.equipped else ""), 17, top_col, true)
+		+ ("  · EQUIPADO" if e.equipped else ""), 19, top_col, true)
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(top)
 	var n := _label(str(e.name) + ("  ×%d" % int(e.count) if int(e.count) > 1 else ""), 25, Hud.INK, true)
@@ -524,7 +531,14 @@ func _tab_quests() -> void:
 	var done: Array = j.filter(func(e: Dictionary) -> bool: return e.state == "done")
 	var open_q: Array = j.filter(func(e: Dictionary) -> bool: return e.state != "done")
 	if open_q.is_empty():
-		list.add_child(_label("Nenhuma missão em aberto. Converse com os moradores.", 28, Hud.INK_SOFT))
+		var empty := _card(list)
+		empty.add_child(_label("Nenhuma missão em aberto", 30, Hud.INK, true))
+		empty.add_child(_label("Procure moradores com \"!\" sobre a cabeça e toque em FALAR.", 25, Hud.INK_SOFT, false, true))
+	# the followed quest first: it is the one the card and the arrow show
+	for i in open_q.size():
+		if str(open_q[i].id) == str(cur.get("id", "")):
+			open_q.push_front(open_q.pop_at(i))
+			break
 	for e: Dictionary in open_q:
 		var following: bool = str(cur.get("id", "")) == str(e.id)
 		var c := _card(list, following)
@@ -533,24 +547,25 @@ func _tab_quests() -> void:
 		c.add_child(h)
 		var v := VBoxContainer.new()
 		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		v.add_theme_constant_override("separation", 2)
+		v.add_theme_constant_override("separation", 4)
 		h.add_child(v)
-		v.add_child(_label(("PRINCIPAL" if e.kind == "main" else "SECUNDÁRIA") + ("  ·  NOVA" if e.state == "offered" else ""),
-			18, Hud.EMBER, true))
+		var tag: String = "PRINCIPAL" if e.kind == "main" else "SECUNDÁRIA"
+		if e.state == "offered":
+			tag += "  ·  NOVA: fale com quem pediu"
+		elif following:
+			tag += "  ·  NO CARTÃO E NA SETA"
+		v.add_child(_label(tag, 20, Hud.EMBER, true))
 		v.add_child(_label(str(e.title), 32, Hud.INK, true))
 		var text: String = str(cur.get("text", e.text)) if following else str(e.text)
-		v.add_child(_label(text, 24, Hud.INK_SOFT, false, true))
+		v.add_child(_label(text, 25, Hud.INK, false, true))
 		if e.state == "active":
-			var q: Dictionary = Quests.quest(str(e.id))
+			var steps: int = (Quests.quest(str(e.id)).get("steps", []) as Array).size()
 			var at: int = int(quests.step_i.get(str(e.id), 0))
-			var steps: Array = q.get("steps", [])
-			var parts: PackedStringArray = []
-			for i in steps.size():
-				parts.append(("✓ " if i < at else ("▸ " if i == at else "· ")) + str(Quests.step_of(q, i).text))
-			var sl := _label("\n".join(parts), 21, Color(Hud.INK_SOFT, 0.85), false, true)
-			v.add_child(sl)
+			if steps > 1:
+				v.add_child(_label("Etapa %d de %d" % [mini(at + 1, steps), steps], 21, Hud.INK_SOFT))
+				v.add_child(_bar(float(at) / float(steps), Hud.GOLD, 12.0))
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(230, 84)
+		b.custom_minimum_size = Vector2(220, 88)
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		b.text = "Seguindo" if following else "Seguir"
 		b.disabled = following
@@ -560,9 +575,42 @@ func _tab_quests() -> void:
 			_refresh())
 		h.add_child(b)
 	if not done.is_empty():
-		list.add_child(_label("Concluídas", 30, Hud.INK_SOFT, true))
+		list.add_child(_label("Concluídas (%d)" % done.size(), 28, Hud.INK_SOFT, true))
+		var g := GridContainer.new()
+		g.columns = 2
+		g.add_theme_constant_override("h_separation", 24)
+		list.add_child(g)
 		for e: Dictionary in done:
-			list.add_child(_label("✓  " + str(e.title), 26, Color(Hud.INK_SOFT, 0.8)))
+			var l := _label("✓  " + str(e.title), 24, Color(Hud.INK_SOFT, 0.9), false, true)
+			g.add_child(l)
+
+
+# ------------------------------------------------------------------ Conquistas
+func _tab_ach() -> void:
+	if prog == null:
+		_missing("Progressão")
+		return
+	var got: int = 0
+	for a: Dictionary in Achievements.DATA:
+		if prog.has_unlock(Achievements.key(str(a.id))):
+			got += 1
+	var list := _scroll(_body)
+	var t := _label("%d de %d conquistas" % [got, Achievements.DATA.size()], 30, Hud.INK, true)
+	list.add_child(t)
+	list.add_child(_label("Cada conquista paga ouro na hora. Elas chegam sozinhas enquanto você joga.", 23, Hud.INK_SOFT,
+		false, true))
+	var g := GridContainer.new()
+	g.columns = 2
+	g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	g.add_theme_constant_override("h_separation", 14)
+	g.add_theme_constant_override("v_separation", 14)
+	list.add_child(g)
+	for a: Dictionary in Achievements.DATA:
+		var on: bool = prog.has_unlock(Achievements.key(str(a.id)))
+		var c := _card(g, on)
+		c.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		c.add_child(_label(("✓  " if on else "") + str(a.title), 28, Hud.INK if on else Hud.INK_SOFT, true))
+		c.add_child(_label("%s  ·  +%d ouro" % [str(a.desc), int(a.gold)], 23, Hud.INK_SOFT, false, true))
 
 
 # ------------------------------------------------------------------ Mapa
@@ -580,8 +628,19 @@ func _tab_map() -> void:
 			c.add_child(_rule())
 			c.add_child(_label("★  " + str(q.title), 26, Hud.EMBER, true, true))
 			c.add_child(_label(str(q.text), 23, Hud.INK_SOFT, false, true))
+	if map != null and prog != null:
+		var seen: int = 0
+		for p: Dictionary in map.get("places"):
+			if prog.has_unlock("place_seen:" + str(p.id)):
+				seen += 1
+		var mk: Array = MapView.marcos(map, prog)
+		c.add_child(_rule())
+		c.add_child(_label("Lugares descobertos: %d de %d" % [seen, (map.get("places") as Array).size()], 24, Hud.INK, true, true))
+		c.add_child(_label("Marcos de Lume: %d de %d" % [mk.filter(func(m: Dictionary) -> bool: return m.seen).size(), mk.size()],
+			24, Hud.INK, true, true))
+		c.add_child(_label("Descanse num Marco para viajar a outro.", 22, Hud.INK_SOFT, false, true))
 	c.add_child(_rule())
-	c.add_child(_label("▲  você        ● lugar        ★ objetivo", 21, Hud.INK_SOFT, false, true))
+	c.add_child(_label("▲ você   ● lugar   ◆ Marco   ★ objetivo", 22, Hud.INK_SOFT, false, true))
 	var mv := MapView.new()
 	mv.menu = self
 	mv.clip_contents = true
@@ -595,6 +654,17 @@ class MapView extends Control:
 
 	func _ready() -> void:
 		resized.connect(queue_redraw)
+
+	# every Marco de Lume on the map: {pos, seen}; seen = found by walking near it (saved as "marco_seen:<id>")
+	static func marcos(m: Object, p: Progression) -> Array:
+		var out: Array = []
+		for it: Dictionary in m.get("interactables"):
+			if str(it.get("kind", "")) == "rest":
+				out.append({"pos": it.pos, "seen": p != null and p.has_unlock("marco_seen:" + str(it.id))})
+		return out
+
+	func _seen(id: String) -> bool:
+		return menu.prog == null or menu.prog.has_unlock("place_seen:" + id)
 
 	func _to(r: Rect2, x: float, z: float) -> Vector2:
 		return r.position + Vector2((x - WORLD.position.x) / WORLD.size.x, (z - WORLD.position.y) / WORLD.size.y) * r.size
@@ -626,12 +696,12 @@ class MapView extends Control:
 			draw_polyline(pts, Color(0.35, 0.55, 0.68, 0.9), 9.0, true)
 			draw_polyline(pts, Color(0.55, 0.75, 0.85, 0.9), 4.0, true)
 		for p: Dictionary in m.get("places"):
-			if str(p.id) == "lake":
+			if str(p.id) == "lake" and _seen("lake"):
 				var c := _to(r, p.pos.x, p.pos.z)
 				var rad: float = float(p.radius) / WORLD.size.x * r.size.x
 				draw_circle(c, rad * 0.75, Color(0.45, 0.66, 0.78, 0.9))
 				draw_arc(c, rad * 0.75, 0.0, TAU, 48, Color(0.3, 0.45, 0.55), 3.0, true)
-			if str(p.id) == "forest":
+			if str(p.id) == "forest" and _seen("forest"):
 				var c := _to(r, p.pos.x, p.pos.z)
 				for i in 22:
 					var o := Vector2(sin(i * 2.4) * 70.0 + cos(i * 1.3) * 30.0, cos(i * 3.1) * 70.0)
@@ -650,8 +720,20 @@ class MapView extends Control:
 		var target: Variant = null
 		if menu.quests != null:
 			target = Hud.quest_pos(menu.quests.current(), m)
+		for mk: Dictionary in marcos(m, menu.prog):
+			if mk.seen:
+				var mc := _to(r, mk.pos.x, mk.pos.z)
+				draw_colored_polygon(PackedVector2Array([mc + Vector2(0, -13), mc + Vector2(10, 0), mc + Vector2(0, 13),
+					mc + Vector2(-10, 0)]), Hud.GOLD)
+				draw_polyline(PackedVector2Array([mc + Vector2(0, -13), mc + Vector2(10, 0), mc + Vector2(0, 13),
+					mc + Vector2(-10, 0), mc + Vector2(0, -13)]), Hud.WOOD_DARK, 2.5, true)
 		for p: Dictionary in m.get("places"):
 			var c := _to(r, p.pos.x, p.pos.z)
+			if not _seen(str(p.id)):
+				# not walked into yet: a faint "?" where the place is, no name
+				draw_circle(c, 16.0, Color(Hud.WOOD_DARK, 0.25))
+				draw_string(fb, c + Vector2(-20, 9), "?", HORIZONTAL_ALIGNMENT_CENTER, 40.0, 26, Color(Hud.INK, 0.5))
+				continue
 			draw_circle(c, 12.0, Hud.WOOD_DARK)
 			draw_circle(c, 8.0, Hud.EMBER if str(p.id) == "castle" else Hud.PARCH)
 			var name: String = str(p.name)
@@ -700,12 +782,20 @@ func _tab_options() -> void:
 	var auto := CheckButton.new()
 	auto.text = "Distribuir pontos sozinho"
 	auto.add_theme_font_size_override("font_size", 26)
-	auto.custom_minimum_size = Vector2(0, 72)
+	auto.custom_minimum_size = Vector2(0, 88)
 	auto.button_pressed = bool(options.get("auto_points", true))
 	auto.toggled.connect(func(on: bool) -> void:
 		options.auto_points = on
 		save_options())
 	cols[0].add_child(auto)
+	var again := Button.new()
+	again.text = "Rever as dicas do começo"
+	again.custom_minimum_size = Vector2(0, 88)
+	again.pressed.connect(func() -> void:
+		options.hints = []
+		save_options()
+		again.text = "As dicas voltam ao jogar")
+	cols[0].add_child(again)
 	var c := _card(cols[1])
 	c.add_child(_label("Conversa livre com os moradores", 32, Hud.INK, true))
 	c.add_child(_label("Os moradores do vale podem responder qualquer pergunta usando o Claude, da Anthropic. Para isso, "
@@ -716,7 +806,7 @@ func _tab_options() -> void:
 	key.placeholder_text = "sk-ant-..."
 	key.secret = not _show_key
 	key.text = str(options.api_key)
-	key.custom_minimum_size = Vector2(0, 84)
+	key.custom_minimum_size = Vector2(0, 88)
 	key.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_PASSWORD if not _show_key else LineEdit.KEYBOARD_TYPE_DEFAULT
 	c.add_child(key)
 	var status := _label("", 22, Hud.INK_SOFT, false, true)
@@ -738,7 +828,7 @@ func _tab_options() -> void:
 	for spec: Array in [["Colar", "paste"], ["Mostrar" if not _show_key else "Esconder", "show"], ["Apagar", "clear"]]:
 		var b := Button.new()
 		b.text = spec[0]
-		b.custom_minimum_size = Vector2(0, 80)
+		b.custom_minimum_size = Vector2(0, 88)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var what: String = spec[1]
 		b.pressed.connect(func() -> void:
@@ -754,7 +844,7 @@ func _tab_options() -> void:
 		row.add_child(b)
 	upd.call()
 	c.add_child(status)
-	c.add_child(_label("Modelo: " + str(options.ai_model), 20, Color(Hud.INK_SOFT, 0.8)))
+	c.add_child(_label("Modelo: " + str(options.ai_model), 22, Color(Hud.INK_SOFT, 0.85)))
 
 
 func _slider(parent: Control, title: String, key: String, lo: float, hi: float, fmt: Callable) -> void:

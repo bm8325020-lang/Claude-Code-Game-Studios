@@ -20,6 +20,9 @@
 #   level_up(n: int, points: int)              shortcut: set_level + golden toast
 #   bind(progression: Progression, quests: Quests, map: Object = null)  optional: follows the systems by itself
 #   Hud.quest_pos(Quests.current(), map) -> Variant   map position of the tracked objective (Vector3 or null)
+# First-time hints (move, attack, follow the arrow, talk to "!"): each shown once, done ids saved in
+#   GameMenu.options.hints; "Pular" on the hint (Touch.tap_zone) skips them all. Places walked into are saved as
+#   Progression unlocks "place_seen:<id>" (the menu map shows only those).
 class_name Hud
 extends Control
 
@@ -37,6 +40,7 @@ const EMBER: Color = Color(0.86, 0.38, 0.12)
 const LIFE: Color = Color(0.8, 0.17, 0.12)
 const STAMINA: Color = Color(0.62, 0.74, 0.25)
 const SHADOW: Color = Color(0.08, 0.04, 0.02, 0.55)
+const QUEST_W: float = 540.0  # quest card width (base 1920x1080)
 
 const PAPER_SHADER: String = """
 shader_type canvas_item;
@@ -250,6 +254,19 @@ var _time: float = 0.0
 var _prog: Progression
 var _quests: Quests
 var _map: Object
+var _hint: String = ""
+var _hint_a: float = 0.0
+var _hint_t: float = 0.0
+var _hint_moved: float = 0.0
+var _hint_last: Vector3 = Vector3.ZERO
+var _seen_t: float = 0.0
+
+const HINTS: Dictionary = {
+	"move": "Arraste o dedo aqui para andar",
+	"attack": "Toque em ATACAR para golpear",
+	"arrow": "A seta no cartão aponta a missão. Siga!",
+	"talk": "Toque em FALAR para conversar com quem tem \"!\"",
+}
 
 
 func _ready() -> void:
@@ -260,6 +277,84 @@ func _ready() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PAUSED or what == NOTIFICATION_UNPAUSED:
 		queue_redraw()
+	# the talk opened the dialog (which pauses the tree): that was the lesson
+	if what == NOTIFICATION_PAUSED and _hint == "talk" and Touch._interact_label == "Falar":
+		_hint_done("talk")
+
+
+# First hint not seen yet whose moment has come; "" = none. Move and attack come first, in that order.
+static func next_hint(done: Array, has_target: bool, can_talk: bool) -> String:
+	for id: String in ["move", "attack", "arrow", "talk"]:
+		if done.has(id):
+			continue
+		if id == "arrow" and not has_target:
+			continue
+		if id == "talk" and not can_talk:
+			continue
+		return id
+	return ""
+
+
+func _hints_done() -> Array:
+	var h: Variant = GameMenu.options.get("hints", [])
+	return h if h is Array else []
+
+
+func _hint_done(id: String) -> void:
+	var h: Array = _hints_done().duplicate()
+	if id == "all":
+		h = HINTS.keys()
+	elif not h.has(id):
+		h.append(id)
+	GameMenu.options.hints = h
+	GameMenu.save_options()
+	_hint = ""
+	_hint_t = 0.0
+	_hint_moved = 0.0
+
+
+func _update_hint(dt: float) -> void:
+	if get_tree().paused:
+		return
+	var done: Array = _hints_done()
+	var want: String = next_hint(done, quest_target is Vector3, Touch._interact_label == "Falar")
+	if want != _hint:
+		_hint = want
+		_hint_t = 0.0
+		_hint_moved = 0.0
+		_hint_last = _player
+	if Touch.pressed("hint_skip"):
+		_hint_done("all")
+		return
+	if _hint == "":
+		return
+	_hint_t += dt
+	_hint_moved += _player.distance_to(_hint_last)
+	_hint_last = _player
+	match _hint:
+		"move":
+			if _hint_moved > 4.0:
+				_hint_done("move")
+		"attack":
+			if Touch.pressed("attack") or Touch.held("attack"):
+				_hint_done("attack")
+		"arrow":
+			if _hint_moved > 25.0 or _hint_t > 16.0:
+				_hint_done("arrow")
+		"talk":
+			if Touch._interact_label != "Falar" and _hint_t > 1.0:
+				_hint = ""  # walked away: comes back next time someone has a "!"
+
+
+# Places the hero has walked into, saved with the game (the menu map draws only those).
+func _mark_places(dt: float) -> void:
+	_seen_t += dt
+	if _seen_t < 0.5 or _prog == null or _map == null:
+		return
+	_seen_t = 0.0
+	for p: Dictionary in _map.get("places"):
+		if Vector2(_player.x - p.pos.x, _player.z - p.pos.z).length() < float(p.radius):
+			_prog.unlock("place_seen:" + str(p.id))
 
 
 # ------------------------------------------------------------------ setters
@@ -466,6 +561,9 @@ func _process(dt: float) -> void:
 	_time += dt
 	if (_prog != null or _quests != null) and Engine.get_process_frames() % 3 == 0:  # 20 Hz at 60 fps: quest lookup + GPS route is too much per frame on a phone
 		_poll_systems()
+	_update_hint(dt)
+	_mark_places(dt)
+	_hint_a = move_toward(_hint_a, 1.0 if _hint != "" else 0.0, dt * 4.0)
 	_life_show = lerpf(_life_show, life, 1.0 - exp(-dt * 14.0))
 	if _life_ghost > life:
 		_life_ghost = maxf(life, _life_ghost - life_max * dt * (0.0 if _hurt > 0.55 else 0.6))
@@ -532,6 +630,49 @@ func _draw() -> void:
 		_draw_boss(w, h)
 	if not _toasts.is_empty():
 		_draw_toast(w)
+	if _hint_a > 0.01 and _hint != "" and _toasts.is_empty():  # one message at a time in the middle
+		_draw_hint(w, h)
+	else:
+		Touch.tap_zone = Rect2()
+
+
+# Hint bubble high in the middle (under the quest card, clear of the thumb buttons), a pulsing ring on the thing to touch and a "Pular" pill.
+func _draw_hint(w: float, h: float) -> void:
+	var a: float = _hint_a
+	var target: Vector2
+	match _hint:
+		"move":
+			target = Vector2(250.0, h - 250.0)
+		"attack":
+			target = Vector2(w - 215.0, h - 205.0)
+		"arrow":
+			target = Vector2(w - 26.0 - QUEST_W + 58.0, 198.0)
+		"talk":
+			target = Vector2(w - 700.0, h - 480.0)
+	var pulse: float = 0.5 + 0.5 * sin(_time * 5.0)
+	draw_arc(target, 120.0 + 14.0 * pulse if _hint != "arrow" else 56.0 + 8.0 * pulse, 0.0, TAU, 64,
+		Color(GOLD, a * (0.55 + 0.45 * pulse)), 7.0, true)
+	var text: String = HINTS[_hint]
+	var f: Font = font(true)
+	var tw: float = f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 34).x
+	var bw: float = tw + 80.0
+	var skip := Rect2(0, 0, 170, 96)
+	var r := Rect2(w * 0.5 - (bw + skip.size.x + 16.0) * 0.5, 360.0, bw, 96)
+	skip.position = Vector2(r.end.x + 16.0, r.position.y)
+	var from := Vector2(clampf(target.x, r.position.x + 30.0, r.end.x - 30.0), r.position.y if target.y < r.position.y else r.end.y)
+	if target.x < r.position.x:
+		from = Vector2(r.position.x, r.get_center().y)
+	elif target.x > skip.end.x:
+		from = Vector2(skip.end.x, r.get_center().y)
+	draw_dashed_line(from, target, Color(GOLD, 0.8 * a), 4.0, 14.0, true)
+	var sb := box(Color(PARCH, 0.96 * a), Color(GOLD, a), 4, 16, 0.0, 8)
+	sb.shadow_color = Color(SHADOW, 0.5 * a)
+	draw_style_box(sb, r)
+	_text(Vector2(r.position.x, r.position.y + 60.0), text, 34, Color(INK, a), true, HORIZONTAL_ALIGNMENT_CENTER, bw)
+	draw_style_box(box(Color(WOOD, 0.95 * a), Color(WOOD_DARK, a), 3, 16, 0.0, 6), skip)
+	_text(Vector2(skip.position.x, skip.position.y + 60.0), "Pular", 30, Color(CREAM, a), true, HORIZONTAL_ALIGNMENT_CENTER,
+		skip.size.x)
+	Touch.tap_zone = skip
 
 
 func _draw_hurt(w: float, h: float) -> void:
@@ -559,14 +700,14 @@ func _draw_status() -> void:
 	draw_circle(m, r - 1.0, WOOD)
 	draw_circle(m, r - 9.0, PARCH)
 	draw_arc(m, r - 9.0, 0.0, TAU, 48, Color(INK_SOFT, 0.5), 2.0, true)
-	_text(m + Vector2(-60, -14), "NÍVEL", 17, INK_SOFT, true, HORIZONTAL_ALIGNMENT_CENTER, 120.0)
+	_text(m + Vector2(-60, -12), "NÍVEL", 20, INK_SOFT, true, HORIZONTAL_ALIGNMENT_CENTER, 120.0)
 	_text(m + Vector2(-60, 33), str(level), 50, INK, true, HORIZONTAL_ALIGNMENT_CENTER, 120.0)
 	# life and stamina grow a little with their maximum, like the classics
 	var x0: float = 196.0
 	var lw: float = clampf(330.0 + life_max * 1.4, 380.0, 640.0)
 	var lr := Rect2(x0, 52, lw, 32)
 	_bar(lr, _life_show / life_max, _life_ghost / life_max, LIFE, Color(1.0, 0.82, 0.55))
-	_text(Vector2(lr.position.x + 12, lr.end.y - 7), "%d / %d" % [roundi(life), roundi(life_max)], 20, CREAM, true,
+	_text(Vector2(lr.position.x + 12, lr.end.y - 7), "%d / %d" % [roundi(life), roundi(life_max)], 23, CREAM, true,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 4)
 	var sw: float = clampf(250.0 + stamina_max * 1.2, 290.0, 540.0)
 	var tired: bool = stamina < stamina_max * 0.2
@@ -587,10 +728,10 @@ func _draw_status() -> void:
 
 func _draw_quest(w: float) -> void:
 	var a: float = _quest_a
-	var pw: float = 500.0
+	var pw: float = QUEST_W
 	var f: Font = font(false)
-	var step_h: float = f.get_multiline_string_size(quest_step, HORIZONTAL_ALIGNMENT_LEFT, pw - 132.0, 23).y
-	var ph: float = maxf(150.0, 84.0 + step_h)
+	var step_h: float = f.get_multiline_string_size(quest_step, HORIZONTAL_ALIGNMENT_LEFT, pw - 132.0, 26).y
+	var ph: float = maxf(166.0, 98.0 + step_h)
 	var r := Rect2(w - pw - 26.0 + (1.0 - a) * 60.0, 140, pw, ph)
 	draw_set_transform(Vector2.ZERO)
 	var sb := box(Color(PARCH, 0.93 * a), Color(WOOD, a), 4, 12, 0.0, 6)
@@ -625,12 +766,12 @@ func _draw_quest(w: float) -> void:
 			dist_text = "aqui"
 	else:
 		draw_circle(c, 7.0, Color(GOLD, a))
-	_text(Vector2(c.x - 50, r.position.y + 132), dist_text, 22, Color(INK, a), true, HORIZONTAL_ALIGNMENT_CENTER, 100.0)
+	_text(Vector2(c.x - 50, r.position.y + 134), dist_text, 26, Color(INK, a), true, HORIZONTAL_ALIGNMENT_CENTER, 100.0)
 	var tx: float = r.position.x + 116.0
-	_text(Vector2(tx, r.position.y + 30), "MISSÃO", 16, Color(EMBER, a), true)
-	_text(Vector2(tx, r.position.y + 60), quest_title, 27, Color(INK, a), true, HORIZONTAL_ALIGNMENT_LEFT, pw - 132.0)
-	draw_multiline_string(f, Vector2(tx, r.position.y + 92), quest_step, HORIZONTAL_ALIGNMENT_LEFT, pw - 132.0, 23, -1,
-		Color(INK_SOFT, a))
+	_text(Vector2(tx, r.position.y + 32), "MISSÃO", 20, Color(EMBER, a), true)
+	_text(Vector2(tx, r.position.y + 66), quest_title, 30, Color(INK, a), true, HORIZONTAL_ALIGNMENT_LEFT, pw - 132.0)
+	draw_multiline_string(f, Vector2(tx, r.position.y + 102), quest_step, HORIZONTAL_ALIGNMENT_LEFT, pw - 132.0, 26, -1,
+		Color(INK, a))
 
 
 func _draw_area(w: float) -> void:
@@ -682,7 +823,7 @@ func _draw_toast(w: float) -> void:
 	var tsize: int = 58 if big else 38
 	var f: Font = font(true)
 	var tw: float = f.get_string_size(tdat.title, HORIZONTAL_ALIGNMENT_LEFT, -1, tsize).x
-	var sw: float = font(false).get_string_size(tdat.sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 28).x
+	var sw: float = font(false).get_string_size(tdat.sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 30).x
 	var bw: float = maxf(tw, sw) + 120.0
 	var bh: float = (tsize + 34.0) + (40.0 if tdat.sub != "" else 0.0)
 	var c := Vector2(w * 0.5, 432.0)
@@ -714,5 +855,5 @@ func _draw_toast(w: float) -> void:
 	var ty: float = r.position.y + tsize + 10.0
 	_text(Vector2(r.position.x, ty), tdat.title, tsize, Color(fg, a), true, HORIZONTAL_ALIGNMENT_CENTER, bw)
 	if tdat.sub != "":
-		_text(Vector2(r.position.x, ty + 44.0), tdat.sub, 28, Color(CREAM if big else INK_SOFT, a), false, HORIZONTAL_ALIGNMENT_CENTER, bw)
+		_text(Vector2(r.position.x, ty + 44.0), tdat.sub, 30, Color(CREAM if big else INK, a), false, HORIZONTAL_ALIGNMENT_CENTER, bw)
 	draw_set_transform(Vector2.ZERO)
