@@ -82,6 +82,13 @@ func _live() -> void:
 		await process_frame
 	ok(not g._hunters.is_empty(), "hunters spawned")
 	ok(g._boss != null and is_instance_valid(g._boss), "the final boss exists in the world (it did not, so the game could not be finished)")
+	var guard: Enemy = g._spawn_enemy("knight", 24, g._boss.global_position + Vector3(6, 0, 0))
+	g._clear_duel()
+	ok(not g._actors.has(guard), "knights near the Conde leave when the duel starts")
+	var mc: bool = false
+	for it: Dictionary in g.map.interactables:
+		mc = mc or str(it.id) == "marco_castelo"
+	ok(mc, "a Marco waits outside the castle gate")
 	# a pickup the quest is collecting beats the townsperson standing next to it (Rosa at her inn door)
 	var cartas: Dictionary = {}
 	for it: Dictionary in g.map.interactables:

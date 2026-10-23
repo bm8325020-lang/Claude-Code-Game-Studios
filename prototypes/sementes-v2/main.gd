@@ -795,6 +795,24 @@ func _update_boss_bar() -> void:
 		hud.boss_hide()
 	elif _boss.get("state") != "patrol" and _boss.hp < _boss.max_hp:
 		hud.boss_show(_boss.display_name, _boss.hp, _boss.max_hp)
+		_clear_duel()
+
+
+# the Conde fights alone: his knights joining in made the finale a 23-minute wall (6 deaths in a playtest)
+func _clear_duel() -> void:
+	var sent: int = 0
+	for a: Node in _actors.duplicate():
+		if a is Enemy and not a is Boss and not (a as Enemy).dead and (a as Enemy).kind == "knight" and (a as Enemy).global_position.distance_to(_boss.global_position) < 30.0:
+			var e: Enemy = a
+			_actors.erase(e)
+			if _plates.has(e):
+				_plates.erase(e)
+			if e.has_meta("home"):
+				_respawns.append({"kind": e.kind, "level": e.level, "pos": e.get_meta("home"), "at": RESPAWN_S * 3.0})
+			e.queue_free()
+			sent += 1
+	if sent > 0:
+		hud.toast("Os guardas recuam", "Dom Aurélio quer você sozinho.", "info")
 
 
 func _on_hero_hurt(_amount: float, _source: Node, _result: String) -> void:

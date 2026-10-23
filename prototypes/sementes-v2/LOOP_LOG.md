@@ -130,3 +130,10 @@ the road camp holds 2 knights instead of 3, and the knights' heavy swings wind u
 sprint attack 0.6 -> 0.45) so a dodge is fair. Damage cut (A) held back unless deaths stay above ~4 there.
 Retest (seed 11): Atalaia deaths 10 -> 6, its quest 764 s -> 487 s, total deaths 22 -> 18. Still above ~4, so
 the knights' base damage goes 17 -> 14 as the reviewer suggested (castle knights get it too: 5 deaths there).
+
+## Iteration 18
+
+Bot (110 min, seed 12, knights at 14 dmg): full clear, 20 deaths; Atalaia 5 (quest 5.5 min), but the castle
+had 8 and the final quest took 23 min — knights joined the Conde's fight. Reviewer pick (A + C): when the
+boss fight starts, knights within 30 m step out ("Os guardas recuam"), and a Marco de Lume (marco_castelo)
+stands outside the castle gate so the walk back after a death is short. Boss HP mercy (B) held back.

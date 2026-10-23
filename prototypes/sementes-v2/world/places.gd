@@ -1193,6 +1193,9 @@ func castle() -> void:
 	camp("castle_yard", "castle", root * Vector3(6, 0, 0), ["knight"], 4, 6)
 	camp("castle_lord", "castle", kdoor + Vector3(3.0, 0, 0), ["boss"], 1, 8)
 	(m.spawns as Dictionary)["castle"] = root * Vector3(hx + 10.0, 0.1, 0)
+	# a Marco just outside the gate: after a death at the Conde the walk back is short
+	var mc: Vector3 = root * Vector3(hx + 13.0, 0, 6.0)
+	marco("marco_castelo", mc.x, mc.z, false, true)
 	(m.spawns as Dictionary)["castle_crypt"] = kdoor + Vector3(2.0, 0.1, 0)
 	(m.spawns as Dictionary)["castle_tunnel_exit"] = root * Vector3(-17.0, 0.1, 10.0)
 	PL("Chest_Wood", root, Vector3(-18, 0, 14), 0.4)
