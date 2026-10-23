@@ -33,3 +33,17 @@ never placed, sino_vaca had 3 of 4, peixe_lua 1 of 3, and elmo_vigilia never dro
 
 Bot (40 min, seeds 1/2): level 13, m01–m07 + s4. New wall: m08 at the bandit camp (zone 12–15) and odd deaths at
 the mill while over-levelled (cause logging added to the bot).
+
+## Iteration 3
+
+Death causes logged: at level 8–10 a pack of mill bandits (Nv 4–6) killed a 127-HP hero who never spent points.
+Fixed: HP +10/level; enemies 3+/5+ levels below hit 50%/30%; hero outfit was rendered black (weapon tint string
+read as cloth dye); enemies healed in the player's face while leashing home (now only when 15 m+ away, leash 45 m).
+
+Reviewer agent ranked new features; built the top four: fast travel between discovered Marcos, a road-following
+quest arrow (A* over the road network), auto-distributed attribute points (toggle in Opções), and a small combo
+counter with a ding every 5 hits. Vetoed for now: horse (redundant with fast travel), post-game zone, fishing.
+
+Bot (60 min, seeds 1/2): level 17 / 14, m01–m08 + s4, 6 areas, deaths 15–20. Stalls found: archers kited the
+player for 34 min (now stand their ground away from home) and watchtower knights blocked everything (guard less,
+light hits wear the guard down).
