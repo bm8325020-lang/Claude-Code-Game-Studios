@@ -73,7 +73,7 @@ func _tick(dt: float) -> void:
 		_dlg_t += dt
 		if _dlg_t > 2.0:
 			var ch: Array = g.dialog._choices
-			if not ch.is_empty() and ch[0] is Dictionary:
+			if not ch.is_empty() and ch[0] is Dictionary and g.dialog.role == "cacador":
 				g.dialog.choice_made.emit(g.dialog.role, str(ch[0].id))
 			if g.dialog.is_open:
 				g.dialog.close()
@@ -164,7 +164,8 @@ func _bot(h: Hero) -> Dictionary:
 			dialog_opened += 1
 			_int_cd = 3.0
 	# follow the quest arrow (the HUD's own target), else wander
-	var target: Variant = Hud.quest_pos(g.quests.current(), g.map)
+	# follow the arrow on screen (it goes along roads); fall back to the raw goal if the HUD has none
+	var target: Variant = g.hud.quest_target if g.hud.quest_target is Vector3 else Hud.quest_pos(g.quests.current(), g.map)
 	# enemies marked ⚔ on their nameplate (visible within ~28 m) are what the quest wants: go fight them
 	var best_e: float = 28.0
 	for n in get_nodes_in_group("enemies"):

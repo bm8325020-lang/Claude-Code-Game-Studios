@@ -28,6 +28,10 @@ Pé-Molhado, veio das Terras Frias do norte e foi tirado do rio no moinho; não 
 Tom: conto popular medieval, caloroso, com sombra. Nunca chame o herói de escolhido."""
 
 const PEOPLE: Dictionary = {
+	"marco": {"name": "Marco de Lume", "title": "pedra morna do dragão", "look": {},
+		"persona": "Uma pedra antiga, morna, onde os viajantes descansam.", "voice": "", "secret": "",
+		"lines": ["A pedra está morna. Dá para descansar aqui.", "Todos os Marcos estão ligados pelo calor da Lumeira.",
+			"Quem descansa num Marco pode acordar em outro."]},
 	"cacador": {"name": "Caçador Bento", "title": "caçador de recompensas",
 		"look": {"body": "Male", "outfit": "Ranger", "hood": true, "weapon": "Axe_Bronze"},
 		"persona": "Homem calado de capuz que paga por cada bicho e bandido abatido perto do seu posto.",

@@ -72,6 +72,15 @@ func _live() -> void:
 			killed += 1
 	ok(killed == 5 and not g.farm.has_active(), "5 kills finish the contract in game (killed %d)" % killed)
 	ok(g.prog.level > lvl0, "xp from kills + contract levels the hero")
+	ok(g.prog.points == 0, "level-up points are spent automatically by default")
+	# fast travel between two discovered Marcos
+	var rests: Array = g.map.interactables.filter(func(it): return str(it.kind) == "rest")
+	ok(rests.size() >= 2, "at least two Marcos exist")
+	g._marcos_seen[str(rests[0].id)] = rests[0].pos
+	g._marcos_seen[str(rests[1].id)] = rests[1].pos
+	g._offer_travel(str(rests[0].id))
+	g._on_choice("marco", "tp:" + str(rests[1].id))
+	ok(g.hero.global_position.distance_to(rests[1].pos) < 3.0, "fast travel lands at the chosen Marco")
 	# force a chest and open it
 	var bag0: int = g.items.list().size()
 	g._spawn_chest(g.hero.global_position, 10, true)

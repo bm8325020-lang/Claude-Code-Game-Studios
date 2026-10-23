@@ -50,7 +50,12 @@ const DROPS: Dictionary = {"elmo_vigilia": "knight"}  # quest items that drop fr
 var _marcos_seen: Dictionary = {}   # marco id -> pos, discovered by walking within 20 m
 var _deaths: Array[Dictionary] = []  # {t, zone} for the "stuck here?" tip
 var _tips_shown: Dictionary = {}
-var _clock: float = 0.0  # {kind, level, pos, at}: farm needs camps that fill up again
+var _clock: float = 0.0
+const ATTR_NAME: Dictionary = {"vigor": "Vigor", "folego": "Fôlego", "forca": "Força", "fe": "Fé"}
+const AUTO_ORDER: Array[String] = ["vigor", "forca", "vigor", "folego"]  # balanced build for players who never open the menu
+var _auto_i: int = 0
+var _roads := AStar2D.new()  # road network for the quest arrow ("GPS")
+const ROUTE_DIRECT: float = 45.0  # {kind, level, pos, at}: farm needs camps that fill up again
 
 
 func _ready() -> void:
@@ -119,6 +124,8 @@ func _ready() -> void:
 	dialog = DialogBox.new()
 	layer.add_child(dialog)
 
+	_build_roads()
+	Hud.route_fn = _route
 	hud.bind(prog, quests, map)
 	menu.bind(prog, quests, items, map)
 	menu.player = hero
@@ -161,7 +168,9 @@ func _ready() -> void:
 		hero.equip(items.look())
 		_apply_stats()
 		_refresh_buttons())
-	prog.leveled_up.connect(func(_l: int) -> void: _apply_stats())
+	prog.leveled_up.connect(func(_l: int) -> void:
+		_auto_points()
+		_apply_stats())
 
 	# the quest that is running decides what the first Marco bed, the boss bar and the castle gate do
 	quests.quest_done.connect(func(id: String, _r: Dictionary) -> void:
@@ -467,6 +476,8 @@ func _on_interact() -> void:
 			hero.perform("sit")
 			hero.refill()
 			quests.notify("interact", id)
+			_marcos_seen[id] = it.pos
+			_offer_travel(id)
 		_:
 			hero.perform("interact")
 			quests.notify("interact", id)
@@ -728,7 +739,92 @@ func _open_hunter(h: Dictionary) -> void:
 		[{"id": "aceitar", "text": "Aceitar a caça"}])
 
 
+# fast travel: resting at a Marco offers a hop to any other Marco you have found
+func _offer_travel(here: String) -> void:
+	var choices: Array = []
+	for mid: String in _marcos_seen:
+		if mid != here:
+			var nm: String = map.area_name(_marcos_seen[mid])
+			choices.append({"id": "tp:" + mid, "text": "Viajar: " + (nm if nm != "" else "Marco distante")})
+	var lines: Array = ["Você descansou. Frascos cheios."]
+	if not choices.is_empty():
+		lines.append("O calor da pedra pode te levar a outro Marco.")
+	dialog.open("marco", lines, choices)
+
+
+# Densify every road polyline into nodes ~8 m apart and join roads that meet.
+func _build_roads() -> void:
+	var id: int = 0
+	var all: Array[int] = []
+	for r: Dictionary in map.road_defs:
+		var pts: Array = r.pts
+		var prev: int = -1
+		for i in pts.size() - 1:
+			var a: Vector2 = pts[i]
+			var b: Vector2 = pts[i + 1]
+			var n: int = maxi(1, ceili(a.distance_to(b) / 8.0))
+			for k in n + (1 if i == pts.size() - 2 else 0):
+				var p: Vector2 = a.lerp(b, float(k) / n)
+				_roads.add_point(id, p)
+				all.append(id)
+				if prev >= 0:
+					_roads.connect_points(prev, id)
+				prev = id
+				id += 1
+	for i in all:
+		for j in all:
+			if i < j and not _roads.are_points_connected(i, j) and _roads.get_point_position(i).distance_to(_roads.get_point_position(j)) < 3.0:
+				_roads.connect_points(i, j)
+
+
+# The arrow's next aim: straight when the goal is close or no road helps, else the next road waypoint.
+func _route(goal: Vector3) -> Vector3:
+	if not is_instance_valid(hero) or _roads.get_point_count() == 0:
+		return goal
+	var from := Vector2(hero.global_position.x, hero.global_position.z)
+	var to := Vector2(goal.x, goal.z)
+	if from.distance_to(to) < ROUTE_DIRECT:
+		return goal
+	var a: int = _roads.get_closest_point(from)
+	var b: int = _roads.get_closest_point(to)
+	var path: PackedVector2Array = _roads.get_point_path(a, b)
+	if path.size() < 2 or from.distance_to(to) < to.distance_to(_roads.get_point_position(b)):
+		return goal
+	if from.distance_to(path[0]) > 12.0:
+		return Vector3(path[0].x, goal.y, path[0].y)  # get onto the road first
+	for p: Vector2 in path:
+		if from.distance_to(p) > 10.0:
+			return Vector3(p.x, goal.y, p.y)
+	return goal
+
+
+func _auto_points() -> void:
+	if not bool(GameMenu.options.get("auto_points", true)) or prog.points <= 0:
+		return
+	var got: Dictionary = {}
+	var guard: int = 0
+	while prog.points > 0 and guard < 64:
+		var a: String = AUTO_ORDER[_auto_i % AUTO_ORDER.size()]
+		_auto_i += 1
+		guard += 1
+		if prog.spend_point(a):
+			got[a] = int(got.get(a, 0)) + 1
+	var parts: PackedStringArray = []
+	for a: String in got:
+		parts.append("+%d %s" % [int(got[a]), str(ATTR_NAME[a])])
+	if not parts.is_empty():
+		hud.toast("Atributos", ", ".join(parts), "level")
+
+
 func _on_choice(role: String, id: String) -> void:
+	if role == "marco" and id.begins_with("tp:"):
+		var mid: String = id.substr(3)
+		if _marcos_seen.has(mid):
+			dialog.close()
+			hero.global_position = (_marcos_seen[mid] as Vector3) + Vector3(1.5, 0.2, 0)
+			hero.reset_physics_interpolation()
+			hud.toast("Viagem rápida", map.area_name(_marcos_seen[mid]), "info")
+		return
 	if role == "cacador" and id == "aceitar" and not _hunter_offer.is_empty():
 		farm.accept(_hunter_offer)
 		_hunter_offer = {}

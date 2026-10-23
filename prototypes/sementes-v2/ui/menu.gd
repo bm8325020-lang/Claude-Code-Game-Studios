@@ -25,7 +25,8 @@ const TABS: Array = [["char", "PERSONAGEM"], ["inv", "INVENTÁRIO"], ["quests", 
 const KIND_NAME: Dictionary = {"weapon": "Arma", "shield": "Escudo", "outfit": "Roupa", "consumable": "Consumível",
 	"seed": "Semente do Dragão", "quest": "Item de missão", "material": "Material", "keepsake": "Lembrança"}
 
-static var options: Dictionary = {"music": 0.8, "sfx": 0.9, "sens": 1.0, "api_key": "", "ai_model": "claude-opus-5-5"}
+static var options: Dictionary = {"music": 0.8, "sfx": 0.9, "sens": 1.0, "api_key": "", "ai_model": "claude-opus-5-5",
+	"auto_points": true}
 static var _loaded: bool = false
 
 var prog: Progression
@@ -676,6 +677,15 @@ func _tab_options() -> void:
 	_slider(cols[0], "Música", "music", 0.0, 1.0, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
 	_slider(cols[0], "Efeitos", "sfx", 0.0, 1.0, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
 	_slider(cols[0], "Sensibilidade da câmera", "sens", 0.3, 2.5, func(v: float) -> String: return "%.1f×" % v)
+	var auto := CheckButton.new()
+	auto.text = "Distribuir pontos sozinho"
+	auto.add_theme_font_size_override("font_size", 26)
+	auto.custom_minimum_size = Vector2(0, 72)
+	auto.button_pressed = bool(options.get("auto_points", true))
+	auto.toggled.connect(func(on: bool) -> void:
+		options.auto_points = on
+		save_options())
+	cols[0].add_child(auto)
 	var c := _card(cols[1])
 	c.add_child(_label("Conversa livre com os moradores", 32, Hud.INK, true))
 	c.add_child(_label("Os moradores do vale podem responder qualquer pergunta usando o Claude, da Anthropic. Para isso, "
