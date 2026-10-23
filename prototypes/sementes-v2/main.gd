@@ -22,6 +22,7 @@ var hud: Hud
 var touch: Touch
 var menu: GameMenu
 var dialog: DialogBox
+var audio: GameAudio
 
 var _save_timer: float = 0.0
 var _boss: Boss = null
@@ -156,6 +157,10 @@ func _ready() -> void:
 		add_child(mark)
 		mark.global_position = (sp.pos as Vector3) + Vector3(0, 2.4, 0)
 		_quest_marks.append({"role": str(sp.role), "label": mark})
+
+	audio = GameAudio.new()  # before the UI, so its buttons get the tap sound
+	add_child(audio)
+	audio.bind(prog, quests)
 
 	# interface on its own CanvasLayer so it never clips into the 3D world
 	var layer := CanvasLayer.new()
@@ -478,6 +483,7 @@ func _process(dt: float) -> void:
 			quests.notify("reach", pid)  # harmless when repeated; also counts if you are already there
 		if _zone != "":
 			quests.notify("reach", _zone)
+		audio.update(_zone, GameAudio.mood(_actors, hero.global_position, _boss))
 
 	_save_timer += dt
 	if _save_timer >= SAVE_EVERY:
@@ -723,6 +729,7 @@ func _use_interactable(it: Dictionary) -> void:
 			if item != "":
 				quests.notify("collect", item)
 			_taken[id] = true
+			audio.cue(kind)
 			hero.perform("open_chest" if kind == "chest" else "pickup")
 		"fishing":
 			hero.perform("interact")
@@ -1402,6 +1409,7 @@ func _nearest_chest() -> Dictionary:
 
 func _open_chest(c: Dictionary) -> void:
 	hero.perform("open_chest")
+	audio.cue("chest")
 	var r: Dictionary = Loot.roll(int(c.level), rng, bool(c.boss), "epico" if c.has("epic") else "")
 	prog.add_gold(int(r.gold))
 	if str(r.item) != "":

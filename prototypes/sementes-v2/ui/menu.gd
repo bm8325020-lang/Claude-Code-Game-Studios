@@ -590,7 +590,7 @@ func _tab_map() -> void:
 
 
 class MapView extends Control:
-	const WORLD: Rect2 = Rect2(-300, -300, 600, 600)
+	const WORLD: Rect2 = Rect2(-300, -380, 760, 760)  # the valley plus the Pastos da Cauda to the east
 	var menu: GameMenu
 
 	func _ready() -> void:
