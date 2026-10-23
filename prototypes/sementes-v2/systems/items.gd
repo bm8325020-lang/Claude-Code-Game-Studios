@@ -120,6 +120,13 @@ const SHOP: Dictionary = {"pao_rosa": 6, "peixe_assado": 9, "machado_bronze": 90
 var bag: Dictionary = {}          # id -> count
 var slots: Dictionary = {"weapon": "", "shield": "", "outfit": "roupa_emprestada"}
 var refill_max: Dictionary = {}   # refillable consumable id -> max carried (frasco, caldo_rosa)
+var upg: Dictionary = {}          # weapon id -> blacksmith level 0..5
+
+# Joana's forge: gold for +1..+5 on a weapon, +8% damage each (reviewer: ramp costs so gold stays useful late)
+const UPG_COST: Array[int] = [100, 200, 400, 700, 1000]
+const UPG_STEP: float = 0.08
+# what a trader pays, by rarity; quest items, seeds and keepsakes are not for sale
+const SELL: Dictionary = {"": 20, "comum": 6, "incomum": 18, "raro": 60, "epico": 150, "lendario": 400}
 
 
 func _init() -> void:
@@ -226,7 +233,63 @@ static func price(id: String, prog: Progression) -> int:
 
 
 func weapon_damage() -> int:
-	return int(def(str(slots.weapon)).get("dmg", UNARMED_DMG))
+	var w: String = str(slots.weapon)
+	return int(round(float(def(w).get("dmg", UNARMED_DMG)) * (1.0 + UPG_STEP * float(upg.get(w, 0)))))
+
+
+func upgrade_level(id: String) -> int:
+	return int(upg.get(id, 0))
+
+
+# gold for the next level, or -1 at +5 or for things that are not weapons
+func upgrade_cost(id: String) -> int:
+	if slot_of(id) != "weapon" or upgrade_level(id) >= UPG_COST.size():
+		return -1
+	return UPG_COST[upgrade_level(id)]
+
+
+func upgrade(id: String, prog: Progression) -> bool:
+	var c: int = upgrade_cost(id)
+	if c < 0 or not has(id) or not prog.spend_gold(c):
+		return false
+	upg[id] = upgrade_level(id) + 1
+	changed.emit()
+	return true
+
+
+# 0 when it cannot be sold (quest items, seeds, keepsakes, the last one of something you wear)
+func sell_price(id: String) -> int:
+	var d: Dictionary = def(id)
+	var k: String = str(d.get("kind", ""))
+	if k in ["quest", "seed", "keepsake"] or bool(d.get("keep", false)) or bool(d.get("refill", false)):
+		return 0
+	if slots.values().has(id) and count(id) <= 1:
+		return 0
+	if k == "consumable" and str(d.get("rarity", "")) == "":
+		return 3
+	return int(SELL.get(str(d.get("rarity", "")), 0)) * (1 + upgrade_level(id))
+
+
+func sell(id: String, prog: Progression) -> int:
+	var p: int = sell_price(id)
+	if p <= 0 or not remove(id):
+		return 0
+	prog.add_gold(p)
+	return p
+
+
+# one tap: sell every extra copy of common loot (keeps one of each, and whatever you wear)
+func sell_duplicate_commons(prog: Progression) -> int:
+	var gold: int = 0
+	for id: String in bag.keys():
+		if str(def(id).get("rarity", "")) != "comum":
+			continue
+		while count(id) > 1:
+			var p: int = sell(id, prog)
+			if p <= 0:
+				break
+			gold += p
+	return gold
 
 
 # fraction of incoming damage stopped while blocking (0 without a shield)
@@ -252,16 +315,21 @@ func list() -> Array:
 	var out: Array = []
 	for id: String in bag:
 		var d: Dictionary = def(id)
-		out.append({"id": id, "name": str(d.get("name", id)), "kind": str(d.get("kind", "")), "count": count(id),
+		var lv: int = upgrade_level(id)
+		out.append({"id": id, "name": str(d.get("name", id)) + (" +%d" % lv if lv > 0 else ""), "kind": str(d.get("kind", "")), "count": count(id),
 			"equipped": slots.values().has(id), "desc": str(d.get("desc", "")), "rarity": str(d.get("rarity", ""))})
 	return out
 
 
 func to_dict() -> Dictionary:
-	return {"bag": bag.duplicate(), "slots": slots.duplicate(), "refill_max": refill_max.duplicate()}
+	return {"bag": bag.duplicate(), "slots": slots.duplicate(), "refill_max": refill_max.duplicate(), "upg": upg.duplicate()}
 
 
 func from_dict(d: Dictionary) -> void:
+	upg = {}
+	var u: Dictionary = d.get("upg", {}) as Dictionary
+	for id: String in u:
+		upg[id] = clampi(int(u[id]), 0, UPG_COST.size())
 	bag = {}
 	var b: Dictionary = d.get("bag", {}) as Dictionary
 	for id: String in b:

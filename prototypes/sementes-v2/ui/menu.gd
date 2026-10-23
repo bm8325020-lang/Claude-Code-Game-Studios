@@ -422,6 +422,19 @@ func _tab_inv() -> void:
 					items.equip(_sel_item)
 				_refresh())
 			det.add_child(act)
+		var price: int = items.sell_price(_sel_item)
+		if price > 0:
+			var sell := Button.new()
+			sell.custom_minimum_size = Vector2(0, 72)
+			sell.text = "Vender (+%d ouro)" % price
+			sell.pressed.connect(func() -> void:
+				items.sell(_sel_item, prog)
+				if not items.has(_sel_item):
+					_sel_item = ""
+				_refresh())
+			det.add_child(sell)
+		if slot != "":
+			pass
 		elif str(d.get("kind", "")) == "consumable":
 			act.text = "Usar"
 			act.pressed.connect(func() -> void:
@@ -437,7 +450,14 @@ func _tab_inv() -> void:
 	var t := _label("Bolsa", 34, Hud.INK, true)
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(t)
-	head.add_child(_label("Toque num item para ver", 22, Hud.INK_SOFT))
+	var dup := Button.new()
+	dup.text = "Vender comuns repetidos"
+	dup.custom_minimum_size = Vector2(0, 64)
+	dup.pressed.connect(func() -> void:
+		var g: int = items.sell_duplicate_commons(prog)
+		dup.text = ("+%d ouro" % g) if g > 0 else "Nada repetido"
+		_refresh())
+	head.add_child(dup)
 	var list := _scroll(cols[1])
 	var grid := GridContainer.new()
 	grid.columns = 3

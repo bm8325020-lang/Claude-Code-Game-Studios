@@ -574,7 +574,13 @@ func _open_dialog(role: String) -> void:
 			lines.append(str(nd.offer))
 		if not after.is_empty():
 			lines.append("Próximo: " + str(after.get("text", "")))
-	dialog.open(role, lines, [])
+	var choices: Array = []
+	if role == "blacksmith":
+		var w: String = str(items.slots.get("weapon", ""))
+		var cost: int = items.upgrade_cost(w) if w != "" else -1
+		if cost > 0:
+			choices.append({"id": "upgrade", "text": "Melhorar %s para +%d (%d ouro)" % [Items.item_name(w), items.upgrade_level(w) + 1, cost]})
+	dialog.open(role, lines, choices)
 	hero.perform("talk")
 
 
@@ -925,6 +931,14 @@ func _auto_points() -> void:
 
 
 func _on_choice(role: String, id: String) -> void:
+	if role == "blacksmith" and id == "upgrade":
+		var w: String = str(items.slots.get("weapon", ""))
+		if items.upgrade(w, prog):
+			dialog.close()
+			hud.toast("%s +%d" % [Items.item_name(w), items.upgrade_level(w)], "Joana bateu o ferro. Seus golpes ficaram mais fortes.", "reward")
+		else:
+			dialog.say("Volta quando tiver %d de ouro. Ferro bom não sai de graça." % items.upgrade_cost(w))
+		return
 	if role == "marco" and id.begins_with("tp:"):
 		var mid: String = id.substr(3)
 		if _marcos_seen.has(mid):
