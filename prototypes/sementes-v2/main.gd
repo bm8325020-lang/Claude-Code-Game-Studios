@@ -45,7 +45,12 @@ var _zone: String = ""
 var _hunter_offer: Dictionary = {}
 const RESPAWN_S: float = 40.0
 const RESPAWN_MIN_DIST: float = 30.0
-var _respawns: Array[Dictionary] = []  # {kind, level, pos, at}: farm needs camps that fill up again
+var _respawns: Array[Dictionary] = []
+const DROPS: Dictionary = {"elmo_vigilia": "knight"}  # quest items that drop from an enemy kind instead of lying around
+var _marcos_seen: Dictionary = {}   # marco id -> pos, discovered by walking within 20 m
+var _deaths: Array[Dictionary] = []  # {t, zone} for the "stuck here?" tip
+var _tips_shown: Dictionary = {}
+var _clock: float = 0.0  # {kind, level, pos, at}: farm needs camps that fill up again
 
 
 func _ready() -> void:
@@ -165,8 +170,49 @@ func _ready() -> void:
 	# start or continue
 	if not quests.load_game():
 		quests.start_new()
+	_place_missing_quest_items()
 	await get_tree().physics_frame
 	_unbury_interactables()
+
+
+# Every quest "collect" must have enough pickups in the world. Any shortfall is placed around the best anchor:
+# an existing pickup of the same item, else the spot the quest had you interact with just before, else the area.
+func _place_missing_quest_items() -> void:
+	var have: Dictionary = {}
+	for it: Dictionary in map.interactables:
+		if it.has("item"):
+			have[str(it.item)] = int(have.get(str(it.item), 0)) + 1
+	for q: Dictionary in Quests.DATA:
+		var steps: Array = q.steps
+		for i in steps.size():
+			var st: Dictionary = Quests.step_of(q, i)
+			var item: String = str(st.target)
+			if str(st.type) != "collect" or DROPS.has(item):
+				continue
+			var missing: int = int(st.count) - int(have.get(item, 0))
+			if missing <= 0:
+				continue
+			var anchor: Variant = null
+			for it: Dictionary in map.interactables:
+				if str(it.get("item", "")) == item:
+					anchor = it.pos
+			if anchor == null and i > 0:
+				var prev: Dictionary = Quests.step_of(q, i - 1)
+				for it: Dictionary in map.interactables:
+					if str(it.id) == str(prev.target):
+						anchor = it.pos
+			if anchor == null:
+				for pl: Dictionary in map.places:
+					if str(pl.id) == str(st.where):
+						anchor = pl.pos
+			if anchor == null:
+				continue
+			for k in missing:
+				var a: float = TAU * (k + 1) / float(missing + 2)
+				var p: Vector3 = (anchor as Vector3) + Vector3(cos(a), 0, sin(a)) * 2.6
+				p.y = map.ground_y(p.x, p.z)
+				(map.interactables as Array).append({"id": "%s_extra_%d" % [item, k], "kind": "pickup", "pos": p, "item": item})
+			have[item] = int(st.count)
 
 
 # Some quest props sit inside a building's collision box (the relha in the barn): a player can never reach them.
@@ -211,8 +257,16 @@ func damage(target: Node, amount: float, source: Node, kind: String) -> Dictiona
 	elif target is Hero:
 		amt *= prog.stats(items.armor()).armor_mult
 		if source is Enemy:
-			# and they hit much harder than their numbers when you are under-levelled
-			amt *= clampf(1.0 + 0.12 * float((source as Enemy).level - prog.level), 1.0, 3.0)
+			# gentle on the intended path, steep only well above your level (reviewed for casual players)
+			var diff: int = (source as Enemy).level - prog.level
+			if diff <= 1:
+				amt *= 0.8 if (source as Enemy).level <= 12 else 1.0
+			elif diff == 2:
+				amt *= 1.5
+			elif diff == 3:
+				amt *= 2.0
+			else:
+				amt *= 3.0
 	var was_alive: bool = target is Enemy and not (target as Enemy).dead
 	var res: Dictionary = target.take_hit(amt, source, kind)
 	if was_alive and (target as Enemy).dead:  # covers "result": "dead" and the boss falling asleep
@@ -226,6 +280,10 @@ func _on_enemy_killed(e: Enemy) -> void:
 	else:
 		quests.notify("kill", e.kind)
 	prog.gain_xp(e.xp)
+	for item: String in DROPS:
+		if DROPS[item] == e.kind and quests.is_target("collect", item):
+			quests.notify("collect", item)
+			hud.toast("Pegou: " + Items.item_name(item), "", "reward")
 	if _plates.has(e):
 		(_plates[e] as Node).queue_free()
 		_plates.erase(e)
@@ -253,10 +311,14 @@ func _process(dt: float) -> void:
 	hud.show_area(Zones.label(zone, area) if area != "" else "")
 	if zone != _zone:
 		_zone = zone
-		if Zones.LEVELS.has(zone) and int(Zones.range_of(zone)[0]) >= prog.level + 3:
-			hud.toast("Perigo!", "Inimigos Nv %d+ aqui. Você é Nv %d." % [int(Zones.range_of(zone)[0]), prog.level], "info")
+		if Zones.LEVELS.has(zone) and int(Zones.range_of(zone)[0]) >= prog.level + 2:
+			hud.toast("Recomendado: Nv %d" % int(Zones.range_of(zone)[0]), "Você é Nv %d. Os inimigos daqui batem forte." % prog.level, "info")
 	_age_chests(dt)
 	_tick_respawns(dt)
+	_clock += dt
+	for it: Dictionary in map.interactables:
+		if str(it.get("kind", "")) == "rest" and not _marcos_seen.has(str(it.id)) and hero.global_position.distance_to(it.pos) < 20.0:
+			_marcos_seen[str(it.id)] = it.pos
 	_update_interact_prompt()
 	_update_boss_bar()
 
@@ -468,11 +530,42 @@ func _on_hero_hurt(_amount: float, _source: Node, _result: String) -> void:
 
 
 func _on_hero_died() -> void:
-	# respawn at the last Marco de Lume (or the inn bed), losing nothing but position
+	# nothing is lost; you wake at the nearest Marco de Lume you have found (else the village)
+	var where: Vector3 = hero.global_position
+	var unused_flasks: bool = hero.potions > 0
+	_deaths.append({"t": _clock, "zone": _zone})
 	await get_tree().create_timer(2.5).timeout
-	if is_instance_valid(hero):
-		hero.revive(_spawn("player_start"))
-		hero.reset_physics_interpolation()  # teleport: don't smear from the death spot
+	if not is_instance_valid(hero):
+		return
+	var at: Vector3 = _spawn("player_start")
+	var woke_marco: bool = false
+	var bd: float = 1e12
+	for id: String in _marcos_seen:
+		var d: float = (_marcos_seen[id] as Vector3).distance_to(where)
+		if d < bd:
+			bd = d
+			at = (_marcos_seen[id] as Vector3) + Vector3(1.5, 0, 0)
+			woke_marco = true
+	hero.revive(at)
+	hero.reset_physics_interpolation()  # teleport: don't smear from the death spot
+	if woke_marco:
+		hud.toast("Você acordou no Marco de Lume", "", "info")
+	_death_tip(unused_flasks)
+
+
+# three deaths in one area within five minutes: one friendly, non-blocking tip per area
+func _death_tip(unused_flasks: bool) -> void:
+	var recent: int = 0
+	for d: Dictionary in _deaths:
+		if str(d.zone) == _zone and _clock - float(d.t) < 300.0:
+			recent += 1
+	if recent < 3 or _tips_shown.has(_zone):
+		return
+	_tips_shown[_zone] = true
+	if unused_flasks:
+		hud.toast("Dica", "Use o frasco quando a vida estiver baixa.", "info")
+	else:
+		hud.toast("Dica", "Suba de nível na área anterior — o Caçador paga por caça.", "info")
 
 
 func _on_item_used(_id: String, heal: int) -> void:

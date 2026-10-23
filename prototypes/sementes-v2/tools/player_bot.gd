@@ -31,6 +31,7 @@ var _quest_stall: float = 0.0
 var _last_quest_key: String = ""
 var _max_quest_stall: float = 0.0
 var _stall_quest: String = ""
+var _hurts: Array = []
 
 
 func _init() -> void:
@@ -45,9 +46,14 @@ func _init() -> void:
 	await process_frame
 	hero = g.hero
 	hero.set_bot(_bot)
+	hero.hurt.connect(func(amount: float, source: Node, _r: String) -> void:
+		var who: String = "?" if source == null else (str(source.get("kind")) + " Nv" + str(source.get("level")) if source is Enemy else source.get_class())
+		_hurts.append("%s:%d" % [who, int(amount)])
+		if _hurts.size() > 4: _hurts.pop_front())
 	hero.died.connect(func() -> void:
 		deaths += 1
-		log.append({"t": snappedf(t, 0.1), "event": "death", "area": g._area(), "level": g.prog.level}))
+		log.append({"t": snappedf(t, 0.1), "event": "death", "area": g._area(), "level": g.prog.level, "hp_max": int(hero.max_hp),
+			"last_hits": _hurts.duplicate(), "pos": [snappedf(hero.global_position.x, 1), snappedf(hero.global_position.y, 1), snappedf(hero.global_position.z, 1)], "swim": hero.swimming}))
 	g.quests.quest_done.connect(func(id: String, _r: Dictionary) -> void:
 		quest_times[id] = snappedf(t, 0.1)
 		log.append({"t": snappedf(t, 0.1), "event": "quest_done", "id": id, "level": g.prog.level}))
