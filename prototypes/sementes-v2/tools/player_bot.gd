@@ -166,6 +166,26 @@ func _bot(h: Hero) -> Dictionary:
 	# follow the quest arrow (the HUD's own target), else wander
 	# follow the arrow on screen (it goes along roads); fall back to the raw goal if the HUD has none
 	var target: Variant = g.hud.quest_target if g.hud.quest_target is Vector3 else Hud.quest_pos(g.quests.current(), g.map)
+	# the quest card says "Recomendado: Nv X · treine com o Caçador": do what it says
+	var farming: bool = str(g._quest_note(g.quests.current())) != ""
+	if farming:
+		if not g.farm.has_active():
+			var best_h: Dictionary = {}
+			var bh: float = 1e12
+			for hh: Dictionary in g._hunters:
+				if int(Zones.range_of(hh.place)[1]) <= g.prog.level + 1 and hh.pos.distance_to(h.global_position) < bh:
+					bh = hh.pos.distance_to(h.global_position)
+					best_h = hh
+			if not best_h.is_empty():
+				target = best_h.pos
+		else:
+			var fk: String = str(g.farm.active.kind)
+			var fd: float = 1e12
+			for n in get_nodes_in_group("enemies"):
+				var fe := n as Enemy
+				if fe and not fe.dead and fe.kind == fk and fe.global_position.distance_to(h.global_position) < fd:
+					fd = fe.global_position.distance_to(h.global_position)
+					target = fe.global_position
 	# enemies marked ⚔ on their nameplate (visible within ~28 m) are what the quest wants: go fight them
 	var best_e: float = 28.0
 	for n in get_nodes_in_group("enemies"):

@@ -223,6 +223,7 @@ var quest_title: String = ""
 var quest_step: String = ""
 var quest_target: Variant = null
 static var route_fn: Callable  # optional: turns the quest's goal into the next road waypoint toward it (main.gd)
+static var note_fn: Callable   # optional: extra line for the quest card, e.g. the recommended level (main.gd)
 
 var _life_ghost: float = 100.0
 var _life_show: float = 100.0
@@ -429,7 +430,12 @@ func _poll_systems() -> void:
 			var goal: Variant = quest_pos(q, _map)
 			if goal is Vector3 and route_fn.is_valid():
 				goal = route_fn.call(goal)
-			set_quest(str(q.title), str(q.text), goal)
+			var step: String = str(q.text)
+			if note_fn.is_valid():
+				var note: String = str(note_fn.call(q))
+				if note != "":
+					step += "\n" + note
+			set_quest(str(q.title), step, goal)
 
 
 # ------------------------------------------------------------------ animation

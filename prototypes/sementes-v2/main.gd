@@ -132,6 +132,7 @@ func _ready() -> void:
 
 	_build_roads()
 	Hud.route_fn = _route
+	Hud.note_fn = _quest_note
 	hud.bind(prog, quests, map)
 	menu.bind(prog, quests, items, map)
 	menu.player = hero
@@ -911,6 +912,17 @@ func _check_achievements() -> void:
 		prog.unlock(Achievements.key(str(a.id)))
 		prog.add_gold(int(a.gold))
 		hud.toast("Conquista: " + str(a.title), "%s · +%d ouro" % [str(a.desc), int(a.gold)], "reward")
+
+
+# "Recomendado: Nv X" under the quest when it sends you into a zone well above your level
+func _quest_note(q: Dictionary) -> String:
+	var where: String = str(q.get("where", ""))
+	if not Zones.LEVELS.has(where):
+		return ""
+	var rec: int = int(Zones.range_of(where)[0])
+	if rec >= prog.level + 2:
+		return "Recomendado: Nv %d · treine com o Caçador" % rec
+	return ""
 
 
 func _auto_points() -> void:
