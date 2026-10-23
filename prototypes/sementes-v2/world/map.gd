@@ -1,6 +1,7 @@
 # PROTOTYPE - NOT FOR PRODUCTION
 # Map module (owner: map agent). Contract: ARCHITECTURE.md "Map — world/map.gd".
-# Builds the Vale de Lume, one hand-laid region of about 600 x 600 m (x east, z south, y up, metres).
+# Builds the Vale de Lume, one hand-laid region of about 600 x 600 m (x east, z south, y up, metres), inside a
+# 960 x 960 m world: beyond the eastern mountains, up the Passo da Escama gorge, lie the Pastos da Cauda.
 #
 # THE PLAN (drawn on paper first; every number below is used in the code):
 #
@@ -28,6 +29,12 @@
 #        z=200   (-214,166)              '---> river mouth                Celeste's hut (64,156)
 #        z=300  ~~~~~~~~ southern hills (lower border) ~~~~~~~~
 #            x=-300                         x=0                                         x=300
+#
+# EAST OF THE BORDER (post-game, x 300..460): the east road forks at (150,-30), skirts the Atalaia hill and climbs the
+# PASSO DA ESCAMA, a gorge through the mountains that pinches to ~10 m at (292,11). At its head (338,8) opens the
+# PASTOS DA CAUDA, the summer pastures on the dragon's tail (plateau y~30): the Marco da Cauda by the pass, the
+# shepherds' fold and hut (372..392, -14..10), and a track north-east to the PONTA DA CAUDA (396,-58), where the
+# last Vigília guards dig the "scales" of the Lumeira.
 #
 # Why the roads go where they go: everything starts at the village square. North street climbs to the castle
 # along the east spur (the only side without a cliff). The mill road goes west to the mill and the toll bridge,
@@ -83,6 +90,11 @@ var road_defs: Array = [
 	{"id": "lake", "hw": 2.0, "pts": [Vector2(0, -20), Vector2(0, -6), Vector2(4, 24), Vector2(26, 56),
 		Vector2(44, 92), Vector2(48, 128), Vector2(45, 154), Vector2(44, 166)]},
 	{"id": "farm", "hw": 1.6, "pts": [Vector2(26, 56), Vector2(56, 62), Vector2(86, 62)]},
+	# the old drove road up to the summer pastures: around the Atalaia hill, up the Passo da Escama to the fold
+	{"id": "cauda", "hw": 2.0, "pts": [Vector2(150, -30), Vector2(166, -8), Vector2(194, 8), Vector2(222, 14),
+		Vector2(244, 14), Vector2(268, 12), Vector2(292, 11), Vector2(316, 9), Vector2(338, 8), Vector2(356, 6),
+		Vector2(372, 2), Vector2(386, 0)]},
+	{"id": "cauda_ponta", "hw": 1.4, "pts": [Vector2(372, 2), Vector2(380, -18), Vector2(386, -34), Vector2(390, -46)]},
 ]
 
 # Buildings: id, pos, yaw (front faces rot(yaw)*+Z: 0 south, PI north, PI/2 east, -PI/2 west), spec for MapBuildings.
@@ -128,6 +140,7 @@ func build() -> void:
 	pl.watchtower()
 	pl.mine()
 	pl.castle()
+	pl.cauda()
 	pl.commit_all()
 	stats["t_places_ms"] = Time.get_ticks_msec() - t0
 	veg = Veg.new(kit)
@@ -172,6 +185,9 @@ func _define_places() -> void:
 		["mine", "Mina do Fôlego", Vector2(182, -184), 32.0],
 		["castle", "Castelo de Vigília", Vector2(8, -214), 56.0],
 		["lake", "Lago Manso", Vector2(30, 216), 86.0],
+		["passo_escama", "Passo da Escama", Vector2(292, 11), 26.0],
+		["cauda", "Pastos da Cauda", Vector2(376, 12), 56.0],
+		["cauda_ponta", "Ponta da Cauda", Vector2(396, -58), 26.0],
 	]
 	for d in defs:
 		var v: Vector2 = d[2]
@@ -227,11 +243,14 @@ func _define_buildings() -> void:
 	# Dona Celeste's hut above the pier, Gaspar's cabin at the mine mouth
 	_house("celeste", Vector2(62, 156), -PI * 0.5, {"w": 2, "d": 3, "floors": 1, "style": "wood", "door": 1, "seed": 51, "region": "Lake"})
 	_house("gaspar", Vector2(197, -174), -PI * 0.5, {"w": 2, "d": 2, "floors": 1, "style": "wood", "door": 0, "seed": 61, "region": "Mine"})
+	# the shepherds' summer hut on the Pastos da Cauda, facing the drove road
+	_house("pastor", Vector2(372, -14), 0.0, {"w": 2, "d": 2, "floors": 1, "style": "wood", "door": 0, "seed": 71, "region": "Cauda"})
 	castle_pad = _pad(Vector2(4, -216), Vector2(50, 42), 0.0)
 	castle_pad["fall"] = 3.0
 	# dirt yards (ground layer only): farmyard, castle court, quarry floor, tower top, mine apron, mill yard
 	path_discs = [Vector3(100, 10, 64), Vector3(4, 20, -216), Vector3(-212, 13, 166), Vector3(186, 9, -48),
-		Vector3(177, 6, -180), Vector3(-47, 5, 47), Vector3(-44, 4, 70), Vector3(62, 4, 156), Vector3(-185, 9, 25)]
+		Vector3(177, 6, -180), Vector3(-47, 5, 47), Vector3(-44, 4, 70), Vector3(62, 4, 156), Vector3(-185, 9, 25),
+		Vector3(386, 8, 2), Vector3(392, 9, -50)]   # the Cauda fold yard, the Ponta dig
 
 
 # ------------------------------------------------------------------ ground
@@ -309,6 +328,8 @@ func forest_density(x: float, z: float) -> float:
 		# copses in the valley (wind breaks and pasture shade)
 		Vector3(62, -78, 16), Vector3(-42, -104, 18), Vector3(150, 12, 18), Vector3(-10, 98, 14), Vector3(170, 96, 16),
 		Vector3(96, 150, 16), Vector3(-110, 120, 22),
+		# Pastos da Cauda: two wind-bent copses of pine where the herds sheltered
+		Vector3(420, 40, 22), Vector3(344, -52, 18),
 	]
 	var v: float = 0.0
 	for b in blobs:
@@ -351,6 +372,8 @@ func _ctrl_texture() -> ImageTexture:
 		for i in N:
 			var x: float = -Terrain.HALF + i * Terrain.STEP
 			var k: int = j * N + i
+			if (absf(x) > 320.0 or absf(z) > 320.0) and not _in_world(x, z):
+				continue  # bare mountain: no forest floor, mud, sand or field (the image starts at zero)
 			var forest: float = forest_density(x, z)
 			var rd: float = terrain.river_d[k]
 			var wet: float = 0.0
@@ -368,7 +391,7 @@ func _ctrl_texture() -> ImageTexture:
 
 
 func _path_texture() -> ImageTexture:
-	var S: int = 640
+	var S: int = int(2.0 * Terrain.HALF)
 	var data: PackedByteArray = PackedByteArray()
 	data.resize(S * S)
 	for r in terrain.roads:
@@ -392,8 +415,8 @@ func _path_texture() -> ImageTexture:
 
 
 func _stamp_disc(data: PackedByteArray, S: int, c: Vector2, R: float) -> void:
-	var cx: float = c.x + 320.0
-	var cz: float = c.y + 320.0
+	var cx: float = c.x + Terrain.HALF
+	var cz: float = c.y + Terrain.HALF
 	var e: float = R + 1.5
 	for j in range(maxi(0, int(cz - e)), mini(S - 1, int(cz + e) + 1)):
 		for i in range(maxi(0, int(cx - e)), mini(S - 1, int(cx + e) + 1)):
@@ -615,8 +638,13 @@ func _block_mask() -> void:
 					_blocked[j * N + i] = 1
 
 
+# where things grow: the old valley and, east of it, the pass and the Pastos da Cauda (the rest is bare mountain)
+func _in_world(x: float, z: float) -> bool:
+	return (absf(x) <= 312.0 and absf(z) <= 312.0) or (x > 236.0 and x < 462.0 and absf(z) < 140.0)
+
+
 func _free(x: float, z: float, road_margin: float) -> bool:
-	if absf(x) > 312.0 or absf(z) > 312.0:
+	if not _in_world(x, z):
 		return false
 	var N: int = Terrain.N
 	var i: int = clampi(int(round((x + Terrain.HALF) / Terrain.STEP)), 0, N - 1)
@@ -674,7 +702,7 @@ func _scatter() -> void:
 	var z: float = -310.0
 	while z < 310.0:
 		var x: float = -310.0
-		while x < 310.0:
+		while x < 462.0:
 			var px: float = x + _rng.randf_range(-2.8, 2.8)
 			var pz: float = z + _rng.randf_range(-2.8, 2.8)
 			x += gs
@@ -683,7 +711,7 @@ func _scatter() -> void:
 			# the mountain flanks get thin pine woods up to the tree line
 			var mt: float = 0.0
 			if hy > 22.0 and hy < 58.0 and _slope(px, pz) < 0.45:
-				mt = 0.55 * (1.0 - Terrain.sstep(46.0, 58.0, hy))
+				mt = 0.55 * (1.0 - Terrain.sstep(46.0, 58.0, hy)) * (1.0 - terrain.cauda_mask(px, pz))  # pasture stays open
 			f = maxf(f, mt)
 			if f < 0.25 or _rng.randf() > f * 0.72:
 				continue
@@ -803,7 +831,7 @@ func _scatter() -> void:
 	var gz: float = -300.0
 	while gz < 300.0:
 		var gx: float = -300.0
-		while gx < 300.0:
+		while gx < 462.0:
 			var px2: float = gx + _rng.randf_range(-1.6, 1.6)
 			var pz2: float = gz + _rng.randf_range(-1.6, 1.6)
 			gx += 3.2
@@ -812,7 +840,7 @@ func _scatter() -> void:
 				continue
 			if _rng.randf() > (clump - 0.18) * 2.2:
 				continue
-			if terrain.sample(px2, pz2) > 30.0 or _slope(px2, pz2) > 0.3:
+			if (terrain.sample(px2, pz2) > 30.0 and terrain.cauda_mask(px2, pz2) < 0.5) or _slope(px2, pz2) > 0.3:
 				continue
 			if not _free(px2, pz2, 3.5):
 				continue
@@ -829,7 +857,7 @@ func _scatter() -> void:
 
 	# --- named flower meadows
 	var meadows: Array = [Vector3(-30, 12, -60), Vector3(70, 14, 180), Vector3(-185, 12, 25), Vector3(170, 16, -60),
-		Vector3(-14, 8, 4), Vector3(26, 8, -12)]
+		Vector3(-14, 8, 4), Vector3(26, 8, -12), Vector3(356, 18, 40), Vector3(352, 8, 20)]
 	for md in meadows:
 		var mv: Vector3 = md
 		for k in int(mv.y * 3.0):
@@ -881,7 +909,7 @@ func _scatter() -> void:
 	var bz: float = -300.0
 	while bz < 300.0:
 		var bx: float = -300.0
-		while bx < 300.0:
+		while bx < 462.0:
 			var qx: float = bx + _rng.randf_range(-3.0, 3.0)
 			var qz: float = bz + _rng.randf_range(-3.0, 3.0)
 			bx += 6.0

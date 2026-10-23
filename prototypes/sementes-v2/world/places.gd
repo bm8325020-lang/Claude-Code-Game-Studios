@@ -1200,3 +1200,85 @@ func castle() -> void:
 	(m.spawns as Dictionary)["castle_tunnel_exit"] = root * Vector3(-17.0, 0.1, 10.0)
 	PL("Chest_Wood", root, Vector3(-18, 0, 14), 0.4)
 	inter("bau_castelo", "chest", root * Vector3(-18, 0, 12.8), {"item": "ouro"})
+
+
+# ------------------------------------------------------------------ PASTOS DA CAUDA (post-game, beyond the Passo da Escama)
+# The summer pastures on the Lumeira's tail. Three little stories: the drovers' cairn and the Marco at the head of
+# the pass; the shepherds' fold, left in a hurry (empty bell post, cold hearth, a bucket kicked over), where the
+# Insone shepherds still walk their rounds; and the Ponta da Cauda dig, where the last Vigília guards, who do not
+# believe their Count sleeps, cut "scales" from the mountain and keep the stolen Sino-Mãe on their cart.
+func cauda() -> void:
+	region("Cauda")
+	for hd in m.houses:
+		if hd.spec.get("region", "") == "Cauda":
+			house(hd)
+	# the head of the pass: Marco da Cauda and the drovers' cairn, one stone per herd that came up
+	marco("marco_cauda", 346.0, 20.0, true, false)
+	for i in 4:
+		var s: float = 0.55 - i * 0.11
+		PX("Rock_Medium_%d" % (i % 3 + 1), Transform3D(rot(i * 1.9).scaled(Vector3(s, s * 0.7, s)), at(341.0, 25.0) + Vector3(0, i * 0.55 - 0.1, 0)), true)
+	col_cyl(341.0, 25.0, 1.0, 2.2)
+	P("Flower_3_Group", 342.6, 26.4, 0.4, 0.8)
+	P("Flower_4_Group", 339.6, 24.0, 1.4, 0.7)
+	# the fold: fence round the yard, the gate open to the drove road, the bell post with its cut rope
+	fence_line(Vector2(384, 4), Vector2(388.5, 4))
+	fence_line(Vector2(395.5, 4), Vector2(400, 4))
+	fence_line(Vector2(400, 4), Vector2(400, 16))
+	fence_line(Vector2(400, 16), Vector2(384, 16))
+	fence_line(Vector2(384, 16), Vector2(384, 4))
+	var py: float = gy(387.0, 2.6)
+	wbox(Transform3D(Basis(), Vector3(387.0, py + 1.5, 2.6)), Vector3(0.25, 3.0, 0.25), Color(0.8, 0.72, 0.62))
+	wbox(Transform3D(Basis(), Vector3(387.7, py + 2.9, 2.6)), Vector3(1.4, 0.18, 0.18), Color(0.8, 0.72, 0.62))
+	P("Rope_2", 388.3, 2.6, 0.0, 1.0, 1.8)
+	wbox(Transform3D(rot(0.1), Vector3(396.0, gy(396.0, 13.6) + 0.25, 13.6)), Vector3(2.6, 0.5, 0.7), Color(0.6, 0.55, 0.5))  # water trough
+	P("Bucket_Wooden_1", 393.2, 12.8, 0.0, 1.0, 0.15)
+	PX("Bucket_Wooden_1", Transform3D(rot(0.7) * Basis(Vector3(1, 0, 0), PI * 0.5), at(390.4, 9.6) + Vector3(0, 0.2, 0)))
+	P("FarmCrate_Empty", 398.4, 6.2, 0.3)
+	P("Bag", 397.6, 7.4, 1.1)
+	P("Barrel", 385.6, 14.4)
+	PX("Prop_WoodenFence_Single", Transform3D(rot(0.4) * Basis(Vector3(0, 0, 1), PI * 0.5), at(392.0, 16.8) + Vector3(0, 0.15, 0)))  # blown down
+	# the hut: woodpile, bench by the door, a cold hearth with the cheese pot still on it
+	var hut: Dictionary = hfind("pastor")
+	var hr: Transform3D = Transform3D(rot(float(hut.yaw)), door(hut, 0.0))
+	PL("Bench", hr, Vector3(1.6, 0, 0.6), 0.0, 0.7)
+	PL("Lantern_Wall", hr, Vector3(-1.0, 2.1, -0.3), PI * 0.5)
+	var wp: Vector3 = hr * Vector3(-3.2, 0, -1.0)
+	woodpile(wp.x, wp.z, float(hut.yaw) + PI * 0.5, 4)
+	for i in 7:
+		var a: float = TAU * i / 7.0
+		P("Pebble_Round_%d" % (i % 5 + 1), 366.0 + cos(a) * 0.7, -5.0 + sin(a) * 0.7, a, 1.5)
+	P("Pot_1", 366.0, -5.0, 0.3)
+	P("Stool", 367.6, -3.8, 0.8)
+	# the shade the shepherds sat in: two wind-bent pines behind the hut, a boulder the sheep rub against
+	for tp: Vector3 in [Vector3(363, 1.25, -22), Vector3(381, 1.05, -24)]:
+		P("Pine_2", tp.x, tp.z, tp.x * 0.3, tp.y, -0.2, true)
+		col_cyl(tp.x, tp.z, 0.45, 4.0)
+	PX("Rock_Medium_1", Transform3D(rot(0.6).scaled(Vector3(0.9, 0.6, 0.8)), at(404.0, 22.0) - Vector3(0, 0.3, 0)), true)
+	spawn("cauda", 360.0, 8.0)
+	camp("cauda_insones", "cauda", at(392, 10), ["possessed"], 3, 9)
+	# the Ponta da Cauda dig: a ring-pit cut in the rock, the cut "scales" stacked by the cart, a fire that never goes out
+	var pit: Vector2 = Vector2(398, -62)
+	for i in 9:
+		var a2: float = TAU * i / 9.0 + 0.2
+		PX("Rock_Medium_%d" % (i % 3 + 1), Transform3D(rot(a2).scaled(Vector3(0.5, 0.35, 0.5)), at(pit.x + cos(a2) * 5.0, pit.y + sin(a2) * 4.0) - Vector3(0, 0.2, 0)), true)
+	for i in 5:
+		PX("Rock_Medium_2#grey", Transform3D((rot(0.3 + i * 0.4) * Basis(Vector3(1, 0, 0), 0.5)).scaled(Vector3(0.45, 0.16, 0.35)), at(382.6, -51.0 + i * 0.3) + Vector3(0, 0.1 + i * 0.18, 0)), true)
+	P("Prop_Wagon", 386.0, -47.0, 0.5, 1.0, 0.0, true)
+	col_box(at(386.0, -47.0) + Vector3(0, 0.8, 0), Vector3(2.0, 1.6, 4.0), 0.5)
+	PX("Bucket_Metal", Transform3D((rot(0.4) * Basis(Vector3(1, 0, 0), PI)).scaled(Vector3.ONE * 1.3), at(386.0, -47.0) + Vector3(0, 1.75, 0)))  # the Sino-Mãe, mouth down
+	inter("sino_mae", "bell", at(384.0, -45.2), {"name": "Sino-Mãe"})
+	P("Crate_Wooden", 388.6, -44.6, 0.2)
+	P("Crate_Wooden", 389.2, -43.6, 0.9, 0.85)
+	P("Pickaxe_Bronze", 394.4, -57.0, 1.2)
+	P("Pickaxe_Bronze", 401.6, -58.4, -0.6)
+	P("Bucket_Metal", 395.0, -58.6, 0.0)
+	tent(402.0, -44.0, -2.4, 2.6, 3.0, 2.0, Color(0.42, 0.38, 0.4))
+	P("Banner_1", 398.4, -46.6, -0.6)
+	P("WeaponStand", 404.6, -48.4, -1.2)
+	campfire(391.0, -54.0)
+	P("Table_Large", 393.8, -49.0, 0.3, 0.6)
+	P("Scroll_1", 393.8, -49.0, 0.6, 1.0, 0.5)
+	P("Torch_Metal", 388.0, -51.0, 0.0)
+	P("Torch_Metal", 396.0, -66.6, 0.0)
+	camp("cauda_guardas", "cauda_ponta", at(394, -52), ["knight"], 3, 9)
+	spawn("cauda_ponta", 382.0, -36.0)

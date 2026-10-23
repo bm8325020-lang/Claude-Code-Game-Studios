@@ -1,5 +1,5 @@
 # PROTOTYPE - NOT FOR PRODUCTION
-# Quests: the LORE.md chain (14 main + 6 side) as data, quest state, rewards, resting at the Marcos de Lume and the
+# Quests: the LORE.md chain (14 main + 7 side) as data, quest state, rewards, resting at the Marcos de Lume and the
 # save file. Owns the Progression and Items it is given and applies rewards to them.
 #
 # Glue (main.gd) calls notify(event, target) for everything that happens in the world:
@@ -213,6 +213,15 @@ const DATA: Array = [
 		"steps": [["collect", "peixe_lua", 3, "lake", "Pesque 3 peixes-lua perto do píer"],
 			["talk", "fisher", 1, "lake", "Leve os peixes para Dona Celeste"]],
 		"rewards": {"xp": 40, "items": {"anzol_celeste": 1}}},
+	{"id": "s7", "kind": "side", "title": "O Sino-Mãe", "giver": "farmer", "requires": ["m14"],
+		"level": 12, "minutes": 6,  # fast travel: the Marco da Cauda sits at the head of the pass
+		"offer": "Antes do Desenterro a gente subia com o gado pros Pastos da Cauda, pelo Passo da Escama, atrás da Atalaia. Meu pai deixou o Sino-Mãe no curral de lá. Se vai ter inverno, as vacas vão precisar dele pra achar o caminho de casa na neve.",
+		"done": "Matias bate o sino uma vez. Lá do pasto, a Santa Inês responde com um mugido ofendido.",
+		"steps": [["reach", "cauda", 1, "cauda", "Suba pelo Passo da Escama até os Pastos da Cauda"],
+			["kill", "knight", 3, "cauda_ponta", "O poste do curral está vazio: derrote os guardas que cavam a Ponta da Cauda"],
+			["interact", "sino_mae", 1, "cauda_ponta", "Pegue o Sino-Mãe na carroça dos guardas"],
+			["talk", "farmer", 1, "farm", "Leve o Sino-Mãe ao Matias"]],
+		"rewards": {"xp": 300, "gold": 120, "items": {"queijo_quinta": 3}}},
 ]
 
 var prog: Progression
