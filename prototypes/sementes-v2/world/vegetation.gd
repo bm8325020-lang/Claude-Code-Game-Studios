@@ -42,8 +42,8 @@ func add(name: String, xf: Transform3D, tint: Color = Color(1, 1, 1, 1)) -> void
 	count += 1
 
 
-# Low-poly version: the coarsest LOD meshoptimizer gives, as its own mesh.
-func _far_mesh(name: String) -> ArrayMesh:
+# [near mesh with automatic LODs, far mesh = the coarsest LOD meshoptimizer gives, as its own mesh].
+func _lod_meshes(name: String) -> Array:
 	var src: ArrayMesh = kit.mesh(name)
 	var im: ImporterMesh = ImporterMesh.new()
 	for s in src.get_surface_count():
@@ -57,7 +57,7 @@ func _far_mesh(name: String) -> ArrayMesh:
 			arr[Mesh.ARRAY_INDEX] = im.get_surface_lod_indices(s, n - 1)
 		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
 		out.surface_set_material(s, im.get_surface_material(s))
-	return out
+	return [im.get_mesh(), out]
 
 
 func _mmi(name: String, mesh: Mesh, arr: Array, cols: Array, key: Vector2i) -> MultiMeshInstance3D:
@@ -83,7 +83,9 @@ func commit(parent: Node3D) -> void:
 		var far: float = s.far
 		var far_mesh: Mesh = null
 		if far > 0.0:
-			far_mesh = _far_mesh(name)
+			var lm: Array = _lod_meshes(name)
+			mesh = lm[0]
+			far_mesh = lm[1]
 		var colors_by_chunk: Dictionary = s.colors
 		var vis_end: float = minf(far if far > 0.0 else float(s.range), MAX_RANGE)
 		far = minf(far, MAX_FAR) if far > 0.0 else far

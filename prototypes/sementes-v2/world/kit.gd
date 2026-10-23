@@ -138,6 +138,21 @@ class Batch:
 	var kit: RefCounted
 	var tools: Dictionary = {}   # "cx,cz|matkey" -> SurfaceTool
 	var tris: int = 0
+	# Small detail inside a big caster: its shadow is hidden by the walls/roof around it, so skip the shadow draw.
+	const NO_SHADOW: Array[String] = ["MI_WindowGlass", "MI_Trim_Metal", "MI_Trim_Metal_Vertex", "MI_Trim_Furniture",
+		"MI_Trim_Cloth", "MI_Trim_Props", "MI_Trim_Props_Vertex", "MI_MetalOrnaments", "MI_Banner", "PathRocks"]
+	const LOD_MIN_TRIS: int = 600
+
+	# Merged cells get automatic LODs (meshoptimizer), so a cell away from the camera, and its shadow, draw
+	# a fraction of the triangles. Small meshes are not worth the build time.
+	static func _with_lods(am: ArrayMesh) -> ArrayMesh:
+		var arr: Array = am.surface_get_arrays(0)
+		if (arr[Mesh.ARRAY_INDEX] as PackedInt32Array).size() < LOD_MIN_TRIS * 3:
+			return am
+		var im: ImporterMesh = ImporterMesh.new()
+		im.add_surface(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, am.surface_get_material(0))
+		im.generate_lods(25.0, 0.0, [])
+		return im.get_mesh()
 
 	func _init(k: RefCounted, cell_size: float = 64.0) -> void:
 		kit = k
@@ -174,8 +189,8 @@ class Batch:
 			am.surface_set_material(0, kit.material(mkey))
 			var mi: MeshInstance3D = MeshInstance3D.new()
 			mi.name = "%s_%s" % [label, key]
-			mi.mesh = am
-			if shadows:
+			mi.mesh = _with_lods(am)
+			if shadows and not NO_SHADOW.has(mkey):
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 			else:
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
