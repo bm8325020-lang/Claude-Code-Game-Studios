@@ -8,6 +8,12 @@ extends RefCounted
 const Kit = preload("res://world/kit.gd")
 
 const CHUNK: float = 64.0
+# Phone budget: cap how far vegetation draws and thin dense scatter. Trees (shadow=true) keep most of their
+# count so the forests still read; small ground scatter (grass/flowers/pebbles, shadow=false) is thinned hard.
+const MAX_RANGE: float = 70.0
+const MAX_FAR: float = 42.0
+const KEEP_SHADOW: float = 0.75
+const KEEP_SCATTER: float = 0.4
 
 var kit: Kit
 # model name -> { range, far, shadow, chunks: { Vector2i: Array[Transform3D] }, colors }
@@ -79,11 +85,14 @@ func commit(parent: Node3D) -> void:
 		if far > 0.0:
 			far_mesh = _far_mesh(name)
 		var colors_by_chunk: Dictionary = s.colors
+		var vis_end: float = minf(far if far > 0.0 else float(s.range), MAX_RANGE)
+		far = minf(far, MAX_FAR) if far > 0.0 else far
+		var keep: float = KEEP_SHADOW if s.shadow else KEEP_SCATTER
 		for key in (s.chunks as Dictionary).keys():
-			var arr: Array = s.chunks[key]
-			var cols: Array = colors_by_chunk[key]
+			var arr: Array = _thin(s.chunks[key], keep)
+			var cols: Array = _thin(colors_by_chunk[key], keep)
 			var near: MultiMeshInstance3D = _mmi(name, mesh, arr, cols, key)
-			near.visibility_range_end = far if far > 0.0 else float(s.range)
+			near.visibility_range_end = far if far > 0.0 else vis_end
 			near.visibility_range_end_margin = 8.0
 			if s.shadow:
 				near.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
@@ -94,6 +103,20 @@ func commit(parent: Node3D) -> void:
 				var fm: MultiMeshInstance3D = _mmi(name + "_far", far_mesh, arr, cols, key)
 				fm.visibility_range_begin = far
 				fm.visibility_range_begin_margin = 8.0
-				fm.visibility_range_end = s.range
+				fm.visibility_range_end = vis_end
 				fm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				parent.add_child(fm)
+
+
+# Keep a deterministic fraction of a chunk's instances (even stride, so coverage stays uniform).
+func _thin(items: Array, keep: float) -> Array:
+	if keep >= 1.0:
+		return items
+	var out: Array = []
+	var acc: float = 0.0
+	for it in items:
+		acc += keep
+		if acc >= 1.0:
+			acc -= 1.0
+			out.append(it)
+	return out

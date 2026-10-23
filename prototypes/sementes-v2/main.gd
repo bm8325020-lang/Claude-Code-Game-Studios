@@ -61,7 +61,7 @@ func _ready() -> void:
 	_apply_stats()
 	hero.refill()
 	if hero.camera:
-		hero.camera.far = 200.0  # pull the far plane in: fewer distant draws on a phone
+		hero.camera.far = 150.0  # pull the far plane in: fewer distant draws on a phone
 	hero.hurt.connect(_on_hero_hurt)
 	hero.died.connect(_on_hero_died)
 	hero.interact_requested.connect(_on_interact)
@@ -312,7 +312,7 @@ func _lighten_world() -> void:
 	for n in _all_nodes(map):
 		if n is DirectionalLight3D:
 			var dl := n as DirectionalLight3D
-			dl.directional_shadow_max_distance = 80.0
+			dl.directional_shadow_max_distance = 55.0
 			dl.shadow_blur = 1.0
 		elif n is WorldEnvironment:
 			var env: Environment = (n as WorldEnvironment).environment
