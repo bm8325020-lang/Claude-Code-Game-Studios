@@ -245,7 +245,8 @@ func _place_missing_quest_items() -> void:
 	var have: Dictionary = {}
 	for it: Dictionary in map.interactables:
 		if it.has("item"):
-			have[str(it.item)] = int(have.get(str(it.item), 0)) + 1
+			# a fishing spot gives its item every time
+			have[str(it.item)] = int(have.get(str(it.item), 0)) + (99 if str(it.get("kind", "")) == "fishing" else 1)
 	for q: Dictionary in Quests.DATA:
 		var steps: Array = q.steps
 		for i in steps.size():
@@ -544,6 +545,7 @@ func _prompt_for(it: Dictionary) -> String:
 	match it.get("kind", ""):
 		"rest": return "Descansar"
 		"pickup": return "Pegar"
+		"fishing": return "Pescar"
 		"chest": return "Abrir"
 		_: return "Agir"
 
@@ -588,6 +590,10 @@ func _use_interactable(it: Dictionary) -> void:
 				quests.notify("collect", item)
 			_taken[id] = true
 			hero.perform("open_chest" if kind == "chest" else "pickup")
+		"fishing":
+			hero.perform("interact")
+			quests.notify("collect", str(it.get("item", "")))
+			hud.toast("Fisgou!", Items.item_name(str(it.get("item", ""))), "reward")
 		"rest":
 			hero.perform("sit")
 			hero.refill()
@@ -657,7 +663,7 @@ func _nearest_interactable() -> Dictionary:
 # the quest uses this spot, or it is a pickup the quest is collecting
 func _wanted(it: Dictionary) -> bool:
 	return quests.is_target("interact", str(it.get("id", ""))) or (
-		str(it.get("kind", "")) in ["pickup", "chest"] and quests.is_target("collect", str(it.get("item", ""))))
+		str(it.get("kind", "")) in ["pickup", "chest", "fishing"] and quests.is_target("collect", str(it.get("item", ""))))
 
 
 # a wanted pickup goes first even next to someone with a "!": it disappears once taken, so the talk is still there
@@ -968,7 +974,7 @@ func _route(goal: Vector3) -> Vector3:
 	var to := Vector2(goal.x, goal.z)
 	if from.distance_to(to) < ROUTE_DIRECT:
 		return goal
-	var a: int = _roads.get_closest_point(from)
+	var a: int = _road_start(from)
 	var b: int = _roads.get_closest_point(to)
 	var path: PackedVector2Array = _roads.get_point_path(a, b)
 	if path.size() < 2 or from.distance_to(to) < to.distance_to(_roads.get_point_position(b)):
@@ -979,6 +985,28 @@ func _route(goal: Vector3) -> Vector3:
 		if from.distance_to(p) > 6.0:  # short look-ahead: keeps the arrow on the road (and onto bridges, not off their sides)
 			return Vector3(p.x, goal.y, p.y)
 	return goal
+
+
+# The nearest road point the hero can walk straight to: the plain nearest one may sit behind a house
+# (the arrow then pushed a player into a village wall for 15 min). Re-checked only after moving 2 m.
+var _start_cache: Dictionary = {"at": Vector2(INF, INF), "id": -1}
+func _road_start(from: Vector2) -> int:
+	if from.distance_to(_start_cache.at) < 2.0 and int(_start_cache.id) >= 0:
+		return int(_start_cache.id)
+	var ids: Array = Array(_roads.get_point_ids())
+	ids.sort_custom(func(i: int, j: int) -> bool: return from.distance_squared_to(_roads.get_point_position(i)) < from.distance_squared_to(_roads.get_point_position(j)))
+	var best: int = int(ids[0])
+	var ss: PhysicsDirectSpaceState3D = hero.get_world_3d().direct_space_state
+	var eye: Vector3 = hero.global_position + Vector3(0, 0.9, 0)
+	for k in mini(10, ids.size()):
+		var p: Vector2 = _roads.get_point_position(int(ids[k]))
+		var q := PhysicsRayQueryParameters3D.create(eye, Vector3(p.x, map.ground_y(p.x, p.y) + 0.9, p.y), 1)
+		q.exclude = [hero.get_rid()]
+		if ss.intersect_ray(q).is_empty():
+			best = int(ids[k])
+			break
+	_start_cache = {"at": from, "id": best}
+	return best
 
 
 # Pushing the stick for 10 s without getting 4 m anywhere (river channel, a gap between rocks): put the hero back
@@ -1236,7 +1264,7 @@ func _refresh_marks() -> void:
 		var id: String = str(it.get("id", ""))
 		var kind: String = str(it.get("kind", ""))
 		var want: bool = not _taken.has(id) and (
-			(kind in ["pickup", "chest"] and quests.is_target("collect", str(it.get("item", ""))))
+			(kind in ["pickup", "chest", "fishing"] and quests.is_target("collect", str(it.get("item", ""))))
 			or quests.is_target("interact", id))
 		if want and not _item_marks.has(id):
 			var l := _label3d("✦", Color(1.0, 0.85, 0.3), 0.0022)

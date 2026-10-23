@@ -94,6 +94,17 @@ func _live() -> void:
 	ok(g._taken.has("cartas_rosa") and not g.dialog.visible, "quest pickup taken instead of opening the innkeeper's dialog")
 	if g.dialog.visible:
 		g.dialog.close()
+	# the pier's fishing spot gives a fish every cast (it gave nothing: the side quest stalled at the extras)
+	var spot: Dictionary = {}
+	for it: Dictionary in g.map.interactables:
+		if str(it.get("kind", "")) == "fishing":
+			spot = it
+	g.quests.state["s6"] = "active"
+	g.quests.step_i["s6"] = 0
+	var fish0: int = g.items.count("peixe_lua")
+	for k in 3:
+		g._use_interactable(spot)
+	ok(g.items.count("peixe_lua") == fish0 + 3 and int(g.quests.step_i["s6"]) >= 1, "three casts at the pier land three peixes-lua")
 	# hidden treasure: 12 chests that never expire, found ones counted and saved
 	var tr: Array = g._chests.filter(func(c: Dictionary) -> bool: return c.has("treasure"))
 	ok(tr.size() == g.TREASURES, "all 12 hidden treasures placed (%d)" % tr.size())

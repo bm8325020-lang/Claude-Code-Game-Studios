@@ -85,3 +85,11 @@ Bot (160 min, seeds 5/6, before the gate fix): story finished (m14), level 29–
 - New: 12 hidden treasure chests (never expire, +50 gold, saved once found) and the Caça-Tesouros achievement.
 
 Bot (110 min, seed 7, before the pickup fix): story + s2/s3/s4/s5 done, level 30, stuck events 11.
+
+## Iteration 10
+
+Bot (110 min, seed 8): story + all side quests but s6 done, level 30. Rosa's letters fix confirmed.
+- The pier's fishing spot gave nothing (kind "fishing" fell through to a plain interact); the quest only moved
+  thanks to two spare fish dropped as pickups. Each cast now lands a fish ("Pescar" prompt).
+- The arrow's road start was the nearest road node even behind a house: 15 min pushing into a village wall on
+  the way to the bandit camp. It now takes the nearest node in clear line of sight.
