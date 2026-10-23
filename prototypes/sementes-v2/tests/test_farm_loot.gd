@@ -82,6 +82,18 @@ func _live() -> void:
 		await process_frame
 	ok(not g._hunters.is_empty(), "hunters spawned")
 	ok(g._boss != null and is_instance_valid(g._boss), "the final boss exists in the world (it did not, so the game could not be finished)")
+	# a pickup the quest is collecting beats the townsperson standing next to it (Rosa at her inn door)
+	var cartas: Dictionary = {}
+	for it: Dictionary in g.map.interactables:
+		if str(it.id) == "cartas_rosa":
+			cartas = it
+	g.quests.state["s1"] = "active"
+	g.quests.step_i["s1"] = 0
+	g.hero.global_position = cartas.pos + Vector3(0.5, 0.3, 0)
+	g._on_interact()
+	ok(g._taken.has("cartas_rosa") and not g.dialog.visible, "quest pickup taken instead of opening the innkeeper's dialog")
+	if g.dialog.visible:
+		g.dialog.close()
 	# hidden treasure: 12 chests that never expire, found ones counted and saved
 	var tr: Array = g._chests.filter(func(c: Dictionary) -> bool: return c.has("treasure"))
 	ok(tr.size() == g.TREASURES, "all 12 hidden treasures placed (%d)" % tr.size())

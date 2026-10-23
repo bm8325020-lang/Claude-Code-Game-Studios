@@ -75,3 +75,13 @@ Bot (30 min, seeds 3/4): level 13–14, m01–m08 + s2 + s4, stuck events 9–10
   puglin step stalled 40–55 min. The collider is now disabled once the story opens the gate (also on load).
 
 Bot (160 min, seeds 5/6, before the gate fix): story finished (m14), level 29–30, 10 areas.
+
+## Iterations 8–9
+
+- Mine gate fix confirmed: story finished in 53 min (seed 6), was ~146; the mine step now takes ~2 min.
+- Bot learned to tap "Continuar explorando" on the ending panel (it stood still 100 min).
+- Collect steps: the arrow points at the nearest missing item (cow bells sat 40+ min with the arrow on the farm).
+- A wanted pickup beats a townsperson with "!" standing next to it (Rosa's letters: 686 taps opened her dialog).
+- New: 12 hidden treasure chests (never expire, +50 gold, saved once found) and the Caça-Tesouros achievement.
+
+Bot (110 min, seed 7, before the pickup fix): story + s2/s3/s4/s5 done, level 30, stuck events 11.

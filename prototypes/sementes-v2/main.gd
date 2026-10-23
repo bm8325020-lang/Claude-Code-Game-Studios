@@ -524,11 +524,11 @@ func _update_interact_prompt() -> void:
 	if it.is_empty():
 		it = _nearest_interactable()
 	var npc: Dictionary = _nearest_npc()
-	if not it.is_empty() and quests.is_target("interact", str(it.get("id", ""))) and not (not npc.is_empty() and quests.is_target("talk", str(npc.role))):
+	if not it.is_empty() and _wanted(it) and (_one_shot(it) or not (not npc.is_empty() and quests.is_target("talk", str(npc.role)))):
 		touch.show_interact(_prompt_for(it))
 	elif not npc.is_empty():
 		touch.show_interact("Falar")
-	elif not it.is_empty() and quests.is_target("interact", str(it.get("id", ""))):
+	elif not it.is_empty() and _wanted(it):
 		touch.show_interact(_prompt_for(it))
 	elif not _nearest_hunter().is_empty():
 		touch.show_interact("Falar")
@@ -556,12 +556,12 @@ func _on_interact() -> void:
 	if near_it.is_empty():
 		near_it = _nearest_interactable()
 	# what the quest asks for wins over whoever happens to stand closest (Joana stands at her own forge)
-	if not near_it.is_empty() and quests.is_target("interact", str(near_it.get("id", ""))) and not (not npc.is_empty() and quests.is_target("talk", str(npc.role))):
+	if not near_it.is_empty() and _wanted(near_it) and (_one_shot(near_it) or not (not npc.is_empty() and quests.is_target("talk", str(npc.role)))):
 		npc = {}
 	if not npc.is_empty():
 		_open_dialog(npc.role)
 		return
-	if not near_it.is_empty() and quests.is_target("interact", str(near_it.get("id", ""))):
+	if not near_it.is_empty() and _wanted(near_it):
 		_use_interactable(near_it)  # the quest spot beats hunters and dropped chests standing nearby
 		return
 	var h: Dictionary = _nearest_hunter()
@@ -654,10 +654,21 @@ func _nearest_interactable() -> Dictionary:
 	return best
 
 
+# the quest uses this spot, or it is a pickup the quest is collecting
+func _wanted(it: Dictionary) -> bool:
+	return quests.is_target("interact", str(it.get("id", ""))) or (
+		str(it.get("kind", "")) in ["pickup", "chest"] and quests.is_target("collect", str(it.get("item", ""))))
+
+
+# a wanted pickup goes first even next to someone with a "!": it disappears once taken, so the talk is still there
+func _one_shot(it: Dictionary) -> bool:
+	return str(it.get("kind", "")) in ["pickup", "chest"]
+
+
 # the interactable the current quest wants, if one is in reach (it may not be the closest thing)
 func _quest_interactable() -> Dictionary:
 	for it: Dictionary in map.interactables:
-		if _taken.has(it.get("id", "")) or not quests.is_target("interact", str(it.get("id", ""))):
+		if _taken.has(it.get("id", "")) or not _wanted(it):
 			continue
 		var ip: Vector3 = it.get("pos", Vector3.ZERO)
 		if absf(ip.y - hero.global_position.y) < 3.0 and Vector2(hero.global_position.x, hero.global_position.z).distance_to(Vector2(ip.x, ip.z)) < INTERACT_RANGE + 0.6:
