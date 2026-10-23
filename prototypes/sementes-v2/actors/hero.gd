@@ -85,6 +85,7 @@ var potions: int = 3
 var max_potions: int = 3
 var potion_heal: float = 45.0
 var input_enabled: bool = true
+var stick_len: float = 0.0  # how hard the player pushes the stick this frame (main's "stuck" rescue reads it)
 var swimming: bool = false
 var look: Dictionary = {}
 
@@ -343,6 +344,7 @@ func _physics_process(dt: float) -> void:
 	var pressed: Array = inp["pressed"]
 	var held: Array = inp["held"]
 	var mv: Vector2 = inp["move"]
+	stick_len = mv.length()
 	var dir: Vector3 = _world_dir(mv)
 	state_t += dt
 	_act_t += dt

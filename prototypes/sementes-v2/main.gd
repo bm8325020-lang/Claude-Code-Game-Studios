@@ -61,7 +61,9 @@ var _combo: int = 0
 var _combo_t: float = 0.0
 var _combo_label: Label
 var _combo_sfx: AudioStreamPlayer
-var _ach_t: float = 0.0  # {kind, level, pos, at}: farm needs camps that fill up again
+var _ach_t: float = 0.0
+var _stuck_t: float = 0.0
+var _stuck_from: Vector3 = Vector3.ZERO  # {kind, level, pos, at}: farm needs camps that fill up again
 
 
 func _ready() -> void:
@@ -383,6 +385,7 @@ func _process(dt: float) -> void:
 			_marcos_seen[str(it.id)] = it.pos
 			prog.unlock("marco_seen:" + str(it.id))
 			hud.toast("Marco de Lume encontrado", "Descanse nele para viajar entre Marcos.", "info")
+	_check_stuck(dt)
 	_ach_t += dt
 	if _ach_t >= 1.0:
 		_ach_t = 0.0
@@ -891,6 +894,37 @@ func _route(goal: Vector3) -> Vector3:
 		if from.distance_to(p) > 10.0:
 			return Vector3(p.x, goal.y, p.y)
 	return goal
+
+
+# Pushing the stick for 6 s without getting anywhere (river channel, a gap between rocks): put the hero back
+# on the nearest road. A casual player should never need to restart because of terrain.
+func _check_stuck(dt: float) -> void:
+	if hero.state != "free" or hero.stick_len < 0.5 or dialog.visible or menu.is_open:
+		_stuck_t = 0.0
+		_stuck_from = hero.global_position
+		return
+	_stuck_t += dt
+	if _stuck_t < 6.0:
+		return
+	if hero.global_position.distance_to(_stuck_from) < 1.5:
+		# nearest road point on solid ground (skip bridge spans: the terrain under them is the river bed)
+		var best: Vector3 = _spawn("player_start")
+		var bd: float = 1e12
+		for r: Dictionary in map.terrain.roads:
+			var pts: PackedVector3Array = r.pts
+			for i in pts.size():
+				if (r.bridge as Array)[i]:
+					continue
+				var d: float = Vector2(pts[i].x, pts[i].z).distance_squared_to(Vector2(hero.global_position.x, hero.global_position.z))
+				if d < bd:
+					bd = d
+					best = pts[i]
+		hero.global_position = best + Vector3(0, 0.6, 0)
+		hero.velocity = Vector3.ZERO
+		hero.reset_physics_interpolation()
+		hud.toast("De volta à estrada", "Você estava preso e foi levado ao caminho.", "info")
+	_stuck_t = 0.0
+	_stuck_from = hero.global_position
 
 
 func _check_achievements() -> void:
