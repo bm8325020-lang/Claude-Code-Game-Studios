@@ -73,7 +73,20 @@ var _water_t: float = 0.0
 const SKILL_NAMES: Array[String] = ["", "INVESTIDA", "GIRO"]  # {kind, level, pos, at}: farm needs camps that fill up again
 
 
+var booted: bool = false  # true once the world is built and the hero can move (tests and tools wait on it)
+var _boot_ms: Dictionary = {}
+var _boot_t: int = 0
+
+
+func _boot_mark(step: String) -> void:
+	var now: int = Time.get_ticks_msec()
+	_boot_ms[step] = now - _boot_t
+	_boot_t = now
+
+
 func _ready() -> void:
+	_boot_t = Time.get_ticks_msec()
+	set_meta("boot_ms", _boot_ms)
 	Engine.max_fps = 60
 	# the hero reads an action named "heavy"; the project has no key for it, so bind one (I) at runtime.
 	if not InputMap.has_action("heavy"):
@@ -92,10 +105,22 @@ func _ready() -> void:
 	npcs = Npcs.new()
 	add_child(npcs)
 
-	# the world
+	# the world: built off the tree on a worker thread (nothing in world/ touches the scene tree) while a loading
+	# screen animates; a second worker builds every character body once so AnimLib's clip libraries and the model
+	# files are cached before the hero and the camps are made
+	set_process(false)
+	var loading := Loading.new()
+	add_child(loading)
 	map = load("res://world/map.gd").new()
+	var tasks: Array[int] = [WorkerThreadPool.add_task(map.build), WorkerThreadPool.add_task(_warm_characters)]
+	var t0: int = Time.get_ticks_msec()
+	while not tasks.all(func(id: int) -> bool: return WorkerThreadPool.is_task_completed(id)):
+		loading.progress = 0.9 * (1.0 - exp(-float(Time.get_ticks_msec() - t0) / 2500.0))
+		await get_tree().process_frame
+	for id in tasks:
+		WorkerThreadPool.wait_for_task_completion(id)
 	add_child(map)
-	map.build()
+	_boot_mark("map")
 	_lighten_world()
 
 	# the hero at the start spawn, wearing whatever the save says (peasant rags by default)
@@ -112,15 +137,20 @@ func _ready() -> void:
 	hero.hurt.connect(_on_hero_hurt)
 	hero.died.connect(_on_hero_died)
 	hero.interact_requested.connect(_on_interact)
+	_boot_mark("hero")
 
 	# enemies and the boss
 	_spawn_camps()
+	_boot_mark("camps")
 	_spawn_boss()
+	_boot_mark("boss")
 
 	# townsfolk
 	for n in npcs.spawn(map, self):
 		if n is Node3D: _actors.append(n)
+	_boot_mark("npcs")
 	_spawn_hunters()
+	_boot_mark("hunters")
 	for sp: Dictionary in map.npc_spots:
 		var mark := _label3d("!", Color(1.0, 0.82, 0.25), 0.0028)
 		add_child(mark)
@@ -238,11 +268,25 @@ func _ready() -> void:
 		if str(it.get("kind", "")) == "rest" and prog.has_unlock("marco_seen:" + str(it.id)):
 			_marcos_seen[str(it.id)] = it.pos
 	_place_missing_quest_items()
+	_boot_mark("ui")
 	await get_tree().physics_frame
 	_unbury_interactables()
 	_lift_onto_floors()
 	_sync_gates()
 	_spawn_treasures()
+	_boot_mark("rest")
+	booted = true
+	set_process(true)
+	loading.queue_free()
+
+
+# Worker thread: one throwaway body of every look so the first real spawns find their libraries and models cached.
+func _warm_characters() -> void:
+	var looks: Array = [items.look()]
+	for k: String in Enemy.KINDS:
+		looks.append(Enemy.KINDS[k].look)
+	for lk: Dictionary in looks:
+		CharacterKit.make(lk).free()
 
 
 # Every quest "collect" must have enough pickups in the world. Any shortfall is placed around the best anchor:
@@ -442,8 +486,8 @@ func _process(dt: float) -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_WM_GO_BACK_REQUEST:
-		_save()
+	if booted and (what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_WM_GO_BACK_REQUEST):
+		_save()  # not while loading: the save is not read yet and would be overwritten by an empty game
 
 
 # ---- helpers ----
