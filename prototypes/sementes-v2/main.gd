@@ -60,7 +60,7 @@ const ATTR_NAME: Dictionary = {"vigor": "Vigor", "folego": "Fôlego", "forca": "
 const AUTO_ORDER: Array[String] = ["vigor", "forca", "vigor", "folego"]  # balanced build for players who never open the menu
 var _auto_i: int = 0
 var _roads := AStar2D.new()  # road network for the quest arrow ("GPS")
-var _road_y: Dictionary = {}  # road node id -> height of the drawn road (bridge decks sit above the banks)
+var _road_floor: Dictionary = {}  # road node id -> walkable height there (filled on demand)
 const ROUTE_DIRECT: float = 45.0
 const COMBO_WINDOW: float = 2.0
 var _combo: int = 0
@@ -1043,7 +1043,6 @@ func _build_roads() -> void:
 			if i != pts.size() - 1 and p.distance_to(last) < 5.0:
 				continue
 			_roads.add_point(id, p)
-			_road_y[id] = pts[i].y
 			all.append(id)
 			if prev >= 0:
 				_roads.connect_points(prev, id)
@@ -1071,15 +1070,29 @@ func _route(goal: Vector3) -> Vector3:
 		return goal
 	if from.distance_to(path[0]) > 12.0:
 		return Vector3(path[0].x, goal.y, path[0].y)  # get onto the road first
-	for p: Vector2 in path:
-		if from.distance_to(p) > 6.0:  # short look-ahead: keeps the arrow on the road (and onto bridges, not off their sides)
-			return Vector3(p.x, goal.y, p.y)
+	# look ahead from the path point nearest the hero, never back behind them (on a bridge the start node can sit
+	# at the end just passed, and aiming back at it made the arrow flip between both ends)
+	var near_i: int = 0
+	for i in path.size():
+		if from.distance_squared_to(path[i]) < from.distance_squared_to(path[near_i]):
+			near_i = i
+	for i in range(near_i, path.size()):
+		if from.distance_to(path[i]) > 6.0:  # short look-ahead: keeps the arrow on the road (and onto bridges, not off their sides)
+			return Vector3(path[i].x, goal.y, path[i].y)
 	return goal
 
 
 # The nearest road point the hero can walk straight to: the plain nearest one may sit behind a house
 # (the arrow then pushed a player into a village wall for 15 min). Re-checked only after moving 2 m.
 var _start_cache: Dictionary = {"at": Vector2(INF, INF), "id": -1}
+# walkable height at a road node (the bridge deck, not the river bed the drawn road dips to), cached
+func _node_y(id: int) -> float:
+	if not _road_floor.has(id):
+		var p: Vector2 = _roads.get_point_position(id)
+		_road_floor[id] = _floor_y(Vector3(p.x, 0.0, p.y))
+	return float(_road_floor[id])
+
+
 func _road_start(from: Vector2) -> int:
 	if from.distance_to(_start_cache.at) < 2.0 and int(_start_cache.id) >= 0:
 		return int(_start_cache.id)
@@ -1090,7 +1103,7 @@ func _road_start(from: Vector2) -> int:
 	var eye: Vector3 = hero.global_position + Vector3(0, 0.9, 0)
 	for k in mini(20, ids.size()):
 		var p: Vector2 = _roads.get_point_position(int(ids[k]))
-		if absf(float(_road_y.get(int(ids[k]), eye.y - 0.9)) - (eye.y - 0.9)) > 1.8:
+		if absf(_node_y(int(ids[k])) - (eye.y - 0.9)) > 1.8:
 			continue
 		var q := PhysicsRayQueryParameters3D.create(eye, Vector3(p.x, map.ground_y(p.x, p.y) + 0.9, p.y), 1)
 		q.exclude = [hero.get_rid()]
