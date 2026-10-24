@@ -1,6 +1,8 @@
 # Zumbi simples (mecânica 5): fica parado até ver ou ouvir alguém, vai até a pessoa desviando dos obstáculos
 # (malha de navegação), ataca de perto, cambaleia quando leva golpe ou tiro, morre e levanta de novo no
 # mesmo lugar depois de um tempo (por enquanto, para dar para treinar).
+# Mecânica 6: ouve tiro (Zumbi.barulho) e vai até o lugar do barulho; chegando, procura em volta e, se não
+# achar ninguém, volta para casa.
 # Quem decide tudo é o servidor (ou o aparelho jogando sozinho); os outros só recebem posição, giro,
 # animação e vida. Golpe e tiro de um cliente viram um pedido para o servidor.
 class_name Zumbi
@@ -23,6 +25,9 @@ const GIRO: float = 7.0
 const GRAVIDADE: float = 24.0
 const RAIO: float = 0.35
 const ALTURA: float = 1.75
+const VAI_OUVIR: float = 2.0       # m/s indo até um barulho
+const PROCURA: float = 4.0         # s olhando em volta onde ouviu
+const VOLTA: float = 0.9           # m/s voltando para casa
 
 ## altura (acima dos pés) a partir da qual o tiro conta como na cabeça (o zumbi anda curvado)
 var altura_cabeca: float = 1.4
@@ -49,11 +54,16 @@ var _acertou: bool = false
 var _cambaleio: float = 0.0
 var _morto_t: float = 0.0
 var _procura_t: float = 0.0
+var _ouvido: Vector3               # onde ouviu o último barulho
+var _indo_ouvir: bool = false
+var _olhando_t: float = 0.0        # > 0: chegou no barulho e está procurando em volta
+var _voltando: bool = false
 var _mat_pele: StandardMaterial3D
 
 
 func _ready() -> void:
 	add_to_group("golpeavel")
+	add_to_group("zumbis")
 	collision_layer = 8
 	collision_mask = 1 | 8
 	floor_snap_length = 0.4
@@ -148,14 +158,23 @@ func _physics_process(dt: float) -> void:
 			_vira_para(d, dt * 2.0)
 			_ataca()
 		else:
-			_agente.target_position = alvo.global_position
-			var prox: Vector3 = _agente.get_next_path_position() - global_position
-			prox.y = 0.0
-			if prox.length() < 0.05:
-				prox = d  # sem malha (ou já no fim do caminho): vai reto
-			var vel: float = CORRER if d.length() < PERTO else ANDAR
-			desejada = prox.normalized() * vel
-			_vira_para(prox, dt)
+			desejada = _caminho(alvo.global_position, CORRER if d.length() < PERTO else ANDAR, dt)
+	elif _olhando_t > 0.0:
+		_olhando_t -= dt
+		modelo.rotation.y += dt * 1.2 * signf(sin(_olhando_t * 1.5))  # vira de um lado para o outro
+		if _olhando_t <= 0.0:
+			_voltando = true
+	elif _indo_ouvir:
+		if _plano(_ouvido - global_position) < 1.5:
+			_indo_ouvir = false
+			_olhando_t = PROCURA
+		else:
+			desejada = _caminho(_ouvido, VAI_OUVIR, dt)
+	elif _voltando:
+		if _plano(casa - global_position) < 0.8:
+			_voltando = false
+		else:
+			desejada = _caminho(casa, VOLTA, dt)
 	var plano := Vector3(velocity.x, 0, velocity.z).move_toward(desejada, 12.0 * dt)
 	velocity.x = plano.x
 	velocity.z = plano.z
@@ -166,6 +185,37 @@ func _physics_process(dt: float) -> void:
 		var base: float = float(Anims.VELOCIDADE_ZUMBI.get(_clipe, 0.0))
 		anim.speed_scale = clampf(v / base, 0.6, 2.2) if base > 0.0 and v > 0.2 else 1.0
 	_publica()
+
+
+# velocidade desejada para ir até `destino` pela malha de navegação
+func _caminho(destino: Vector3, vel: float, dt: float) -> Vector3:
+	_agente.target_position = destino
+	var prox: Vector3 = _agente.get_next_path_position() - global_position
+	prox.y = 0.0
+	if prox.length() < 0.05:
+		prox = destino - global_position  # sem malha (ou já no fim do caminho): vai reto
+		prox.y = 0.0
+	_vira_para(prox, dt)
+	return prox.normalized() * vel
+
+
+static func _plano(v: Vector3) -> float:
+	return Vector2(v.x, v.z).length()
+
+
+## Um barulho em `ponto`: os zumbis vivos a até `raio` metros, sem alvo, vão ver o que foi. Só no servidor.
+static func barulho(arvore: SceneTree, ponto: Vector3, raio: float) -> void:
+	for n: Node in arvore.get_nodes_in_group("zumbis"):
+		(n as Zumbi).ouve(ponto, raio)
+
+
+func ouve(ponto: Vector3, raio: float) -> void:
+	if vida <= 0 or alvo != null or global_position.distance_to(ponto) > raio:
+		return
+	_ouvido = ponto
+	_indo_ouvir = true
+	_olhando_t = 0.0
+	_voltando = false
 
 
 func _publica() -> void:
@@ -182,6 +232,8 @@ func _vira_para(d: Vector3, dt: float) -> void:
 # o jogador vivo mais perto que dá para ver (ou que está bem perto)
 func _escolhe_alvo() -> void:
 	if alvo and (not is_instance_valid(alvo) or alvo.vida <= 0 or alvo.global_position.distance_to(global_position) > DESISTE):
+		if is_instance_valid(alvo) and alvo.vida > 0:
+			ouve(alvo.global_position, INF)  # perdeu de vista: vai procurar onde viu por último
 		alvo = null
 	if alvo:
 		return
@@ -194,6 +246,10 @@ func _escolhe_alvo() -> void:
 		if dist < melhor and (dist < OUVE or (dist < VISAO and _ve(j))):
 			melhor = dist
 			alvo = j
+	if alvo:
+		_indo_ouvir = false
+		_olhando_t = 0.0
+		_voltando = false
 
 
 func _ve(j: Jogador) -> bool:
@@ -265,6 +321,9 @@ func _morre() -> void:
 	_ataque_t = -1.0
 	_cambaleio = 0.0
 	alvo = null
+	_indo_ouvir = false
+	_olhando_t = 0.0
+	_voltando = false
 	_morto_t = MORTO_POR
 	anim.speed_scale = 1.0
 	_toca("morte", 0.1, true)

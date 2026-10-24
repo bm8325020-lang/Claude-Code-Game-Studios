@@ -264,7 +264,11 @@ quando você aprovar.
    manda nos zumbis; golpe/tiro do cliente vira pedido ao servidor.
    APK 0.10 antes disso: pulo, agachar e facão da KayKit convertidos para o X Bot (pedido do dono).
    APK 0.12: golpes do facão feitos à mão (scripts/golpes.gd), pedido do dono — os prontos não agradaram.
-6. ...depois cada comportamento de zumbi, um por vez, e assim por diante.
+6. **Zumbi ouve tiro.** **Status: feito, APK 0.13.** Tiro de pistola chama os zumbis a até 35 m (sem alvo):
+   vão até o lugar do tiro (2 m/s, desviando), procuram em volta 4 s e, sem achar ninguém, voltam para casa.
+   Se perdem o jogador de vista, vão procurar onde viram por último. Em rede, o servidor ouve os tiros de todos.
+   Junto: agachado mirando corrigido (o peito gira medindo o braço a cada quadro; ajoelha com a pistola parado).
+7. ...depois cada comportamento de zumbi, um por vez, e assim por diante.
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)
 1. **Andar e atirar com 2 jogadores** — terceira pessoa, controles de celular e PC, 1 arma de fogo + 1 arma

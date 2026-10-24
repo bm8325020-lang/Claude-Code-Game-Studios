@@ -25,6 +25,7 @@ const CLIPES: Dictionary = {
 	"golpe3": ["proprio:golpe3", 0.0, -1.0],
 	"pistola_mira": ["soltas/shooting", 0.0, 0.1], "pistola_tiro": ["soltas/shooting", 0.13, 0.6],
 	"pistola_recarga": ["soltas/reloading", 0.0, 2.75],
+	"agachado_p": ["pistola/pistol_kneeling_idle", 0.0, -1.0],
 	"parado_p": ["pistola/pistol_idle", 0.0, -1.0], "andar_p": ["pistola/pistol_walk", 0.0, -1.0],
 	"trote_p": ["pistola/pistol_run", 0.0, -1.0], "correr_p": ["pistola/pistol_run", 0.0, -1.0],
 	"lado_esq_p": ["pistola/pistol_strafe", 0.0, -1.0], "lado_dir_p": ["pistola/pistol_strafe_2", 0.0, -1.0],

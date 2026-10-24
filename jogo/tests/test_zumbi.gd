@@ -43,6 +43,7 @@ func _init() -> void:
 	await _desvia()
 	await _tiro_e_morte()
 	await _jogador_cai()
+	await _ouve_tiro()
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
 
@@ -115,3 +116,39 @@ func _jogador_cai() -> void:
 	ok(j.vida == 0 and j.clipe_atual() == "morte", "jogador cai com a vida zerada (%s)" % j.clipe_atual())
 	await frames(int(Jogador.RENASCE * 60) + 10)
 	ok(j.vida == Jogador.VIDA_MAX and plano(j.global_position, j.inicio) < 0.5, "volta no início com a vida cheia")
+
+
+func _ouve_tiro() -> void:
+	# jogador atrás do prédio (o zumbi não vê); o tiro chama o zumbi até o lugar do barulho
+	j.vida = 100000
+	j.velocity = Vector3.ZERO
+	j.global_position = Vector3(-12, 0.1, 4.5)
+	z.alvo = null
+	z.global_position = Vector3(-12, 0, 30)
+	z.casa = Vector3(-12, 0, 30)
+	await frames(30)
+	ok(z.alvo == null and z.velocity.length() < 0.1, "sem ver nem ouvir, fica parado")
+	main.zumbis.add_child(Zumbi.new())  # um segundo zumbi longe demais para ouvir
+	var longe: Zumbi = main.zumbis.get_child(main.zumbis.get_child_count() - 1)
+	longe.global_position = Vector3(30, 0, 60)
+	await frames(5)
+	j.entrada["arma"] = "pistola"
+	await frames(3)
+	j.entrada["atacar"] = true
+	await frames(60 * 4)
+	ok(plano(z.global_position, z.casa) > 5.0, "ouve o tiro e sai de casa (%.1f m)" % plano(z.global_position, z.casa))
+	ok(plano(longe.global_position, Vector3(30, 0, 60)) < 0.5, "zumbi a mais de %d m não ouve" % int(Pistola.BARULHO))
+	# tira o jogador de perto: o zumbi chega no lugar do tiro, procura e volta para casa
+	j.global_position = Vector3(40, 0.1, -25)
+	var chegou: bool = false
+	for i in 60 * 25:
+		await physics_frame
+		if z._olhando_t > 0.0:
+			chegou = true
+			break
+	ok(chegou and plano(z.global_position, Vector3(-12, 0, 4.5)) < 2.5, "chega onde foi o tiro (%.1f m)" % plano(z.global_position, Vector3(-12, 0, 4.5)))
+	for i in 60 * 45:  # procura 4 s e volta devagar, contornando o prédio
+		await physics_frame
+		if not z._voltando and z._olhando_t <= 0.0:
+			break
+	ok(z.alvo == null and plano(z.global_position, z.casa) < 1.0, "não acha ninguém e volta para casa (%.1f m)" % plano(z.global_position, z.casa))

@@ -437,9 +437,6 @@ func _anima(dt: float, vel: float) -> void:
 const PISTOLA_FRENTE: Vector3 = Vector3(-0.226, 0.884, 0.408)
 const PISTOLA_CIMA: Vector3 = Vector3(0.963, 0.140, 0.230)
 const PISTOLA_POS: Vector3 = Vector3(0, 0.08, 0)
-const GIRO_TRONCO_PISTOLA: float = deg_to_rad(45.2)  # medido: o braço da pose de tiro sai 45° para a direita
-const INCLINA_TRONCO: float = 1.0                    # quanto o peito segue o ângulo vertical da câmera
-const ERGUE_BRACO: float = deg_to_rad(26.0)          # medido: na pose de tiro o braço desce 26°
 
 
 func _troca_arma(nova: String) -> void:
@@ -473,6 +470,8 @@ func _atira() -> void:
 		return
 	_encara = 0.7
 	_tiro_t = 0.0
+	if multiplayer.is_server():  # quem roda os zumbis ouve aqui; os tiros dos clientes chegam por _rede_tiro
+		Zumbi.barulho(get_tree(), global_position, Pistola.BARULHO)
 	if camera:
 		camera.coice(Pistola.COICE)
 	if multiplayer.has_multiplayer_peer() and multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
@@ -482,6 +481,8 @@ func _atira() -> void:
 @rpc("authority", "call_remote", "unreliable")
 func _rede_tiro(ponto: Vector3, bateu: bool) -> void:
 	pistola.efeito(ponto, bateu)
+	if multiplayer.is_server():
+		Zumbi.barulho(get_tree(), global_position, Pistola.BARULHO)
 
 
 ## O corpo fica virado para a câmera? (mirando, logo depois do tiro, ou com a pistola sem correr)
@@ -543,18 +544,20 @@ func _osso_de_cima(osso: String) -> bool:
 		or osso.ends_with("Spine2") or osso.contains("Neck") or osso.contains("Head")
 
 
-# o clipe de mira vira o corpo de lado; gira o peito para o braço apontar para a frente e
-# inclina para cima/baixo seguindo a câmera (o braço acompanha a mira)
+# gira o peito para o braço direito apontar exatamente para a mira (frente do corpo inclinada pelo ângulo da
+# câmera). Mede o braço como está agora, então serve em pé, agachado, andando ou com a pose de tiro torta.
 func _aponta_tronco(peso: float) -> void:
+	var xf: Transform3D = _esq.global_transform
+	var ombro: Vector3 = xf * _esq.get_bone_global_pose(_esq.find_bone("mixamorig_RightArm")).origin
+	var mao: Vector3 = xf * _esq.get_bone_global_pose(_esq.find_bone(MAO)).origin
+	var p: float = camera.pitch if camera else 0.0
+	var frente: Vector3 = modelo.global_basis.z
+	frente.y = 0.0
+	var quer: Vector3 = (frente.normalized() * cos(p) - Vector3.UP * sin(p)).normalized()
+	var r: Quaternion = Quaternion.IDENTITY.slerp(Quaternion((mao - ombro).normalized(), quer), peso)
 	var ic: int = _esq.find_bone(TRONCO)
-	var pai: Basis = (_esq.global_transform.basis * _esq.get_bone_global_pose(_esq.get_bone_parent(ic)).basis).orthonormalized()
-	var cima: Vector3 = (pai.inverse() * Vector3.UP).normalized()
-	var lado: Vector3 = (pai.inverse() * modelo.global_basis.x).normalized()
-	var inclina: float = (camera.pitch if camera else 0.0) * INCLINA_TRONCO - ERGUE_BRACO
-	var q: Quaternion = _esq.get_bone_pose_rotation(ic)
-	q = Quaternion(cima, GIRO_TRONCO_PISTOLA * peso) * q
-	q = Quaternion(lado, inclina * peso) * q
-	_esq.set_bone_pose_rotation(ic, q)
+	var q_pai: Quaternion = (xf.basis * _esq.get_bone_global_pose(_esq.get_bone_parent(ic)).basis).orthonormalized().get_rotation_quaternion()
+	_esq.set_bone_pose_rotation(ic, (q_pai.inverse() * r * q_pai * _esq.get_bone_pose_rotation(ic)).normalized())
 
 
 # --- facão: combo de 3 golpes ---
