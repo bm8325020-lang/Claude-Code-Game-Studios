@@ -1,7 +1,7 @@
 # Bloco de notas — jogo de apocalipse zumbi
 
 Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem código, sem arte).
-Última atualização: 2026-10-24 (9ª conversa).
+Última atualização: 2026-10-24 (10ª conversa).
 
 ## Plataforma e formato
 - Celular **e** PC. Vai ser publicado na Play Store.
@@ -127,6 +127,9 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 ## Veículos
 - Carro normal e **carro blindado**.
 - **Chave** para invadir/usar os carros.
+- **Carro comprado** (com dinheiro): **vai com você** para o próximo servidor.
+- **Carro achado no mapa** (não comprado): é **do servidor**; quando você sai, ele **volta para um lugar
+  aleatório do mapa**.
 
 ## Sobrevivência
 - O jogo tem **munição**, **comida** e **água** (lojas perto da casa da facção vendem).
@@ -178,8 +181,10 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - Preços em dólar; pagar com cartão internacional ou PayPal (+ IOF). Conferir preço e licença no dia.
 
 ## Servidores
-- Indeciso: durar para sempre ou reiniciar. Ideia: escolher o mais leve; talvez **reiniciar só quando o servidor
-  estiver vazio ou com pouca gente**.
+- **Servidor com poucos jogadores (~5 ou menos)** não dá boa partida: esses jogadores são **reconectados
+  automaticamente** em outro servidor que tenha espaço (ex.: um servidor com 7–10 pessoas).
+- O servidor que esvaziou pode então ser **reiniciado/desligado** (mais leve).
+- (Facções reconectadas dominam uma casa nova no servidor novo; os itens do baú vão com a facção.)
 
 ## Loja com dinheiro real (só visual/conveniência, sem vantagem) — APROVADO, tudo abaixo
 - Roupas e visuais do personagem (máscaras, jaquetas, mochilas com visual diferente).
@@ -194,10 +199,12 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 ## Alertas anotados (para decidir depois)
 - Decidido: nada que dá vantagem é vendido com dinheiro real (evita "pay-to-win").
 - Voz no jogo: precisa de moderação (denúncia/silenciar), porque é jogo público na Play Store.
+- Carro comprado com **dinheiro real** daria vantagem (contra a regra "nada que dá vantagem com dinheiro real").
+  Opções: carro só com dinheiro do jogo; ou com dinheiro real só uma **pintura/visual** do carro.
 - Multiplayer de 30 jogadores + mapa grande + carros + PvP + destruição é o tipo de jogo mais difícil de
   fazer: precisa de servidor online pago por mês e muito teste com gente de verdade.
 - Caminho sugerido (não decidido): começar menor e crescer por etapas.
 
 ## Perguntas em aberto
-- O carro guardado na garagem: vai junto com a facção para o próximo servidor?
-- Servidor: para sempre ou reinicia (ainda indeciso).
+- Carro comprado: com **dinheiro do jogo** ou com **dinheiro real**? (ver alerta)
+- Onde se compra carro (concessionária na cidade, loja da facção)?
