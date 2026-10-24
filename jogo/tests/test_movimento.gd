@@ -45,7 +45,7 @@ func frames(n: int) -> void:
 func poe(p: Vector3, yaw: float = 0.0) -> void:
 	j.global_position = p
 	j.velocity = Vector3.ZERO
-	j.camera.yaw = yaw
+	j.camera.virar(yaw)
 	j.entrada = {"move": Vector2.ZERO, "olhar": Vector2.ZERO, "pular": false, "correr": false, "agachar": false, "andar": false, "mirar": false, "mira_segurando": null, "atacar": false}
 	j.mira_travada = false
 	if j.agachado:
@@ -76,7 +76,7 @@ func _velocidades() -> void:
 	await frames(30)
 	ok(absf(vel_plano() - Jogador.ANDAR * 0.4 / 0.55) < 0.25, "analógico pela metade = andar devagar (%.2f)" % vel_plano())
 	j.entrada["move"] = Vector2(1, 0)
-	j.camera.yaw = PI * 0.5
+	j.camera.virar(PI * 0.5)
 	await frames(30)
 	ok(j.velocity.z < -3.0, "direção segue o giro da câmera (%.2f)" % j.velocity.z)
 
@@ -280,6 +280,12 @@ func _mira_nova() -> void:
 	ok(absf(wrapf(j.modelo.rotation.y - (j.camera.yaw + PI), -PI, PI)) < 0.05, "mirando o corpo acompanha a câmera em 0,2 s")
 	await frames(30)
 	ok(vel_plano() <= Jogador.MIRA_VEL + 0.05, "mirando anda devagar (%.2f)" % vel_plano())
+	j.entrada["move"] = Vector2.ZERO
+	await frames(40)
+	await process_frame
+	var tela: Vector2 = j.camera.cam.get_viewport().get_visible_rect().size
+	var cabeca: Vector2 = j.camera.cam.unproject_position(j.global_position + Vector3(0, 1.4, 0))
+	ok(cabeca.x < tela.x * 0.42, "mirando o boneco sai do centro, para a esquerda (x=%.0f de %.0f)" % [cabeca.x, tela.x])
 	j.entrada["mira_segurando"] = false
 	await frames(3)
 	ok(not j.mira_travada, "soltar o botão direito para de mirar")

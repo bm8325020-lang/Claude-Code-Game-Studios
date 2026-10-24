@@ -10,8 +10,7 @@ func _init() -> void:
 	var j: Jogador = main.jogador
 	j.global_position = Vector3(-3, 0.1, 2.7)
 	j.reset_physics_interpolation()
-	j.camera.yaw = PI - 0.9
-	j.camera.pitch = deg_to_rad(8)
+	j.camera.virar(PI - 0.9, deg_to_rad(8))
 	j.modelo.rotation.y = 0.0
 	for i in 20: await process_frame
 	j.entrada["atacar"] = true
