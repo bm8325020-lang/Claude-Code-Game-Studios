@@ -1,7 +1,7 @@
 # Bloco de notas — jogo de apocalipse zumbi
 
 Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem código, sem arte).
-Última atualização: 2026-10-24 (15ª conversa).
+Última atualização: 2026-10-24 (16ª conversa).
 
 ## Plataforma e formato
 - **Câmera em terceira pessoa** (personagem visto de costas).
@@ -179,6 +179,8 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
     quem não tem procura.
 - **Baús** com loot.
 - **Sistema de tiro bom** contra zumbis (e para o PvP).
+- **Modo automático:** algumas armas têm a opção de ser **automáticas**; nelas o jogador **escolhe** numa opção
+  se quer automático ou não. Outras armas não têm essa opção.
 
 ## Zumbis
 - Todo tipo de zumbi possível.
@@ -227,5 +229,6 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - Caminho sugerido (não decidido): começar menor e crescer por etapas.
 
 ## Perguntas em aberto
-- No celular: mira automática/assistida ou mira manual?
-- Nome do jogo (mesmo provisório)?
+- Mira no celular: o jogo **ajuda a mirar** (puxa a mira para o alvo) ou a mira é **toda manual**?
+  (A resposta anterior foi sobre tiro automático da arma.)
+- Nome do jogo: **sem nome por enquanto** — pensar no futuro.
