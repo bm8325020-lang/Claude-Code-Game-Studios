@@ -2,7 +2,7 @@
 # melhores (pulo, agachar, facão): essas são convertidas para o esqueleto do X Bot ao carregar. Os .fbx ficam em assets/mixamo/ e NÃO vão para o git
 # (a licença do Mixamo não deixa redistribuir os arquivos brutos); quem clona precisa baixar de novo.
 # O jogo pede animações por nome lógico ("parado", "andar"...); CLIPES diz qual arquivo toca e que trecho
-# ("kaykit:<clipe>" = clipe do pacote KayKit convertido).
+# ("kaykit:<clipe>" = clipe do pacote KayKit convertido; "proprio:<nome>" = feito à mão em golpes.gd).
 # Variante "<nome>_p" = mesma ação segurando a pistola (o Jogador usa quando a pistola está na mão).
 class_name Anims
 extends RefCounted
@@ -21,9 +21,8 @@ const CLIPES: Dictionary = {
 	"lado_esq": ["rifle/strafe_2", 0.0, -1.0], "lado_dir": ["rifle/strafe", 0.0, -1.0],
 	"tras": ["rifle/run_backwards", 0.0, -1.0],
 	"morte": ["kaykit:Death_A", 0.0, -1.0],
-	"golpe1": ["kaykit:Melee_1H_Attack_Slice_Horizontal", 0.0, -1.0],
-	"golpe2": ["kaykit:Melee_1H_Attack_Slice_Diagonal", 0.0, -1.0],
-	"golpe3": ["kaykit:Melee_1H_Attack_Chop", 0.0, -1.0],
+	"golpe1": ["proprio:golpe1", 0.0, -1.0], "golpe2": ["proprio:golpe2", 0.0, -1.0],
+	"golpe3": ["proprio:golpe3", 0.0, -1.0],
 	"pistola_mira": ["soltas/shooting", 0.0, 0.1], "pistola_tiro": ["soltas/shooting", 0.13, 0.6],
 	"pistola_recarga": ["soltas/reloading", 0.0, 2.75],
 	"parado_p": ["pistola/pistol_idle", 0.0, -1.0], "andar_p": ["pistola/pistol_walk", 0.0, -1.0],
@@ -74,7 +73,9 @@ static func _monta(clipes: Dictionary, nao_repete: Array[String]) -> AnimationLi
 	for logico: String in clipes:
 		var c: Array = clipes[logico]
 		if not cache.has(c[0]):
-			if String(c[0]).begins_with("kaykit:"):
+			if String(c[0]).begins_with("proprio:"):
+				cache[c[0]] = Golpes.cria(String(c[0]).get_slice(":", 1))
+			elif String(c[0]).begins_with("kaykit:"):
 				cache[c[0]] = Retarget.converte(String(c[0]).get_slice(":", 1))
 			else:
 				var cena: Node = (load(PASTA + c[0] + ".fbx") as PackedScene).instantiate()

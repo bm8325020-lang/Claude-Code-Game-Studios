@@ -263,6 +263,7 @@ quando você aprovar.
    cai com a vida zerada e volta no início em 4 s (o resgate com a raid vem depois). Em rede: o servidor
    manda nos zumbis; golpe/tiro do cliente vira pedido ao servidor.
    APK 0.10 antes disso: pulo, agachar e facão da KayKit convertidos para o X Bot (pedido do dono).
+   APK 0.12: golpes do facão feitos à mão (scripts/golpes.gd), pedido do dono — os prontos não agradaram.
 6. ...depois cada comportamento de zumbi, um por vez, e assim por diante.
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)

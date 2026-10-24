@@ -26,11 +26,11 @@ const GIRO_MIRA: float = 30.0      # mirando o corpo acompanha a câmera quase n
 ## Golpes do facão em sequência (aperta de novo durante o golpe = próximo do combo).
 ## acerto: fração do clipe em que a lâmina pega; arco em graus na frente do corpo; alcance em metros.
 const GOLPES: Array[Dictionary] = [
-	{"clipe": "golpe1", "acerto": 0.38, "dano": 25, "alcance": 1.8, "arco": 120.0},
-	{"clipe": "golpe2", "acerto": 0.38, "dano": 25, "alcance": 1.8, "arco": 120.0},
+	{"clipe": "golpe1", "acerto": 0.42, "dano": 25, "alcance": 1.8, "arco": 120.0},
+	{"clipe": "golpe2", "acerto": 0.37, "dano": 25, "alcance": 1.8, "arco": 120.0},
 	{"clipe": "golpe3", "acerto": 0.45, "dano": 45, "alcance": 2.0, "arco": 90.0},
 ]
-const VEL_GOLPE: float = 1.25      # velocidade dos clipes de golpe (mais ágil que o original)
+const VEL_GOLPE: float = 1.0       # os golpes feitos à mão já têm o tempo certo
 const PARADA_ACERTO: float = 0.07  # congela a animação um instante quando acerta (peso do golpe)
 
 ## Entrada do frame: move (Vector2, -1..1, y = frente), olhar (Vector2, graus), pular (bool, apertou agora),
