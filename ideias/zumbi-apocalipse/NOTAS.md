@@ -244,6 +244,11 @@ quando você aprovar.
      para onde a câmera olha e anda de lado/de costas.
    - **Mudar de direção no ar** durante o pulo.
 2. **Dois jogadores se vendo** andar em rede.
+   **Status: feito, APK 0.4 enviado — aguardando teste com 2 celulares no mesmo Wi-Fi.**
+   - Menu: nome, jogar sozinho, criar partida, lista de partidas achadas no Wi-Fi, ou digitar o IP.
+   - Quem cria vê o próprio IP na tela. Cada aparelho manda a posição do seu jogador 30x por segundo.
+   - Por enquanto os jogadores se atravessam (sem colisão entre eles) e só funciona no mesmo Wi-Fi;
+     jogar pela internet precisa do servidor de verdade (etapa "Servidor de verdade").
 3. **Arma branca** (um facão): golpe, acerto, impacto.
 4. **Arma de fogo** (uma pistola): mira manual, tiro, recarga.
 5. **Um zumbi simples**: anda até você, ataca, morre.

@@ -19,6 +19,8 @@ func _init() -> void:
 	main = (load("res://main.tscn") as PackedScene).instantiate()
 	root.add_child(main)
 	await frames(10)
+	main.iniciar_solo("Teste")
+	await frames(5)
 	j = main.jogador
 	main.controles.jogador = null  # o teclado não mexe: o teste dirige a entrada
 	await _velocidades()

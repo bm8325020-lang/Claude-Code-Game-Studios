@@ -2,21 +2,128 @@
 # escada, túnel baixo para agachar, muros para testar a câmera contra paredes e um "carro" parado.
 extends Node3D
 
+## O jogador deste aparelho (null até a partida começar).
 var jogador: Jogador
 var controles: Controles
+var rede: Rede
+var menu: Menu
+var jogadores: Node3D
+var spawner: MultiplayerSpawner
+var nick_local: String = "Jogador"
 
 
 func _ready() -> void:
 	_luz()
 	_chao()
 	_obstaculos()
-	jogador = Jogador.new()
-	jogador.name = "Jogador"
-	add_child(jogador)
-	jogador.global_position = Vector3(0, 0.1, 0)
+	jogadores = Node3D.new()
+	jogadores.name = "Jogadores"
+	add_child(jogadores)
+	spawner = MultiplayerSpawner.new()
+	spawner.name = "Spawner"
+	add_child(spawner)
+	spawner.spawn_path = spawner.get_path_to(jogadores)
+	spawner.spawn_function = _cria_jogador
+	jogadores.child_entered_tree.connect(_jogador_entrou)
+	rede = Rede.new()
+	rede.name = "Rede"
+	add_child(rede)
 	controles = Controles.new()
-	controles.jogador = jogador
 	add_child(controles)
+	multiplayer.peer_connected.connect(_peer_conectou)
+	multiplayer.peer_disconnected.connect(_peer_saiu)
+	menu = Menu.new()
+	menu.main = self
+	add_child(menu)
+
+
+## Joga sozinho, sem rede.
+func iniciar_solo(nick: String = "Jogador") -> void:
+	nick_local = nick
+	_comeca()
+	spawner.spawn({"id": multiplayer.get_unique_id(), "pos": _ponto_inicial(0)})
+
+
+## Cria a partida neste aparelho (vira o servidor) e já entra nela.
+func criar_partida(nick: String) -> Error:
+	nick_local = nick
+	var err: Error = rede.criar(nick)
+	if err != OK:
+		return err
+	_comeca()
+	spawner.spawn({"id": 1, "pos": _ponto_inicial(0)})
+	_aviso("Partida criada. IP para o amigo: " + ", ".join(ips_locais()))
+	return OK
+
+
+## Entra na partida de outro aparelho; o servidor cria o nosso jogador quando a conexão fecha.
+func entrar_partida(ip: String, nick: String) -> Error:
+	nick_local = nick
+	var err: Error = rede.entrar(ip)
+	if err != OK:
+		return err
+	_comeca()
+	return OK
+
+
+## IPs deste aparelho na rede local (o amigo digita um deles se a busca automática não achar).
+static func ips_locais() -> Array[String]:
+	var out: Array[String] = []
+	for ip: String in IP.get_local_addresses():
+		if ip.begins_with("192.168.") or ip.begins_with("10.") or ip.begins_with("172."):
+			out.append(ip)
+	return out
+
+
+func _aviso(texto: String) -> void:
+	var camada := CanvasLayer.new()
+	var l := Label.new()
+	l.text = texto
+	l.position = Vector2(20, 14)
+	l.add_theme_font_size_override("font_size", 24)
+	l.add_theme_color_override("font_outline_color", Color.BLACK)
+	l.add_theme_constant_override("outline_size", 6)
+	camada.add_child(l)
+	add_child(camada)
+
+
+func _comeca() -> void:
+	menu.visible = false
+	rede.parar_procura()
+
+
+func _peer_conectou(id: int) -> void:
+	if multiplayer.is_server():
+		spawner.spawn({"id": id, "pos": _ponto_inicial(jogadores.get_child_count())})
+
+
+func _peer_saiu(id: int) -> void:
+	var n: Node = jogadores.get_node_or_null(str(id))
+	if n:
+		n.queue_free()
+
+
+func _ponto_inicial(i: int) -> Vector3:
+	return Vector3(2.0 * float(i % 6), 0.1, 2.0 * float(i / 6))
+
+
+# roda em todos os aparelhos (o spawner replica): cria o boneco; o dono controla
+func _cria_jogador(dados: Dictionary) -> Node:
+	var id: int = int(dados.id)
+	var j := Jogador.new()
+	j.name = str(id)
+	j.set_multiplayer_authority(id)
+	j.local = id == multiplayer.get_unique_id()
+	j.position = dados.pos
+	return j
+
+
+func _jogador_entrou(n: Node) -> void:
+	var j := n as Jogador
+	if j and j.local:
+		jogador = j
+		j.nick = nick_local
+		controles.jogador = j
 
 
 func _luz() -> void:

@@ -32,6 +32,18 @@ var agachado: bool = false
 var mira_travada: bool = false
 var correndo: bool = false
 var camera: CameraTerceira
+## Rede: true no aparelho que controla este jogador (só ele tem câmera e lê os controles).
+var local: bool = true
+## Estado enviado pela rede (o dono escreve, os outros aparelhos leem e suavizam).
+var pos_rede: Vector3
+var rot_rede: float = 0.0
+var clipe_rede: String = "parado"
+var nick: String = "":
+	set(v):
+		nick = v
+		if _placa:
+			_placa.text = v
+var _placa: Label3D
 var modelo: Node3D
 var anim: AnimationPlayer
 
@@ -68,9 +80,42 @@ func _ready() -> void:
 	_teto.enabled = true
 	add_child(_teto)
 	_monta_modelo()
-	camera = CameraTerceira.new()
-	camera.alvo = self
-	add_child(camera)
+	_placa = Label3D.new()
+	_placa.text = nick
+	_placa.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_placa.position.y = ALTURA_EM_PE + 0.35
+	_placa.font_size = 48
+	_placa.pixel_size = 0.004
+	_placa.outline_size = 10
+	_placa.no_depth_test = true
+	_placa.visible = not local  # o nome aparece em cima dos outros, não no seu
+	add_child(_placa)
+	pos_rede = global_position
+	_monta_sincronia()
+	if local:
+		camera = CameraTerceira.new()
+		camera.alvo = self
+		add_child(camera)
+	else:
+		collision_layer = 4  # os outros jogadores: não empurram a sua física local por enquanto
+
+
+# o que vai pela rede: posição e giro sempre (30x/s), animação, agachado e nome quando mudam
+func _monta_sincronia() -> void:
+	var cfg := SceneReplicationConfig.new()
+	for p: String in [".:pos_rede", ".:rot_rede"]:
+		cfg.add_property(NodePath(p))
+		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
+	for p: String in [".:clipe_rede", ".:agachado", ".:nick"]:
+		cfg.add_property(NodePath(p))
+		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+	var sync := MultiplayerSynchronizer.new()
+	sync.name = "Sincronia"
+	sync.root_path = NodePath("..")
+	sync.replication_interval = 1.0 / 30.0
+	sync.replication_config = cfg
+	sync.set_multiplayer_authority(get_multiplayer_authority())  # criado depois: herda o dono à mão
+	add_child(sync)
 
 
 func _monta_modelo() -> void:
@@ -83,6 +128,9 @@ func _monta_modelo() -> void:
 
 
 func _physics_process(dt: float) -> void:
+	if not local:
+		_segue_rede(dt)
+		return
 	var mov: Vector2 = entrada.get("move", Vector2.ZERO)
 	if mov.length() > 1.0:
 		mov = mov.normalized()
@@ -154,6 +202,23 @@ func _physics_process(dt: float) -> void:
 		var ang: float = atan2(plano.x, plano.z)
 		modelo.rotation.y = lerp_angle(modelo.rotation.y, ang, 1.0 - exp(-GIRO * dt))
 	_anima(dt, plano.length())
+	pos_rede = global_position
+	rot_rede = modelo.rotation.y
+	clipe_rede = _clipe
+
+
+# jogador de outro aparelho: vai suave até a última posição recebida e toca a mesma animação
+func _segue_rede(dt: float) -> void:
+	var antes: Vector3 = global_position
+	if global_position.distance_to(pos_rede) > 6.0:
+		global_position = pos_rede  # pulou longe (teleporte/lag grande): não arrasta pelo mapa
+	else:
+		global_position = global_position.lerp(pos_rede, 1.0 - exp(-15.0 * dt))
+	modelo.rotation.y = lerp_angle(modelo.rotation.y, rot_rede, 1.0 - exp(-15.0 * dt))
+	_toca(clipe_rede, 0.18)
+	var vel: float = Vector2(global_position.x - antes.x, global_position.z - antes.z).length() / maxf(dt, 0.001)
+	var base: float = float(Anims.VELOCIDADE.get(clipe_rede, 0.0))
+	anim.speed_scale = clampf(vel / base, 0.7, 1.5) if base > 0.1 and vel > 0.15 else 1.0
 
 
 func _alterna_agachar() -> void:

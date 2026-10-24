@@ -4,6 +4,8 @@ func _init() -> void:
 	var main: Node3D = (load("res://main.tscn") as PackedScene).instantiate()
 	root.add_child(main)
 	for i in 10: await physics_frame
+	main.iniciar_solo("Foto")
+	for i in 5: await physics_frame
 	main.controles.jogador = null
 	var j: Jogador = main.jogador
 	j.camera.yaw = 0.6

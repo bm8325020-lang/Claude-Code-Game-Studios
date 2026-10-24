@@ -9,7 +9,13 @@ extends CanvasLayer
 const RAIO_STICK: float = 110.0
 const BOTAO: float = 120.0
 
-var jogador: Jogador
+## O jogador controlado; os controles só aparecem (e o mouse só é capturado) quando a partida começa.
+var jogador: Jogador:
+	set(v):
+		jogador = v
+		visible = v != null
+		if v != null and not toque:
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 var toque: bool = false  # mostra os controles de toque
 
 var _stick_id: int = -1
@@ -30,8 +36,7 @@ func _ready() -> void:
 	toque = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
 	if toque:
 		_monta_toque()
-	else:
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	visible = jogador != null
 
 
 func _acoes() -> void:
