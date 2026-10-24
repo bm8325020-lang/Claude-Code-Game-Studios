@@ -1,7 +1,7 @@
 # Bloco de notas — jogo de apocalipse zumbi
 
 Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem código, sem arte).
-Última atualização: 2026-10-24 (19ª conversa).
+Última atualização: 2026-10-24 (20ª conversa).
 
 ## Plataforma e formato
 - **Câmera em terceira pessoa** (personagem visto de costas).
@@ -232,7 +232,19 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - Conclusão: atualização do app só para mudanças grandes (sistemas novos, correções); passe mensal pelo servidor.
 
 ## Plano em etapas (PROPOSTA — aguardando aprovação)
-Uma coisa de cada vez. Cada etapa termina com um **APK que você testa** e só seguimos quando você aprovar.
+**Regra do dono:** uma **mecânica pequena de cada vez**, feita o mais perfeita possível, antes de ir para a
+próxima. Nada de várias mecânicas juntas. Cada mecânica termina com um **APK que você testa** e só seguimos
+quando você aprovar.
+
+### Primeiras mecânicas, uma por vez
+1. **Andar** em terceira pessoa (andar, correr, agachar, pular) + **câmera** — celular e PC.
+2. **Dois jogadores se vendo** andar em rede.
+3. **Arma branca** (um facão): golpe, acerto, impacto.
+4. **Arma de fogo** (uma pistola): mira manual, tiro, recarga.
+5. **Um zumbi simples**: anda até você, ataca, morre.
+6. ...depois cada comportamento de zumbi, um por vez, e assim por diante.
+
+### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)
 1. **Andar e atirar com 2 jogadores** — terceira pessoa, controles de celular e PC, 1 arma de fogo + 1 arma
    branca, mira manual, zumbis simples num quarteirão. Já em rede (multiplayer desde o início, porque colocar
    depois é muito mais difícil). Pergunta do teste: "é gostoso de mexer e atirar?"
