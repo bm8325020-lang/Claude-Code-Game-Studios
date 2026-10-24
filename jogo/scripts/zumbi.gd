@@ -5,6 +5,8 @@
 # achar ninguém, volta para casa.
 # Mecânica 7: chama a horda. Ao achar alguém, para e grita; os zumbis a até GRITO_RAIO sem alvo vêm atrás da
 # mesma pessoa, mesmo sem ver. Grita no máximo uma vez a cada GRITO_PAUSA (os chamados não gritam de novo).
+# Mecânica 8: cercar. Vários atrás da mesma pessoa se espalham em volta dela (cada um vai para um lado, na
+# ordem em que já estão, para não se cruzarem) e só fecham quando chegam perto.
 # Quem decide tudo é o servidor (ou o aparelho jogando sozinho); os outros só recebem posição, giro,
 # animação e vida. Golpe e tiro de um cliente viram um pedido para o servidor.
 class_name Zumbi
@@ -32,6 +34,8 @@ const PROCURA: float = 4.0         # s olhando em volta onde ouviu
 const VOLTA: float = 0.9           # m/s voltando para casa
 const GRITO_RAIO: float = 22.0
 const GRITO_PAUSA: float = 20.0
+const CERCO: float = 3.0           # m: distância do ponto de cerco até o alvo
+const FECHA: float = 1.8           # m: com o alvo colado assim, ataca mesmo sem ter chegado no seu lado
 
 ## altura (acima dos pés) a partir da qual o tiro conta como na cabeça (o zumbi anda curvado)
 var altura_cabeca: float = 1.4
@@ -62,6 +66,8 @@ var _ouvido: Vector3               # onde ouviu o último barulho
 var _indo_ouvir: bool = false
 var _olhando_t: float = 0.0        # > 0: chegou no barulho e está procurando em volta
 var _voltando: bool = false
+var _cerco_ang: float = NAN        # ângulo (em volta do alvo) do lado que este zumbi pegou; NAN = vai direto
+var _fechando: bool = false        # já chegou no seu lado do cerco: agora vai direto no alvo
 var _grito_t: float = -1.0         # >= 0: gritando (parado)
 var _sem_gritar: float = 0.0       # > 0: não grita de novo ainda
 var _som: AudioStreamPlayer3D
@@ -161,6 +167,7 @@ func _physics_process(dt: float) -> void:
 	if _procura_t <= 0.0:
 		_procura_t = 0.3
 		_escolhe_alvo()
+		_calcula_cerco()
 	var desejada := Vector3.ZERO
 	if _cambaleio > 0.0:
 		_cambaleio -= dt
@@ -177,7 +184,16 @@ func _physics_process(dt: float) -> void:
 			_vira_para(d, dt * 2.0)
 			_ataca()
 		else:
-			desejada = _caminho(alvo.global_position, CORRER if d.length() < PERTO else ANDAR, dt)
+			var destino: Vector3 = alvo.global_position
+			if d.length() > CERCO * 2.5:
+				_fechando = false  # o alvo fugiu: monta o cerco de novo
+			if not is_nan(_cerco_ang) and not _fechando and d.length() > FECHA:
+				var lado: Vector3 = destino + Vector3(sin(_cerco_ang), 0, cos(_cerco_ang)) * CERCO
+				if _plano(lado - global_position) < 1.0:
+					_fechando = true
+				else:
+					destino = lado
+			desejada = _caminho(destino, CORRER if d.length() < PERTO else ANDAR, dt)
 	elif _olhando_t > 0.0:
 		_olhando_t -= dt
 		modelo.rotation.y += dt * 1.2 * signf(sin(_olhando_t * 1.5))  # vira de um lado para o outro
@@ -269,8 +285,36 @@ func _escolhe_alvo() -> void:
 		_indo_ouvir = false
 		_olhando_t = 0.0
 		_voltando = false
+		_fechando = false
 		if _sem_gritar <= 0.0:
 			_grita()
+
+
+# divide a volta do alvo entre os zumbis que estão atrás dele: ordena pelo ângulo em que cada um já está e
+# espalha por igual, girando o conjunto o mínimo possível
+func _calcula_cerco() -> void:
+	_cerco_ang = NAN
+	if alvo == null:
+		return
+	var angs: Array[float] = []
+	var meu: float = 0.0
+	for n: Node in get_tree().get_nodes_in_group("zumbis"):
+		var z := n as Zumbi
+		if z.vida <= 0 or z.alvo != alvo:
+			continue
+		var d: Vector3 = z.global_position - alvo.global_position
+		var a: float = atan2(d.x, d.z)
+		angs.append(a)
+		if z == self:
+			meu = a
+	if angs.size() < 2:
+		return
+	angs.sort()
+	var passo: float = TAU / angs.size()
+	var giro := Vector2.ZERO  # média circular de (ângulo atual - posição na volta)
+	for k in angs.size():
+		giro += Vector2.from_angle(angs[k] - k * passo)
+	_cerco_ang = giro.angle() + angs.find(meu) * passo
 
 
 # para, grita e chama os zumbis em volta para o mesmo alvo
@@ -284,6 +328,7 @@ func _grita() -> void:
 		if z == self or z.vida <= 0 or z.alvo != null or z.global_position.distance_to(global_position) > GRITO_RAIO:
 			continue
 		z.alvo = alvo
+		z._fechando = false
 		z._sem_gritar = GRITO_PAUSA
 		z._indo_ouvir = false
 		z._olhando_t = 0.0

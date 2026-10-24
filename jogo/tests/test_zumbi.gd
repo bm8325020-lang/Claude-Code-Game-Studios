@@ -46,6 +46,7 @@ func _init() -> void:
 	await _jogador_cai()
 	await _ouve_tiro()
 	await _chama_horda()
+	await _cerca()
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
 
@@ -185,3 +186,39 @@ func _chama_horda() -> void:
 	z.alvo = null
 	await frames(20)
 	ok(z.alvo == j and z.clipe_atual() != "grito", "não grita de novo antes de %d s" % int(Zumbi.GRITO_PAUSA))
+
+
+func _cerca() -> void:
+	# três zumbis chegando pelo mesmo lado: em vez de fila, se espalham em volta do jogador
+	for outro in main.zumbis.get_children():
+		if outro != z:
+			outro.free()
+	var grupo: Array[Zumbi] = [z]
+	for k in 2:
+		var n := Zumbi.new()
+		main.zumbis.add_child(n)
+		grupo.append(n)
+	j.vida = 100000
+	j.velocity = Vector3.ZERO
+	j.global_position = Vector3(30, 0.1, -25)
+	for k in 3:
+		var zz: Zumbi = grupo[k]
+		zz.global_position = Vector3(29.0 + k, 0, -10.0 - k * 1.5)
+		zz.velocity = Vector3.ZERO
+		zz._sem_gritar = INF
+		zz.alvo = j
+	await frames(60 * 9)
+	var angs: Array[float] = []
+	for zz in grupo:
+		var d: Vector3 = zz.global_position - j.global_position
+		angs.append(atan2(d.x, d.z))
+	angs.sort()
+	var maior_vao: float = TAU - (angs[2] - angs[0])
+	for k in 2:
+		maior_vao = maxf(maior_vao, angs[k + 1] - angs[k])
+	ok(maior_vao < deg_to_rad(200.0), "se espalham em volta (maior vão %d°)" % int(rad_to_deg(maior_vao)))
+	var perto: int = 0
+	for zz in grupo:
+		if plano(zz.global_position, j.global_position) < 2.5:
+			perto += 1
+	ok(perto >= 2, "fecham o cerco e chegam perto (%d de 3)" % perto)

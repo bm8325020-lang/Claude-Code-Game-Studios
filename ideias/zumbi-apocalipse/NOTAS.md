@@ -272,7 +272,10 @@ quando você aprovar.
    som gerado no código); os zumbis a até 22 m sem alvo vêm atrás da mesma pessoa, mesmo sem ver. Grita no
    máximo a cada 20 s; os chamados não gritam. Bater nele interrompe o grito.
    APK 0.14 antes disso: de lado/de costas sem arma usam KayKit (as do rifle seguravam um rifle).
-8. ...depois cada comportamento de zumbi, um por vez (cercar, emboscar, abrir portas, fugir, cobertura, noite).
+8. **Zumbis cercam.** **Status: feito, APK 0.16.** Vários atrás da mesma pessoa dividem a volta dela (cada
+   um pega um lado a 3 m, na ordem em que já estão, sem se cruzar) e só fecham depois de chegar no seu lado
+   (ou com a vítima colada). Se ela foge para longe, o cerco é montado de novo.
+9. ...depois cada comportamento de zumbi, um por vez (emboscar, abrir portas, fugir, cobertura, noite).
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)
 1. **Andar e atirar com 2 jogadores** — terceira pessoa, controles de celular e PC, 1 arma de fogo + 1 arma
