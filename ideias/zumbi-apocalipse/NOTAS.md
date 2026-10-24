@@ -268,8 +268,8 @@ quando você aprovar.
    vão até o lugar do tiro (2 m/s, desviando), procuram em volta 4 s e, sem achar ninguém, voltam para casa.
    Se perdem o jogador de vista, vão procurar onde viram por último. Em rede, o servidor ouve os tiros de todos.
    Junto: agachado mirando corrigido (o peito gira medindo o braço a cada quadro; ajoelha com a pistola parado).
-7. **Zumbi chama a horda.** **Status: feito, APK 0.15.** Ao achar alguém, o zumbi para e grita (~1,8 s,
-   som gerado no código); os zumbis a até 22 m sem alvo vêm atrás da mesma pessoa, mesmo sem ver. Grita no
+7. **Zumbi chama a horda.** **Status: feito, APK 0.15.** Ao achar alguém, o zumbi para e grita (~1,8 s, gemido gravado
+   de Darsycho, CC0, um de 3 sorteado); os zumbis a até 22 m sem alvo vêm atrás da mesma pessoa, mesmo sem ver. Grita no
    máximo a cada 20 s; os chamados não gritam. Bater nele interrompe o grito.
    APK 0.14 antes disso: de lado/de costas sem arma usam KayKit (as do rifle seguravam um rifle).
 8. **Zumbis cercam.** **Status: feito, APK 0.16.** Vários atrás da mesma pessoa dividem a volta dela (cada

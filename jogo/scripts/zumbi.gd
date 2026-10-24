@@ -71,7 +71,9 @@ var _fechando: bool = false        # já chegou no seu lado do cerco: agora vai 
 var _grito_t: float = -1.0         # >= 0: gritando (parado)
 var _sem_gritar: float = 0.0       # > 0: não grita de novo ainda
 var _som: AudioStreamPlayer3D
-static var _som_grito: AudioStreamWAV
+## gemidos gravados (Darsycho, CC0); um sorteado por grito
+const SONS_GRITO: Array[String] = ["res://assets/sons/zumbi_grito_1.ogg", "res://assets/sons/zumbi_grito_2.ogg",
+	"res://assets/sons/zumbi_grito_3.ogg"]
 var _mat_pele: StandardMaterial3D
 
 
@@ -115,8 +117,6 @@ func _ready() -> void:
 	_som.max_db = 6.0
 	_som.unit_size = 6.0
 	add_child(_som)
-	if _som_grito == null:
-		_som_grito = _gera_grito()
 	_monta_sincronia()
 	_toca("parado", 0.0)
 	anim.seek(randf() * 3.0, true)  # cada um num ponto da animação
@@ -425,8 +425,8 @@ func _toca(clipe: String, mistura: float, de_novo: bool = false) -> void:
 		return
 	_clipe = clipe
 	if clipe == "grito":  # toca aqui para tocar também nos clientes (que recebem só o nome do clipe)
-		_som.stream = _som_grito
-		_som.pitch_scale = randf_range(0.85, 1.1)
+		_som.stream = load(SONS_GRITO.pick_random())
+		_som.pitch_scale = randf_range(0.9, 1.05)
 		_som.play()
 	if anim.has_animation(clipe):
 		anim.play(clipe, mistura)
@@ -438,34 +438,3 @@ func _toca(clipe: String, mistura: float, de_novo: bool = false) -> void:
 func clipe_atual() -> String:
 	return _clipe
 
-
-# grito rouco gerado no código (os pacotes grátis não têm voz de zumbi): dente-de-serra grave que sobe e
-# desce, com tremido, ruído de garganta e distorção
-static func _gera_grito() -> AudioStreamWAV:
-	var taxa: int = 22050
-	var dur: float = 1.5
-	var n: int = int(taxa * dur)
-	var dados := PackedByteArray()
-	dados.resize(n * 2)
-	var fase: float = 0.0
-	var fase2: float = 0.0
-	var ruido_f: float = 0.0
-	var saida: float = 0.0
-	for i in n:
-		var t: float = float(i) / taxa
-		var x: float = t / dur
-		var freq: float = lerpf(95.0, 165.0, sin(x * PI) ** 0.6) * (1.0 + 0.04 * sin(TAU * 7.0 * t))
-		fase = fmod(fase + freq / taxa, 1.0)
-		fase2 = fmod(fase2 + freq * 2.03 / taxa, 1.0)
-		var serra: float = 2.0 * fase - 1.0
-		ruido_f = lerpf(ruido_f, randf_range(-1.0, 1.0), 0.35)
-		var v: float = serra * 0.6 + (2.0 * fase2 - 1.0) * 0.25 + ruido_f * 0.55
-		v = tanh(v * 2.2)
-		saida = lerpf(saida, v, 0.45)  # tira o chiado agudo
-		var env: float = minf(t / 0.08, 1.0) * clampf((dur - t) / 0.35, 0.0, 1.0)
-		dados.encode_s16(i * 2, int(clampf(saida * env * 0.8, -1.0, 1.0) * 30000.0))
-	var w := AudioStreamWAV.new()
-	w.format = AudioStreamWAV.FORMAT_16_BITS
-	w.mix_rate = taxa
-	w.data = dados
-	return w
