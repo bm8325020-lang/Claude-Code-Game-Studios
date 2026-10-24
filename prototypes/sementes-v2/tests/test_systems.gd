@@ -23,6 +23,7 @@ func _init() -> void:
 	_check_basics()
 	_play_chain()
 	_check_hints()
+	_check_gates()
 	print("%s: %d checks, %d failed" % ["PASS" if fails == 0 else "FAIL", checks, fails])
 	quit(0 if fails == 0 else 1)
 
@@ -173,7 +174,8 @@ func _checkpoint(q: Quests, id: String) -> void:
 			ok(q.status("m02") == "active", "talking to the elder also starts m02")
 		"m02":
 			ok(q.items.count("nabo") == 0, "turnips handed in")
-			ok(q.status("s3") == "offered", "s3 offered after m02")
+		"m05":
+			ok(q.status("s3") == "offered", "s3 offered after m05 (its bells lie past the toll bridge)")
 		"m03":
 			ok(look.weapon == "Sword_Bronze" and q.items.weapon_damage() == 12, "first weapon from Joana")
 		"m04":
@@ -221,3 +223,49 @@ func _check_hints() -> void:
 	ok(Hud.next_hint(["move", "attack"], false, false) == "", "hint: arrow waits for a target")
 	ok(Hud.next_hint(["move", "attack"], false, true) == "talk", "hint: talk when someone has a !")
 	ok(Hud.next_hint(["move", "attack", "arrow", "talk"], true, true) == "", "hint: none left")
+# world/gates.gd: every gate names a real quest step and a hint; no quest step (main or side) ever sends the
+# player past a gate that is still closed at that point of the story; a gate opens at its step, and stays open
+# through a save round trip
+func _check_gates() -> void:
+	var data: Array = preload("res://world/gates.gd").DATA
+	ok(data.size() >= 4, "story gates exist")
+	var ids: Array = data.map(func(d: Dictionary) -> String: return str(d.id))
+	ok(ids.has("passo_escama") and ids.has("mina_portao"), "pass and mine gates")
+	for d: Dictionary in data:
+		var gq: Dictionary = Quests.quest(str(d.quest))
+		ok(not gq.is_empty() and int(d.step) < (gq.steps as Array).size(), "gate %s opens at a real step" % d.id)
+		ok(str(d.hint).length() > 10 and str(d.area) != "", "gate %s has a hint and an area" % d.id)
+	for qd: Dictionary in Quests.DATA:
+		var before: Dictionary = _closure(qd)
+		for i in (qd.steps as Array).size():
+			var st: Dictionary = Quests.step_of(qd, i)
+			for d: Dictionary in data:
+				if not (st.where in d.guards or st.target in d.guards):
+					continue
+				var open: bool = before.has(str(d.quest)) or (str(d.quest) == str(qd.id) and int(d.step) >= 0 and i >= int(d.step))
+				ok(open, "%s step %d (%s) is behind gate %s while it is closed" % [qd.id, i, st.target, d.id])
+	var Gates: GDScript = preload("res://world/gates.gd")
+	var q := Quests.new(Progression.new(), Items.new())
+	q.start_new()
+	var bridge: Dictionary = data[ids.find("ponte_dizimo")]
+	ok(not Gates.earned(bridge, q), "the toll bridge starts closed")
+	q.state["m05"] = "active"
+	q.step_i["m05"] = 1
+	ok(Gates.earned(bridge, q), "the toll bridge opens at m05 step 1")
+	ok(not Gates.earned(data[ids.find("passo_escama")], q), "the pass is still closed")
+	q.state["m14"] = "done"
+	var q2 := Quests.new(Progression.new(), Items.new())
+	q2.from_dict(q.to_dict())
+	ok(Gates.earned(data[ids.find("passo_escama")], q2) and Gates.earned(bridge, q2), "a loaded save keeps earned gates open")
+
+
+# quest ids that must be done before this quest can run (its requires, transitively)
+func _closure(qd: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	var todo: Array = (qd.requires as Array).duplicate()
+	while not todo.is_empty():
+		var id: String = str(todo.pop_back())
+		if not out.has(id):
+			out[id] = true
+			todo.append_array(Quests.quest(id).requires as Array)
+	return out
