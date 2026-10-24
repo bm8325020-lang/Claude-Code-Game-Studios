@@ -59,7 +59,13 @@ var vida: int = VIDA_MAX
 ## Avisa o HUD que levou dano.
 signal dano_levado(dano: int)
 var inicio: Vector3
+## provisório para testar: todos começam com lanterna; depois só quem achar uma no mapa
+var tem_lanterna: bool = true
 var _lanterna: SpotLight3D
+var _lanterna_mao: Node3D
+var _ponta: Node3D
+## direção da frente do modelo no espaço da mão esquerda (medida na pose parada)
+const LANTERNA_EIXO: Vector3 = Vector3(-0.511, 0.769, -0.384)
 var _morto_t: float = 0.0
 ## Parte de cima do corpo (mirar/atirar/recarregar) por cima das pernas; vai pela rede.
 var cima_rede: String = ""
@@ -136,15 +142,7 @@ func _ready() -> void:
 	add_child(_teto)
 	_monta_modelo()
 	_monta_arma()
-	# lanterna no peito: liga sozinha quando escurece (todos veem a luz dos outros)
-	_lanterna = SpotLight3D.new()
-	_lanterna.light_color = Color(1.0, 0.93, 0.8)
-	_lanterna.spot_range = 22.0
-	_lanterna.spot_angle = 28.0
-	_lanterna.light_energy = 0.0
-	_lanterna.position = Vector3(0.12, 1.35, 0.25)
-	_lanterna.rotation.y = PI  # SpotLight aponta para -Z; o modelo olha para +Z
-	modelo.add_child(_lanterna)
+	_monta_lanterna()
 	_som = AudioStreamPlayer3D.new()
 	_som.max_db = 3.0
 	add_child(_som)
@@ -515,9 +513,7 @@ func _escolhe_cima() -> String:
 
 func _process(dt: float) -> void:
 	anim.advance(dt)
-	var c := get_tree().get_first_node_in_group("ciclo") as Ciclo
-	_lanterna.light_energy = 2.5 * clampf(c.noite() * 1.5 - 0.2, 0.0, 1.0) if c else 0.0
-	_lanterna.visible = _lanterna.light_energy > 0.0
+	_atualiza_lanterna()
 	var cima: String = cima_rede if not local else _escolhe_cima()
 	if cima != _cima_clipe:
 		if cima != "":
@@ -528,6 +524,75 @@ func _process(dt: float) -> void:
 	if _cima_peso > 0.0 and _cima_clipe != "":
 		_cima_t += dt
 		_aplica_cima(_cima_clipe, _cima_t, _cima_peso)
+
+
+# lanterna na mão esquerda (a direita é da arma). A luz sai da ponta mas aponta para onde o jogador olha,
+# senão o facho ficaria balançando com a animação do braço.
+func _monta_lanterna() -> void:
+	var mao := BoneAttachment3D.new()
+	mao.bone_name = "mixamorig_LeftHand"
+	_esq.add_child(mao)
+	_lanterna_mao = Node3D.new()
+	_lanterna_mao.quaternion = Quaternion(Vector3.UP, LANTERNA_EIXO.normalized())
+	_lanterna_mao.position = Vector3(0, 0.07, 0)
+	mao.add_child(_lanterna_mao)
+	var corpo := StandardMaterial3D.new()
+	corpo.albedo_color = Color(0.12, 0.12, 0.13)
+	corpo.metallic = 0.4
+	corpo.roughness = 0.5
+	_cilindro(0.02, 0.15, Vector3.ZERO, corpo)                      # cabo (eixo +Y = para onde aponta)
+	_cilindro(0.032, 0.05, Vector3(0, 0.095, 0), corpo)             # cabeça
+	var lente := StandardMaterial3D.new()
+	lente.albedo_color = Color(1, 0.95, 0.8)
+	lente.emission_enabled = true
+	lente.emission = Color(1, 0.93, 0.75)
+	_lente = _cilindro(0.027, 0.006, Vector3(0, 0.121, 0), lente)
+	_lente_mat = lente
+	_ponta = Node3D.new()
+	_ponta.position = Vector3(0, 0.13, 0)
+	_lanterna_mao.add_child(_ponta)
+	_lanterna = SpotLight3D.new()
+	_lanterna.light_color = Color(1.0, 0.93, 0.8)
+	_lanterna.spot_range = 24.0
+	_lanterna.spot_angle = 24.0
+	_lanterna.spot_attenuation = 0.8
+	_lanterna.light_energy = 0.0
+	add_child(_lanterna)
+
+
+var _lente: MeshInstance3D
+var _lente_mat: StandardMaterial3D
+
+
+func _cilindro(raio: float, alto: float, pos: Vector3, m: Material) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var c := CylinderMesh.new()
+	c.top_radius = raio
+	c.bottom_radius = raio
+	c.height = alto
+	c.radial_segments = 10
+	mi.mesh = c
+	mi.material_override = m
+	mi.position = pos
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_lanterna_mao.add_child(mi)
+	return mi
+
+
+func _atualiza_lanterna() -> void:
+	_lanterna_mao.visible = tem_lanterna
+	var c := get_tree().get_first_node_in_group("ciclo") as Ciclo
+	var forca: float = clampf(c.noite() * 1.5 - 0.2, 0.0, 1.0) if c and tem_lanterna and vida > 0 else 0.0
+	_lanterna.light_energy = 3.0 * forca
+	_lanterna.visible = forca > 0.0
+	_lente_mat.emission_energy_multiplier = 3.0 * forca
+	if forca > 0.0:
+		var p: float = camera.pitch if camera else 0.0
+		var frente: Vector3 = modelo.global_basis.z
+		frente.y = 0.0
+		var dir: Vector3 = (frente.normalized() * cos(p) - Vector3.UP * sin(p)).normalized()
+		_lanterna.global_position = _ponta.global_position
+		_lanterna.global_basis = Basis.looking_at(dir)  # SpotLight ilumina para -Z, que é o looking_at
 
 
 # sobrepõe nos ossos de cima a pose do clipe da pistola (as pernas continuam com a locomoção)

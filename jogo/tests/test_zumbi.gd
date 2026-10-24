@@ -236,7 +236,7 @@ func _noite() -> void:
 	ok(main.ciclo.sol.light_energy < 0.1 and main.ciclo.ambiente.background_color.v < 0.15, "escurece o sol e o céu")
 	await process_frame
 	await process_frame
-	ok(j._lanterna.visible and j._lanterna.light_energy > 1.0, "lanterna liga sozinha no escuro")
+	ok(j._lanterna.visible and j._lanterna.light_energy > 1.0 and j._lanterna_mao.visible, "lanterna na mão liga sozinha no escuro")
 	for outro in main.zumbis.get_children():
 		if outro != z:
 			outro.free()

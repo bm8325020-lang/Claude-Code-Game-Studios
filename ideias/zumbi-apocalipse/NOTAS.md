@@ -276,7 +276,7 @@ quando você aprovar.
    um pega um lado a 3 m, na ordem em que já estão, sem se cruzar) e só fecham depois de chegar no seu lado
    (ou com a vítima colada). Se ela foge para longe, o cerco é montado de novo.
 9. **Dia e noite.** **Status: feito, APK 0.18.** Dia 8 min, noite 5 min, 30 s de anoitecer/amanhecer; céu,
-   sol e névoa escurecem; lanterna no peito liga sozinha. À noite os zumbis correm 35% mais, batem 60% mais
+   sol e névoa escurecem; lanterna na mão esquerda liga sozinha (APK 0.20; provisório: todos começam com ela, depois só achando no mapa). À noite os zumbis correm 35% mais, batem 60% mais
    (15 -> 24) e ouvem o dobro (5 -> 10 m). Relógio no alto ("DIA — escurece em 1:30", laranja no último
    minuto). Servidor manda no horário. Provisório para teste: a partida começa 1 min 30 s antes da noite.
 10. **Zumbi de tocaia.** **Status: feito, APK 0.19.** Dois zumbis deitados como mortos (ao lado do carro e
