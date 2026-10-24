@@ -1,7 +1,7 @@
 # Bloco de notas — jogo de apocalipse zumbi
 
 Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem código, sem arte).
-Última atualização: 2026-10-24 (10ª conversa).
+Última atualização: 2026-10-24 (11ª conversa).
 
 ## Plataforma e formato
 - Celular **e** PC. Vai ser publicado na Play Store.
@@ -127,9 +127,12 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 ## Veículos
 - Carro normal e **carro blindado**.
 - **Chave** para invadir/usar os carros.
-- **Carro comprado** (com dinheiro): **vai com você** para o próximo servidor.
-- **Carro achado no mapa** (não comprado): é **do servidor**; quando você sai, ele **volta para um lugar
-  aleatório do mapa**.
+- **Não existe loja de carros.** Carro próprio só vem do **passe** (dinheiro real): o passe dá carros
+  (inclusive **blindados**) que você **equipa**.
+  - Carro do passe **vai com você** para o próximo servidor.
+- **Carros do mapa:** ficam espalhados e numa **concessionária abandonada** (cenário). Se ninguém pegou, você
+  passa um **lockpick** e leva.
+  - Carro do mapa é **do servidor**; quando você sai, ele **volta para um lugar aleatório do mapa**.
 
 ## Sobrevivência
 - O jogo tem **munição**, **comida** e **água** (lojas perto da casa da facção vendem).
@@ -197,14 +200,14 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - Mudar o nick, mais espaços de personagem.
 
 ## Alertas anotados (para decidir depois)
-- Decidido: nada que dá vantagem é vendido com dinheiro real (evita "pay-to-win").
+- Decidido: nada que dá vantagem é vendido com dinheiro real (evita "pay-to-win") — **exceto os carros do passe**.
 - Voz no jogo: precisa de moderação (denúncia/silenciar), porque é jogo público na Play Store.
-- Carro comprado com **dinheiro real** daria vantagem (contra a regra "nada que dá vantagem com dinheiro real").
-  Opções: carro só com dinheiro do jogo; ou com dinheiro real só uma **pintura/visual** do carro.
+- **Exceção decidida pelo dono:** os carros do passe (inclusive blindados) **dão vantagem** — o dono sabe e
+  aceitou. É a única exceção à regra "nada que dá vantagem com dinheiro real". Atenção à reação dos jogadores.
 - Multiplayer de 30 jogadores + mapa grande + carros + PvP + destruição é o tipo de jogo mais difícil de
   fazer: precisa de servidor online pago por mês e muito teste com gente de verdade.
 - Caminho sugerido (não decidido): começar menor e crescer por etapas.
 
 ## Perguntas em aberto
-- Carro comprado: com **dinheiro do jogo** ou com **dinheiro real**? (ver alerta)
-- Onde se compra carro (concessionária na cidade, loja da facção)?
+- O passe é por temporada (ex.: a cada 2 meses, com carros novos)? Tem versão grátis com recompensas menores?
+- Os carros do mapa também incluem blindados, ou blindado só pelo passe?
