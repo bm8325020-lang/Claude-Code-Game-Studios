@@ -291,8 +291,8 @@ func _physics_process(dt: float) -> void:
 	if is_on_floor():
 		_no_ar_desde = 0.0
 
-	# mira travada: o corpo olha para a frente da câmera; senão vira para onde está andando (também no ar)
-	if mira_travada or _encara > 0.0:
+	# mirando ou com a pistola: o corpo olha para a frente da câmera; senão vira para onde está andando
+	if olha_camera():
 		modelo.rotation.y = lerp_angle(modelo.rotation.y, yaw + PI, 1.0 - exp(-GIRO_MIRA * dt))
 	elif _golpe >= 0:
 		pass  # durante o golpe o corpo não gira (o golpe sai para onde você estava virado)
@@ -346,7 +346,7 @@ func _anima(dt: float, vel: float) -> void:
 		clipe = "agachado" if vel < 0.2 else "agachado_andar"
 	elif vel < 0.15:
 		clipe = "parado"
-	elif mira_travada:
+	elif olha_camera():
 		clipe = _clipe_mirando()
 	elif vel < 3.0:
 		clipe = "andar"
@@ -412,6 +412,11 @@ func _rede_tiro(ponto: Vector3, bateu: bool) -> void:
 	pistola.efeito(ponto, bateu)
 
 
+## O corpo fica virado para a câmera? (mirando, logo depois do tiro, ou com a pistola sem correr)
+func olha_camera() -> bool:
+	return mira_travada or _encara > 0.0 or (arma == "pistola" and not correndo)
+
+
 # pose da parte de cima: recarregar > tiro recente > mirando/encarando > segurando a pistola
 func _escolhe_cima() -> String:
 	if arma != "pistola":
@@ -420,7 +425,7 @@ func _escolhe_cima() -> String:
 		return "pistola_recarga"
 	if _tiro_t < 0.18:
 		return "pistola_tiro"
-	if mira_travada or _encara > 0.0:
+	if olha_camera():
 		return "pistola_mira"
 	return ""
 

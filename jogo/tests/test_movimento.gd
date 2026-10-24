@@ -352,4 +352,13 @@ func _pistola() -> void:
 	j.entrada["arma"] = "facao"
 	await frames(3)
 	ok(not j.pistola.recarregando, "trocar de arma cancela a recarga")
+	# com a pistola, andando para o lado, o corpo continua virado para a câmera
+	await poe(Vector3(30, 0.1, 0), 1.0)
+	j.entrada["arma"] = "pistola"
+	j.entrada["move"] = Vector2(1, 0)
+	await frames(40)
+	ok(absf(wrapf(j.modelo.rotation.y - (j.camera.yaw + PI), -PI, PI)) < 0.05, "com a pistola o corpo acompanha a câmera")
+	j.entrada["move"] = Vector2.ZERO
+	j.entrada["arma"] = "facao"
+	await frames(3)
 	j.entrada["mira_segurando"] = null

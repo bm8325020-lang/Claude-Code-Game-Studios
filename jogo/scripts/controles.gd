@@ -50,7 +50,7 @@ func _ready() -> void:
 	_municao.add_theme_font_size_override("font_size", 30)
 	_municao.add_theme_color_override("font_outline_color", Color.BLACK)
 	_municao.add_theme_constant_override("outline_size", 6)
-	_municao.position = Vector2(24, 20)
+	_municao.position = Vector2(24, 70)  # abaixo do aviso da partida
 	add_child(_municao)
 	visible = jogador != null
 
