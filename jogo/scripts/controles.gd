@@ -1,7 +1,8 @@
 # Controles: transforma teclado/mouse (PC) e toque (celular) na `entrada` do Jogador.
-# PC: WASD anda, mouse gira a câmera, Shift corre, Alt anda devagar, Ctrl/C agacha, Espaço pula, Esc solta o mouse.
+# PC: WASD anda, mouse gira a câmera, Shift corre, Alt anda devagar, Ctrl/C agacha, Espaço pula,
+# botão direito do mouse liga/desliga a mira travada, Esc solta o mouse.
 # Celular: analógico que aparece onde o polegar esquerdo toca; arrastar no lado direito gira a câmera;
-# botões PULAR, CORRER (liga/desliga) e AGACHAR.
+# botões PULAR, CORRER (liga/desliga), AGACHAR e MIRA (canto inferior direito, liga/desliga a mira travada).
 class_name Controles
 extends CanvasLayer
 
@@ -21,6 +22,7 @@ var _base: Control
 var _pino: Control
 var _btn_correr: Button
 var _btn_agachar: Button
+var _btn_mira: Button
 
 
 func _ready() -> void:
@@ -65,6 +67,8 @@ func _process(_dt: float) -> void:
 		_btn_agachar.modulate = Color(1, 0.85, 0.4) if jogador.agachado else Color.WHITE
 	if _btn_correr:
 		_btn_correr.modulate = Color(1, 0.85, 0.4) if _correr_ligado else Color.WHITE
+	if _btn_mira:
+		_btn_mira.modulate = Color(1, 0.85, 0.4) if jogador.mira_travada else Color.WHITE
 
 
 func _input(ev: InputEvent) -> void:
@@ -76,6 +80,8 @@ func _input(ev: InputEvent) -> void:
 		elif ev is InputEventKey and (ev as InputEventKey).pressed and (ev as InputEventKey).keycode == KEY_ESCAPE:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		elif ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed:
+			if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_RIGHT:
+				jogador.entrada["mirar"] = true
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		return
 	var tela: Vector2 = get_viewport().get_visible_rect().size
@@ -109,7 +115,7 @@ func _input(ev: InputEvent) -> void:
 
 
 func _em_botao(p: Vector2) -> bool:
-	for b: Control in [_btn_correr, _btn_agachar, get_node_or_null("Pular") as Control]:
+	for b: Control in [_btn_correr, _btn_agachar, _btn_mira, get_node_or_null("Pular") as Control]:
 		if b and b.get_global_rect().grow(10).has_point(p):
 			return true
 	return false
@@ -122,12 +128,17 @@ func _monta_toque() -> void:
 	_pino = _circulo(90.0, Color(1, 1, 1, 0.45))
 	_base.add_child(_pino)
 	_pino.position = _base.size * 0.5 - _pino.size * 0.5
-	var pular := _botao("PULAR", Vector2(-BOTAO - 40, -BOTAO - 60))
+	# MIRA no canto inferior direito; os outros em arco em volta dele
+	_btn_mira = _botao("MIRA", Vector2(-BOTAO - 20, -BOTAO - 20))
+	_btn_mira.button_down.connect(func() -> void:
+		jogador.entrada["mirar"] = true
+		_correr_ligado = false)
+	var pular := _botao("PULAR", Vector2(-BOTAO * 2 - 45, -BOTAO - 45))
 	pular.name = "Pular"
 	pular.button_down.connect(func() -> void: jogador.entrada["pular"] = true)
-	_btn_correr = _botao("CORRER", Vector2(-BOTAO * 2 - 70, -BOTAO * 0.6 - 60))
+	_btn_correr = _botao("CORRER", Vector2(-BOTAO * 3 - 70, -BOTAO * 0.8 - 30))
 	_btn_correr.button_down.connect(func() -> void: _correr_ligado = not _correr_ligado)
-	_btn_agachar = _botao("AGACHAR", Vector2(-BOTAO - 40, -BOTAO * 2 - 90))
+	_btn_agachar = _botao("AGACHAR", Vector2(-BOTAO - 30, -BOTAO * 2 - 50))
 	_btn_agachar.button_down.connect(func() -> void:
 		jogador.entrada["agachar"] = true
 		_correr_ligado = false)

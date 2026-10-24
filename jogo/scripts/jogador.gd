@@ -10,7 +10,7 @@ const TROTE: float = 4.6
 const CORRER: float = 7.2
 const AGACHADO: float = 1.7
 const ACEL_CHAO: float = 22.0
-const ACEL_AR: float = 6.0
+const ACEL_AR: float = 18.0        # dá para mudar de direção no meio do pulo
 const FREIO: float = 28.0
 const GIRO: float = 12.0          # quão rápido o corpo vira para onde anda
 const GRAVIDADE: float = 24.0
@@ -22,11 +22,14 @@ const ALTURA_AGACHADO: float = 1.15
 const RAIO: float = 0.32
 
 ## Entrada do frame: move (Vector2, -1..1, y = frente), olhar (Vector2, graus), pular (bool, apertou agora),
-## correr (bool, segurando), agachar (bool, alternou agora), andar (bool, segurando: passo lento no PC).
+## correr (bool, segurando), agachar (bool, alternou agora), andar (bool, segurando: passo lento no PC),
+## mirar (bool, alternou agora: liga/desliga a mira travada).
 var entrada: Dictionary = {"move": Vector2.ZERO, "olhar": Vector2.ZERO, "pular": false, "correr": false,
-	"agachar": false, "andar": false}
+	"agachar": false, "andar": false, "mirar": false}
 
 var agachado: bool = false
+## Mira travada: o corpo fica virado para onde a câmera olha e anda de lado/de costas (modo tiro).
+var mira_travada: bool = false
 var correndo: bool = false
 var camera: CameraTerceira
 var modelo: Node3D
@@ -89,7 +92,10 @@ func _physics_process(dt: float) -> void:
 	if entrada.get("pular", false):
 		_buffer = BUFFER_PULO
 		entrada["pular"] = false
-	correndo = bool(entrada.get("correr", false)) and not agachado and mov.y > 0.3
+	if entrada.get("mirar", false):
+		mira_travada = not mira_travada
+		entrada["mirar"] = false
+	correndo = bool(entrada.get("correr", false)) and not agachado and not mira_travada and mov.y > 0.3
 
 	# direção relativa à câmera (só o giro horizontal)
 	var yaw: float = camera.yaw if camera else 0.0
@@ -141,8 +147,10 @@ func _physics_process(dt: float) -> void:
 	if is_on_floor():
 		_no_ar_desde = 0.0
 
-	# o corpo vira para onde está andando
-	if plano.length() > 0.3:
+	# mira travada: o corpo olha para a frente da câmera; senão vira para onde está andando (também no ar)
+	if mira_travada:
+		modelo.rotation.y = lerp_angle(modelo.rotation.y, yaw + PI, 1.0 - exp(-GIRO * 1.5 * dt))
+	elif plano.length() > 0.3:
 		var ang: float = atan2(plano.x, plano.z)
 		modelo.rotation.y = lerp_angle(modelo.rotation.y, ang, 1.0 - exp(-GIRO * dt))
 	_anima(dt, plano.length())
@@ -172,6 +180,8 @@ func _anima(dt: float, vel: float) -> void:
 		clipe = "agachado" if vel < 0.2 else "agachado_andar"
 	elif vel < 0.15:
 		clipe = "parado"
+	elif mira_travada:
+		clipe = _clipe_mirando()
 	elif vel < 3.0:
 		clipe = "andar"
 	elif vel < 6.0:
@@ -182,6 +192,14 @@ func _anima(dt: float, vel: float) -> void:
 	# pés acompanham o chão: escala a velocidade do clipe pela velocidade real
 	var base: float = float(Anims.VELOCIDADE.get(clipe, 0.0))
 	anim.speed_scale = clampf(vel / base, 0.7, 1.5) if base > 0.1 and vel > 0.15 else 1.0
+
+
+# andando com a mira travada: frente, lados ou costas conforme a direção em relação ao corpo
+func _clipe_mirando() -> String:
+	var local: Vector3 = modelo.global_transform.basis.inverse() * Vector3(velocity.x, 0, velocity.z)
+	if absf(local.x) > absf(local.z):
+		return "lado_esq" if local.x > 0.0 else "lado_dir"
+	return "trote" if local.z > 0.0 else "tras"
 
 
 func _toca(clipe: String, mistura: float) -> void:

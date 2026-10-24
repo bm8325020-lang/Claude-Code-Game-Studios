@@ -238,7 +238,11 @@ quando você aprovar.
 
 ### Primeiras mecânicas, uma por vez
 1. **Andar** em terceira pessoa (andar, correr, agachar, pular) + **câmera** — celular e PC.
-   **Status: feito, APK 0.1 enviado — aguardando seu teste.** Projeto em `jogo/`.
+   **Status: feito, APK 0.3 enviado — aguardando seu teste.** Projeto em `jogo/`.
+   - Animações de teste: KayKit (CC0) no manequim; trocar pelas do Mixamo quando o dono mandar.
+   - **Mira travada:** botão MIRA no canto inferior direito (PC: botão direito do mouse); o corpo fica virado
+     para onde a câmera olha e anda de lado/de costas.
+   - **Mudar de direção no ar** durante o pulo.
 2. **Dois jogadores se vendo** andar em rede.
 3. **Arma branca** (um facão): golpe, acerto, impacto.
 4. **Arma de fogo** (uma pistola): mira manual, tiro, recarga.

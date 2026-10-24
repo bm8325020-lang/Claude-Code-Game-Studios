@@ -4,6 +4,7 @@ class_name CameraTerceira
 extends Node3D
 
 const DISTANCIA: float = 3.4
+const DISTANCIA_MIRA: float = 2.3   # mira travada: câmera chega mais perto do ombro
 const OMBRO: float = 0.55           # deslocamento para a direita (por cima do ombro)
 const ALTURA_EM_PE: float = 1.55
 const ALTURA_AGACHADO: float = 1.05
@@ -60,3 +61,4 @@ func _process(dt: float) -> void:
 	global_position = Vector3(p.x, _y_suave + _altura, p.z)
 	rotation = Vector3(-pitch, yaw, 0)
 	cam.fov = lerpf(cam.fov, FOV_CORRENDO if alvo.correndo else FOV, 1.0 - exp(-6.0 * dt))
+	braco.spring_length = lerpf(braco.spring_length, DISTANCIA_MIRA if alvo.mira_travada else DISTANCIA, 1.0 - exp(-10.0 * dt))

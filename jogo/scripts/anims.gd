@@ -13,12 +13,15 @@ const NOMES: Dictionary = {
 	"parado": "Idle_A", "andar": "Walking_A", "trote": "Running_A", "correr": "Running_B",
 	"agachado": "Crouching", "agachado_andar": "Sneaking",
 	"pulo_inicio": "Jump_Start", "no_ar": "Jump_Idle", "pouso": "Jump_Land",
+	"lado_esq": "Running_Strafe_Left", "lado_dir": "Running_Strafe_Right", "tras": "Walking_Backwards",
 }
-const LOOPS: Array[String] = ["parado", "andar", "trote", "correr", "agachado", "agachado_andar", "no_ar"]
+const LOOPS: Array[String] = ["parado", "andar", "trote", "correr", "agachado", "agachado_andar", "no_ar",
+	"lado_esq", "lado_dir", "tras"]
 
 ## Velocidade (m/s) em que cada clipe de locomoção parece natural; o clipe é escalado pela velocidade real
 ## para os pés não deslizarem. Ajuste fino a olho.
-const VELOCIDADE: Dictionary = {"andar": 1.6, "trote": 4.2, "correr": 6.2, "agachado_andar": 1.4}
+const VELOCIDADE: Dictionary = {"andar": 1.6, "trote": 4.2, "correr": 6.2, "agachado_andar": 1.4,
+	"lado_esq": 3.6, "lado_dir": 3.6, "tras": 1.8}
 
 static var _lib: AnimationLibrary
 

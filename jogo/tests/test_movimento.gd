@@ -27,6 +27,8 @@ func _init() -> void:
 	await _rampas()
 	await _camera_parede()
 	await _animacoes()
+	await _controle_no_ar()
+	await _mira_travada()
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
 
@@ -40,7 +42,8 @@ func poe(p: Vector3, yaw: float = 0.0) -> void:
 	j.global_position = p
 	j.velocity = Vector3.ZERO
 	j.camera.yaw = yaw
-	j.entrada = {"move": Vector2.ZERO, "olhar": Vector2.ZERO, "pular": false, "correr": false, "agachar": false, "andar": false}
+	j.entrada = {"move": Vector2.ZERO, "olhar": Vector2.ZERO, "pular": false, "correr": false, "agachar": false, "andar": false, "mirar": false}
+	j.mira_travada = false
 	if j.agachado:
 		j._alterna_agachar()
 	j.reset_physics_interpolation()
@@ -188,3 +191,37 @@ func _animacoes() -> void:
 	j.entrada["move"] = Vector2(0, 1)
 	await frames(20)
 	ok(esq.get_bone_pose_rotation(esq.find_bone("upperleg.l")) != antes, "a animação mexe os ossos do modelo")
+
+
+func _controle_no_ar() -> void:
+	# pulando para a frente, empurra para o lado no meio do pulo: a direção muda antes de pousar
+	await poe(Vector3(40, 0.1, 40), 0.0)
+	j.entrada["move"] = Vector2(0, 1)
+	await frames(20)
+	j.entrada["pular"] = true
+	await frames(8)
+	ok(not j.is_on_floor(), "está no ar")
+	j.entrada["move"] = Vector2(1, 0)
+	await frames(15)
+	ok(not j.is_on_floor() and j.velocity.x > 2.5, "muda de direção no meio do pulo (vx=%.2f)" % j.velocity.x)
+	ok(absf(j.velocity.z) < 2.0, "a velocidade para a frente cai no ar (vz=%.2f)" % j.velocity.z)
+
+
+func _mira_travada() -> void:
+	await poe(Vector3(40, 0.1, 30), 0.0)
+	j.entrada["mirar"] = true
+	await frames(5)
+	ok(j.mira_travada, "botão de mira liga a mira travada")
+	j.entrada["move"] = Vector2(1, 0)  # anda para a direita
+	await frames(40)
+	ok(absf(wrapf(j.modelo.rotation.y - (j.camera.yaw + PI), -PI, PI)) < 0.15, "com a mira travada o corpo olha para a frente da câmera")
+	ok(j.clipe_atual() in ["lado_esq", "lado_dir"], "andando de lado = animação de lado (%s)" % j.clipe_atual())
+	j.entrada["move"] = Vector2(0, -1)
+	await frames(30)
+	ok(j.clipe_atual() == "tras", "andando de costas = animação de costas (%s)" % j.clipe_atual())
+	j.entrada["correr"] = true
+	await frames(10)
+	ok(not j.correndo, "não corre com a mira travada")
+	j.entrada["mirar"] = true
+	await frames(5)
+	ok(not j.mira_travada, "aperta de novo e destrava")
