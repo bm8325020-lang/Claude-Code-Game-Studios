@@ -26,9 +26,9 @@ const GIRO_MIRA: float = 30.0      # mirando o corpo acompanha a câmera quase n
 ## Golpes do facão em sequência (aperta de novo durante o golpe = próximo do combo).
 ## acerto: fração do clipe em que a lâmina pega; arco em graus na frente do corpo; alcance em metros.
 const GOLPES: Array[Dictionary] = [
-	{"clipe": "golpe1", "acerto": 0.38, "dano": 25, "alcance": 1.8, "arco": 120.0},
-	{"clipe": "golpe2", "acerto": 0.38, "dano": 25, "alcance": 1.8, "arco": 120.0},
-	{"clipe": "golpe3", "acerto": 0.45, "dano": 45, "alcance": 2.0, "arco": 90.0},
+	{"clipe": "golpe1", "acerto": 0.48, "dano": 25, "alcance": 1.8, "arco": 120.0},
+	{"clipe": "golpe2", "acerto": 0.39, "dano": 25, "alcance": 1.8, "arco": 120.0},
+	{"clipe": "golpe3", "acerto": 0.43, "dano": 45, "alcance": 2.0, "arco": 90.0},
 ]
 const VEL_GOLPE: float = 1.25      # velocidade dos clipes de golpe (mais ágil que o original)
 const PARADA_ACERTO: float = 0.07  # congela a animação um instante quando acerta (peso do golpe)
@@ -97,8 +97,8 @@ var _cima_t: float = 0.0
 var _cima_clipe: String = ""
 var _encara: float = 0.0        # depois de atirar sem mirar, o corpo fica virado para a mira um instante
 var _tiro_t: float = 9.0
-const OSSOS_CIMA: Array[String] = ["chest", "upperarm.r", "lowerarm.r", "wrist.r", "hand.r",
-	"upperarm.l", "lowerarm.l", "wrist.l", "hand.l", "head"]
+const TRONCO: String = "mixamorig_Spine2"
+const MAO: String = "mixamorig_RightHand"
 
 
 func _ready() -> void:
@@ -171,6 +171,12 @@ func _monta_sincronia() -> void:
 func _monta_modelo() -> void:
 	modelo = (load(Anims.MODELO) as PackedScene).instantiate()
 	add_child(modelo)
+	# o material do X Bot vem rosado na importação: corpo cinza claro e juntas escuras
+	for m: MeshInstance3D in modelo.find_children("*", "MeshInstance3D", true, false):
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.2, 0.2, 0.22) if m.name.contains("Joints") else Color(0.78, 0.78, 0.8)
+		mat.roughness = 0.6
+		m.material_override = mat
 	anim = AnimationPlayer.new()
 	anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL  # avançado em _process
 	modelo.add_child(anim)
@@ -182,17 +188,19 @@ func _monta_modelo() -> void:
 func _monta_arma() -> void:
 	_esq = modelo.find_children("*", "Skeleton3D", true, false)[0]
 	var mao := BoneAttachment3D.new()
-	mao.bone_name = "hand.r"
+	mao.bone_name = MAO
 	_esq.add_child(mao)
 	_facao = (load("res://assets/armas/Sword_Bronze.gltf") as PackedScene).instantiate()
-	# a lâmina (eixo +Y do modelo) aponta para a frente da mão (medido na pose parada do manequim)
-	_facao.quaternion = Quaternion(Vector3.UP, Vector3(-0.965, 0.0, -0.264).normalized())
+	# a lâmina (eixo +Y do modelo) aponta para a frente da mão (medido na pose parada do X Bot)
+	_facao.quaternion = Quaternion(Vector3.UP, Vector3(0.975, 0.126, 0.185).normalized())
 	_facao.scale = Vector3.ONE * 0.75
 	mao.add_child(_facao)
 	pistola = Pistola.new()
 	pistola.name = "Pistola"
 	pistola.dono = self
-	pistola.basis = Basis(PISTOLA_X, PISTOLA_Y, PISTOLA_Z).orthonormalized()
+	var z: Vector3 = PISTOLA_FRENTE.normalized()
+	var x: Vector3 = PISTOLA_CIMA.cross(z).normalized()
+	pistola.basis = Basis(x, z.cross(x), z)  # cano (+Z) para a frente, ferrolho (+Y) para cima
 	pistola.position = PISTOLA_POS
 	mao.add_child(pistola)
 	arma = arma  # aplica a visibilidade
@@ -356,18 +364,19 @@ func _anima(dt: float, vel: float) -> void:
 		clipe = "correr"
 	_toca(clipe, 0.18)
 	# pés acompanham o chão: escala a velocidade do clipe pela velocidade real
-	var base: float = float(Anims.VELOCIDADE.get(clipe, 0.0))
+	var base: float = float(Anims.VELOCIDADE.get(_clipe, 0.0))
 	anim.speed_scale = clampf(vel / base, 0.5, 1.5) if base > 0.1 and vel > 0.15 else 1.0
 
 
 # --- pistola ---
 # Orientação da pistola na mão (eixos do modelo no espaço da mão: cano = +Z do modelo).
-const PISTOLA_X: Vector3 = Vector3(-0.050, 0.407, -0.911)  # medido na pose de mira (tools/_dbg)
-const PISTOLA_Y: Vector3 = Vector3(-0.981, -0.190, -0.031)
-const PISTOLA_Z: Vector3 = Vector3(-0.186, 0.893, 0.409)
+# frente e cima do mundo no espaço da mão, medidos na pose de mira olhando reto
+const PISTOLA_FRENTE: Vector3 = Vector3(-0.226, 0.884, 0.408)
+const PISTOLA_CIMA: Vector3 = Vector3(0.963, 0.140, 0.230)
 const PISTOLA_POS: Vector3 = Vector3(0, 0.08, 0)
-const GIRO_TRONCO_PISTOLA: float = deg_to_rad(65.4)  # medido: braço da pose de mira sai 65° para a direita
+const GIRO_TRONCO_PISTOLA: float = deg_to_rad(45.2)  # medido: o braço da pose de tiro sai 45° para a direita
 const INCLINA_TRONCO: float = 1.0                    # quanto o peito segue o ângulo vertical da câmera
+const ERGUE_BRACO: float = deg_to_rad(26.0)          # medido: na pose de tiro o braço desce 26°
 
 
 func _troca_arma(nova: String) -> void:
@@ -456,7 +465,7 @@ func _aplica_cima(clipe: String, t: float, peso: float) -> void:
 		if a.track_get_type(i) != Animation.TYPE_ROTATION_3D:
 			continue
 		var osso: String = String(a.track_get_path(i)).get_slice(":", 1)
-		if osso not in OSSOS_CIMA:
+		if not _osso_de_cima(osso):
 			continue
 		var idx: int = _esq.find_bone(osso)
 		var q: Quaternion = a.rotation_track_interpolate(i, t)
@@ -465,14 +474,20 @@ func _aplica_cima(clipe: String, t: float, peso: float) -> void:
 		_aponta_tronco(peso)
 
 
-# o clipe de mira do KayKit vira o corpo de lado; gira o peito para o braço apontar para a frente e
+# braços, mãos, dedos, tronco e cabeça (as pernas e o quadril ficam com a locomoção)
+func _osso_de_cima(osso: String) -> bool:
+	return osso.contains("Arm") or osso.contains("Hand") or osso.contains("Shoulder") or osso.ends_with("Spine1") \
+		or osso.ends_with("Spine2") or osso.contains("Neck") or osso.contains("Head")
+
+
+# o clipe de mira vira o corpo de lado; gira o peito para o braço apontar para a frente e
 # inclina para cima/baixo seguindo a câmera (o braço acompanha a mira)
 func _aponta_tronco(peso: float) -> void:
-	var ic: int = _esq.find_bone("chest")
+	var ic: int = _esq.find_bone(TRONCO)
 	var pai: Basis = (_esq.global_transform.basis * _esq.get_bone_global_pose(_esq.get_bone_parent(ic)).basis).orthonormalized()
 	var cima: Vector3 = (pai.inverse() * Vector3.UP).normalized()
 	var lado: Vector3 = (pai.inverse() * modelo.global_basis.x).normalized()
-	var inclina: float = (camera.pitch if camera else 0.0) * INCLINA_TRONCO
+	var inclina: float = (camera.pitch if camera else 0.0) * INCLINA_TRONCO - ERGUE_BRACO
 	var q: Quaternion = _esq.get_bone_pose_rotation(ic)
 	q = Quaternion(cima, GIRO_TRONCO_PISTOLA * peso) * q
 	q = Quaternion(lado, inclina * peso) * q
@@ -571,6 +586,8 @@ func _clipe_mirando() -> String:
 
 
 func _toca(clipe: String, mistura: float) -> void:
+	if arma == "pistola" and anim.has_animation(clipe + "_p"):
+		clipe += "_p"  # mesma ação segurando a pistola
 	if clipe == _clipe:
 		return
 	_clipe = clipe

@@ -254,6 +254,7 @@ quando você aprovar.
    treino. Mira refeita: segurar (PC) / botão MIRA, câmera mais perto e de lado, zoom, mira no centro,
    anda devagar e o corpo segue a câmera na hora.
 4. **Arma de fogo** (uma pistola): mira manual, tiro, recarga. ✅ APK 0.7 (pistola de blocos provisória, 12+48 balas, cabeça x2, TROCAR/RECARREGAR; PC: 1/2, Q, R, roda).
+   - APK 0.8: com a pistola o corpo acompanha a câmera. APK 0.9: animações do Mixamo (X Bot) no lugar das KayKit. Arquivos do Mixamo fora do git: baixar com `jogo/tools/baixa_mixamo.sh` (pasta do Drive do dono). Zumbis ficam fora do APK até a mecânica 5 (exclude_filter no export_presets.cfg).
 5. **Um zumbi simples**: anda até você, ataca, morre.
 6. ...depois cada comportamento de zumbi, um por vez, e assim por diante.
 

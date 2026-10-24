@@ -3,3 +3,4 @@ export_presets.cfg
 override.cfg
 *.apk
 *.aab
+assets/mixamo/

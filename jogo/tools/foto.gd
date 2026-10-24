@@ -12,6 +12,7 @@ func _init() -> void:
 	j.entrada["move"] = Vector2(0.3, 1)
 	if OS.get_cmdline_user_args().size() > 1 and OS.get_cmdline_user_args()[1] == "mira":
 		j.entrada["mira_segurando"] = true
+		j.entrada["arma"] = "pistola"
 	for i in 50: await process_frame
 	var saida: String = OS.get_cmdline_user_args()[0] if OS.get_cmdline_user_args().size() > 0 else "/tmp/foto.png"
 	root.get_viewport().get_texture().get_image().save_png(saida)

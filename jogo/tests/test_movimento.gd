@@ -190,12 +190,12 @@ func _animacoes() -> void:
 	await frames(30)
 	ok(j.clipe_atual() == "agachado", "agachado parado = agachado (%s)" % j.clipe_atual())
 	var esq: Skeleton3D = j.modelo.find_children("*", "Skeleton3D", true, false)[0]
-	var antes: Quaternion = esq.get_bone_pose_rotation(esq.find_bone("upperleg.l"))
+	var antes: Quaternion = esq.get_bone_pose_rotation(esq.find_bone("mixamorig_LeftUpLeg"))
 	await frames(10)
 	j.entrada["agachar"] = true
 	j.entrada["move"] = Vector2(0, 1)
 	await frames(20)
-	ok(esq.get_bone_pose_rotation(esq.find_bone("upperleg.l")) != antes, "a animação mexe os ossos do modelo")
+	ok(esq.get_bone_pose_rotation(esq.find_bone("mixamorig_LeftUpLeg")) != antes, "a animação mexe os ossos do modelo")
 
 
 func _controle_no_ar() -> void:
