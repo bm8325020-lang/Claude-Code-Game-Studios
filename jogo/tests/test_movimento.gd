@@ -165,20 +165,26 @@ func _camera_parede() -> void:
 
 func _animacoes() -> void:
 	await poe(Vector3(30, 0.1, 20))
-	ok(j.clipe_atual() == "Idle", "parado = Idle (%s)" % j.clipe_atual())
+	ok(j.clipe_atual() == "parado", "parado = parado (%s)" % j.clipe_atual())
 	j.entrada["move"] = Vector2(0, 1)
 	await frames(30)
-	ok(j.clipe_atual() == "Jog_Fwd", "andando = Jog_Fwd (%s)" % j.clipe_atual())
+	ok(j.clipe_atual() == "trote", "andando = trote (%s)" % j.clipe_atual())
 	j.entrada["correr"] = true
 	await frames(30)
-	ok(j.clipe_atual() == "Sprint", "correndo = Sprint (%s)" % j.clipe_atual())
+	ok(j.clipe_atual() == "correr", "correndo = correr (%s)" % j.clipe_atual())
 	j.entrada["correr"] = false
 	j.entrada["pular"] = true
 	await frames(4)
-	ok(j.clipe_atual() in ["Jump_Start", "Jump"], "pulando = Jump (%s)" % j.clipe_atual())
+	ok(j.clipe_atual() in ["pulo_inicio", "no_ar"], "pulando = no ar (%s)" % j.clipe_atual())
 	await frames(60)
 	j.entrada["move"] = Vector2.ZERO
 	j.entrada["agachar"] = true
 	await frames(30)
-	ok(j.clipe_atual() == "Crouch_Idle", "agachado parado = Crouch_Idle (%s)" % j.clipe_atual())
-	ok(j.anim.get_animation("Jog_Fwd").find_track(NodePath("Skeleton3D:pelvis"), Animation.TYPE_ROTATION_3D) >= 0, "trilhas apontam para o esqueleto do modelo")
+	ok(j.clipe_atual() == "agachado", "agachado parado = agachado (%s)" % j.clipe_atual())
+	var esq: Skeleton3D = j.modelo.find_children("*", "Skeleton3D", true, false)[0]
+	var antes: Quaternion = esq.get_bone_pose_rotation(esq.find_bone("upperleg.l"))
+	await frames(10)
+	j.entrada["agachar"] = true
+	j.entrada["move"] = Vector2(0, 1)
+	await frames(20)
+	ok(esq.get_bone_pose_rotation(esq.find_bone("upperleg.l")) != antes, "a animação mexe os ossos do modelo")

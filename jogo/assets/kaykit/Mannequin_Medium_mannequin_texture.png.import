@@ -2,16 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dgtxafx3667wo"
-path="res://.godot/imported/T_Regular_Male_Dark_BaseColor.png-d5ca8b15d8f2b66125f692bcfc1cdf5a.ctex"
+uid="uid://nv01ntde4mfj"
+path="res://.godot/imported/Mannequin_Medium_mannequin_texture.png-d27e4cb4ca54189eedf0c76aeea6cb75.ctex"
 metadata={
 "vram_texture": false
+}
+generator_parameters={
+"md5": "01f722f0889385d6ecb990c05ccf86d5"
 }
 
 [deps]
 
-source_file="res://assets/personagem/T_Regular_Male_Dark_BaseColor.png"
-dest_files=["res://.godot/imported/T_Regular_Male_Dark_BaseColor.png-d5ca8b15d8f2b66125f692bcfc1cdf5a.ctex"]
+source_file="res://assets/kaykit/Mannequin_Medium_mannequin_texture.png"
+dest_files=["res://.godot/imported/Mannequin_Medium_mannequin_texture.png-d27e4cb4ca54189eedf0c76aeea6cb75.ctex"]
 
 [params]
 
@@ -23,7 +26,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

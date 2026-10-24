@@ -71,16 +71,12 @@ func _ready() -> void:
 
 
 func _monta_modelo() -> void:
-	modelo = (load("res://assets/personagem/Male_Ranger.gltf") as PackedScene).instantiate()
+	modelo = (load(Anims.MODELO) as PackedScene).instantiate()
 	add_child(modelo)
-	var acessorio: Node = modelo.find_child("Male_Ranger_Acc_Pauldron", true, false)
-	if acessorio:
-		acessorio.queue_free()
-	var arm: Node = modelo.find_child("Armature", true, false)
 	anim = AnimationPlayer.new()
-	arm.add_child(anim)
-	anim.add_animation_library("", Anims.biblioteca(modelo.find_child("Skeleton3D", true, false) as Skeleton3D))
-	_toca("Idle", 0.0)
+	modelo.add_child(anim)
+	anim.add_animation_library("", Anims.biblioteca())
+	_toca("parado", 0.0)
 
 
 func _physics_process(dt: float) -> void:
@@ -134,7 +130,7 @@ func _physics_process(dt: float) -> void:
 			velocity.y = PULO
 			_buffer = 0.0
 			_coyote = 0.0
-			_toca("Jump_Start", 0.08)
+			_toca("pulo_inicio", 0.08)
 	if not is_on_floor():
 		velocity.y -= GRAVIDADE * dt
 		_no_ar_desde += dt
@@ -169,19 +165,19 @@ func _anima(dt: float, vel: float) -> void:
 	_pousando -= dt
 	var clipe: String
 	if not is_on_floor() and (_no_ar_desde > 0.12 or velocity.y > 0.5):
-		clipe = "Jump" if _clipe != "Jump_Start" or not anim.is_playing() else "Jump_Start"
+		clipe = "no_ar" if _clipe != "pulo_inicio" or not anim.is_playing() else "pulo_inicio"
 	elif _pousando > 0.0:
-		clipe = "Jump_Land"
+		clipe = "pouso"
 	elif agachado:
-		clipe = "Crouch_Idle" if vel < 0.2 else "Crouch_Fwd"
+		clipe = "agachado" if vel < 0.2 else "agachado_andar"
 	elif vel < 0.15:
-		clipe = "Idle"
+		clipe = "parado"
 	elif vel < 3.0:
-		clipe = "Walk"
+		clipe = "andar"
 	elif vel < 6.0:
-		clipe = "Jog_Fwd"
+		clipe = "trote"
 	else:
-		clipe = "Sprint"
+		clipe = "correr"
 	_toca(clipe, 0.18)
 	# pés acompanham o chão: escala a velocidade do clipe pela velocidade real
 	var base: float = float(Anims.VELOCIDADE.get(clipe, 0.0))

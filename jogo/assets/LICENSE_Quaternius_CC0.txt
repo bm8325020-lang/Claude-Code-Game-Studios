@@ -1,6 +1,0 @@
-Quaternius (quaternius.com) — License: Creative Commons Zero (CC0)
-- Modular Character Outfits - Fantasy [Standard]: Male/Female Peasant and Ranger outfits
-- Universal Base Characters [Standard]: Head_Male/Head_Female.glb are the base bodies' heads (cut in Blender), hair and eyebrows
-- Bestiary - Dungeon Monsters Kit [Standard]: Imp, Puglin
-- Universal Animation Library 1 and 2 [Standard]: anims/UAL1_Standard.glb (converted from the Unreal FBX), anims/UAL2_Standard.glb
-Textures downscaled to 1024 px for phones.

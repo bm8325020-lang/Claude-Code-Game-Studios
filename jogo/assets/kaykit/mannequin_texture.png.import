@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ckks4aorsm4f7"
-path="res://.godot/imported/T_Regular_Male_Roughness.png-56cd5bf9cbc43f92151ff520be92f73d.ctex"
+uid="uid://d1eeyymli1xm3"
+path="res://.godot/imported/mannequin_texture.png-1d14f34fa7e976aa94e85fe7bbaf3a46.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/personagem/T_Regular_Male_Roughness.png"
-dest_files=["res://.godot/imported/T_Regular_Male_Roughness.png-56cd5bf9cbc43f92151ff520be92f73d.ctex"]
+source_file="res://assets/kaykit/mannequin_texture.png"
+dest_files=["res://.godot/imported/mannequin_texture.png-1d14f34fa7e976aa94e85fe7bbaf3a46.ctex"]
 
 [params]
 
