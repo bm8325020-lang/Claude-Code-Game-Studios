@@ -18,8 +18,9 @@ const CLIPES: Dictionary = {
 	"agachado": ["kaykit:Crouching", 0.0, -1.0], "agachado_andar": ["kaykit:Sneaking", 0.0, -1.0],
 	"pulo_inicio": ["kaykit:Jump_Start", 0.0, -1.0], "no_ar": ["kaykit:Jump_Idle", 0.0, -1.0],
 	"pouso": ["kaykit:Jump_Land", 0.0, -1.0],
-	"lado_esq": ["rifle/strafe_2", 0.0, -1.0], "lado_dir": ["rifle/strafe", 0.0, -1.0],
-	"tras": ["rifle/run_backwards", 0.0, -1.0],
+	# sem arma de fogo: de lado e de costas da KayKit (as do pacote de rifle seguram um rifle)
+	"lado_esq": ["kaykit:Running_Strafe_Left", 0.0, -1.0], "lado_dir": ["kaykit:Running_Strafe_Right", 0.0, -1.0],
+	"tras": ["kaykit:Walking_Backwards", 0.0, -1.0],
 	"morte": ["kaykit:Death_A", 0.0, -1.0],
 	"golpe1": ["proprio:golpe1", 0.0, -1.0], "golpe2": ["proprio:golpe2", 0.0, -1.0],
 	"golpe3": ["proprio:golpe3", 0.0, -1.0],
@@ -37,7 +38,7 @@ const QUADRIL: String = "Skeleton3D:mixamorig_Hips"
 ## Velocidade (m/s) em que cada clipe de locomoção parece natural (deslocamento do quadril no clipe original);
 ## o clipe é escalado pela velocidade real para os pés não deslizarem.
 const VELOCIDADE: Dictionary = {"andar": 1.8, "trote": 4.7, "correr": 5.5, "agachado_andar": 1.4,
-	"lado_esq": 2.85, "lado_dir": 3.3, "tras": 2.6,
+	"lado_esq": 3.6, "lado_dir": 3.6, "tras": 1.8,
 	"andar_p": 2.7, "trote_p": 5.0, "correr_p": 5.5, "lado_esq_p": 2.25, "lado_dir_p": 2.5, "tras_p": 3.5}
 
 ## Zumbi: mesmo esqueleto (X Bot), animações dos pacotes de zumbi.
