@@ -1,7 +1,7 @@
 # Bloco de notas — jogo de apocalipse zumbi
 
 Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem código, sem arte).
-Última atualização: 2026-10-24 (11ª conversa).
+Última atualização: 2026-10-24 (12ª conversa).
 
 ## Plataforma e formato
 - Celular **e** PC. Vai ser publicado na Play Store.
@@ -130,8 +130,10 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - **Não existe loja de carros.** Carro próprio só vem do **passe** (dinheiro real): o passe dá carros
   (inclusive **blindados**) que você **equipa**.
   - Carro do passe **vai com você** para o próximo servidor.
+  - **Passe novo todo mês**, com carros diferentes. Tem **versão grátis** com recompensas menores.
 - **Carros do mapa:** ficam espalhados e numa **concessionária abandonada** (cenário). Se ninguém pegou, você
   passa um **lockpick** e leva.
+  - Carros do mapa **também podem ser blindados**, mas o blindado do mapa **aguenta menos tiro** que o do passe.
   - Carro do mapa é **do servidor**; quando você sai, ele **volta para um lugar aleatório do mapa**.
 
 ## Sobrevivência
@@ -209,5 +211,5 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - Caminho sugerido (não decidido): começar menor e crescer por etapas.
 
 ## Perguntas em aberto
-- O passe é por temporada (ex.: a cada 2 meses, com carros novos)? Tem versão grátis com recompensas menores?
-- Os carros do mapa também incluem blindados, ou blindado só pelo passe?
+- Como se sobe de nível no passe (matar zumbis, tempo jogado, desafios diários)?
+- Além dos carros, o que mais vem no passe (skins, roupas, emotes)?
