@@ -297,6 +297,7 @@ quando você aprovar.
 15. **Tiro com resposta.** **Status: feito, APK 0.25.** Acertar zumbi: X na mira (branco no corpo, vermelho na
     cabeça/golpe forte/morte), respingo de sangue escuro no ponto (tiro e facão, visto por todos) e baque
     (mais forte na cabeça). Boneco de treino continua com faísca. Versão de rede 4.
+   APK 0.26: busca no Wi-Fi também pergunta direto a cada endereço (Android sem multicast lock não ouve broadcast).
 16. ...depois: quarteirão de verdade (bloco 1), cobertura, e o que o dono pedir.
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)
