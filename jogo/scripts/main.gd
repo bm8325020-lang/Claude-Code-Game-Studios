@@ -151,7 +151,7 @@ func _peer_saiu(id: int) -> void:
 func _poe_zumbis() -> void:
 	navegacao = NavigationRegion3D.new()
 	var malha := NavigationMesh.new()
-	malha.agent_radius = 0.4
+	malha.agent_radius = 0.35  # cabe pela porta de 1,3 m
 	malha.agent_height = 1.8
 	malha.agent_max_climb = 0.35
 	malha.agent_max_slope = 40.0
@@ -329,6 +329,24 @@ func _obstaculos() -> void:
 		it.position = itens[k][0]
 		it.rotation_degrees.y = itens[k][1]
 		add_child(it)
+	# casinha com porta (mecânica 12): 6 x 5 m, porta no lado leste, uma caixa de munição dentro
+	var parede := Color(0.6, 0.57, 0.52)
+	bloco(Vector3(-24, 1.3, -4.5), Vector3(6.2, 2.6, 0.2), parede)          # sul
+	bloco(Vector3(-24, 1.3, 0.5), Vector3(6.2, 2.6, 0.2), parede)           # norte
+	bloco(Vector3(-27, 1.3, -2), Vector3(0.2, 2.6, 5.0), parede)            # oeste
+	bloco(Vector3(-21, 1.3, -3.625), Vector3(0.2, 2.6, 1.95), parede)       # leste, dos dois lados da porta
+	bloco(Vector3(-21, 1.3, -0.375), Vector3(0.2, 2.6, 1.95), parede)
+	bloco(Vector3(-21, 2.375, -2), Vector3(0.2, 0.45, 1.3), parede)         # em cima da porta
+	bloco(Vector3(-24, 2.7, -2), Vector3(6.6, 0.2, 5.4), Color(0.35, 0.33, 0.3))  # teto
+	var porta := Porta.new()
+	porta.name = "Porta_0"
+	porta.position = Vector3(-21, 0, -2.65)
+	porta.rotation_degrees.y = -90.0  # folha para +Z, abre para dentro
+	add_child(porta)
+	var dentro := Item.new()
+	dentro.name = "Item_casa"
+	dentro.position = Vector3(-25.8, 0, -3.6)
+	add_child(dentro)
 	# "carro" abandonado
 	bloco(Vector3(5, 0.7, 6), Vector3(1.9, 1.0, 4.2), Color(0.3, 0.35, 0.4), Vector3(0, 20, 0))
 	bloco(Vector3(5, 1.45, 6), Vector3(1.7, 0.6, 2.2), Color(0.25, 0.3, 0.35), Vector3(0, 20, 0))

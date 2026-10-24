@@ -123,7 +123,7 @@ func _ready() -> void:
 	floor_max_angle = deg_to_rad(46.0)
 	floor_snap_length = 0.45
 	collision_layer = 2
-	collision_mask = 1 | 8  # mundo e zumbis
+	collision_mask = 1 | 8 | Porta.CAMADA  # mundo, zumbis e portas
 	add_to_group("jogadores")
 	_forma = CapsuleShape3D.new()
 	_forma.radius = RAIO
@@ -350,9 +350,23 @@ func item_perto() -> Item:
 	return Item.perto(get_tree(), global_position) if vida > 0 else null
 
 
+## Porta ao alcance agora (para o botão USAR), ou null.
+func porta_perto() -> Porta:
+	return Porta.perto(get_tree(), global_position) if vida > 0 else null
+
+
+# USAR: pega o item perto; se não tiver item, abre/fecha a porta perto
 func _tenta_pegar() -> void:
 	var it: Item = item_perto()
-	if it == null or _pegando > 0.0 or _golpe >= 0 or not is_on_floor():
+	if it == null:
+		var p: Porta = porta_perto()
+		if p:
+			if multiplayer.is_server():
+				p.alterna_por(self)
+			else:
+				_pede_porta.rpc_id(1, get_path_to(p))
+		return
+	if _pegando > 0.0 or _golpe >= 0 or not is_on_floor():
 		return
 	_pegando = PEGAR_DUR
 	mira_travada = false
@@ -370,6 +384,14 @@ func _pede_item(caminho: NodePath) -> void:
 		var it := get_node_or_null(caminho) as Item
 		if it:
 			it.pegar_por(self)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _pede_porta(caminho: NodePath) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority():
+		var p := get_node_or_null(caminho) as Porta
+		if p:
+			p.alterna_por(self)
 
 
 ## Servidor: entrega o item (no aparelho do dono do jogador).

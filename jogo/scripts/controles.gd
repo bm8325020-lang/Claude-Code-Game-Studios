@@ -170,11 +170,15 @@ func _process(dt: float) -> void:
 		_relogio.add_theme_color_override("font_color", Color(0.65, 0.75, 1.0) if ciclo.e_noite() else (Color(1, 0.75, 0.4) if f < 60 else Color.WHITE))
 	_vermelho.color.a = move_toward(_vermelho.color.a, 0.35 if jogador.vida <= 0 else 0.0, dt * 0.8)
 	var it: Item = jogador.item_perto()
-	_dica_pegar.visible = it != null
+	var porta: Porta = jogador.porta_perto() if it == null else null
+	_dica_pegar.visible = it != null or porta != null
 	if it:
 		_dica_pegar.text = ("PEGAR " if toque else "[E] pegar ") + it.nome()
+	elif porta:
+		_dica_pegar.text = ("USAR: " if toque else "[E] ") + porta.acao()
 	if _btn_pegar:
-		_btn_pegar.visible = it != null
+		_btn_pegar.visible = _dica_pegar.visible
+		_btn_pegar.text = "PEGAR" if it else "USAR"
 	_aviso_t -= dt
 	_aviso_item.visible = _aviso_t > 0.0
 	_aviso_item.modulate.a = clampf(_aviso_t, 0.0, 1.0)

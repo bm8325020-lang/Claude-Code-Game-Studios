@@ -9,6 +9,7 @@
 # ordem em que já estão, para não se cruzarem) e só fecham quando chegam perto.
 # Mecânica 10: tocaia. Zumbi de tocaia fica deitado no chão como morto; levanta e ataca (sem gritar) quando
 # alguém passa a menos de EMBOSCA, quando há barulho perto ou quando leva golpe. Depois de morto, deita de novo.
+# Mecânica 12: porta fechada no caminho segura o zumbi; ele soca a porta até arrombar.
 # Quem decide tudo é o servidor (ou o aparelho jogando sozinho); os outros só recebem posição, giro,
 # animação e vida. Golpe e tiro de um cliente viram um pedido para o servidor.
 class_name Zumbi
@@ -81,6 +82,7 @@ var _olhando_t: float = 0.0        # > 0: chegou no barulho e está procurando e
 var _voltando: bool = false
 var _cerco_ang: float = NAN        # ângulo (em volta do alvo) do lado que este zumbi pegou; NAN = vai direto
 var _fechando: bool = false        # já chegou no seu lado do cerco: agora vai direto no alvo
+var _porta_alvo: Porta            # o soco em andamento é na porta
 var _grito_t: float = -1.0         # >= 0: gritando (parado)
 var _sem_gritar: float = 0.0       # > 0: não grita de novo ainda
 var _som: AudioStreamPlayer3D
@@ -94,7 +96,7 @@ func _ready() -> void:
 	add_to_group("golpeavel")
 	add_to_group("zumbis")
 	collision_layer = 8
-	collision_mask = 1 | 8
+	collision_mask = 1 | 8 | Porta.CAMADA
 	floor_snap_length = 0.4
 	var cs := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
@@ -213,7 +215,7 @@ func _physics_process(dt: float) -> void:
 	elif alvo:
 		var d: Vector3 = alvo.global_position - global_position
 		d.y = 0.0
-		if d.length() < ALCANCE:
+		if d.length() < ALCANCE and _porta_na_frente(d) == null:
 			_vira_para(d, dt * 2.0)
 			_ataca()
 		else:
@@ -243,6 +245,20 @@ func _physics_process(dt: float) -> void:
 			_voltando = false
 		else:
 			desejada = _caminho(casa, VOLTA, dt)
+	# porta fechada no caminho: para e soca a porta
+	var porta: Porta = null
+	if _ataque_t < 0.0 and _cambaleio <= 0.0 and _grito_t < 0.0 and _levantando < 0.0:
+		var rumo: Vector3 = desejada
+		if alvo and rumo.length() < 0.01:
+			rumo = alvo.global_position - global_position
+			rumo.y = 0.0
+		if rumo.length() > 0.01:
+			porta = _porta_na_frente(rumo)
+	if porta:
+		desejada = Vector3.ZERO
+		_vira_para(porta.centro() - global_position, dt * 2.0)
+		_porta_alvo = porta
+		_ataca()
 	var plano := Vector3(velocity.x, 0, velocity.z).move_toward(desejada, 12.0 * dt)
 	velocity.x = plano.x
 	velocity.z = plano.z
@@ -383,7 +399,7 @@ func _grita() -> void:
 
 func _ve(j: Jogador) -> bool:
 	var olho: Vector3 = global_position + Vector3(0, 1.5, 0)
-	var q := PhysicsRayQueryParameters3D.create(olho, j.global_position + Vector3(0, 1.4, 0), 1)
+	var q := PhysicsRayQueryParameters3D.create(olho, j.global_position + Vector3(0, 1.4, 0), 1 | Porta.CAMADA)
 	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 
 
@@ -394,12 +410,26 @@ func _ataca() -> void:
 	_toca("ataque", 0.12, true)
 
 
+# porta fechada a menos de 1 m na direção `dir`, ou null
+func _porta_na_frente(dir: Vector3) -> Porta:
+	var de: Vector3 = global_position + Vector3(0, 1.0, 0)
+	var q := PhysicsRayQueryParameters3D.create(de, de + dir.normalized() * 1.0, Porta.CAMADA)
+	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
+	if hit.is_empty():
+		return null
+	var p := (hit.collider as Node).get_parent() as Porta
+	return p if p and not p.aberta else null
+
+
 func _atualiza_ataque(dt: float) -> void:
 	_ataque_t += dt
 	var dur: float = anim.get_animation("ataque").length
 	if not _acertou and _ataque_t >= dur * ACERTO:
 		_acertou = true
-		if alvo and is_instance_valid(alvo):
+		if _porta_alvo:
+			_porta_alvo.leva_soco(DANO)
+			_porta_alvo = null
+		elif alvo and is_instance_valid(alvo):
 			var d: Vector3 = alvo.global_position - global_position
 			d.y = 0.0
 			var frente: Vector3 = modelo.global_basis.z

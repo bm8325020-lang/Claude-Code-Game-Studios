@@ -286,8 +286,12 @@ quando você aprovar.
     lugares; botão PEGAR (PC: E) aparece perto (1,6 m), o personagem abaixa (animação KayKit), a caixa some para
     todos e volta em 60 s (provisório). Item "lanterna" já funciona (quem não tem e acha passa a ter), mas por
     enquanto todos começam com lanterna (pedido do dono, para testar). Servidor confere a distância.
-12. ...depois cada comportamento de zumbi, um por vez (abrir portas, fugir, cobertura).
-    **Pendente do dono:** aprovar a troca da conexão (proposta: servidor na internet; ver conversa).
+12. **Portas.** **Status: feito, APK 0.23.** Casinha 6x5 m com porta (1,3 m) e uma caixa de munição dentro.
+    Botão USAR (o mesmo do PEGAR; PC: E) abre/fecha. Fechada segura jogador e zumbi e tapa a visão; o zumbi
+    soca a porta (15 por soco, porta 100) até arrombar; arrombada fica aberta e se conserta em 90 s (provisório).
+13. **Servidor na nuvem (Oracle).** Jogo pronto (modo dedicado, lista online, atualização sozinha pela branch
+    servidor-build; tools/servidor/). **Pendente do dono:** criar a máquina e mandar o IP.
+14. ...depois cada comportamento de zumbi, um por vez (fugir, cobertura).
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)
 1. **Andar e atirar com 2 jogadores** — terceira pessoa, controles de celular e PC, 1 arma de fogo + 1 arma
