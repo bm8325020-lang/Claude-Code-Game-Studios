@@ -294,7 +294,10 @@ quando você aprovar.
 14. **Zumbi esperto contra tiro.** **Status: feito, APK 0.24.** Com alguém mirando a pistola nele a mais de
     4 m, vem em ziguezague (desvia ~2 m/s para os lados, trocando sem ritmo fixo). Com 25 de vida ou menos
     foge correndo por 4 s (uma vez por vida) e depois volta. Versão de rede 3 (a mira vai pela rede).
-15. ...depois: cobertura (zumbi se esconde atrás de coisas), quarteirão de verdade (bloco 1), e o que o dono pedir.
+15. **Tiro com resposta.** **Status: feito, APK 0.25.** Acertar zumbi: X na mira (branco no corpo, vermelho na
+    cabeça/golpe forte/morte), respingo de sangue escuro no ponto (tiro e facão, visto por todos) e baque
+    (mais forte na cabeça). Boneco de treino continua com faísca. Versão de rede 4.
+16. ...depois: quarteirão de verdade (bloco 1), cobertura, e o que o dono pedir.
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)
 1. **Andar e atirar com 2 jogadores** — terceira pessoa, controles de celular e PC, 1 arma de fogo + 1 arma

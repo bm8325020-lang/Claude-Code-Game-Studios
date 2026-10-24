@@ -99,9 +99,17 @@ func _tiro_e_morte() -> void:
 		var d: Vector3 = (z.global_position + Vector3(0, 1.0, 0) - j.camera.cam.global_position).normalized()
 		j.camera.virar(atan2(-d.x, -d.z), -asin(d.y))
 		await frames(20)
+	var marcas: Array[bool] = []
+	j.acertou_alvo.connect(func(forte: bool) -> void: marcas.append(forte))
 	j.entrada["atacar"] = true
 	await frames(3)
 	ok(z.vida == Zumbi.VIDA_MAX - Pistola.DANO, "tiro no peito do zumbi tira %d (vida %d)" % [Pistola.DANO, z.vida])
+	ok(marcas == [false], "marca branca na mira no tiro no corpo (%s)" % str(marcas))
+	var sangue: bool = false
+	for n in root.get_children():
+		if n is CPUParticles3D:
+			sangue = true
+	ok(sangue, "espirra sangue no lugar do tiro")
 	ok(z.clipe_atual() == "dano", "cambaleia com o tiro (%s)" % z.clipe_atual())
 	z.set_physics_process(true)
 	z.levar_golpe(100, Vector3.FORWARD, j)

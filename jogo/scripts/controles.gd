@@ -17,11 +17,13 @@ var jogador: Jogador:
 		if jogador and jogador.dano_levado.is_connected(_levou_dano):
 			jogador.dano_levado.disconnect(_levou_dano)
 			jogador.item_pego.disconnect(_pegou)
+			jogador.acertou_alvo.disconnect(_acertou)
 		jogador = v
 		visible = v != null
 		if v:
 			v.dano_levado.connect(_levou_dano)
 			v.item_pego.connect(_pegou)
+			v.acertou_alvo.connect(_acertou)
 		if v != null and not toque:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 var toque: bool = false  # mostra os controles de toque
@@ -183,7 +185,7 @@ func _process(dt: float) -> void:
 	_aviso_item.visible = _aviso_t > 0.0
 	_aviso_item.modulate.a = clampf(_aviso_t, 0.0, 1.0)
 	var com_pistola: bool = jogador.arma == "pistola"
-	_mira.visible = jogador.mira_travada or com_pistola
+	_mira.visible = jogador.mira_travada or com_pistola or (_mira as _Mira).marca_t > 0.0
 	_municao.visible = com_pistola
 	if com_pistola:
 		var p: Pistola = jogador.pistola
@@ -257,6 +259,10 @@ func _rotulo(tam: int, altura: float) -> Label:
 	l.visible = false
 	add_child(l)
 	return l
+
+
+func _acertou(forte: bool) -> void:
+	(_mira as _Mira).marca(forte)
 
 
 func _pegou(tipo: String, qtd: int) -> void:
@@ -352,6 +358,20 @@ func _circulo(diam: float, cor: Color) -> Panel:
 class _Mira:
 	extends Control
 
+	## tempo restante da marca de acerto (X em volta do centro)
+	var marca_t: float = 0.0
+	var marca_forte: bool = false
+
+	func marca(forte: bool) -> void:
+		marca_t = 0.25
+		marca_forte = forte
+		queue_redraw()
+
+	func _process(dt: float) -> void:
+		if marca_t > 0.0:
+			marca_t -= dt
+			queue_redraw()
+
 	func _draw() -> void:
 		var c: Vector2 = size * 0.5
 		var cor := Color(1, 1, 1, 0.9)
@@ -359,3 +379,8 @@ class _Mira:
 		for d: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
 			draw_line(c + d * 8.0, c + d * 18.0, cor, 2.5)
 		draw_arc(c, 26.0, 0.0, TAU, 32, Color(1, 1, 1, 0.25), 1.5)
+		if marca_t > 0.0:
+			var a: float = clampf(marca_t / 0.25, 0.0, 1.0)
+			var mc := Color(0.95, 0.15, 0.1, a) if marca_forte else Color(1, 1, 1, a)
+			for d: Vector2 in [Vector2(1, 1), Vector2(1, -1), Vector2(-1, 1), Vector2(-1, -1)]:
+				draw_line(c + d.normalized() * 10.0, c + d.normalized() * 19.0, mc, 3.0)

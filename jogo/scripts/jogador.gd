@@ -354,6 +354,18 @@ func mirando_em(ponto: Vector3, graus: float) -> bool:
 	return rad_to_deg(Vector2(f.x, f.z).angle_to(Vector2(d.x, d.z))) < graus
 
 
+## Acertou um zumbi: avisa o HUD (marca na mira) e toca o baque. `forte` = cabeça, golpe forte ou matou.
+signal acertou_alvo(forte: bool)
+
+
+func _confirma_acerto(forte: bool, cabeca: bool) -> void:
+	acertou_alvo.emit(forte)
+	_som.stream = _sons.get("impactPunch_heavy_000" if cabeca else "impactPunch_heavy_001")
+	_som.pitch_scale = 0.75 if cabeca else randf_range(1.2, 1.35)
+	_som.volume_db = 2.0 if cabeca else -6.0
+	_som.play()
+
+
 ## Item ao alcance agora (para o botão PEGAR), ou null.
 func item_perto() -> Item:
 	return Item.perto(get_tree(), global_position) if vida > 0 else null
@@ -575,13 +587,18 @@ func _atira() -> void:
 		Zumbi.barulho(get_tree(), global_position, Pistola.BARULHO)
 	if camera:
 		camera.coice(Pistola.COICE)
+	if res.acertou is Zumbi:
+		var z: Zumbi = res.acertou
+		# no servidor a vida já caiu; no cliente o dano ainda vai chegar: prevê se matou
+		var morreu: bool = z.vida <= 0 if multiplayer.is_server() else z.vida - Pistola.DANO * (2 if res.cabeca else 1) <= 0
+		_confirma_acerto(res.cabeca or morreu, res.cabeca)
 	if multiplayer.has_multiplayer_peer() and multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
-		_rede_tiro.rpc(res.ponto, res.acertou != null)
+		_rede_tiro.rpc(res.ponto, res.acertou != null, res.carne)
 
 
 @rpc("authority", "call_remote", "unreliable")
-func _rede_tiro(ponto: Vector3, bateu: bool) -> void:
-	pistola.efeito(ponto, bateu)
+func _rede_tiro(ponto: Vector3, bateu: bool, carne: bool) -> void:
+	pistola.efeito(ponto, bateu, carne)
 	if multiplayer.is_server():
 		Zumbi.barulho(get_tree(), global_position, Pistola.BARULHO)
 
@@ -793,6 +810,9 @@ func _acerta(g: Dictionary) -> void:
 		if rad_to_deg(frente.angle_to(d.normalized())) > float(g.arco) * 0.5:
 			continue
 		alvo.call("levar_golpe", int(g.dano), d.normalized(), self)
+		if alvo is Zumbi:
+			Pistola.sangue(get_tree(), n3.global_position + Vector3(0, 1.2, 0), d.normalized())
+			_confirma_acerto(_golpe == 2 or (alvo as Zumbi).vida <= 0, false)
 		pegou = true
 	if pegou:
 		_parada = PARADA_ACERTO

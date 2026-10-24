@@ -95,7 +95,7 @@ func pronta() -> bool:
 ## Tenta atirar a partir de `origem` na direção `dir` (raio da mira). Pente vazio = recarrega.
 ## Retorna o resultado: {"atirou": bool, "acertou": Node ou null, "ponto": Vector3, "cabeca": bool}.
 func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
-	var res: Dictionary = {"atirou": false, "acertou": null, "ponto": Vector3.ZERO, "cabeca": false}
+	var res: Dictionary = {"atirou": false, "acertou": null, "ponto": Vector3.ZERO, "cabeca": false, "carne": false}
 	if balas <= 0:
 		recarregar()
 		return res
@@ -121,7 +121,8 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 		alvo.call("levar_golpe", DANO * (2 if cabeca else 1), dir, dono)
 		res.acertou = alvo
 		res.cabeca = cabeca
-	efeito(ponto, not hit.is_empty())
+	res.carne = res.acertou is Zumbi
+	efeito(ponto, not hit.is_empty(), res.carne)
 	return res
 
 
@@ -133,7 +134,8 @@ func recarregar() -> void:
 
 
 ## Clarão, som e rastro até `ponto` (também chamado nos outros aparelhos quando alguém atira).
-func efeito(ponto: Vector3, bateu: bool) -> void:
+## `carne` = acertou zumbi: sangue no lugar da faísca.
+func efeito(ponto: Vector3, bateu: bool, carne: bool = false) -> void:
 	_luz.light_energy = 3.0
 	_som.stream = _som_tiro
 	_som.pitch_scale = randf_range(0.95, 1.05)
@@ -161,8 +163,40 @@ func efeito(ponto: Vector3, bateu: bool) -> void:
 	var t := rastro.create_tween()
 	t.tween_property(m, "albedo_color:a", 0.0, 0.08)
 	t.tween_callback(rastro.queue_free)
-	if bateu:
+	if carne:
+		Pistola.sangue(get_tree(), ponto, (ponto - de).normalized())
+	elif bateu:
 		_faisca(ponto)
+
+
+## Respingo de sangue escuro em `ponto`, espirrando para a direção `dir` (tiro ou facão).
+static func sangue(arvore: SceneTree, ponto: Vector3, dir: Vector3) -> void:
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.explosiveness = 0.95
+	p.amount = 18
+	p.lifetime = 0.55
+	p.direction = dir
+	p.spread = 35.0
+	p.initial_velocity_min = 1.5
+	p.initial_velocity_max = 3.5
+	p.gravity = Vector3(0, -9.8, 0)
+	p.scale_amount_min = 0.5
+	p.scale_amount_max = 1.2
+	var m := SphereMesh.new()
+	m.radius = 0.025
+	m.height = 0.05
+	m.radial_segments = 6
+	m.rings = 3
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.32, 0.02, 0.02)
+	mat.roughness = 0.4
+	m.material = mat
+	p.mesh = m
+	arvore.root.add_child(p)
+	p.global_position = ponto
+	p.emitting = true
+	p.finished.connect(p.queue_free)
 
 
 func _faisca(p: Vector3) -> void:
