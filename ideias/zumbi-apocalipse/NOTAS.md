@@ -1,7 +1,7 @@
 # Bloco de notas — jogo de apocalipse zumbi
 
 Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem código, sem arte).
-Última atualização: 2026-10-24 (8ª conversa).
+Última atualização: 2026-10-24 (9ª conversa).
 
 ## Plataforma e formato
 - Celular **e** PC. Vai ser publicado na Play Store.
@@ -41,6 +41,8 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
     e aperta **"Dominar esta casa"**. Precisa segurar **3 minutos**.
     (Isso é para facção que já existe. Criar a facção pela primeira vez continua: 3 pessoas, 5–7 minutos.)
   - Motivo: se a casa ficasse presa, ao voltar ao servidor ela poderia já estar ocupada por outros e bugar.
+  - Quando a casa é liberada, **os itens do baú e dos armários vão com a facção** (ficam na conta e aparecem
+    na próxima casa). Nada fica para outros pegarem.
 - **Prazo para pagar:** **7 dias do jogo (~1h30 real)**, contando só enquanto a casa está ativa. O prazo de
   3 dias reais (sugerido antes) foi **recusado**: como a casa some quando todos saem, não precisa ser longo.
 - **Aviso antes do prazo:** a facção é avisada antes ("faltam X dias para perder a casa").
@@ -48,8 +50,8 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
   - renascer na casa;
   - baú da facção;
   - acesso à loja da facção;
-  - **loja de munição** perto da casa;
-  - **loja de comida e água** perto da casa;
+  - **loja de munição** perto da casa (**só membros da facção** compram);
+  - **loja de comida e água** perto da casa (**só membros da facção** compram);
   - **cama** que cura;
   - **garagem** (o carro não some);
   - **armário pessoal** por membro;
@@ -191,15 +193,11 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 
 ## Alertas anotados (para decidir depois)
 - Decidido: nada que dá vantagem é vendido com dinheiro real (evita "pay-to-win").
-- Casa liberada quando todos saem: o que acontece com os itens do baú e dos armários nessa hora?
 - Voz no jogo: precisa de moderação (denúncia/silenciar), porque é jogo público na Play Store.
 - Multiplayer de 30 jogadores + mapa grande + carros + PvP + destruição é o tipo de jogo mais difícil de
   fazer: precisa de servidor online pago por mês e muito teste com gente de verdade.
 - Caminho sugerido (não decidido): começar menor e crescer por etapas.
 
 ## Perguntas em aberto
-- Quando todos saem e a casa é liberada: os itens do baú/armários **vão para a conta** (aparecem na próxima casa)
-  ou **ficam na casa** para quem pegar?
 - O carro guardado na garagem: vai junto com a facção para o próximo servidor?
-- A loja de munição e de comida perto da casa: só a facção usa, ou qualquer jogador pode comprar lá?
 - Servidor: para sempre ou reinicia (ainda indeciso).
