@@ -11,6 +11,11 @@ var _status: Label
 var _t: float = 0.0
 
 
+## Mensagem para mostrar quando o menu volta (ex.: "Não conectou no servidor").
+static var aviso_inicial: String = ""
+var _online: VBoxContainer
+
+
 func _ready() -> void:
 	var fundo := ColorRect.new()
 	fundo.color = Color(0.06, 0.07, 0.08, 0.88)
@@ -27,6 +32,12 @@ func _ready() -> void:
 	caixa.add_child(titulo)
 	_nick = _campo("Seu nome", "Jogador%d" % (randi() % 900 + 100))
 	caixa.add_child(_nick)
+	caixa.add_child(_rotulo("Jogar online:", 24))
+	_online = VBoxContainer.new()
+	_online.add_theme_constant_override("separation", 8)
+	caixa.add_child(_online)
+	_online.add_child(_rotulo("Buscando servidores...", 20))
+	_busca_servidores()
 	var b_solo := _botao("JOGAR SOZINHO")
 	b_solo.pressed.connect(func() -> void: main.iniciar_solo(_nome()))
 	caixa.add_child(b_solo)
@@ -46,7 +57,8 @@ func _ready() -> void:
 	b_ip.pressed.connect(func() -> void: _entrar(_ip.text.strip_edges()))
 	linha.add_child(b_ip)
 	caixa.add_child(linha)
-	_status = _rotulo("Procurando partidas...", 22)
+	_status = _rotulo(aviso_inicial if aviso_inicial != "" else "Procurando partidas...", 22)
+	aviso_inicial = ""
 	caixa.add_child(_status)
 	main.rede.procurar()
 
@@ -67,6 +79,30 @@ func _process(dt: float) -> void:
 		_lista.add_child(b)
 	if main.rede.partidas.is_empty():
 		_status.text = "Procurando partidas no Wi-Fi... (o outro aparelho precisa tocar em CRIAR PARTIDA)"
+
+
+# baixa a lista de servidores (arquivo no GitHub) e mostra um botão por servidor
+func _busca_servidores() -> void:
+	var http := HTTPRequest.new()
+	http.timeout = 8.0
+	add_child(http)
+	http.request_completed.connect(func(res: int, cod: int, _h: PackedStringArray, corpo: PackedByteArray) -> void:
+		for c in _online.get_children():
+			c.queue_free()
+		var dados: Variant = JSON.parse_string(corpo.get_string_from_utf8()) if res == OK and cod == 200 else null
+		if not dados is Dictionary or (dados as Dictionary).get("servidores", []).is_empty():
+			_online.add_child(_rotulo("Nenhum servidor online agora.", 20))
+			return
+		if int(dados.get("versao", 0)) != Rede.VERSAO:
+			_online.add_child(_rotulo("O servidor está numa versão diferente: atualize o jogo.", 20))
+			return
+		for s: Dictionary in dados.servidores:
+			var b := _botao("%s" % s.get("nome", s.ip))
+			b.pressed.connect(func() -> void: _entrar(String(s.ip)))
+			_online.add_child(b)
+		http.queue_free())
+	if http.request(Rede.LISTA_URL) != OK:
+		_online.get_child(0).text = "Sem internet para buscar servidores."
 
 
 func _nome() -> String:

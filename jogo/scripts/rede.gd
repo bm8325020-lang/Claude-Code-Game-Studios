@@ -7,6 +7,10 @@ extends Node
 const PORTA: int = 7777
 const PORTA_ANUNCIO: int = 7778
 const MAX_JOGADORES: int = 30
+## Sobe quando o que vai pela rede muda: jogo e servidor precisam ter o mesmo número para jogar juntos.
+const VERSAO: int = 1
+## Lista de servidores online (o servidor na nuvem se atualiza pela mesma branch).
+const LISTA_URL: String = "https://raw.githubusercontent.com/bm8325020-lang/Claude-Code-Game-Studios/servidor-build/servidores.json"
 
 ## Partidas achadas no Wi-Fi: ip -> {"nick": String, "porta": int, "visto": float (segundos)}
 var partidas: Dictionary = {}
@@ -19,15 +23,15 @@ var _t_anuncio: float = 0.0
 var _relogio: float = 0.0
 
 
-## Cria a partida neste aparelho. Retorna OK ou o erro do ENet.
-func criar(nick: String) -> Error:
+## Cria a partida neste aparelho. Retorna OK ou o erro do ENet. `anunciar` = avisar no Wi-Fi (não no servidor).
+func criar(nick: String, anunciar: bool = true) -> Error:
 	var peer := ENetMultiplayerPeer.new()
 	var err: Error = peer.create_server(PORTA, MAX_JOGADORES)
 	if err != OK:
 		return err
 	multiplayer.multiplayer_peer = peer
 	nick_host = nick
-	anunciando = true
+	anunciando = anunciar
 	_anuncio.set_broadcast_enabled(true)
 	_anuncio.set_dest_address("255.255.255.255", PORTA_ANUNCIO)
 	return OK

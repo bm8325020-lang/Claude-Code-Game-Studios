@@ -49,9 +49,34 @@ func _ready() -> void:
 	add_child(controles)
 	multiplayer.peer_connected.connect(_peer_conectou)
 	multiplayer.peer_disconnected.connect(_peer_saiu)
+	multiplayer.connection_failed.connect(_caiu_conexao.bind("Não conectou no servidor"))
+	multiplayer.server_disconnected.connect(_caiu_conexao.bind("O servidor fechou a partida"))
 	menu = Menu.new()
 	menu.main = self
 	add_child(menu)
+	if "dedicado" in OS.get_cmdline_user_args():
+		iniciar_servidor.call_deferred()
+
+
+## Servidor dedicado (na nuvem): sem tela e sem jogador próprio; só recebe os jogadores e roda os zumbis.
+## Rodar: godot --headless --main-pack servidor.pck -- dedicado
+func iniciar_servidor() -> Error:
+	var err: Error = rede.criar("Servidor", false)
+	if err != OK:
+		printerr("SERVIDOR: não abriu a porta %d (erro %d)" % [Rede.PORTA, err])
+		get_tree().quit(1)
+		return err
+	_comeca()
+	controles.visible = false
+	_poe_zumbis()
+	print("SERVIDOR pronto na porta %d (versão de rede %d)" % [Rede.PORTA, Rede.VERSAO])
+	return OK
+
+
+func _caiu_conexao(motivo: String) -> void:
+	rede.sair()
+	get_tree().reload_current_scene()
+	Menu.aviso_inicial = motivo
 
 
 ## Joga sozinho, sem rede.
