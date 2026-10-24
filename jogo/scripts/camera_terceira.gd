@@ -31,6 +31,7 @@ var _altura: float = ALTURA_EM_PE
 var _y_suave: float = 0.0
 var _tremor: float = 0.0
 var _ombro: float = OMBRO
+var _recuo: float = 0.0  # coice do tiro (radianos para cima), volta sozinho
 var _yaw_alvo: float = 0.0
 var _pitch_alvo: float = deg_to_rad(12.0)
 
@@ -75,7 +76,8 @@ func _process(dt: float) -> void:
 	# o ombro desloca o pivô (não a câmera): o SpringArm reposiciona a câmera todo quadro
 	var direita := Vector3(cos(yaw), 0, -sin(yaw))
 	global_position = Vector3(p.x, _y_suave + _altura, p.z) + direita * _ombro
-	rotation = Vector3(-pitch, yaw, 0)
+	_recuo = move_toward(_recuo, 0.0, dt * deg_to_rad(9.0))
+	rotation = Vector3(-(pitch - _recuo), yaw, 0)
 	var fov_alvo: float = FOV_MIRA if mira else (FOV_CORRENDO if alvo.correndo else FOV)
 	cam.fov = lerpf(cam.fov, fov_alvo, 1.0 - exp(-10.0 * dt))
 	braco.spring_length = lerpf(braco.spring_length, DISTANCIA_MIRA if mira else DISTANCIA, 1.0 - exp(-12.0 * dt))
@@ -92,6 +94,11 @@ func virar(novo_yaw: float, novo_pitch: float = NAN) -> void:
 	if not is_nan(novo_pitch):
 		pitch = novo_pitch
 		_pitch_alvo = novo_pitch
+
+
+## Coice do tiro: a câmera sobe uns graus e volta sozinha.
+func coice(graus: float) -> void:
+	_recuo = minf(_recuo + deg_to_rad(graus), deg_to_rad(6.0))
 
 
 ## Treme a tela (0..1), por exemplo quando um golpe acerta.

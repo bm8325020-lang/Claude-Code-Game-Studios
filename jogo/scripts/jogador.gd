@@ -36,9 +36,23 @@ const PARADA_ACERTO: float = 0.07  # congela a animação um instante quando ace
 ## Entrada do frame: move (Vector2, -1..1, y = frente), olhar (Vector2, graus), pular (bool, apertou agora),
 ## correr (bool, segurando), agachar (bool, alternou agora), andar (bool, segurando: passo lento no PC),
 ## mirar (bool, alternou agora: liga/desliga a mira travada), mira_segurando (null ou bool: PC segura o botão
-## direito), atacar (bool, apertou agora).
+## direito), atacar (bool, apertou agora: golpe ou tiro), trocar (bool: troca facão/pistola),
+## arma ("" ou "facao"/"pistola": escolhe direto), recarregar (bool).
 var entrada: Dictionary = {"move": Vector2.ZERO, "olhar": Vector2.ZERO, "pular": false, "correr": false,
-	"agachar": false, "andar": false, "mirar": false, "mira_segurando": null, "atacar": false}
+	"agachar": false, "andar": false, "mirar": false, "mira_segurando": null, "atacar": false,
+	"trocar": false, "arma": "", "recarregar": false}
+
+## Arma na mão: "facao" ou "pistola" (vai pela rede para os outros verem).
+var arma: String = "facao":
+	set(v):
+		arma = v
+		if _facao:
+			_facao.visible = v == "facao"
+		if pistola:
+			pistola.visible = v == "pistola"
+var pistola: Pistola
+## Parte de cima do corpo (mirar/atirar/recarregar) por cima das pernas; vai pela rede.
+var cima_rede: String = ""
 
 var agachado: bool = false
 ## Mira travada: o corpo fica virado para onde a câmera olha e anda de lado/de costas (modo tiro).
@@ -76,6 +90,15 @@ var _proximo: bool = false    # apertou de novo: emenda o próximo golpe
 var _parada: float = 0.0
 var _som: AudioStreamPlayer3D
 var _sons: Dictionary = {}
+var _facao: Node3D
+var _esq: Skeleton3D
+var _cima_peso: float = 0.0     # 0..1: quanto a pose de cima (pistola) manda nos braços
+var _cima_t: float = 0.0
+var _cima_clipe: String = ""
+var _encara: float = 0.0        # depois de atirar sem mirar, o corpo fica virado para a mira um instante
+var _tiro_t: float = 9.0
+const OSSOS_CIMA: Array[String] = ["chest", "upperarm.r", "lowerarm.r", "wrist.r", "hand.r",
+	"upperarm.l", "lowerarm.l", "wrist.l", "hand.l", "head"]
 
 
 func _ready() -> void:
@@ -133,7 +156,7 @@ func _monta_sincronia() -> void:
 	for p: String in [".:pos_rede", ".:rot_rede"]:
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
-	for p: String in [".:clipe_rede", ".:agachado", ".:nick"]:
+	for p: String in [".:clipe_rede", ".:agachado", ".:nick", ".:arma", ".:cima_rede"]:
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	var sync := MultiplayerSynchronizer.new()
@@ -149,6 +172,7 @@ func _monta_modelo() -> void:
 	modelo = (load(Anims.MODELO) as PackedScene).instantiate()
 	add_child(modelo)
 	anim = AnimationPlayer.new()
+	anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL  # avançado em _process
 	modelo.add_child(anim)
 	anim.add_animation_library("", Anims.biblioteca())
 	_toca("parado", 0.0)
@@ -156,15 +180,22 @@ func _monta_modelo() -> void:
 
 # facão provisório (espada curta do pacote de props) na mão direita
 func _monta_arma() -> void:
-	var esq: Skeleton3D = modelo.find_children("*", "Skeleton3D", true, false)[0]
+	_esq = modelo.find_children("*", "Skeleton3D", true, false)[0]
 	var mao := BoneAttachment3D.new()
 	mao.bone_name = "hand.r"
-	esq.add_child(mao)
-	var arma: Node3D = (load("res://assets/armas/Sword_Bronze.gltf") as PackedScene).instantiate()
+	_esq.add_child(mao)
+	_facao = (load("res://assets/armas/Sword_Bronze.gltf") as PackedScene).instantiate()
 	# a lâmina (eixo +Y do modelo) aponta para a frente da mão (medido na pose parada do manequim)
-	arma.quaternion = Quaternion(Vector3.UP, Vector3(-0.965, 0.0, -0.264).normalized())
-	arma.scale = Vector3.ONE * 0.75
-	mao.add_child(arma)
+	_facao.quaternion = Quaternion(Vector3.UP, Vector3(-0.965, 0.0, -0.264).normalized())
+	_facao.scale = Vector3.ONE * 0.75
+	mao.add_child(_facao)
+	pistola = Pistola.new()
+	pistola.name = "Pistola"
+	pistola.dono = self
+	pistola.basis = Basis(PISTOLA_X, PISTOLA_Y, PISTOLA_Z).orthonormalized()
+	pistola.position = PISTOLA_POS
+	mao.add_child(pistola)
+	arma = arma  # aplica a visibilidade
 
 
 func _physics_process(dt: float) -> void:
@@ -185,10 +216,25 @@ func _physics_process(dt: float) -> void:
 		entrada["mirar"] = false
 	if entrada.get("mira_segurando") != null:
 		mira_travada = bool(entrada["mira_segurando"])
+	if entrada.get("trocar", false):
+		entrada["trocar"] = false
+		_troca_arma("pistola" if arma == "facao" else "facao")
+	if String(entrada.get("arma", "")) != "":
+		_troca_arma(String(entrada["arma"]))
+		entrada["arma"] = ""
+	if entrada.get("recarregar", false):
+		entrada["recarregar"] = false
+		if arma == "pistola":
+			pistola.recarregar()
 	if entrada.get("atacar", false):
 		entrada["atacar"] = false
-		_pede_golpe()
+		if arma == "pistola":
+			_atira()
+		else:
+			_pede_golpe()
 	_atualiza_golpe(dt)
+	_encara -= dt
+	_tiro_t += dt
 	correndo = bool(entrada.get("correr", false)) and not agachado and not mira_travada and mov.y > 0.3
 
 	# direção relativa à câmera (só o giro horizontal)
@@ -246,7 +292,7 @@ func _physics_process(dt: float) -> void:
 		_no_ar_desde = 0.0
 
 	# mira travada: o corpo olha para a frente da câmera; senão vira para onde está andando (também no ar)
-	if mira_travada:
+	if mira_travada or _encara > 0.0:
 		modelo.rotation.y = lerp_angle(modelo.rotation.y, yaw + PI, 1.0 - exp(-GIRO_MIRA * dt))
 	elif _golpe >= 0:
 		pass  # durante o golpe o corpo não gira (o golpe sai para onde você estava virado)
@@ -257,6 +303,7 @@ func _physics_process(dt: float) -> void:
 	pos_rede = global_position
 	rot_rede = modelo.rotation.y
 	clipe_rede = _clipe
+	cima_rede = _escolhe_cima()
 
 
 # jogador de outro aparelho: vai suave até a última posição recebida e toca a mesma animação
@@ -311,6 +358,120 @@ func _anima(dt: float, vel: float) -> void:
 	# pés acompanham o chão: escala a velocidade do clipe pela velocidade real
 	var base: float = float(Anims.VELOCIDADE.get(clipe, 0.0))
 	anim.speed_scale = clampf(vel / base, 0.5, 1.5) if base > 0.1 and vel > 0.15 else 1.0
+
+
+# --- pistola ---
+# Orientação da pistola na mão (eixos do modelo no espaço da mão: cano = +Z do modelo).
+const PISTOLA_X: Vector3 = Vector3(-0.050, 0.407, -0.911)  # medido na pose de mira (tools/_dbg)
+const PISTOLA_Y: Vector3 = Vector3(-0.981, -0.190, -0.031)
+const PISTOLA_Z: Vector3 = Vector3(-0.186, 0.893, 0.409)
+const PISTOLA_POS: Vector3 = Vector3(0, 0.08, 0)
+const GIRO_TRONCO_PISTOLA: float = deg_to_rad(65.4)  # medido: braço da pose de mira sai 65° para a direita
+const INCLINA_TRONCO: float = 1.0                    # quanto o peito segue o ângulo vertical da câmera
+
+
+func _troca_arma(nova: String) -> void:
+	if nova == arma or _golpe >= 0:
+		return
+	arma = nova
+	if pistola.recarregando:
+		pistola.recarregando = false  # trocar cancela a recarga
+
+
+## Raio da mira: do centro da tela para a frente, começando na altura do jogador (não acerta o que está
+## entre a câmera e ele). Sem câmera (testes, outros aparelhos): reto na frente do corpo.
+func raio_mira() -> Array[Vector3]:
+	if camera == null:
+		return [global_position + Vector3(0, 1.4, 0), modelo.global_basis.z.normalized()]
+	var c: Camera3D = camera.cam
+	var dir: Vector3 = -c.global_basis.z.normalized()
+	var origem: Vector3 = c.global_position
+	origem += dir * maxf(0.0, (global_position + Vector3(0, 1.3, 0) - origem).dot(dir))
+	return [origem, dir]
+
+
+func _atira() -> void:
+	if not pistola.pronta() and pistola.balas > 0:
+		return
+	var yaw: float = camera.yaw if camera else modelo.rotation.y - PI
+	modelo.rotation.y = yaw + PI  # vira para a mira na hora do tiro
+	var r: Array[Vector3] = raio_mira()
+	var res: Dictionary = pistola.atirar(r[0], r[1], mira_travada)
+	if not res.atirou:
+		return
+	_encara = 0.7
+	_tiro_t = 0.0
+	if camera:
+		camera.coice(Pistola.COICE)
+	if multiplayer.has_multiplayer_peer() and multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
+		_rede_tiro.rpc(res.ponto, res.acertou != null)
+
+
+@rpc("authority", "call_remote", "unreliable")
+func _rede_tiro(ponto: Vector3, bateu: bool) -> void:
+	pistola.efeito(ponto, bateu)
+
+
+# pose da parte de cima: recarregar > tiro recente > mirando/encarando > segurando a pistola
+func _escolhe_cima() -> String:
+	if arma != "pistola":
+		return ""
+	if pistola.recarregando:
+		return "pistola_recarga"
+	if _tiro_t < 0.18:
+		return "pistola_tiro"
+	if mira_travada or _encara > 0.0:
+		return "pistola_mira"
+	return ""
+
+
+func _process(dt: float) -> void:
+	anim.advance(dt)
+	var cima: String = cima_rede if not local else _escolhe_cima()
+	if cima != _cima_clipe:
+		if cima != "":
+			_cima_t = 0.0
+		if cima != "" or _cima_peso <= 0.01:
+			_cima_clipe = cima if cima != "" else _cima_clipe
+	_cima_peso = move_toward(_cima_peso, 1.0 if cima != "" else 0.0, dt * 8.0)
+	if _cima_peso > 0.0 and _cima_clipe != "":
+		_cima_t += dt
+		_aplica_cima(_cima_clipe, _cima_t, _cima_peso)
+
+
+# sobrepõe nos ossos de cima a pose do clipe da pistola (as pernas continuam com a locomoção)
+func _aplica_cima(clipe: String, t: float, peso: float) -> void:
+	var a: Animation = anim.get_animation(clipe)
+	if a == null:
+		return
+	if clipe == "pistola_recarga":
+		t = t * a.length / Pistola.RECARGA  # encaixa o clipe no tempo da recarga
+	t = fmod(t, a.length) if a.loop_mode != Animation.LOOP_NONE else minf(t, a.length)
+	for i in a.get_track_count():
+		if a.track_get_type(i) != Animation.TYPE_ROTATION_3D:
+			continue
+		var osso: String = String(a.track_get_path(i)).get_slice(":", 1)
+		if osso not in OSSOS_CIMA:
+			continue
+		var idx: int = _esq.find_bone(osso)
+		var q: Quaternion = a.rotation_track_interpolate(i, t)
+		_esq.set_bone_pose_rotation(idx, _esq.get_bone_pose_rotation(idx).slerp(q, peso))
+	if clipe.begins_with("pistola"):
+		_aponta_tronco(peso)
+
+
+# o clipe de mira do KayKit vira o corpo de lado; gira o peito para o braço apontar para a frente e
+# inclina para cima/baixo seguindo a câmera (o braço acompanha a mira)
+func _aponta_tronco(peso: float) -> void:
+	var ic: int = _esq.find_bone("chest")
+	var pai: Basis = (_esq.global_transform.basis * _esq.get_bone_global_pose(_esq.get_bone_parent(ic)).basis).orthonormalized()
+	var cima: Vector3 = (pai.inverse() * Vector3.UP).normalized()
+	var lado: Vector3 = (pai.inverse() * modelo.global_basis.x).normalized()
+	var inclina: float = (camera.pitch if camera else 0.0) * INCLINA_TRONCO
+	var q: Quaternion = _esq.get_bone_pose_rotation(ic)
+	q = Quaternion(cima, GIRO_TRONCO_PISTOLA * peso) * q
+	q = Quaternion(lado, inclina * peso) * q
+	_esq.set_bone_pose_rotation(ic, q)
 
 
 # --- facão: combo de 3 golpes ---

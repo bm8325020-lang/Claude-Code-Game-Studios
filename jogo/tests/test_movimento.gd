@@ -33,6 +33,7 @@ func _init() -> void:
 	await _mira_travada()
 	await _facao()
 	await _mira_nova()
+	await _pistola()
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
 
@@ -289,4 +290,66 @@ func _mira_nova() -> void:
 	j.entrada["mira_segurando"] = false
 	await frames(3)
 	ok(not j.mira_travada, "soltar o botão direito para de mirar")
+	j.entrada["mira_segurando"] = null
+
+
+# aponta a câmera para o ponto (a mira do centro da tela passa por ele)
+func mira_em(alvo: Vector3) -> void:
+	for k in 3:
+		var d: Vector3 = (alvo - j.camera.cam.global_position).normalized()
+		j.camera.virar(atan2(-d.x, -d.z), -asin(d.y))
+		await frames(20)
+		await process_frame
+
+
+func _pistola() -> void:
+	seed(7)
+	var b: BonecoTreino = _boneco(Vector3(-1.5, 0, 6))
+	await frames(260)  # se algum boneco caiu, espera levantar
+	await poe(Vector3(-1.5, 0.1, 1.5), PI)
+	j.entrada["arma"] = "pistola"
+	await frames(5)
+	ok(j.arma == "pistola" and j.pistola.visible, "tecla 2 pega a pistola")
+	j.entrada["trocar"] = true
+	await frames(5)
+	ok(j.arma == "facao" and not j.pistola.visible, "trocar volta para o facão")
+	j.entrada["trocar"] = true
+	await frames(5)
+	ok(j.arma == "pistola", "trocar de novo pega a pistola")
+	j.entrada["mira_segurando"] = true
+	b.vida = BonecoTreino.VIDA_MAX
+	await mira_em(b.global_position + Vector3(0, 1.0, 0))
+	j.entrada["atacar"] = true
+	await frames(3)
+	ok(j.pistola.balas == Pistola.PENTE - 1, "um tiro gasta uma bala (%d)" % j.pistola.balas)
+	ok(b.vida == BonecoTreino.VIDA_MAX - Pistola.DANO, "tiro no peito tira %d (vida %d)" % [Pistola.DANO, b.vida])
+	ok(j.clipe_atual() != "" and j._cima_clipe.begins_with("pistola"), "pose de pistola nos braços (%s)" % j._cima_clipe)
+	# cadência: dois toques seguidos rápido só saem se passou o tempo
+	j.entrada["atacar"] = true
+	await frames(2)
+	ok(j.pistola.balas == Pistola.PENTE - 1, "não atira antes da cadência")
+	await frames(30)
+	b.vida = BonecoTreino.VIDA_MAX
+	await mira_em(b.global_position + Vector3(0, 1.74, 0))
+	j.entrada["atacar"] = true
+	await frames(3)
+	ok(b.vida == BonecoTreino.VIDA_MAX - Pistola.DANO * 2, "tiro na cabeça tira o dobro (vida %d)" % b.vida)
+	# recarga
+	j.entrada["recarregar"] = true
+	await frames(3)
+	ok(j.pistola.recarregando, "R recarrega")
+	var balas: int = j.pistola.balas
+	j.entrada["atacar"] = true
+	await frames(3)
+	ok(j.pistola.balas == balas, "recarregando não atira")
+	await frames(int(Pistola.RECARGA * 60) + 10)
+	ok(j.pistola.balas == Pistola.PENTE and j.pistola.reserva == Pistola.RESERVA_INICIAL - 2, "recarga enche o pente e tira da reserva (%d | %d)" % [j.pistola.balas, j.pistola.reserva])
+	# pente vazio: o próximo toque recarrega sozinho
+	j.pistola.balas = 0
+	j.entrada["atacar"] = true
+	await frames(3)
+	ok(j.pistola.recarregando, "pente vazio recarrega sozinho")
+	j.entrada["arma"] = "facao"
+	await frames(3)
+	ok(not j.pistola.recarregando, "trocar de arma cancela a recarga")
 	j.entrada["mira_segurando"] = null

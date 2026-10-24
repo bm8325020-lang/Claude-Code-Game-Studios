@@ -1,9 +1,10 @@
 # Controles: transforma teclado/mouse (PC) e toque (celular) na `entrada` do Jogador.
 # PC: WASD anda, mouse gira a câmera, Shift corre, Alt anda devagar, Ctrl/C agacha, Espaço pula,
-# botão esquerdo do mouse golpeia, segurar o botão direito mira, Esc solta o mouse.
+# botão esquerdo do mouse golpeia/atira, segurar o botão direito mira, 1/2 escolhe facão/pistola,
+# Q troca de arma, R recarrega, Esc solta o mouse.
 # Celular: analógico que aparece onde o polegar esquerdo toca; arrastar no lado direito gira a câmera;
-# botões ATACAR, PULAR, CORRER (liga/desliga), AGACHAR e MIRA (canto inferior direito, liga/desliga a mira).
-# Mirando aparece a mira no centro da tela.
+# botões ATACAR/ATIRAR, PULAR, CORRER (liga/desliga), AGACHAR, MIRA (canto inferior direito, liga/desliga
+# a mira), TROCAR (arma) e RECARREGAR. Mirando ou com a pistola aparece a mira no centro da tela.
 class_name Controles
 extends CanvasLayer
 
@@ -31,6 +32,9 @@ var _btn_correr: Button
 var _btn_agachar: Button
 var _btn_mira: Button
 var _mira: Control
+var _btn_atacar: Button
+var _btn_recarregar: Button
+var _municao: Label
 
 
 func _ready() -> void:
@@ -42,13 +46,19 @@ func _ready() -> void:
 	_mira.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_mira.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_mira)
+	_municao = Label.new()
+	_municao.add_theme_font_size_override("font_size", 30)
+	_municao.add_theme_color_override("font_outline_color", Color.BLACK)
+	_municao.add_theme_constant_override("outline_size", 6)
+	_municao.position = Vector2(24, 20)
+	add_child(_municao)
 	visible = jogador != null
 
 
 func _acoes() -> void:
 	var mapa: Dictionary = {"frente": [KEY_W, KEY_UP], "tras": [KEY_S, KEY_DOWN], "esq": [KEY_A, KEY_LEFT],
 		"dir": [KEY_D, KEY_RIGHT], "pular": [KEY_SPACE], "correr": [KEY_SHIFT], "agachar": [KEY_CTRL, KEY_C],
-		"andar": [KEY_ALT]}
+		"andar": [KEY_ALT], "trocar": [KEY_Q], "recarregar": [KEY_R], "arma_1": [KEY_1], "arma_2": [KEY_2]}
 	for acao: String in mapa:
 		if InputMap.has_action(acao):
 			continue
@@ -74,13 +84,29 @@ func _process(_dt: float) -> void:
 			e["pular"] = true
 		if Input.is_action_just_pressed("agachar"):
 			e["agachar"] = true
+		if Input.is_action_just_pressed("trocar"):
+			e["trocar"] = true
+		if Input.is_action_just_pressed("recarregar"):
+			e["recarregar"] = true
+		if Input.is_action_just_pressed("arma_1"):
+			e["arma"] = "facao"
+		if Input.is_action_just_pressed("arma_2"):
+			e["arma"] = "pistola"
 	if _btn_agachar:
 		_btn_agachar.modulate = Color(1, 0.85, 0.4) if jogador.agachado else Color.WHITE
 	if _btn_correr:
 		_btn_correr.modulate = Color(1, 0.85, 0.4) if _correr_ligado else Color.WHITE
 	if _btn_mira:
 		_btn_mira.modulate = Color(1, 0.85, 0.4) if jogador.mira_travada else Color.WHITE
-	_mira.visible = jogador.mira_travada
+	var com_pistola: bool = jogador.arma == "pistola"
+	_mira.visible = jogador.mira_travada or com_pistola
+	_municao.visible = com_pistola
+	if com_pistola:
+		var p: Pistola = jogador.pistola
+		_municao.text = ("RECARREGANDO" if p.recarregando else "%d | %d" % [p.balas, p.reserva])
+	if _btn_atacar:
+		_btn_atacar.text = "ATIRAR" if com_pistola else "ATACAR"
+		_btn_recarregar.visible = com_pistola
 
 
 func _input(ev: InputEvent) -> void:
@@ -132,8 +158,8 @@ func _input(ev: InputEvent) -> void:
 
 
 func _em_botao(p: Vector2) -> bool:
-	for b: Control in [_btn_correr, _btn_agachar, _btn_mira, get_node_or_null("Pular") as Control,
-			get_node_or_null("Atacar") as Control]:
+	for b: Control in [_btn_correr, _btn_agachar, _btn_mira, _btn_atacar, _btn_recarregar,
+			get_node_or_null("Pular") as Control, get_node_or_null("Trocar") as Control]:
 		if b and b.get_global_rect().grow(10).has_point(p):
 			return true
 	return false
@@ -151,9 +177,14 @@ func _monta_toque() -> void:
 	_btn_mira.button_down.connect(func() -> void:
 		jogador.entrada["mirar"] = true
 		_correr_ligado = false)
-	var atacar := _botao("ATACAR", Vector2(-320, -175), 150.0)
-	atacar.name = "Atacar"
-	atacar.button_down.connect(func() -> void: jogador.entrada["atacar"] = true)
+	_btn_atacar = _botao("ATACAR", Vector2(-320, -175), 150.0)
+	_btn_atacar.button_down.connect(func() -> void: jogador.entrada["atacar"] = true)
+	var trocar := _botao("TROCAR", Vector2(-130, -420), 100.0)
+	trocar.name = "Trocar"
+	trocar.button_down.connect(func() -> void: jogador.entrada["trocar"] = true)
+	_btn_recarregar = _botao("RECARREGAR", Vector2(-450, -330), 110.0)
+	_btn_recarregar.add_theme_font_size_override("font_size", 16)
+	_btn_recarregar.button_down.connect(func() -> void: jogador.entrada["recarregar"] = true)
 	var pular := _botao("PULAR", Vector2(-140, -290))
 	pular.name = "Pular"
 	pular.button_down.connect(func() -> void: jogador.entrada["pular"] = true)

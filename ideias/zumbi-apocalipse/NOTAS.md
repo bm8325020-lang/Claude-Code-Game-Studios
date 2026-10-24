@@ -253,7 +253,7 @@ quando você aprovar.
    **Status: feito, APK 0.5.** Combo de 3 golpes (25/25/45), pausa no acerto, tremida, som, bonecos de
    treino. Mira refeita: segurar (PC) / botão MIRA, câmera mais perto e de lado, zoom, mira no centro,
    anda devagar e o corpo segue a câmera na hora.
-4. **Arma de fogo** (uma pistola): mira manual, tiro, recarga.
+4. **Arma de fogo** (uma pistola): mira manual, tiro, recarga. ✅ APK 0.7 (pistola de blocos provisória, 12+48 balas, cabeça x2, TROCAR/RECARREGAR; PC: 1/2, Q, R, roda).
 5. **Um zumbi simples**: anda até você, ataca, morre.
 6. ...depois cada comportamento de zumbi, um por vez, e assim por diante.
 

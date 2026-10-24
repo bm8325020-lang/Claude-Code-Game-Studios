@@ -7,7 +7,7 @@ extends RefCounted
 const PASTA: String = "res://assets/kaykit/"
 const MODELO: String = "res://assets/kaykit/Mannequin_Medium.glb"
 const FONTES: Array[String] = ["Rig_Medium_General.glb", "Rig_Medium_MovementBasic.glb", "Rig_Medium_MovementAdvanced.glb",
-	"Rig_Medium_CombatMelee.glb"]
+	"Rig_Medium_CombatMelee.glb", "Rig_Medium_CombatRanged.glb"]
 
 ## nome lógico -> clipe do KayKit
 const NOMES: Dictionary = {
@@ -17,9 +17,10 @@ const NOMES: Dictionary = {
 	"lado_esq": "Running_Strafe_Left", "lado_dir": "Running_Strafe_Right", "tras": "Walking_Backwards",
 	"golpe1": "Melee_1H_Attack_Slice_Horizontal", "golpe2": "Melee_1H_Attack_Slice_Diagonal",
 	"golpe3": "Melee_1H_Attack_Chop",
+	"pistola_mira": "Ranged_1H_Aiming", "pistola_tiro": "Ranged_1H_Shoot", "pistola_recarga": "Ranged_1H_Reload",
 }
 const LOOPS: Array[String] = ["parado", "andar", "trote", "correr", "agachado", "agachado_andar", "no_ar",
-	"lado_esq", "lado_dir", "tras"]
+	"lado_esq", "lado_dir", "tras", "pistola_mira"]
 
 ## Velocidade (m/s) em que cada clipe de locomoção parece natural; o clipe é escalado pela velocidade real
 ## para os pés não deslizarem. Ajuste fino a olho.
