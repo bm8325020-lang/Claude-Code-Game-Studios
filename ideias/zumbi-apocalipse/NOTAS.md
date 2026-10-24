@@ -1,7 +1,7 @@
 # Bloco de notas — jogo de apocalipse zumbi
 
 Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem código, sem arte).
-Última atualização: 2026-10-24 (12ª conversa).
+Última atualização: 2026-10-24 (13ª conversa).
 
 ## Plataforma e formato
 - Celular **e** PC. Vai ser publicado na Play Store.
@@ -131,10 +131,15 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
   (inclusive **blindados**) que você **equipa**.
   - Carro do passe **vai com você** para o próximo servidor.
   - **Passe novo todo mês**, com carros diferentes. Tem **versão grátis** com recompensas menores.
+  - **Sobe de nível no passe:** matando zumbis, ficando ativo no jogo, ficando ativo com a sua facção.
+  - **O passe também traz:** skins, roupas e tudo o mais que der para pôr (visuais).
 - **Carros do mapa:** ficam espalhados e numa **concessionária abandonada** (cenário). Se ninguém pegou, você
   passa um **lockpick** e leva.
   - Carros do mapa **também podem ser blindados**, mas o blindado do mapa **aguenta menos tiro** que o do passe.
-  - Carro do mapa é **do servidor**; quando você sai, ele **volta para um lugar aleatório do mapa**.
+  - Carro do mapa é **do servidor** e **nunca vai com você** para outro servidor. Quando você sai:
+    - se o carro está **solto no mapa**: **fica onde você deixou**;
+    - se está **na garagem da casa da facção**: reaparece num **lugar aleatório do servidor**.
+  - (A garagem da casa serve, na prática, para carros do passe.)
 
 ## Sobrevivência
 - O jogo tem **munição**, **comida** e **água** (lojas perto da casa da facção vendem).
@@ -211,5 +216,3 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - Caminho sugerido (não decidido): começar menor e crescer por etapas.
 
 ## Perguntas em aberto
-- Como se sobe de nível no passe (matar zumbis, tempo jogado, desafios diários)?
-- Além dos carros, o que mais vem no passe (skins, roupas, emotes)?
