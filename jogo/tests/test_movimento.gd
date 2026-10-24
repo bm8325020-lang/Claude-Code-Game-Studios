@@ -23,6 +23,8 @@ func _init() -> void:
 	await frames(5)
 	j = main.jogador
 	main.controles.jogador = null  # o teclado não mexe: o teste dirige a entrada
+	for z in main.zumbis.get_children():
+		z.free()  # zumbis têm o teste deles
 	await _velocidades()
 	await _pulo()
 	await _agachar_tunel()

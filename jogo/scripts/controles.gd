@@ -14,8 +14,12 @@ const BOTAO: float = 120.0
 ## O jogador controlado; os controles só aparecem (e o mouse só é capturado) quando a partida começa.
 var jogador: Jogador:
 	set(v):
+		if jogador and jogador.dano_levado.is_connected(_levou_dano):
+			jogador.dano_levado.disconnect(_levou_dano)
 		jogador = v
 		visible = v != null
+		if v:
+			v.dano_levado.connect(_levou_dano)
 		if v != null and not toque:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 var toque: bool = false  # mostra os controles de toque
@@ -35,6 +39,10 @@ var _mira: Control
 var _btn_atacar: Button
 var _btn_recarregar: Button
 var _municao: Label
+var _vida_fundo: ColorRect
+var _vida_barra: ColorRect
+var _vermelho: ColorRect
+var _caiu: Label
 
 
 func _ready() -> void:
@@ -46,6 +54,36 @@ func _ready() -> void:
 	_mira.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_mira.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_mira)
+	_vermelho = ColorRect.new()
+	_vermelho.color = Color(0.6, 0.0, 0.0, 0.0)
+	_vermelho.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_vermelho.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_vermelho)
+	# barra de vida no alto, no meio
+	_vida_fundo = ColorRect.new()
+	_vida_fundo.color = Color(0, 0, 0, 0.45)
+	_vida_fundo.anchor_left = 0.5
+	_vida_fundo.anchor_right = 0.5
+	_vida_fundo.offset_left = -160
+	_vida_fundo.offset_right = 160
+	_vida_fundo.offset_top = 18
+	_vida_fundo.offset_bottom = 34
+	_vida_fundo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_vida_fundo)
+	_vida_barra = ColorRect.new()
+	_vida_barra.position = Vector2(2, 2)
+	_vida_barra.size = Vector2(316, 12)
+	_vida_barra.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_vida_fundo.add_child(_vida_barra)
+	_caiu = Label.new()
+	_caiu.text = "VOCÊ CAIU"
+	_caiu.set_anchors_preset(Control.PRESET_CENTER)
+	_caiu.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_caiu.add_theme_font_size_override("font_size", 46)
+	_caiu.add_theme_color_override("font_outline_color", Color.BLACK)
+	_caiu.add_theme_constant_override("outline_size", 8)
+	_caiu.visible = false
+	add_child(_caiu)
 	_municao = Label.new()
 	_municao.add_theme_font_size_override("font_size", 30)
 	_municao.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -69,7 +107,7 @@ func _acoes() -> void:
 			InputMap.action_add_event(acao, ev)
 
 
-func _process(_dt: float) -> void:
+func _process(dt: float) -> void:
 	if jogador == null:
 		return
 	var e: Dictionary = jogador.entrada
@@ -98,6 +136,11 @@ func _process(_dt: float) -> void:
 		_btn_correr.modulate = Color(1, 0.85, 0.4) if _correr_ligado else Color.WHITE
 	if _btn_mira:
 		_btn_mira.modulate = Color(1, 0.85, 0.4) if jogador.mira_travada else Color.WHITE
+	var frac: float = clampf(float(jogador.vida) / Jogador.VIDA_MAX, 0.0, 1.0)
+	_vida_barra.size.x = 316.0 * frac
+	_vida_barra.color = Color(0.75, 0.12, 0.1) if frac < 0.3 else Color(0.85, 0.82, 0.78)
+	_caiu.visible = jogador.vida <= 0
+	_vermelho.color.a = move_toward(_vermelho.color.a, 0.35 if jogador.vida <= 0 else 0.0, dt * 0.8)
 	var com_pistola: bool = jogador.arma == "pistola"
 	_mira.visible = jogador.mira_travada or com_pistola
 	_municao.visible = com_pistola
@@ -155,6 +198,10 @@ func _input(ev: InputEvent) -> void:
 		elif d.index == _olhar_id:
 			jogador.entrada["olhar"] = (jogador.entrada["olhar"] as Vector2) + (d.position - _olhar_ult) * 1.6
 			_olhar_ult = d.position
+
+
+func _levou_dano(dano: int) -> void:
+	_vermelho.color.a = clampf(0.15 + dano * 0.012, 0.0, 0.45)
 
 
 func _em_botao(p: Vector2) -> bool:

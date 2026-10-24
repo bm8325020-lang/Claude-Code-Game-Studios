@@ -20,6 +20,7 @@ const CLIPES: Dictionary = {
 	"pouso": ["kaykit:Jump_Land", 0.0, -1.0],
 	"lado_esq": ["rifle/strafe_2", 0.0, -1.0], "lado_dir": ["rifle/strafe", 0.0, -1.0],
 	"tras": ["rifle/run_backwards", 0.0, -1.0],
+	"morte": ["kaykit:Death_A", 0.0, -1.0],
 	"golpe1": ["kaykit:Melee_1H_Attack_Slice_Horizontal", 0.0, -1.0],
 	"golpe2": ["kaykit:Melee_1H_Attack_Slice_Diagonal", 0.0, -1.0],
 	"golpe3": ["kaykit:Melee_1H_Attack_Chop", 0.0, -1.0],
@@ -30,7 +31,7 @@ const CLIPES: Dictionary = {
 	"lado_esq_p": ["pistola/pistol_strafe", 0.0, -1.0], "lado_dir_p": ["pistola/pistol_strafe_2", 0.0, -1.0],
 	"tras_p": ["pistola/pistol_run_backward", 0.0, -1.0],
 }
-const NAO_REPETE: Array[String] = ["pulo_inicio", "pouso", "golpe1", "golpe2", "golpe3", "pistola_tiro", "pistola_recarga"]
+const NAO_REPETE: Array[String] = ["morte", "pulo_inicio", "pouso", "golpe1", "golpe2", "golpe3", "pistola_tiro", "pistola_recarga"]
 const QUADRIL: String = "Skeleton3D:mixamorig_Hips"
 
 ## Velocidade (m/s) em que cada clipe de locomoção parece natural (deslocamento do quadril no clipe original);
@@ -39,17 +40,39 @@ const VELOCIDADE: Dictionary = {"andar": 1.8, "trote": 4.7, "correr": 5.5, "agac
 	"lado_esq": 2.85, "lado_dir": 3.3, "tras": 2.6,
 	"andar_p": 2.7, "trote_p": 5.0, "correr_p": 5.5, "lado_esq_p": 2.25, "lado_dir_p": 2.5, "tras_p": 3.5}
 
+## Zumbi: mesmo esqueleto (X Bot), animações dos pacotes de zumbi.
+const CLIPES_ZUMBI: Dictionary = {
+	"parado": ["zumbi2/zombie_idle", 0.0, -1.0], "andar": ["zumbi2/walking", 0.0, -1.0],
+	"correr": ["zumbi2/zombie_running", 0.0, -1.0], "ataque": ["zumbi2/zombie_punching", 0.0, -1.0],
+	"dano": ["zumbi2/zombie_reaction_hit", 0.0, 0.7], "morte": ["zumbi/zombie_death", 0.0, -1.0],
+}
+const NAO_REPETE_ZUMBI: Array[String] = ["ataque", "dano", "morte"]
+const VELOCIDADE_ZUMBI: Dictionary = {"andar": 0.56, "correr": 3.1}
+
 static var _lib: AnimationLibrary
+static var _lib_zumbi: AnimationLibrary
+static var _cache: Dictionary = {}
 
 
 ## Biblioteca para um AnimationPlayer filho da raiz do modelo (trilhas "Skeleton3D:mixamorig_<osso>").
 static func biblioteca() -> AnimationLibrary:
-	if _lib != null:
-		return _lib
-	_lib = AnimationLibrary.new()
-	var cache: Dictionary = {}
-	for logico: String in CLIPES:
-		var c: Array = CLIPES[logico]
+	if _lib == null:
+		_lib = _monta(CLIPES, NAO_REPETE)
+	return _lib
+
+
+## Biblioteca do zumbi (mesmo formato de trilhas).
+static func biblioteca_zumbi() -> AnimationLibrary:
+	if _lib_zumbi == null:
+		_lib_zumbi = _monta(CLIPES_ZUMBI, NAO_REPETE_ZUMBI)
+	return _lib_zumbi
+
+
+static func _monta(clipes: Dictionary, nao_repete: Array[String]) -> AnimationLibrary:
+	var lib := AnimationLibrary.new()
+	var cache: Dictionary = _cache
+	for logico: String in clipes:
+		var c: Array = clipes[logico]
 		if not cache.has(c[0]):
 			if String(c[0]).begins_with("kaykit:"):
 				cache[c[0]] = Retarget.converte(String(c[0]).get_slice(":", 1))
@@ -59,9 +82,9 @@ static func biblioteca() -> AnimationLibrary:
 				cena.free()
 		var a: Animation = _corta(cache[c[0]], c[1], c[2])
 		_no_lugar(a)
-		a.loop_mode = Animation.LOOP_NONE if logico in NAO_REPETE else Animation.LOOP_LINEAR
-		_lib.add_animation(logico, a)
-	return _lib
+		a.loop_mode = Animation.LOOP_NONE if logico in nao_repete else Animation.LOOP_LINEAR
+		lib.add_animation(logico, a)
+	return lib
 
 
 # cópia só com as chaves entre ini e fim (fim < 0 = até o fim), começando em 0

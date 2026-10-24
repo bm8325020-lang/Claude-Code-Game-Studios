@@ -256,6 +256,13 @@ quando você aprovar.
 4. **Arma de fogo** (uma pistola): mira manual, tiro, recarga. ✅ APK 0.7 (pistola de blocos provisória, 12+48 balas, cabeça x2, TROCAR/RECARREGAR; PC: 1/2, Q, R, roda).
    - APK 0.8: com a pistola o corpo acompanha a câmera. APK 0.9: animações do Mixamo (X Bot) no lugar das KayKit. Arquivos do Mixamo fora do git: baixar com `jogo/tools/baixa_mixamo.sh` (pasta do Drive do dono). Zumbis ficam fora do APK até a mecânica 5 (exclude_filter no export_presets.cfg).
 5. **Um zumbi simples**: anda até você, ataca, morre.
+   **Status: feito, APK 0.11.** 4 zumbis do outro lado do túnel. Veem até 18 m (se nada tapa) e ouvem a 5 m;
+   andam (longe) ou correm (perto de 10 m) desviando dos obstáculos (malha de navegação); soco de 15;
+   cambaleiam com golpe/tiro; 100 de vida (tiro 34, cabeça x2; facão 25/25/45); morrem e levantam no mesmo
+   lugar em 8 s (provisório, para treinar). Jogador: 100 de vida, barra no alto, tela vermelha no dano,
+   cai com a vida zerada e volta no início em 4 s (o resgate com a raid vem depois). Em rede: o servidor
+   manda nos zumbis; golpe/tiro do cliente vira pedido ao servidor.
+   APK 0.10 antes disso: pulo, agachar e facão da KayKit convertidos para o X Bot (pedido do dono).
 6. ...depois cada comportamento de zumbi, um por vez, e assim por diante.
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)

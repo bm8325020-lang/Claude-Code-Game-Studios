@@ -1,5 +1,6 @@
 # Pista de teste da mecânica 1 (andar + câmera): chão xadrez, caixas, rampas de 15°, 30° e 50° (íngreme demais),
 # escada, túnel baixo para agachar, muros para testar a câmera contra paredes e um "carro" parado.
+# Mecânica 5: zumbis do outro lado do túnel (só o servidor cria e controla; o spawner replica).
 extends Node3D
 
 ## O jogador deste aparelho (null até a partida começar).
@@ -9,6 +10,11 @@ var rede: Rede
 var menu: Menu
 var jogadores: Node3D
 var spawner: MultiplayerSpawner
+var zumbis: Node3D
+var spawner_zumbis: MultiplayerSpawner
+var navegacao: NavigationRegion3D
+## Onde os zumbis nascem (e levantam depois de mortos).
+const PONTOS_ZUMBI: Array[Vector3] = [Vector3(-6, 0, 22), Vector3(0, 0, 26), Vector3(6, 0, 22), Vector3(24, 0, 0)]
 var nick_local: String = "Jogador"
 
 
@@ -25,6 +31,14 @@ func _ready() -> void:
 	spawner.spawn_path = spawner.get_path_to(jogadores)
 	spawner.spawn_function = _cria_jogador
 	jogadores.child_entered_tree.connect(_jogador_entrou)
+	zumbis = Node3D.new()
+	zumbis.name = "Zumbis"
+	add_child(zumbis)
+	spawner_zumbis = MultiplayerSpawner.new()
+	spawner_zumbis.name = "SpawnerZumbis"
+	add_child(spawner_zumbis)
+	spawner_zumbis.spawn_path = spawner_zumbis.get_path_to(zumbis)
+	spawner_zumbis.spawn_function = _cria_zumbi
 	rede = Rede.new()
 	rede.name = "Rede"
 	add_child(rede)
@@ -42,6 +56,7 @@ func iniciar_solo(nick: String = "Jogador") -> void:
 	nick_local = nick
 	_comeca()
 	spawner.spawn({"id": multiplayer.get_unique_id(), "pos": _ponto_inicial(0)})
+	_poe_zumbis()
 
 
 ## Cria a partida neste aparelho (vira o servidor) e já entra nela.
@@ -52,6 +67,7 @@ func criar_partida(nick: String) -> Error:
 		return err
 	_comeca()
 	spawner.spawn({"id": 1, "pos": _ponto_inicial(0)})
+	_poe_zumbis()
 	_aviso("Partida criada. IP para o amigo: " + ", ".join(ips_locais()))
 	return OK
 
@@ -101,6 +117,36 @@ func _peer_saiu(id: int) -> void:
 	var n: Node = jogadores.get_node_or_null(str(id))
 	if n:
 		n.queue_free()
+
+
+# quem manda nos zumbis (sozinho ou servidor): faz a malha de navegação e cria os zumbis
+func _poe_zumbis() -> void:
+	navegacao = NavigationRegion3D.new()
+	var malha := NavigationMesh.new()
+	malha.agent_radius = 0.4
+	malha.agent_height = 1.8
+	malha.agent_max_climb = 0.35
+	malha.agent_max_slope = 40.0
+	malha.cell_size = 0.2
+	malha.cell_height = 0.1
+	malha.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
+	malha.geometry_collision_mask = 1
+	malha.geometry_source_geometry_mode = NavigationMesh.SOURCE_GEOMETRY_GROUPS_WITH_CHILDREN
+	malha.geometry_source_group_name = &"cenario"
+	malha.filter_baking_aabb = AABB(Vector3(-40, -1, -30), Vector3(80, 10, 70))  # só a pista
+	navegacao.navigation_mesh = malha
+	add_child(navegacao)
+	add_to_group("cenario")
+	navegacao.bake_navigation_mesh(false)
+	for p: Vector3 in PONTOS_ZUMBI:
+		spawner_zumbis.spawn({"pos": p})
+
+
+func _cria_zumbi(dados: Dictionary) -> Node:
+	var z := Zumbi.new()
+	z.position = dados.pos
+	z.casa = dados.pos
+	return z
 
 
 func _ponto_inicial(i: int) -> Vector3:

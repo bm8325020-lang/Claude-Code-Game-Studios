@@ -51,6 +51,15 @@ var arma: String = "facao":
 		if pistola:
 			pistola.visible = v == "pistola"
 var pistola: Pistola
+
+const VIDA_MAX: int = 100
+const RENASCE: float = 4.0  # s caído até voltar no ponto de início (o resgate do grupo vem depois)
+## Vida (quem manda é o dono do jogador; vai pela rede para os outros verem a queda).
+var vida: int = VIDA_MAX
+## Avisa o HUD que levou dano.
+signal dano_levado(dano: int)
+var inicio: Vector3
+var _morto_t: float = 0.0
 ## Parte de cima do corpo (mirar/atirar/recarregar) por cima das pernas; vai pela rede.
 var cima_rede: String = ""
 
@@ -105,7 +114,8 @@ func _ready() -> void:
 	floor_max_angle = deg_to_rad(46.0)
 	floor_snap_length = 0.45
 	collision_layer = 2
-	collision_mask = 1
+	collision_mask = 1 | 8  # mundo e zumbis
+	add_to_group("jogadores")
 	_forma = CapsuleShape3D.new()
 	_forma.radius = RAIO
 	_forma.height = ALTURA_EM_PE
@@ -141,6 +151,7 @@ func _ready() -> void:
 	_placa.visible = not local  # o nome aparece em cima dos outros, não no seu
 	add_child(_placa)
 	pos_rede = global_position
+	inicio = global_position
 	_monta_sincronia()
 	if local:
 		camera = CameraTerceira.new()
@@ -156,7 +167,7 @@ func _monta_sincronia() -> void:
 	for p: String in [".:pos_rede", ".:rot_rede"]:
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
-	for p: String in [".:clipe_rede", ".:agachado", ".:nick", ".:arma", ".:cima_rede"]:
+	for p: String in [".:clipe_rede", ".:agachado", ".:nick", ".:arma", ".:cima_rede", ".:vida"]:
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	var sync := MultiplayerSynchronizer.new()
@@ -209,6 +220,9 @@ func _monta_arma() -> void:
 func _physics_process(dt: float) -> void:
 	if not local:
 		_segue_rede(dt)
+		return
+	if vida <= 0:
+		_caido(dt)
 		return
 	var mov: Vector2 = entrada.get("move", Vector2.ZERO)
 	if mov.length() > 1.0:
@@ -315,6 +329,55 @@ func _physics_process(dt: float) -> void:
 
 
 # jogador de outro aparelho: vai suave até a última posição recebida e toca a mesma animação
+## Dano de zumbi (ou, depois, de outro jogador). Quem bate pode estar em outro aparelho: o dano vai para o dono.
+func levar_dano(dano: int, dir: Vector3) -> void:
+	if is_multiplayer_authority():
+		_recebe_dano(dano, dir)
+	else:
+		_rede_dano.rpc_id(get_multiplayer_authority(), dano, dir)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rede_dano(dano: int, dir: Vector3) -> void:
+	if multiplayer.get_remote_sender_id() == 1:  # só o servidor (que roda os zumbis) manda dano
+		_recebe_dano(dano, dir)
+
+
+func _recebe_dano(dano: int, dir: Vector3) -> void:
+	if vida <= 0:
+		return
+	vida = maxi(0, vida - dano)
+	velocity += Vector3(dir.x, 0, dir.z) * 3.0  # empurrão
+	_toca_som("impactPunch_heavy_00%d" % (randi() % 2), -2.0)
+	if camera:
+		camera.tremer(0.25)
+	dano_levado.emit(dano)
+	if vida == 0:
+		_morto_t = RENASCE
+		_golpe = -1
+		mira_travada = false
+		if pistola.recarregando:
+			pistola.recarregando = false
+		_toca("morte", 0.1)
+
+
+func _caido(dt: float) -> void:
+	_morto_t -= dt
+	velocity.x = move_toward(velocity.x, 0.0, 20.0 * dt)
+	velocity.z = move_toward(velocity.z, 0.0, 20.0 * dt)
+	velocity.y -= GRAVIDADE * dt
+	move_and_slide()
+	if _morto_t <= 0.0:
+		global_position = inicio
+		velocity = Vector3.ZERO
+		vida = VIDA_MAX
+		reset_physics_interpolation()
+		_toca("parado", 0.0)
+	pos_rede = global_position
+	clipe_rede = _clipe
+	cima_rede = ""
+
+
 func _segue_rede(dt: float) -> void:
 	var antes: Vector3 = global_position
 	if global_position.distance_to(pos_rede) > 6.0:
@@ -428,7 +491,7 @@ func olha_camera() -> bool:
 
 # pose da parte de cima: recarregar > tiro recente > mirando/encarando > segurando a pistola
 func _escolhe_cima() -> String:
-	if arma != "pistola":
+	if arma != "pistola" or vida <= 0:
 		return ""
 	if pistola.recarregando:
 		return "pistola_recarga"

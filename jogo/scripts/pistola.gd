@@ -106,7 +106,7 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 	_abertura = minf(_abertura + DISPERSAO_POR_TIRO, 4.0)
 	var desvio := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)).normalized()
 	dir = dir.rotated(dir.cross(desvio).normalized(), deg_to_rad(randf() * graus)) if dir.cross(desvio).length() > 0.01 else dir
-	var q := PhysicsRayQueryParameters3D.create(origem, origem + dir * ALCANCE, 1)
+	var q := PhysicsRayQueryParameters3D.create(origem, origem + dir * ALCANCE, 1 | 8)  # mundo e zumbis
 	q.exclude = [dono.get_rid()] if dono else []
 	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
 	var ponto: Vector3 = hit.position if not hit.is_empty() else origem + dir * ALCANCE
@@ -114,7 +114,8 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 	res.ponto = ponto
 	if not hit.is_empty() and (hit.collider as Node).is_in_group("golpeavel"):
 		var alvo: Node3D = hit.collider
-		var cabeca: bool = ponto.y - alvo.global_position.y > 1.65
+		var altura: Variant = alvo.get("altura_cabeca")
+		var cabeca: bool = ponto.y - alvo.global_position.y > (float(altura) if altura != null else 1.65)
 		alvo.call("levar_golpe", DANO * (2 if cabeca else 1), dir, dono)
 		res.acertou = alvo
 		res.cabeca = cabeca

@@ -50,6 +50,18 @@ func _init() -> void:
 		ok(andou > 3.0, "vê o outro andar (%.1f m)" % andou)
 		ok(outro.clipe_rede != "" and outro.nick == ("Cliente" if papel == "servidor" else "Servidor"), "vê nome e animação do outro (nick=%s)" % outro.nick)
 		ok(not outro.local and outro.camera == null, "o outro não tem câmera aqui")
+		# zumbis: o servidor cria, o cliente recebe; um golpe do cliente vira dano no servidor
+		ok(main.zumbis.get_child_count() == main.PONTOS_ZUMBI.size(), "vê os zumbis (%d)" % main.zumbis.get_child_count())
+		var zl: Zumbi = null
+		for n in main.zumbis.get_children():
+			if (n as Zumbi).casa.distance_to(Vector3(24, 0, 0)) < 0.1:
+				zl = n
+		ok(zl != null, "zumbi do ponto (24, 0, 0) existe aqui")
+		if zl and papel == "cliente":
+			zl.levar_golpe(30, Vector3.FORWARD, main.jogador)
+		await espera_ms(2000)
+		if zl:
+			ok(zl.vida == Zumbi.VIDA_MAX - 30, "golpe do cliente tira vida do zumbi nos dois (vida %d)" % zl.vida)
 	await espera_ms(3000)  # deixa o outro lado terminar de medir
 	print("REDE %s: %s %s" % [papel, "PASS" if falhas.is_empty() else "FAIL", ", ".join(falhas)])
 	quit(0 if falhas.is_empty() else 1)
