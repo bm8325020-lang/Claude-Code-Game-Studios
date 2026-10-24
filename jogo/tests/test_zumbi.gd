@@ -52,6 +52,7 @@ func _init() -> void:
 	await _cerca()
 	await _noite()
 	await _tocaia()
+	await _esperto()
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
 
@@ -303,3 +304,50 @@ func _tocaia() -> void:
 	ok(t2.vida == Zumbi.VIDA_MAX - Pistola.DANO, "tiro acerta o corpo deitado (vida %d)" % t2.vida)
 	ok(not t2._deitado, "o tiro acorda o zumbi")
 	j.entrada["mira_segurando"] = null
+
+
+# maior velocidade de lado (perpendicular à linha até o jogador) do zumbi em `n` quadros
+func _lado_max(zz: Zumbi, n: int) -> float:
+	var m: float = 0.0
+	for i in n:
+		await physics_frame
+		var linha: Vector3 = j.global_position - zz.global_position
+		linha.y = 0.0
+		var lado := Vector3(linha.z, 0, -linha.x).normalized()
+		m = maxf(m, absf(zz.velocity.dot(lado)))
+	return m
+
+
+func _esperto() -> void:
+	for outro in main.zumbis.get_children():
+		outro.free()
+	var zz := Zumbi.new()
+	main.zumbis.add_child(zz)
+	await frames(2)
+	zz._sem_gritar = INF
+	j.vida = 100000
+	j.velocity = Vector3.ZERO
+	j.global_position = Vector3(30, 0.1, -30)
+	j.entrada["arma"] = "pistola"
+	j.entrada["mira_segurando"] = false
+	zz.global_position = Vector3(30, 0, -16)
+	zz.alvo = j
+	j.camera.virar(PI)  # olhando para +Z, na direção do zumbi
+	var sem_mira: float = await _lado_max(zz, 90)
+	zz.global_position = Vector3(30, 0, -16)
+	j.entrada["mira_segurando"] = true
+	var com_mira: float = await _lado_max(zz, 90)
+	ok(sem_mira < 0.8 and com_mira > 1.4, "mirando nele vem em ziguezague (de lado: %.1f sem mira, %.1f com mira)" % [sem_mira, com_mira])
+	j.entrada["mira_segurando"] = null
+	await frames(5)
+	# pouca vida: foge e depois volta
+	zz.global_position = Vector3(30, 0, -27.5)
+	zz.vida = 40
+	await frames(10)
+	zz.levar_golpe(20, Vector3.FORWARD, j)
+	var d0: float = plano(zz.global_position, j.global_position)
+	await frames(int(Zumbi.FOGE_POR * 60))
+	var d1: float = plano(zz.global_position, j.global_position)
+	ok(d1 > d0 + 5.0, "com pouca vida foge (%.1f -> %.1f m)" % [d0, d1])
+	await frames(60 * 6)
+	ok(plano(zz.global_position, j.global_position) < d1 - 4.0, "depois volta (%.1f -> %.1f m)" % [d1, plano(zz.global_position, j.global_position)])

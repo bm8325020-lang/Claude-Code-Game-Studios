@@ -291,7 +291,10 @@ quando você aprovar.
     soca a porta (15 por soco, porta 100) até arrombar; arrombada fica aberta e se conserta em 90 s (provisório).
 13. **Servidor na nuvem (Oracle).** Jogo pronto (modo dedicado, lista online, atualização sozinha pela branch
     servidor-build; tools/servidor/). **Pendente do dono:** criar a máquina e mandar o IP.
-14. ...depois cada comportamento de zumbi, um por vez (fugir, cobertura).
+14. **Zumbi esperto contra tiro.** **Status: feito, APK 0.24.** Com alguém mirando a pistola nele a mais de
+    4 m, vem em ziguezague (desvia ~2 m/s para os lados, trocando sem ritmo fixo). Com 25 de vida ou menos
+    foge correndo por 4 s (uma vez por vida) e depois volta. Versão de rede 3 (a mira vai pela rede).
+15. ...depois: cobertura (zumbi se esconde atrás de coisas), quarteirão de verdade (bloco 1), e o que o dono pedir.
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)
 1. **Andar e atirar com 2 jogadores** — terceira pessoa, controles de celular e PC, 1 arma de fogo + 1 arma

@@ -10,6 +10,8 @@
 # Mecânica 10: tocaia. Zumbi de tocaia fica deitado no chão como morto; levanta e ataca (sem gritar) quando
 # alguém passa a menos de EMBOSCA, quando há barulho perto ou quando leva golpe. Depois de morto, deita de novo.
 # Mecânica 12: porta fechada no caminho segura o zumbi; ele soca a porta até arrombar.
+# Mecânica 13: esperto contra tiro. Com alguém mirando a pistola nele de longe, vem em ziguezague; com pouca
+# vida, foge um tempo correndo para longe e depois volta.
 # Quem decide tudo é o servidor (ou o aparelho jogando sozinho); os outros só recebem posição, giro,
 # animação e vida. Golpe e tiro de um cliente viram um pedido para o servidor.
 class_name Zumbi
@@ -43,6 +45,10 @@ const NOITE_OUVE: float = 2.0        # e ouve mais longe (as notas: "à noite fi
 const EMBOSCA: float = 4.0          # m: alguém passando assim perto acorda o zumbi deitado
 const ACORDA_BARULHO: float = 10.0  # m: tiro até essa distância acorda o deitado
 const VEL_LEVANTAR: float = 1.3
+const ZIGUE: float = 2.2          # m/s de desvio para o lado quando alguém mira nele
+const ZIGUE_LONGE: float = 4.0     # m: mais perto que isso não desvia, ataca
+const FOGE_VIDA: int = 25
+const FOGE_POR: float = 4.0
 const CERCO: float = 3.0           # m: distância do ponto de cerco até o alvo
 const FECHA: float = 1.8           # m: com o alvo colado assim, ataca mesmo sem ter chegado no seu lado
 
@@ -83,6 +89,9 @@ var _voltando: bool = false
 var _cerco_ang: float = NAN        # ângulo (em volta do alvo) do lado que este zumbi pegou; NAN = vai direto
 var _fechando: bool = false        # já chegou no seu lado do cerco: agora vai direto no alvo
 var _porta_alvo: Porta            # o soco em andamento é na porta
+var _foge_t: float = 0.0           # > 0: fugindo
+var _fugiu: bool = false           # já fugiu nesta vida (foge uma vez só)
+var _zigue_t: float = 0.0
 var _grito_t: float = -1.0         # >= 0: gritando (parado)
 var _sem_gritar: float = 0.0       # > 0: não grita de novo ainda
 var _som: AudioStreamPlayer3D
@@ -212,6 +221,11 @@ func _physics_process(dt: float) -> void:
 			_vira_para(alvo.global_position - global_position, dt)
 	elif _ataque_t >= 0.0:
 		_atualiza_ataque(dt)
+	elif _foge_t > 0.0 and alvo:
+		_foge_t -= dt
+		var longe: Vector3 = global_position - alvo.global_position
+		longe.y = 0.0
+		desejada = _caminho(global_position + longe.normalized() * 6.0, CORRER * 1.2 * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
 	elif alvo:
 		var d: Vector3 = alvo.global_position - global_position
 		d.y = 0.0
@@ -229,6 +243,11 @@ func _physics_process(dt: float) -> void:
 				else:
 					destino = lado
 			desejada = _caminho(destino, (CORRER if d.length() < PERTO else ANDAR) * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
+			# mirando nele de longe: desvia para os lados (troca de lado a cada ~0,7 s, sem ritmo fixo)
+			if d.length() > ZIGUE_LONGE and alvo.mirando_em(global_position, 12.0):
+				_zigue_t += dt * randf_range(0.8, 1.2)
+				var lado := Vector3(d.z, 0, -d.x).normalized()
+				desejada += lado * ZIGUE * signf(sin(_zigue_t * 4.5))
 	elif _olhando_t > 0.0:
 		_olhando_t -= dt
 		modelo.rotation.y += dt * 1.2 * signf(sin(_olhando_t * 1.5))  # vira de um lado para o outro
@@ -461,6 +480,9 @@ func _aplica(dano: int, dir: Vector3) -> void:
 	if _deitado:
 		_acorda()
 	vida = maxi(0, vida - dano)
+	if vida > 0 and vida <= FOGE_VIDA and not _fugiu and alvo:
+		_fugiu = true
+		_foge_t = FOGE_POR
 	if vida > 0:
 		_cambaleio = CAMBALEIO
 		_ataque_t = -1.0
@@ -483,6 +505,8 @@ func _morre() -> void:
 	_ataque_t = -1.0
 	_cambaleio = 0.0
 	alvo = null
+	_foge_t = 0.0
+	_fugiu = false
 	_deitado = false
 	_levantando = -1.0
 	_grito_t = -1.0

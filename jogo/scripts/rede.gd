@@ -8,7 +8,7 @@ const PORTA: int = 7777
 const PORTA_ANUNCIO: int = 7778
 const MAX_JOGADORES: int = 30
 ## Sobe quando o que vai pela rede muda: jogo e servidor precisam ter o mesmo número para jogar juntos.
-const VERSAO: int = 2
+const VERSAO: int = 3
 ## Lista de servidores online (o servidor na nuvem se atualiza pela mesma branch).
 const LISTA_URL: String = "https://raw.githubusercontent.com/bm8325020-lang/Claude-Code-Game-Studios/servidor-build/servidores.json"
 

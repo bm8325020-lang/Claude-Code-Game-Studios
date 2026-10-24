@@ -177,7 +177,7 @@ func _monta_sincronia() -> void:
 	for p: String in [".:pos_rede", ".:rot_rede"]:
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
-	for p: String in [".:clipe_rede", ".:agachado", ".:nick", ".:arma", ".:cima_rede", ".:vida", ".:tem_lanterna"]:
+	for p: String in [".:clipe_rede", ".:agachado", ".:nick", ".:arma", ".:cima_rede", ".:vida", ".:tem_lanterna", ".:mira_travada"]:
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	var sync := MultiplayerSynchronizer.new()
@@ -345,6 +345,15 @@ func _physics_process(dt: float) -> void:
 
 
 # jogador de outro aparelho: vai suave até a última posição recebida e toca a mesma animação
+## Está mirando a pistola neste ponto? (para o zumbi desviar; usa o giro do corpo, que vai pela rede)
+func mirando_em(ponto: Vector3, graus: float) -> bool:
+	if not mira_travada or arma != "pistola" or vida <= 0:
+		return false
+	var d: Vector3 = ponto - global_position
+	var f: Vector3 = modelo.global_basis.z
+	return rad_to_deg(Vector2(f.x, f.z).angle_to(Vector2(d.x, d.z))) < graus
+
+
 ## Item ao alcance agora (para o botão PEGAR), ou null.
 func item_perto() -> Item:
 	return Item.perto(get_tree(), global_position) if vida > 0 else null
