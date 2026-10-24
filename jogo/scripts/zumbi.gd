@@ -7,6 +7,8 @@
 # mesma pessoa, mesmo sem ver. Grita no máximo uma vez a cada GRITO_PAUSA (os chamados não gritam de novo).
 # Mecânica 8: cercar. Vários atrás da mesma pessoa se espalham em volta dela (cada um vai para um lado, na
 # ordem em que já estão, para não se cruzarem) e só fecham quando chegam perto.
+# Mecânica 10: tocaia. Zumbi de tocaia fica deitado no chão como morto; levanta e ataca (sem gritar) quando
+# alguém passa a menos de EMBOSCA, quando há barulho perto ou quando leva golpe. Depois de morto, deita de novo.
 # Quem decide tudo é o servidor (ou o aparelho jogando sozinho); os outros só recebem posição, giro,
 # animação e vida. Golpe e tiro de um cliente viram um pedido para o servidor.
 class_name Zumbi
@@ -37,6 +39,9 @@ const GRITO_PAUSA: float = 20.0
 const NOITE_VEL: float = 1.35       # à noite: mais rápido,
 const NOITE_DANO: float = 1.6        # bate mais forte
 const NOITE_OUVE: float = 2.0        # e ouve mais longe (as notas: "à noite ficam muito mais fortes")
+const EMBOSCA: float = 4.0          # m: alguém passando assim perto acorda o zumbi deitado
+const ACORDA_BARULHO: float = 10.0  # m: tiro até essa distância acorda o deitado
+const VEL_LEVANTAR: float = 1.3
 const CERCO: float = 3.0           # m: distância do ponto de cerco até o alvo
 const FECHA: float = 1.8           # m: com o alvo colado assim, ataca mesmo sem ter chegado no seu lado
 
@@ -54,6 +59,11 @@ var clipe_rede: String = "parado"
 var pos_rede: Vector3
 var rot_rede: float
 var casa: Vector3                  # onde nasce e onde levanta
+## nasce deitado de tocaia (vem nos dados do spawner)
+var tocaia: bool = false
+var _deitado: bool = false
+var _levantando: float = -1.0
+var _forma: CollisionShape3D
 var alvo: Jogador
 
 var modelo: Node3D
@@ -93,6 +103,7 @@ func _ready() -> void:
 	cs.shape = cap
 	cs.position.y = ALTURA * 0.5
 	add_child(cs)
+	_forma = cs
 	modelo = (load(Anims.MODELO) as PackedScene).instantiate()
 	add_child(modelo)
 	_mat_pele = StandardMaterial3D.new()
@@ -123,6 +134,8 @@ func _ready() -> void:
 	_monta_sincronia()
 	_toca("parado", 0.0)
 	anim.seek(randf() * 3.0, true)  # cada um num ponto da animação
+	if tocaia and _manda():
+		_deita()
 
 
 func _monta_sincronia() -> void:
@@ -152,6 +165,7 @@ func _physics_process(dt: float) -> void:
 			global_position = pos_rede
 		modelo.rotation.y = lerp_angle(modelo.rotation.y, rot_rede, 1.0 - exp(-14.0 * dt))
 		_toca(clipe_rede, 0.2)
+		_forma_deitada(clipe_rede == "deitado")  # o tiro daqui precisa achar o corpo no chão
 		return
 	if not is_on_floor():
 		velocity.y -= GRAVIDADE * dt
@@ -165,6 +179,18 @@ func _physics_process(dt: float) -> void:
 		move_and_slide()
 		_publica()
 		return
+	if _deitado:
+		_procura_t -= dt
+		if _procura_t <= 0.0:
+			_procura_t = 0.2
+			_escolhe_alvo()
+		if not is_on_floor():
+			velocity.y -= GRAVIDADE * dt
+		velocity.x = 0.0
+		velocity.z = 0.0
+		move_and_slide()
+		_publica()
+		return
 	_procura_t -= dt
 	_sem_gritar -= dt
 	if _procura_t <= 0.0:
@@ -172,7 +198,11 @@ func _physics_process(dt: float) -> void:
 		_escolhe_alvo()
 		_calcula_cerco()
 	var desejada := Vector3.ZERO
-	if _cambaleio > 0.0:
+	if _levantando >= 0.0:
+		_levantando -= dt
+		if alvo and is_instance_valid(alvo):
+			_vira_para(alvo.global_position - global_position, dt)
+	elif _cambaleio > 0.0:
 		_cambaleio -= dt
 	elif _grito_t >= 0.0:
 		_grito_t -= dt
@@ -217,7 +247,7 @@ func _physics_process(dt: float) -> void:
 	velocity.x = plano.x
 	velocity.z = plano.z
 	move_and_slide()
-	if _ataque_t < 0.0 and _cambaleio <= 0.0 and _grito_t < 0.0:
+	if _ataque_t < 0.0 and _cambaleio <= 0.0 and _grito_t < 0.0 and _levantando < 0.0:
 		var v: float = plano.length()
 		_toca("parado" if v < 0.2 else ("correr" if v > 1.6 else "andar"), 0.25)
 		var base: float = float(Anims.VELOCIDADE_ZUMBI.get(_clipe, 0.0))
@@ -250,6 +280,10 @@ static func barulho(arvore: SceneTree, ponto: Vector3, raio: float) -> void:
 func ouve(ponto: Vector3, raio: float) -> void:
 	if vida <= 0 or alvo != null or global_position.distance_to(ponto) > raio:
 		return
+	if _deitado:
+		if global_position.distance_to(ponto) > ACORDA_BARULHO:
+			return
+		_acorda()
 	_ouvido = ponto
 	_indo_ouvir = true
 	_olhando_t = 0.0
@@ -274,6 +308,14 @@ func _escolhe_alvo() -> void:
 			ouve(alvo.global_position, INF)  # perdeu de vista: vai procurar onde viu por último
 		alvo = null
 	if alvo:
+		return
+	if _deitado:  # deitado não olha em volta: só sente quem passa bem perto
+		for n: Node in get_tree().get_nodes_in_group("jogadores"):
+			var jd := n as Jogador
+			if jd and jd.vida > 0 and jd.global_position.distance_to(global_position) < EMBOSCA:
+				alvo = jd
+				_acorda()
+				return
 		return
 	var melhor: float = INF
 	var ouve: float = OUVE * Ciclo.forca_noite(get_tree(), NOITE_OUVE)
@@ -386,6 +428,8 @@ func _pede_golpe(dano: int, dir: Vector3) -> void:
 
 
 func _aplica(dano: int, dir: Vector3) -> void:
+	if _deitado:
+		_acorda()
 	vida = maxi(0, vida - dano)
 	if vida > 0:
 		_cambaleio = CAMBALEIO
@@ -409,6 +453,8 @@ func _morre() -> void:
 	_ataque_t = -1.0
 	_cambaleio = 0.0
 	alvo = null
+	_deitado = false
+	_levantando = -1.0
 	_grito_t = -1.0
 	_indo_ouvir = false
 	_olhando_t = 0.0
@@ -422,6 +468,32 @@ func _levanta() -> void:
 	add_to_group("golpeavel")
 	collision_layer = 8
 	_toca("parado", 0.3)
+	if tocaia and _manda():
+		_deita()
+
+
+# deitado no chão, parecendo morto (o colisor deita junto para o tiro acertar o corpo)
+func _deita() -> void:
+	_deitado = true
+	alvo = null
+	_forma_deitada(true)
+	_toca("deitado", 0.0)
+
+
+func _forma_deitada(sim: bool) -> void:
+	_forma.rotation.x = PI * 0.5 if sim else 0.0
+	_forma.position = Vector3(0, RAIO if sim else ALTURA * 0.5, 0)
+
+
+func _acorda() -> void:
+	if not _deitado:
+		return
+	_deitado = false
+	_forma_deitada(false)
+	_sem_gritar = GRITO_PAUSA  # emboscada é calada
+	_levantando = anim.get_animation("levantar").length / VEL_LEVANTAR
+	_toca("levantar", 0.1, true)
+	anim.speed_scale = VEL_LEVANTAR
 
 
 func _toca(clipe: String, mistura: float, de_novo: bool = false) -> void:

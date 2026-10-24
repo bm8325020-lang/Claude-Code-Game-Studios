@@ -37,7 +37,7 @@ func _init() -> void:
 	main.ciclo.tempo = 0.0  # dia parado: a noite tem o teste dela
 	main.ciclo.set_process(false)
 	main.ciclo._process(0.0)
-	ok(main.zumbis.get_child_count() == main.PONTOS_ZUMBI.size(), "zumbis nascem (%d)" % main.zumbis.get_child_count())
+	ok(main.zumbis.get_child_count() == main.PONTOS_ZUMBI.size() + main.PONTOS_TOCAIA.size(), "zumbis nascem (%d)" % main.zumbis.get_child_count())
 	z = main.zumbis.get_child(0)
 	z._sem_gritar = INF  # o grito tem o teste dele (no fim)
 	for outro in main.zumbis.get_children():
@@ -51,6 +51,7 @@ func _init() -> void:
 	await _chama_horda()
 	await _cerca()
 	await _noite()
+	await _tocaia()
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
 
@@ -257,3 +258,48 @@ func _noite() -> void:
 	await process_frame
 	await process_frame
 	ok(not j._lanterna.visible, "de dia a lanterna apaga")
+
+
+func _tocaia() -> void:
+	for outro in main.zumbis.get_children():
+		outro.free()
+	var t := Zumbi.new()
+	t.tocaia = true
+	t.position = Vector3(30, 0, -17)
+	t.casa = t.position
+	main.zumbis.add_child(t)
+	j.vida = 100
+	j.velocity = Vector3.ZERO
+	j.global_position = Vector3(30, 0.1, -25)  # 8 m, à vista
+	await frames(40)
+	ok(t.clipe_atual() == "deitado" and t.alvo == null, "de tocaia fica deitado mesmo vendo alguém (%s)" % t.clipe_atual())
+	j.global_position = Vector3(30, 0.1, -20)  # passa a 3 m
+	await frames(20)
+	ok(t.alvo == j and t.clipe_atual() == "levantar", "levanta quando alguém passa perto (%s)" % t.clipe_atual())
+	for i in 300:
+		await physics_frame
+		if j.vida < 100:
+			break
+	ok(j.vida < 100, "levanta e ataca (vida %d)" % j.vida)
+	# tiro no corpo deitado: acerta (colisor deitado) e acorda
+	t.free()
+	var t2 := Zumbi.new()
+	t2.tocaia = true
+	t2.position = Vector3(30, 0, -18)
+	t2.casa = t2.position
+	main.zumbis.add_child(t2)
+	j.vida = 100
+	j.global_position = Vector3(30, 0.1, -25)
+	await frames(10)
+	t2.set_physics_process(false)
+	j.entrada["arma"] = "pistola"
+	j.entrada["mira_segurando"] = true
+	for k in 3:
+		var d: Vector3 = (t2.global_position + Vector3(0, 0.3, 0) - j.camera.cam.global_position).normalized()
+		j.camera.virar(atan2(-d.x, -d.z), -asin(d.y))
+		await frames(20)
+	j.entrada["atacar"] = true
+	await frames(3)
+	ok(t2.vida == Zumbi.VIDA_MAX - Pistola.DANO, "tiro acerta o corpo deitado (vida %d)" % t2.vida)
+	ok(not t2._deitado, "o tiro acorda o zumbi")
+	j.entrada["mira_segurando"] = null

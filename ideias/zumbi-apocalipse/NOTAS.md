@@ -279,7 +279,10 @@ quando você aprovar.
    sol e névoa escurecem; lanterna no peito liga sozinha. À noite os zumbis correm 35% mais, batem 60% mais
    (15 -> 24) e ouvem o dobro (5 -> 10 m). Relógio no alto ("DIA — escurece em 1:30", laranja no último
    minuto). Servidor manda no horário. Provisório para teste: a partida começa 1 min 30 s antes da noite.
-10. ...depois cada comportamento de zumbi, um por vez (emboscar, abrir portas, fugir, cobertura).
+10. **Zumbi de tocaia.** **Status: feito, APK 0.19.** Dois zumbis deitados como mortos (ao lado do carro e
+    no corredor entre os muros). Levantam e atacam sem gritar quando alguém passa a menos de 4 m, quando há
+    tiro a até 10 m ou quando levam golpe/tiro. O tiro acerta o corpo deitado. Depois de mortos, deitam de novo.
+11. ...depois cada comportamento de zumbi, um por vez (abrir portas, fugir, cobertura).
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)
 1. **Andar e atirar com 2 jogadores** — terceira pessoa, controles de celular e PC, 1 arma de fogo + 1 arma

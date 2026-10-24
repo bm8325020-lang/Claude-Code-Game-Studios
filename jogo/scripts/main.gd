@@ -16,6 +16,8 @@ var navegacao: NavigationRegion3D
 var ciclo: Ciclo
 ## Onde os zumbis nascem (e levantam depois de mortos).
 const PONTOS_ZUMBI: Array[Vector3] = [Vector3(-6, 0, 22), Vector3(0, 0, 26), Vector3(6, 0, 22), Vector3(24, 0, 0)]
+## zumbis de tocaia: deitados ao lado do carro e no corredor entre os muros
+const PONTOS_TOCAIA: Array[Vector3] = [Vector3(3.2, 0, 9.5), Vector3(13.5, 0, 9)]
 var nick_local: String = "Jogador"
 
 
@@ -141,12 +143,15 @@ func _poe_zumbis() -> void:
 	navegacao.bake_navigation_mesh(false)
 	for p: Vector3 in PONTOS_ZUMBI:
 		spawner_zumbis.spawn({"pos": p})
+	for p: Vector3 in PONTOS_TOCAIA:
+		spawner_zumbis.spawn({"pos": p, "tocaia": true})
 
 
 func _cria_zumbi(dados: Dictionary) -> Node:
 	var z := Zumbi.new()
 	z.position = dados.pos
 	z.casa = dados.pos
+	z.tocaia = bool(dados.get("tocaia", false))
 	return z
 
 
