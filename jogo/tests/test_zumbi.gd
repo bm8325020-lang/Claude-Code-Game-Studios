@@ -34,6 +34,9 @@ func _init() -> void:
 	await frames(5)
 	j = main.jogador
 	main.controles.jogador = null
+	main.ciclo.tempo = 0.0  # dia parado: a noite tem o teste dela
+	main.ciclo.set_process(false)
+	main.ciclo._process(0.0)
 	ok(main.zumbis.get_child_count() == main.PONTOS_ZUMBI.size(), "zumbis nascem (%d)" % main.zumbis.get_child_count())
 	z = main.zumbis.get_child(0)
 	z._sem_gritar = INF  # o grito tem o teste dele (no fim)
@@ -47,6 +50,7 @@ func _init() -> void:
 	await _ouve_tiro()
 	await _chama_horda()
 	await _cerca()
+	await _noite()
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
 
@@ -222,3 +226,34 @@ func _cerca() -> void:
 		if plano(zz.global_position, j.global_position) < 2.5:
 			perto += 1
 	ok(perto >= 2, "fecham o cerco e chegam perto (%d de 3)" % perto)
+
+
+func _noite() -> void:
+	main.ciclo.tempo = Ciclo.DIA + 60.0
+	main.ciclo._process(0.0)
+	ok(main.ciclo.e_noite() and is_equal_approx(main.ciclo.noite(), 1.0), "relógio na noite fechada")
+	ok(main.ciclo.sol.light_energy < 0.1 and main.ciclo.ambiente.background_color.v < 0.15, "escurece o sol e o céu")
+	await process_frame
+	await process_frame
+	ok(j._lanterna.visible and j._lanterna.light_energy > 1.0, "lanterna liga sozinha no escuro")
+	for outro in main.zumbis.get_children():
+		if outro != z:
+			outro.free()
+	j.vida = 100
+	j.velocity = Vector3.ZERO
+	j.global_position = Vector3(30, 0.1, -25)
+	z.global_position = Vector3(30, 0, -18)
+	z.velocity = Vector3.ZERO
+	z.alvo = j
+	await frames(30)
+	ok(Vector2(z.velocity.x, z.velocity.z).length() > Zumbi.CORRER * 1.2, "à noite corre mais (%.1f m/s)" % Vector2(z.velocity.x, z.velocity.z).length())
+	for i in 400:
+		await physics_frame
+		if j.vida < 100:
+			break
+	ok(j.vida == 100 - roundi(Zumbi.DANO * Zumbi.NOITE_DANO), "à noite o soco tira mais (vida %d)" % j.vida)
+	main.ciclo.tempo = 0.0
+	main.ciclo._process(0.0)
+	await process_frame
+	await process_frame
+	ok(not j._lanterna.visible, "de dia a lanterna apaga")

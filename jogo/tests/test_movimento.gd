@@ -22,7 +22,10 @@ func _init() -> void:
 	main.iniciar_solo("Teste")
 	await frames(5)
 	j = main.jogador
-	main.controles.jogador = null  # o teclado não mexe: o teste dirige a entrada
+	main.controles.jogador = null
+	main.ciclo.tempo = 0.0  # dia parado: a noite tem o teste dela
+	main.ciclo.set_process(false)
+	main.ciclo._process(0.0)  # o teclado não mexe: o teste dirige a entrada
 	for z in main.zumbis.get_children():
 		z.free()  # zumbis têm o teste deles
 	await _velocidades()

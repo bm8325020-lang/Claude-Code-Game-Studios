@@ -275,7 +275,11 @@ quando você aprovar.
 8. **Zumbis cercam.** **Status: feito, APK 0.16.** Vários atrás da mesma pessoa dividem a volta dela (cada
    um pega um lado a 3 m, na ordem em que já estão, sem se cruzar) e só fecham depois de chegar no seu lado
    (ou com a vítima colada). Se ela foge para longe, o cerco é montado de novo.
-9. ...depois cada comportamento de zumbi, um por vez (emboscar, abrir portas, fugir, cobertura, noite).
+9. **Dia e noite.** **Status: feito, APK 0.18.** Dia 8 min, noite 5 min, 30 s de anoitecer/amanhecer; céu,
+   sol e névoa escurecem; lanterna no peito liga sozinha. À noite os zumbis correm 35% mais, batem 60% mais
+   (15 -> 24) e ouvem o dobro (5 -> 10 m). Relógio no alto ("DIA — escurece em 1:30", laranja no último
+   minuto). Servidor manda no horário. Provisório para teste: a partida começa 1 min 30 s antes da noite.
+10. ...depois cada comportamento de zumbi, um por vez (emboscar, abrir portas, fugir, cobertura).
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)
 1. **Andar e atirar com 2 jogadores** — terceira pessoa, controles de celular e PC, 1 arma de fogo + 1 arma

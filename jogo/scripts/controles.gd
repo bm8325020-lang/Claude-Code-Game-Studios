@@ -43,6 +43,7 @@ var _vida_fundo: ColorRect
 var _vida_barra: ColorRect
 var _vermelho: ColorRect
 var _caiu: Label
+var _relogio: Label
 
 
 func _ready() -> void:
@@ -84,6 +85,17 @@ func _ready() -> void:
 	_caiu.add_theme_constant_override("outline_size", 8)
 	_caiu.visible = false
 	add_child(_caiu)
+	_relogio = Label.new()
+	_relogio.anchor_left = 0.5
+	_relogio.anchor_right = 0.5
+	_relogio.offset_left = -160
+	_relogio.offset_right = 160
+	_relogio.offset_top = 38
+	_relogio.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_relogio.add_theme_font_size_override("font_size", 20)
+	_relogio.add_theme_color_override("font_outline_color", Color.BLACK)
+	_relogio.add_theme_constant_override("outline_size", 5)
+	add_child(_relogio)
 	_municao = Label.new()
 	_municao.add_theme_font_size_override("font_size", 30)
 	_municao.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -140,6 +152,11 @@ func _process(dt: float) -> void:
 	_vida_barra.size.x = 316.0 * frac
 	_vida_barra.color = Color(0.75, 0.12, 0.1) if frac < 0.3 else Color(0.85, 0.82, 0.78)
 	_caiu.visible = jogador.vida <= 0
+	var ciclo := get_tree().get_first_node_in_group("ciclo") as Ciclo
+	if ciclo:
+		var f: int = int(ciclo.falta())
+		_relogio.text = ("NOITE — amanhece em %d:%02d" if ciclo.e_noite() else "DIA — escurece em %d:%02d") % [f / 60, f % 60]
+		_relogio.add_theme_color_override("font_color", Color(0.65, 0.75, 1.0) if ciclo.e_noite() else (Color(1, 0.75, 0.4) if f < 60 else Color.WHITE))
 	_vermelho.color.a = move_toward(_vermelho.color.a, 0.35 if jogador.vida <= 0 else 0.0, dt * 0.8)
 	var com_pistola: bool = jogador.arma == "pistola"
 	_mira.visible = jogador.mira_travada or com_pistola

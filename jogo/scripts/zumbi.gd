@@ -34,6 +34,9 @@ const PROCURA: float = 4.0         # s olhando em volta onde ouviu
 const VOLTA: float = 0.9           # m/s voltando para casa
 const GRITO_RAIO: float = 22.0
 const GRITO_PAUSA: float = 20.0
+const NOITE_VEL: float = 1.35       # à noite: mais rápido,
+const NOITE_DANO: float = 1.6        # bate mais forte
+const NOITE_OUVE: float = 2.0        # e ouve mais longe (as notas: "à noite ficam muito mais fortes")
 const CERCO: float = 3.0           # m: distância do ponto de cerco até o alvo
 const FECHA: float = 1.8           # m: com o alvo colado assim, ataca mesmo sem ter chegado no seu lado
 
@@ -193,7 +196,7 @@ func _physics_process(dt: float) -> void:
 					_fechando = true
 				else:
 					destino = lado
-			desejada = _caminho(destino, CORRER if d.length() < PERTO else ANDAR, dt)
+			desejada = _caminho(destino, (CORRER if d.length() < PERTO else ANDAR) * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
 	elif _olhando_t > 0.0:
 		_olhando_t -= dt
 		modelo.rotation.y += dt * 1.2 * signf(sin(_olhando_t * 1.5))  # vira de um lado para o outro
@@ -204,7 +207,7 @@ func _physics_process(dt: float) -> void:
 			_indo_ouvir = false
 			_olhando_t = PROCURA
 		else:
-			desejada = _caminho(_ouvido, VAI_OUVIR, dt)
+			desejada = _caminho(_ouvido, VAI_OUVIR * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
 	elif _voltando:
 		if _plano(casa - global_position) < 0.8:
 			_voltando = false
@@ -273,12 +276,13 @@ func _escolhe_alvo() -> void:
 	if alvo:
 		return
 	var melhor: float = INF
+	var ouve: float = OUVE * Ciclo.forca_noite(get_tree(), NOITE_OUVE)
 	for n: Node in get_tree().get_nodes_in_group("jogadores"):
 		var j := n as Jogador
 		if j == null or j.vida <= 0:
 			continue
 		var dist: float = j.global_position.distance_to(global_position)
-		if dist < melhor and (dist < OUVE or (dist < VISAO and _ve(j))):
+		if dist < melhor and (dist < ouve or (dist < VISAO and _ve(j))):
 			melhor = dist
 			alvo = j
 	if alvo:
@@ -358,7 +362,7 @@ func _atualiza_ataque(dt: float) -> void:
 			d.y = 0.0
 			var frente: Vector3 = modelo.global_basis.z
 			if d.length() < ALCANCE_ACERTO and rad_to_deg(Vector3(frente.x, 0, frente.z).angle_to(d)) < 70.0:
-				alvo.levar_dano(DANO, d.normalized())
+				alvo.levar_dano(roundi(DANO * Ciclo.forca_noite(get_tree(), NOITE_DANO)), d.normalized())
 	if _ataque_t >= dur:
 		_ataque_t = -1.0
 

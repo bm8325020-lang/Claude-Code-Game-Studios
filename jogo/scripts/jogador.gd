@@ -59,6 +59,7 @@ var vida: int = VIDA_MAX
 ## Avisa o HUD que levou dano.
 signal dano_levado(dano: int)
 var inicio: Vector3
+var _lanterna: SpotLight3D
 var _morto_t: float = 0.0
 ## Parte de cima do corpo (mirar/atirar/recarregar) por cima das pernas; vai pela rede.
 var cima_rede: String = ""
@@ -135,6 +136,15 @@ func _ready() -> void:
 	add_child(_teto)
 	_monta_modelo()
 	_monta_arma()
+	# lanterna no peito: liga sozinha quando escurece (todos veem a luz dos outros)
+	_lanterna = SpotLight3D.new()
+	_lanterna.light_color = Color(1.0, 0.93, 0.8)
+	_lanterna.spot_range = 22.0
+	_lanterna.spot_angle = 28.0
+	_lanterna.light_energy = 0.0
+	_lanterna.position = Vector3(0.12, 1.35, 0.25)
+	_lanterna.rotation.y = PI  # SpotLight aponta para -Z; o modelo olha para +Z
+	modelo.add_child(_lanterna)
 	_som = AudioStreamPlayer3D.new()
 	_som.max_db = 3.0
 	add_child(_som)
@@ -505,6 +515,9 @@ func _escolhe_cima() -> String:
 
 func _process(dt: float) -> void:
 	anim.advance(dt)
+	var c := get_tree().get_first_node_in_group("ciclo") as Ciclo
+	_lanterna.light_energy = 2.5 * clampf(c.noite() * 1.5 - 0.2, 0.0, 1.0) if c else 0.0
+	_lanterna.visible = _lanterna.light_energy > 0.0
 	var cima: String = cima_rede if not local else _escolhe_cima()
 	if cima != _cima_clipe:
 		if cima != "":

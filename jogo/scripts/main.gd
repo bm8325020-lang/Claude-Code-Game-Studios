@@ -13,6 +13,7 @@ var spawner: MultiplayerSpawner
 var zumbis: Node3D
 var spawner_zumbis: MultiplayerSpawner
 var navegacao: NavigationRegion3D
+var ciclo: Ciclo
 ## Onde os zumbis nascem (e levantam depois de mortos).
 const PONTOS_ZUMBI: Array[Vector3] = [Vector3(-6, 0, 22), Vector3(0, 0, 26), Vector3(6, 0, 22), Vector3(24, 0, 0)]
 var nick_local: String = "Jogador"
@@ -173,6 +174,9 @@ func _jogador_entrou(n: Node) -> void:
 
 
 func _luz() -> void:
+	ciclo = Ciclo.new()
+	ciclo.name = "Ciclo"
+	add_child(ciclo)
 	var sol := DirectionalLight3D.new()
 	sol.rotation_degrees = Vector3(-50, -35, 0)
 	sol.light_energy = 1.2
@@ -191,6 +195,8 @@ func _luz() -> void:
 	env.fog_density = 0.008
 	amb.environment = env
 	add_child(amb)
+	ciclo.sol = sol
+	ciclo.ambiente = env
 
 
 func _mat(cor: Color, xadrez: bool = false) -> Material:
