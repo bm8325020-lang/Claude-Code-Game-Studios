@@ -1,7 +1,7 @@
 # Bloco de notas — jogo de apocalipse zumbi
 
 Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem código, sem arte).
-Última atualização: 2026-10-24 (3ª conversa).
+Última atualização: 2026-10-24 (4ª conversa).
 
 ## Plataforma e formato
 - Celular **e** PC. Vai ser publicado na Play Store.
@@ -31,8 +31,9 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - Quem domina passa a **renascer nessa casa**.
 - Ao dominar, aparece um **botão novo: o sistema da sua facção**.
 - **Uma facção só pode ter uma casa.**
-- **Limite de membros: 10.** Dá para aumentar comprando com **dinheiro real**.
-- Para **manter a casa** é preciso **pagar dinheiro do jogo**.
+- **Limite de membros: 10.** Dá para aumentar pagando **muito dinheiro do jogo** (não é com dinheiro real).
+- Para **manter a casa** é preciso **pagar dinheiro do jogo a cada 7 dias do jogo**
+  (obriga a matar zumbis e movimentar a economia). Duração do dia/noite ainda não definida.
 - **Baú da casa:**
   - Um invasor pode tentar roubar usando um tipo de **lockpick**, que leva um tempo para abrir.
   - Enquanto o baú está abrindo, **todos da facção recebem notificação** e podem ir defender.
@@ -59,13 +60,24 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - **Noite e dia.**
 
 ## Economia
-- **Dinheiro do jogo:** ganho matando zumbis (e outras formas a definir).
-  - Usado para **manter a casa** da facção e **comprar receitas** de arma.
-- **Loja da facção:** itens que só se consegue **tendo facção** ou **roubando de alguém** (ex.: **câmeras**).
-- **Compras com dinheiro real:** **bússola** (mostra onde está a bancada), **mais vagas** de membros na facção.
+- **Regra: nada que dá vantagem é vendido com dinheiro real.** Vantagens (bússola, mais vagas na facção)
+  só com **muito dinheiro do jogo**.
+- **Como ganhar dinheiro do jogo:**
+  - matar zumbis;
+  - **vender itens** (qualquer item, não só raros — se quiser);
+  - **roubar** lugares e jogadores;
+  - ideia: **matar um jogador e pegar metade do dinheiro dele** (a pensar).
+- **Usos:** manter a casa, comprar receitas, bússola, mais vagas na facção.
+- **Loja da facção:** itens que só se consegue **tendo facção** ou **roubando de alguém**.
+  - **Câmera:** vem com um **dispositivo**. Você instala a câmera, dá **nome e senha**; no dispositivo, digita a
+    senha e vê **em tempo real** o que acontece naquele local.
+  - Outros itens: a decidir.
+- **Dinheiro real:** ainda não decidido (ver sugestões abaixo).
 
 ## Progresso salvo e entrar com amigos
 - **O progresso fica salvo** entre servidores: **a mochila inteira** e tudo que você tem (pago ou grátis).
+- **Sair do jogo enquanto está morrendo** não salva nada: o loot inteiro **fica no chão** e você entra no
+  próximo servidor **sem loot**.
 - A facção fica salva na conta (mesmo se a sua facção não estiver naquele servidor).
 - Ao logar, você faz parte da sua facção.
 - **Jogar com amigo:** opção de **chamar pelo nick do jogo** para entrar no mesmo servidor.
@@ -94,7 +106,10 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - **Bancada:**
   - Aparece em **locais aleatórios das cidades** e muda de lugar (aviso de que a bancada apareceu em outro
     ponto da cidade).
-  - Quem comprou a **bússola (dinheiro real)** sabe onde ela está; quem não comprou procura.
+  - Muda de lugar **de 7 em 7** (unidade a confirmar — dias do jogo?), para dar tempo de os jogadores
+    se espalharem e procurarem, inclusive de veículo.
+  - A **bússola** (comprada com **muito dinheiro do jogo**, não com dinheiro real) mostra onde ela está;
+    quem não tem procura.
 - **Baús** com loot.
 - **Sistema de tiro bom** contra zumbis (e para o PvP).
 
@@ -119,19 +134,28 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - Indeciso: durar para sempre ou reiniciar. Ideia: escolher o mais leve; talvez **reiniciar só quando o servidor
   estiver vazio ou com pouca gente**.
 
+## Sugestões de loja com dinheiro real (só visual/conveniência, sem vantagem) — NÃO DECIDIDO
+- Roupas e visuais do personagem (máscaras, jaquetas, mochilas com visual diferente).
+- Skins de armas (pintura, adesivos) — a arma continua igual.
+- Pintura e adesivos de carros e do carro blindado.
+- Emblema, bandeira e cor da facção; decoração da casa dominada.
+- Emotes/gestos e efeitos visuais ao matar zumbi.
+- **Passe de temporada** com recompensas visuais (versão grátis + versão paga).
+- Remover anúncios (se o jogo tiver anúncios).
+- Mudar o nick, mais espaços de personagem.
+
 ## Alertas anotados (para decidir depois)
-- Compras com dinheiro real que dão vantagem (bússola da bancada) podem ser vistas como "pay-to-win" pelos
-  jogadores — decidir com cuidado o que vender.
+- Decidido: nada que dá vantagem é vendido com dinheiro real (evita "pay-to-win").
 - Multiplayer de 30 jogadores + mapa grande + carros + PvP + destruição é o tipo de jogo mais difícil de
   fazer: precisa de servidor online pago por mês e muito teste com gente de verdade.
 - Caminho sugerido (não decidido): começar menor e crescer por etapas.
 
 ## Perguntas em aberto
-- O progresso é salvo por conta, mas o loot fica no chão ao morrer: se eu sair do jogo, minha mochila vai comigo
-  para outro servidor e some deste?
-- De quanto em quanto tempo a bancada muda de lugar? Quanto tempo ela fica num lugar?
-- Quanto custa (em dinheiro do jogo) manter a casa, e de quanto em quanto tempo? O que acontece se não pagar?
-- Além de matar zumbi, como se ganha dinheiro do jogo (vender itens, missões, roubar)?
-- O que a câmera faz e quais outros itens a loja da facção vende?
-- O que mais é vendido com dinheiro real (roupas, skins, passe de temporada)?
+- Se eu sair do jogo **vivo e em paz**, minha mochila vai comigo para o próximo servidor?
+- A bancada muda de 7 em 7 o quê: dias do jogo, horas reais?
+- Quanto dura um dia e uma noite no jogo (em minutos reais)?
+- Quanto custa manter a casa? O que acontece se a facção não pagar (perde a casa, o baú)?
+- Para quem vender itens: um comerciante (NPC) ou outros jogadores?
+- Quais outros itens na loja da facção, além da câmera?
+- Dinheiro real: quais das sugestões acima você gosta?
 - Servidor: para sempre ou reinicia (ainda indeciso).
