@@ -1,7 +1,7 @@
 # Bloco de notas — jogo de apocalipse zumbi
 
 Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem código, sem arte).
-Última atualização: 2026-10-24 (13ª conversa).
+Última atualização: 2026-10-24 (14ª conversa).
 
 ## Plataforma e formato
 - Celular **e** PC. Vai ser publicado na Play Store.
@@ -75,6 +75,12 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - **Onde renasce:**
   - Se a sua facção **dominou uma casa**: renasce **na casa dominada**.
   - Se não: renasce **na cidade inicial**, sem loot.
+
+## Cidade inicial
+- **Não é segura** — tem perigos —, mas é **a cidade mais fácil**.
+- Baús **um pouco mais fáceis** de encontrar.
+- Zumbis **um pouco mais fracos**.
+- (Quem morre sem casa da facção renasce aqui.)
 
 ## Mapa
 - **Grande**, com vários lugares — nada pequeno.
@@ -181,6 +187,8 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - Zumbi que **coleta armas**.
 - **Zumbi chefe**.
 - **À noite os zumbis mudam e ficam muito mais fortes.**
+- **"Personalidade" = zumbi com IA que sabe jogar:** os zumbis devem agir como se fossem jogadores (bons),
+  mas são NPC/mob — não são bots fracos.
 
 ## Orçamento e assets (plano para o próximo mês)
 - Zumbis: pacote de 35 zumbis low poly rigados (itch.io, ~US$ 12,99).
@@ -216,3 +224,6 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - Caminho sugerido (não decidido): começar menor e crescer por etapas.
 
 ## Perguntas em aberto
+- Câmera: primeira pessoa ou terceira pessoa? (resposta anterior ficou ambígua)
+- Quais comportamentos de "zumbi que joga" você quer primeiro (cercar, emboscar, abrir portas, usar armas,
+  chamar a horda, fugir)?
