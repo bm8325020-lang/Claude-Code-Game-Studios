@@ -1,6 +1,8 @@
-# Animações do Mixamo (X Bot), baixadas pelo usuário. Os .fbx ficam em assets/mixamo/ e NÃO vão para o git
+# Animações do Mixamo (X Bot), baixadas pelo usuário, misturadas com algumas da KayKit (CC0) que ficaram
+# melhores (pulo, agachar, facão): essas são convertidas para o esqueleto do X Bot ao carregar. Os .fbx ficam em assets/mixamo/ e NÃO vão para o git
 # (a licença do Mixamo não deixa redistribuir os arquivos brutos); quem clona precisa baixar de novo.
-# O jogo pede animações por nome lógico ("parado", "andar"...); CLIPES diz qual arquivo toca e que trecho.
+# O jogo pede animações por nome lógico ("parado", "andar"...); CLIPES diz qual arquivo toca e que trecho
+# ("kaykit:<clipe>" = clipe do pacote KayKit convertido).
 # Variante "<nome>_p" = mesma ação segurando a pistola (o Jogador usa quando a pistola está na mão).
 class_name Anims
 extends RefCounted
@@ -13,14 +15,14 @@ const MODELO: String = "res://assets/mixamo/xbot.fbx"
 const CLIPES: Dictionary = {
 	"parado": ["aventura/idle", 0.0, -1.0], "andar": ["aventura/walking", 0.0, -1.0],
 	"trote": ["aventura/running", 0.0, -1.0], "correr": ["aventura/running", 0.0, -1.0],
-	"agachado": ["machado/crouch_idle", 0.0, -1.0], "agachado_andar": ["aventura/crouched_sneaking_left", 0.0, -1.0],
-	"pulo_inicio": ["aventura/jumping_up", 0.0, -1.0], "no_ar": ["aventura/falling_idle", 0.0, -1.0],
-	"pouso": ["soltas/falling_to_landing", 0.15, 1.0],
+	"agachado": ["kaykit:Crouching", 0.0, -1.0], "agachado_andar": ["kaykit:Sneaking", 0.0, -1.0],
+	"pulo_inicio": ["kaykit:Jump_Start", 0.0, -1.0], "no_ar": ["kaykit:Jump_Idle", 0.0, -1.0],
+	"pouso": ["kaykit:Jump_Land", 0.0, -1.0],
 	"lado_esq": ["rifle/strafe_2", 0.0, -1.0], "lado_dir": ["rifle/strafe", 0.0, -1.0],
 	"tras": ["rifle/run_backwards", 0.0, -1.0],
-	"golpe1": ["machado/standing_melee_attack_horizontal", 0.45, 1.6],
-	"golpe2": ["machado/standing_melee_attack_backhand", 0.6, 1.8],
-	"golpe3": ["machado/standing_melee_attack_downward", 0.4, 1.5],
+	"golpe1": ["kaykit:Melee_1H_Attack_Slice_Horizontal", 0.0, -1.0],
+	"golpe2": ["kaykit:Melee_1H_Attack_Slice_Diagonal", 0.0, -1.0],
+	"golpe3": ["kaykit:Melee_1H_Attack_Chop", 0.0, -1.0],
 	"pistola_mira": ["soltas/shooting", 0.0, 0.1], "pistola_tiro": ["soltas/shooting", 0.13, 0.6],
 	"pistola_recarga": ["soltas/reloading", 0.0, 2.75],
 	"parado_p": ["pistola/pistol_idle", 0.0, -1.0], "andar_p": ["pistola/pistol_walk", 0.0, -1.0],
@@ -29,13 +31,11 @@ const CLIPES: Dictionary = {
 	"tras_p": ["pistola/pistol_run_backward", 0.0, -1.0],
 }
 const NAO_REPETE: Array[String] = ["pulo_inicio", "pouso", "golpe1", "golpe2", "golpe3", "pistola_tiro", "pistola_recarga"]
-## o "andar agachado" do pacote é de lado: gira o quadril 90° para virar um andar para a frente
-const GIRA_QUADRIL: Array[String] = ["agachado_andar"]
 const QUADRIL: String = "Skeleton3D:mixamorig_Hips"
 
 ## Velocidade (m/s) em que cada clipe de locomoção parece natural (deslocamento do quadril no clipe original);
 ## o clipe é escalado pela velocidade real para os pés não deslizarem.
-const VELOCIDADE: Dictionary = {"andar": 1.8, "trote": 4.7, "correr": 5.5, "agachado_andar": 1.05,
+const VELOCIDADE: Dictionary = {"andar": 1.8, "trote": 4.7, "correr": 5.5, "agachado_andar": 1.4,
 	"lado_esq": 2.85, "lado_dir": 3.3, "tras": 2.6,
 	"andar_p": 2.7, "trote_p": 5.0, "correr_p": 5.5, "lado_esq_p": 2.25, "lado_dir_p": 2.5, "tras_p": 3.5}
 
@@ -51,11 +51,14 @@ static func biblioteca() -> AnimationLibrary:
 	for logico: String in CLIPES:
 		var c: Array = CLIPES[logico]
 		if not cache.has(c[0]):
-			var cena: Node = (load(PASTA + c[0] + ".fbx") as PackedScene).instantiate()
-			cache[c[0]] = (cena.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer).get_animation("mixamo_com")
-			cena.free()
+			if String(c[0]).begins_with("kaykit:"):
+				cache[c[0]] = Retarget.converte(String(c[0]).get_slice(":", 1))
+			else:
+				var cena: Node = (load(PASTA + c[0] + ".fbx") as PackedScene).instantiate()
+				cache[c[0]] = (cena.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer).get_animation("mixamo_com")
+				cena.free()
 		var a: Animation = _corta(cache[c[0]], c[1], c[2])
-		_no_lugar(a, logico in GIRA_QUADRIL)
+		_no_lugar(a)
 		a.loop_mode = Animation.LOOP_NONE if logico in NAO_REPETE else Animation.LOOP_LINEAR
 		_lib.add_animation(logico, a)
 	return _lib
@@ -92,15 +95,10 @@ static func _amostra(a: Animation, t: int, tempo: float) -> Variant:
 
 
 # tira o deslocamento do quadril no chão (o clipe anda no lugar; quem move é o CharacterBody3D)
-static func _no_lugar(a: Animation, girar: bool) -> void:
+static func _no_lugar(a: Animation) -> void:
 	var tp: int = a.find_track(NodePath(QUADRIL), Animation.TYPE_POSITION_3D)
 	if tp >= 0 and a.track_get_key_count(tp) > 0:
 		var p0: Vector3 = a.track_get_key_value(tp, 0)
 		for k in a.track_get_key_count(tp):
 			var p: Vector3 = a.track_get_key_value(tp, k)
 			a.track_set_key_value(tp, k, Vector3(p0.x, p.y, p0.z))
-	if girar:
-		var tr: int = a.find_track(NodePath(QUADRIL), Animation.TYPE_ROTATION_3D)
-		var g := Quaternion(Vector3.UP, PI * 0.5)  # andava para -X; passa a andar para +Z
-		for k in a.track_get_key_count(tr):
-			a.track_set_key_value(tr, k, g * (a.track_get_key_value(tr, k) as Quaternion))

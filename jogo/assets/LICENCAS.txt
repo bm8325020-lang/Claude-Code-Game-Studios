@@ -2,3 +2,4 @@ Kenney (kenney.nl) — CC0: assets/sons/*.ogg
 Quaternius — CC0: assets/armas/Sword_Bronze (Fantasy Props MegaKit)
 Mixamo (Adobe) — personagem X Bot e animações em assets/mixamo/: uso livre em jogos, mas os arquivos brutos
   não podem ser redistribuídos, por isso ficam fora do git (baixar com tools/baixa_mixamo.sh).
+Kay Lousberg — CC0: assets/kaykit/ (ver License.txt); pulo, agachar e facão convertidos para o X Bot (scripts/retarget.gd)
