@@ -1,7 +1,7 @@
 # Bloco de notas — jogo de apocalipse zumbi
 
 Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem código, sem arte).
-Última atualização: 2026-10-24 (4ª conversa).
+Última atualização: 2026-10-24 (5ª conversa).
 
 ## Plataforma e formato
 - Celular **e** PC. Vai ser publicado na Play Store.
@@ -34,6 +34,8 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - **Limite de membros: 10.** Dá para aumentar pagando **muito dinheiro do jogo** (não é com dinheiro real).
 - Para **manter a casa** é preciso **pagar dinheiro do jogo a cada 7 dias do jogo**
   (obriga a matar zumbis e movimentar a economia). Duração do dia/noite ainda não definida.
+- **Se não pagar: perde a casa e o baú.** Quem não quiser pagar tem que tirar os itens do baú antes.
+  (O dono acha essa regra um pouco chata, mas necessária; 7 dias do jogo é tempo suficiente para pagar.)
 - **Baú da casa:**
   - Um invasor pode tentar roubar usando um tipo de **lockpick**, que leva um tempo para abrir.
   - Enquanto o baú está abrindo, **todos da facção recebem notificação** e podem ir defender.
@@ -64,7 +66,7 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
   só com **muito dinheiro do jogo**.
 - **Como ganhar dinheiro do jogo:**
   - matar zumbis;
-  - **vender itens** (qualquer item, não só raros — se quiser);
+  - **vender itens** (qualquer item, não só raros — se quiser) **para outro jogador ou numa loja** (lojista do jogo);
   - **roubar** lugares e jogadores;
   - ideia: **matar um jogador e pegar metade do dinheiro dele** (a pensar).
 - **Usos:** manter a casa, comprar receitas, bússola, mais vagas na facção.
@@ -76,6 +78,8 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 
 ## Progresso salvo e entrar com amigos
 - **O progresso fica salvo** entre servidores: **a mochila inteira** e tudo que você tem (pago ou grátis).
+- **Sair do jogo vivo e em paz** (dormir, etc.): a mochila vai junto com todos os itens e você aparece no próximo
+  servidor jogando normal.
 - **Sair do jogo enquanto está morrendo** não salva nada: o loot inteiro **fica no chão** e você entra no
   próximo servidor **sem loot**.
 - A facção fica salva na conta (mesmo se a sua facção não estiver naquele servidor).
@@ -106,8 +110,8 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - **Bancada:**
   - Aparece em **locais aleatórios das cidades** e muda de lugar (aviso de que a bancada apareceu em outro
     ponto da cidade).
-  - Muda de lugar **de 7 em 7** (unidade a confirmar — dias do jogo?), para dar tempo de os jogadores
-    se espalharem e procurarem, inclusive de veículo.
+  - Muda de lugar **a cada 10 minutos reais**, para dar tempo de os jogadores se espalharem e procurarem,
+    inclusive de veículo.
   - A **bússola** (comprada com **muito dinheiro do jogo**, não com dinheiro real) mostra onde ela está;
     quem não tem procura.
 - **Baús** com loot.
@@ -134,7 +138,7 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - Indeciso: durar para sempre ou reiniciar. Ideia: escolher o mais leve; talvez **reiniciar só quando o servidor
   estiver vazio ou com pouca gente**.
 
-## Sugestões de loja com dinheiro real (só visual/conveniência, sem vantagem) — NÃO DECIDIDO
+## Loja com dinheiro real (só visual/conveniência, sem vantagem) — APROVADO, tudo abaixo
 - Roupas e visuais do personagem (máscaras, jaquetas, mochilas com visual diferente).
 - Skins de armas (pintura, adesivos) — a arma continua igual.
 - Pintura e adesivos de carros e do carro blindado.
@@ -151,11 +155,8 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - Caminho sugerido (não decidido): começar menor e crescer por etapas.
 
 ## Perguntas em aberto
-- Se eu sair do jogo **vivo e em paz**, minha mochila vai comigo para o próximo servidor?
-- A bancada muda de 7 em 7 o quê: dias do jogo, horas reais?
 - Quanto dura um dia e uma noite no jogo (em minutos reais)?
-- Quanto custa manter a casa? O que acontece se a facção não pagar (perde a casa, o baú)?
-- Para quem vender itens: um comerciante (NPC) ou outros jogadores?
+- Quanto custa manter a casa?
+- A facção recebe **aviso antes** do prazo de pagar a casa (ex.: 1 dia do jogo antes)?
 - Quais outros itens na loja da facção, além da câmera?
-- Dinheiro real: quais das sugestões acima você gosta?
 - Servidor: para sempre ou reinicia (ainda indeciso).
