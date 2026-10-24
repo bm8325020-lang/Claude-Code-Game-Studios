@@ -1,7 +1,7 @@
 # Bloco de notas — jogo de apocalipse zumbi
 
 Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem código, sem arte).
-Última atualização: 2026-10-24 (18ª conversa).
+Última atualização: 2026-10-24 (19ª conversa).
 
 ## Plataforma e formato
 - **Câmera em terceira pessoa** (personagem visto de costas).
@@ -230,6 +230,22 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
   - colocar os modelos de **vários meses de antecedência** numa atualização e só "liberar" pelo servidor;
   - ou o jogo **baixar pacotes de conteúdo** do servidor (o Godot carrega pacotes extras sem reinstalar).
 - Conclusão: atualização do app só para mudanças grandes (sistemas novos, correções); passe mensal pelo servidor.
+
+## Plano em etapas (PROPOSTA — aguardando aprovação)
+Uma coisa de cada vez. Cada etapa termina com um **APK que você testa** e só seguimos quando você aprovar.
+1. **Andar e atirar com 2 jogadores** — terceira pessoa, controles de celular e PC, 1 arma de fogo + 1 arma
+   branca, mira manual, zumbis simples num quarteirão. Já em rede (multiplayer desde o início, porque colocar
+   depois é muito mais difícil). Pergunta do teste: "é gostoso de mexer e atirar?"
+2. **Zumbis espertos** — os comportamentos (cercar, emboscar, abrir portas, chamar a horda, fugir, cobertura),
+   noite mais forte.
+3. **Loot e morte** — mochila, baús, arma branca pelo mapa, loot no chão, resgate do grupo com a raid.
+4. **Cidade inicial completa** — primeira cidade de verdade, com escombros e destruição.
+5. **Servidor de verdade** — até 30 jogadores, conta salva, entrar com amigo pelo nick, juntar servidores vazios.
+6. **Facções e casa** — dominar, baú, lockpick, alarmes, rádio e voz.
+7. **Carros** — carro comum, blindado, chave/lockpick, concessionária.
+8. **Economia e crafting** — dinheiro, lojas, bancada andante, receitas por raridade.
+9. **Mais cidades** — mapa grande.
+10. **Passe e loja** — passe mensal pelo servidor, visuais, e publicação na Play Store.
 
 ## Alertas anotados (para decidir depois)
 - Decidido: nada que dá vantagem é vendido com dinheiro real (evita "pay-to-win") — **exceto os carros do passe**.
