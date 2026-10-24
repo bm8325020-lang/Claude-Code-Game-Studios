@@ -1,7 +1,7 @@
 # Bloco de notas — jogo de apocalipse zumbi
 
 Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem código, sem arte).
-Última atualização: 2026-10-24 (2ª conversa).
+Última atualização: 2026-10-24 (3ª conversa).
 
 ## Plataforma e formato
 - Celular **e** PC. Vai ser publicado na Play Store.
@@ -30,6 +30,12 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
   **matar e roubar o loot**.
 - Quem domina passa a **renascer nessa casa**.
 - Ao dominar, aparece um **botão novo: o sistema da sua facção**.
+- **Uma facção só pode ter uma casa.**
+- **Limite de membros: 10.** Dá para aumentar comprando com **dinheiro real**.
+- Para **manter a casa** é preciso **pagar dinheiro do jogo**.
+- **Baú da casa:**
+  - Um invasor pode tentar roubar usando um tipo de **lockpick**, que leva um tempo para abrir.
+  - Enquanto o baú está abrindo, **todos da facção recebem notificação** e podem ir defender.
 - Se outro grupo dominar a sua casa, você **não perde a facção**, só **perde aquela área**. A facção continua
   "no papel" e dá para voltar e recuperar a área.
 - No sistema da facção: **adicionar quem quiser** como membro.
@@ -40,7 +46,7 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - O resgate vira uma **raid**: zumbis spawnam em volta do seu corpo.
 - A força desses zumbis depende do **seu loot** (e do seu histórico de zumbis mortos).
 - Se o time matar todos os zumbis: **ganha recompensa e te salva**.
-- Se o grupo **não** te salvar a tempo: **você perde o seu loot**.
+- Se o grupo **não** te salvar a tempo: **você perde o seu loot**, que **fica no chão** (qualquer um pode pegar).
 - **Onde renasce:**
   - Se a sua facção **dominou uma casa**: renasce **na casa dominada**.
   - Se não: renasce **na cidade inicial**, sem loot.
@@ -52,8 +58,14 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - **Destrutível**: jogadores podem destruir lugares (tiro, quebrar parede).
 - **Noite e dia.**
 
+## Economia
+- **Dinheiro do jogo:** ganho matando zumbis (e outras formas a definir).
+  - Usado para **manter a casa** da facção e **comprar receitas** de arma.
+- **Loja da facção:** itens que só se consegue **tendo facção** ou **roubando de alguém** (ex.: **câmeras**).
+- **Compras com dinheiro real:** **bússola** (mostra onde está a bancada), **mais vagas** de membros na facção.
+
 ## Progresso salvo e entrar com amigos
-- **O progresso fica salvo** entre servidores: você entra no jogo com a sua arma.
+- **O progresso fica salvo** entre servidores: **a mochila inteira** e tudo que você tem (pago ou grátis).
 - A facção fica salva na conta (mesmo se a sua facção não estiver naquele servidor).
 - Ao logar, você faz parte da sua facção.
 - **Jogar com amigo:** opção de **chamar pelo nick do jogo** para entrar no mesmo servidor.
@@ -69,6 +81,20 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
   - Leva as peças a uma **bancada**.
   - Cada arma tem uma **receita**: diz **quais peças** são necessárias.
   - A receita da arma precisa ser **desbloqueada** antes.
+- **Receitas por raridade** (quanto mais rara a arma, mais difícil a receita; não tem um jeito fixo):
+  - **Arma simples:** a arma inteira pode aparecer em baú, ou dá para desbloquear a receita e fabricar.
+    Receita vem de baú ou matando zumbi.
+  - **Arma mediana:** receita **difícil** de conseguir.
+  - **Arma rara/boa:** receita **muito difícil**. Fontes:
+    - **Baú** (qualquer baú, chance pequena);
+    - **Drop de zumbi**;
+    - **Chefe** (chance um pouco maior).
+  - A receita é um **item no inventário**: se você morrer, outro jogador pode pegar.
+  - Também dá para **comprar receitas com dinheiro do jogo** (muito dinheiro).
+- **Bancada:**
+  - Aparece em **locais aleatórios das cidades** e muda de lugar (aviso de que a bancada apareceu em outro
+    ponto da cidade).
+  - Quem comprou a **bússola (dinheiro real)** sabe onde ela está; quem não comprou procura.
 - **Baús** com loot.
 - **Sistema de tiro bom** contra zumbis (e para o PvP).
 
@@ -89,16 +115,23 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - Conta Google Play: US$ 25 uma vez, só na hora de publicar.
 - Preços em dólar; pagar com cartão internacional ou PayPal (+ IOF). Conferir preço e licença no dia.
 
+## Servidores
+- Indeciso: durar para sempre ou reiniciar. Ideia: escolher o mais leve; talvez **reiniciar só quando o servidor
+  estiver vazio ou com pouca gente**.
+
 ## Alertas anotados (para decidir depois)
+- Compras com dinheiro real que dão vantagem (bússola da bancada) podem ser vistas como "pay-to-win" pelos
+  jogadores — decidir com cuidado o que vender.
 - Multiplayer de 30 jogadores + mapa grande + carros + PvP + destruição é o tipo de jogo mais difícil de
   fazer: precisa de servidor online pago por mês e muito teste com gente de verdade.
 - Caminho sugerido (não decidido): começar menor e crescer por etapas.
 
 ## Perguntas em aberto
-- O loot que você perde ao morrer fica no corpo (outros podem pegar) ou some?
-- Como se desbloqueia uma receita de arma (achar, comprar, matar chefe)?
-- A bancada fica onde: na casa dominada, em cidades, em qualquer lugar?
-- Uma facção pode ter mais de uma casa? Tem limite de membros?
-- A casa dominada dá alguma vantagem além de renascer lá (baú guardado, bancada, defesa)?
-- O que fica salvo exatamente: só a arma em mãos, ou a mochila inteira?
-- Quanto tempo dura um servidor (para sempre, ou reinicia de tempos em tempos)?
+- O progresso é salvo por conta, mas o loot fica no chão ao morrer: se eu sair do jogo, minha mochila vai comigo
+  para outro servidor e some deste?
+- De quanto em quanto tempo a bancada muda de lugar? Quanto tempo ela fica num lugar?
+- Quanto custa (em dinheiro do jogo) manter a casa, e de quanto em quanto tempo? O que acontece se não pagar?
+- Além de matar zumbi, como se ganha dinheiro do jogo (vender itens, missões, roubar)?
+- O que a câmera faz e quais outros itens a loja da facção vende?
+- O que mais é vendido com dinheiro real (roupas, skins, passe de temporada)?
+- Servidor: para sempre ou reinicia (ainda indeciso).
