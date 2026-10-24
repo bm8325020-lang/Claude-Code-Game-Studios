@@ -3,6 +3,8 @@
 # mesmo lugar depois de um tempo (por enquanto, para dar para treinar).
 # Mecânica 6: ouve tiro (Zumbi.barulho) e vai até o lugar do barulho; chegando, procura em volta e, se não
 # achar ninguém, volta para casa.
+# Mecânica 7: chama a horda. Ao achar alguém, para e grita; os zumbis a até GRITO_RAIO sem alvo vêm atrás da
+# mesma pessoa, mesmo sem ver. Grita no máximo uma vez a cada GRITO_PAUSA (os chamados não gritam de novo).
 # Quem decide tudo é o servidor (ou o aparelho jogando sozinho); os outros só recebem posição, giro,
 # animação e vida. Golpe e tiro de um cliente viram um pedido para o servidor.
 class_name Zumbi
@@ -28,6 +30,8 @@ const ALTURA: float = 1.75
 const VAI_OUVIR: float = 2.0       # m/s indo até um barulho
 const PROCURA: float = 4.0         # s olhando em volta onde ouviu
 const VOLTA: float = 0.9           # m/s voltando para casa
+const GRITO_RAIO: float = 22.0
+const GRITO_PAUSA: float = 20.0
 
 ## altura (acima dos pés) a partir da qual o tiro conta como na cabeça (o zumbi anda curvado)
 var altura_cabeca: float = 1.4
@@ -58,6 +62,10 @@ var _ouvido: Vector3               # onde ouviu o último barulho
 var _indo_ouvir: bool = false
 var _olhando_t: float = 0.0        # > 0: chegou no barulho e está procurando em volta
 var _voltando: bool = false
+var _grito_t: float = -1.0         # >= 0: gritando (parado)
+var _sem_gritar: float = 0.0       # > 0: não grita de novo ainda
+var _som: AudioStreamPlayer3D
+static var _som_grito: AudioStreamWAV
 var _mat_pele: StandardMaterial3D
 
 
@@ -97,6 +105,12 @@ func _ready() -> void:
 		casa = global_position
 	pos_rede = global_position
 	rot_rede = modelo.rotation.y
+	_som = AudioStreamPlayer3D.new()
+	_som.max_db = 6.0
+	_som.unit_size = 6.0
+	add_child(_som)
+	if _som_grito == null:
+		_som_grito = _gera_grito()
 	_monta_sincronia()
 	_toca("parado", 0.0)
 	anim.seek(randf() * 3.0, true)  # cada um num ponto da animação
@@ -143,12 +157,17 @@ func _physics_process(dt: float) -> void:
 		_publica()
 		return
 	_procura_t -= dt
+	_sem_gritar -= dt
 	if _procura_t <= 0.0:
 		_procura_t = 0.3
 		_escolhe_alvo()
 	var desejada := Vector3.ZERO
 	if _cambaleio > 0.0:
 		_cambaleio -= dt
+	elif _grito_t >= 0.0:
+		_grito_t -= dt
+		if alvo and is_instance_valid(alvo):
+			_vira_para(alvo.global_position - global_position, dt)
 	elif _ataque_t >= 0.0:
 		_atualiza_ataque(dt)
 	elif alvo:
@@ -179,7 +198,7 @@ func _physics_process(dt: float) -> void:
 	velocity.x = plano.x
 	velocity.z = plano.z
 	move_and_slide()
-	if _ataque_t < 0.0 and _cambaleio <= 0.0:
+	if _ataque_t < 0.0 and _cambaleio <= 0.0 and _grito_t < 0.0:
 		var v: float = plano.length()
 		_toca("parado" if v < 0.2 else ("correr" if v > 1.6 else "andar"), 0.25)
 		var base: float = float(Anims.VELOCIDADE_ZUMBI.get(_clipe, 0.0))
@@ -250,6 +269,25 @@ func _escolhe_alvo() -> void:
 		_indo_ouvir = false
 		_olhando_t = 0.0
 		_voltando = false
+		if _sem_gritar <= 0.0:
+			_grita()
+
+
+# para, grita e chama os zumbis em volta para o mesmo alvo
+func _grita() -> void:
+	_sem_gritar = GRITO_PAUSA
+	_grito_t = anim.get_animation("grito").length
+	anim.speed_scale = 1.0
+	_toca("grito", 0.15, true)
+	for n: Node in get_tree().get_nodes_in_group("zumbis"):
+		var z := n as Zumbi
+		if z == self or z.vida <= 0 or z.alvo != null or z.global_position.distance_to(global_position) > GRITO_RAIO:
+			continue
+		z.alvo = alvo
+		z._sem_gritar = GRITO_PAUSA
+		z._indo_ouvir = false
+		z._olhando_t = 0.0
+		z._voltando = false
 
 
 func _ve(j: Jogador) -> bool:
@@ -303,6 +341,7 @@ func _aplica(dano: int, dir: Vector3) -> void:
 	if vida > 0:
 		_cambaleio = CAMBALEIO
 		_ataque_t = -1.0
+		_grito_t = -1.0
 		_toca("dano", 0.08, true)
 		velocity += Vector3(dir.x, 0, dir.z).normalized() * 2.0  # empurrão
 		if alvo == null:  # quem bate chama a atenção
@@ -321,6 +360,7 @@ func _morre() -> void:
 	_ataque_t = -1.0
 	_cambaleio = 0.0
 	alvo = null
+	_grito_t = -1.0
 	_indo_ouvir = false
 	_olhando_t = 0.0
 	_voltando = false
@@ -339,6 +379,10 @@ func _toca(clipe: String, mistura: float, de_novo: bool = false) -> void:
 	if clipe == _clipe and not de_novo:
 		return
 	_clipe = clipe
+	if clipe == "grito":  # toca aqui para tocar também nos clientes (que recebem só o nome do clipe)
+		_som.stream = _som_grito
+		_som.pitch_scale = randf_range(0.85, 1.1)
+		_som.play()
 	if anim.has_animation(clipe):
 		anim.play(clipe, mistura)
 		if de_novo:
@@ -348,3 +392,35 @@ func _toca(clipe: String, mistura: float, de_novo: bool = false) -> void:
 ## Clipe tocando agora (testes).
 func clipe_atual() -> String:
 	return _clipe
+
+
+# grito rouco gerado no código (os pacotes grátis não têm voz de zumbi): dente-de-serra grave que sobe e
+# desce, com tremido, ruído de garganta e distorção
+static func _gera_grito() -> AudioStreamWAV:
+	var taxa: int = 22050
+	var dur: float = 1.5
+	var n: int = int(taxa * dur)
+	var dados := PackedByteArray()
+	dados.resize(n * 2)
+	var fase: float = 0.0
+	var fase2: float = 0.0
+	var ruido_f: float = 0.0
+	var saida: float = 0.0
+	for i in n:
+		var t: float = float(i) / taxa
+		var x: float = t / dur
+		var freq: float = lerpf(95.0, 165.0, sin(x * PI) ** 0.6) * (1.0 + 0.04 * sin(TAU * 7.0 * t))
+		fase = fmod(fase + freq / taxa, 1.0)
+		fase2 = fmod(fase2 + freq * 2.03 / taxa, 1.0)
+		var serra: float = 2.0 * fase - 1.0
+		ruido_f = lerpf(ruido_f, randf_range(-1.0, 1.0), 0.35)
+		var v: float = serra * 0.6 + (2.0 * fase2 - 1.0) * 0.25 + ruido_f * 0.55
+		v = tanh(v * 2.2)
+		saida = lerpf(saida, v, 0.45)  # tira o chiado agudo
+		var env: float = minf(t / 0.08, 1.0) * clampf((dur - t) / 0.35, 0.0, 1.0)
+		dados.encode_s16(i * 2, int(clampf(saida * env * 0.8, -1.0, 1.0) * 30000.0))
+	var w := AudioStreamWAV.new()
+	w.format = AudioStreamWAV.FORMAT_16_BITS
+	w.mix_rate = taxa
+	w.data = dados
+	return w

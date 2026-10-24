@@ -36,6 +36,7 @@ func _init() -> void:
 	main.controles.jogador = null
 	ok(main.zumbis.get_child_count() == main.PONTOS_ZUMBI.size(), "zumbis nascem (%d)" % main.zumbis.get_child_count())
 	z = main.zumbis.get_child(0)
+	z._sem_gritar = INF  # o grito tem o teste dele (no fim)
 	for outro in main.zumbis.get_children():
 		if outro != z:
 			outro.free()
@@ -44,6 +45,7 @@ func _init() -> void:
 	await _tiro_e_morte()
 	await _jogador_cai()
 	await _ouve_tiro()
+	await _chama_horda()
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
 
@@ -152,3 +154,34 @@ func _ouve_tiro() -> void:
 		if not z._voltando and z._olhando_t <= 0.0:
 			break
 	ok(z.alvo == null and plano(z.global_position, z.casa) < 1.0, "não acha ninguém e volta para casa (%.1f m)" % plano(z.global_position, z.casa))
+
+
+func _chama_horda() -> void:
+	for outro in main.zumbis.get_children():
+		if outro != z:
+			outro.free()
+	var amigo := Zumbi.new()
+	main.zumbis.add_child(amigo)
+	var longe := Zumbi.new()
+	main.zumbis.add_child(longe)
+	j.vida = 100000
+	j.velocity = Vector3.ZERO
+	j.global_position = Vector3(30, 0.1, -25)
+	z.alvo = null
+	z._indo_ouvir = false
+	z._voltando = false
+	z._olhando_t = 0.0
+	z._sem_gritar = 0.0
+	z.global_position = Vector3(30, 0, -12)  # vê o jogador (13 m)
+	amigo.global_position = Vector3(48, 0, -4)  # 20 m do que grita, 25 m do jogador: não vê nem ouve sozinho
+	longe.global_position = Vector3(60, 0, 20)  # longe demais do grito
+	await frames(25)
+	ok(z.alvo == j and z.clipe_atual() == "grito", "vê o jogador e grita (%s)" % z.clipe_atual())
+	ok(amigo.alvo == j, "o grito chama o zumbi a 20 m para o mesmo alvo")
+	ok(longe.alvo == null, "zumbi a mais de %d m não ouve o grito" % int(Zumbi.GRITO_RAIO))
+	ok(z.velocity.length() < 0.3, "gritando fica parado")
+	await frames(int(Zumbi.GRITO_PAUSA * 0.5 * 60))
+	ok(z.clipe_atual() != "grito", "o grito acaba (%s)" % z.clipe_atual())
+	z.alvo = null
+	await frames(20)
+	ok(z.alvo == j and z.clipe_atual() != "grito", "não grita de novo antes de %d s" % int(Zumbi.GRITO_PAUSA))

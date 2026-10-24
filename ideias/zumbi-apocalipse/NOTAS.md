@@ -268,7 +268,11 @@ quando você aprovar.
    vão até o lugar do tiro (2 m/s, desviando), procuram em volta 4 s e, sem achar ninguém, voltam para casa.
    Se perdem o jogador de vista, vão procurar onde viram por último. Em rede, o servidor ouve os tiros de todos.
    Junto: agachado mirando corrigido (o peito gira medindo o braço a cada quadro; ajoelha com a pistola parado).
-7. ...depois cada comportamento de zumbi, um por vez, e assim por diante.
+7. **Zumbi chama a horda.** **Status: feito, APK 0.15.** Ao achar alguém, o zumbi para e grita (~1,8 s,
+   som gerado no código); os zumbis a até 22 m sem alvo vêm atrás da mesma pessoa, mesmo sem ver. Grita no
+   máximo a cada 20 s; os chamados não gritam. Bater nele interrompe o grito.
+   APK 0.14 antes disso: de lado/de costas sem arma usam KayKit (as do rifle seguravam um rifle).
+8. ...depois cada comportamento de zumbi, um por vez (cercar, emboscar, abrir portas, fugir, cobertura, noite).
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)
 1. **Andar e atirar com 2 jogadores** — terceira pessoa, controles de celular e PC, 1 arma de fogo + 1 arma

@@ -45,9 +45,9 @@ const VELOCIDADE: Dictionary = {"andar": 1.8, "trote": 4.7, "correr": 5.5, "agac
 const CLIPES_ZUMBI: Dictionary = {
 	"parado": ["zumbi2/zombie_idle", 0.0, -1.0], "andar": ["zumbi2/walking", 0.0, -1.0],
 	"correr": ["zumbi2/zombie_running", 0.0, -1.0], "ataque": ["zumbi2/zombie_punching", 0.0, -1.0],
-	"dano": ["zumbi2/zombie_reaction_hit", 0.0, 0.7], "morte": ["zumbi/zombie_death", 0.0, -1.0],
+	"dano": ["zumbi2/zombie_reaction_hit", 0.0, 0.7], "grito": ["zumbi/zombie_scream", 0.0, 1.8], "morte": ["zumbi/zombie_death", 0.0, -1.0],
 }
-const NAO_REPETE_ZUMBI: Array[String] = ["ataque", "dano", "morte"]
+const NAO_REPETE_ZUMBI: Array[String] = ["ataque", "dano", "morte", "grito"]
 const VELOCIDADE_ZUMBI: Dictionary = {"andar": 0.56, "correr": 3.1}
 
 static var _lib: AnimationLibrary
