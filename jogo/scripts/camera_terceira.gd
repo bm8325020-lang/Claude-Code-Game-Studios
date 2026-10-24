@@ -4,7 +4,9 @@ class_name CameraTerceira
 extends Node3D
 
 const DISTANCIA: float = 3.4
-const DISTANCIA_MIRA: float = 2.3   # mira travada: câmera chega mais perto do ombro
+const DISTANCIA_MIRA: float = 1.9   # mira travada: câmera chega perto do ombro
+const OMBRO_MIRA: float = 0.75      # e vai mais para o lado, para a mira (centro da tela) não cair no corpo
+const FOV_MIRA: float = 58.0        # leve zoom mirando
 const OMBRO: float = 0.55           # deslocamento para a direita (por cima do ombro)
 const ALTURA_EM_PE: float = 1.55
 const ALTURA_AGACHADO: float = 1.05
@@ -25,6 +27,7 @@ var braco: SpringArm3D
 var cam: Camera3D
 var _altura: float = ALTURA_EM_PE
 var _y_suave: float = 0.0
+var _tremor: float = 0.0
 
 
 func _ready() -> void:
@@ -60,5 +63,17 @@ func _process(dt: float) -> void:
 	_altura = lerpf(_altura, ALTURA_AGACHADO if alvo.agachado else ALTURA_EM_PE, 1.0 - exp(-10.0 * dt))
 	global_position = Vector3(p.x, _y_suave + _altura, p.z)
 	rotation = Vector3(-pitch, yaw, 0)
-	cam.fov = lerpf(cam.fov, FOV_CORRENDO if alvo.correndo else FOV, 1.0 - exp(-6.0 * dt))
-	braco.spring_length = lerpf(braco.spring_length, DISTANCIA_MIRA if alvo.mira_travada else DISTANCIA, 1.0 - exp(-10.0 * dt))
+	var mira: bool = alvo.mira_travada
+	var fov_alvo: float = FOV_MIRA if mira else (FOV_CORRENDO if alvo.correndo else FOV)
+	cam.fov = lerpf(cam.fov, fov_alvo, 1.0 - exp(-10.0 * dt))
+	braco.spring_length = lerpf(braco.spring_length, DISTANCIA_MIRA if mira else DISTANCIA, 1.0 - exp(-12.0 * dt))
+	cam.position.x = lerpf(cam.position.x, OMBRO_MIRA if mira else OMBRO, 1.0 - exp(-12.0 * dt))
+	# tremida do golpe: some rápido
+	_tremor = maxf(0.0, _tremor - dt * 1.6)
+	cam.h_offset = randf_range(-1.0, 1.0) * _tremor * 0.35
+	cam.v_offset = randf_range(-1.0, 1.0) * _tremor * 0.35
+
+
+## Treme a tela (0..1), por exemplo quando um golpe acerta.
+func tremer(forca: float) -> void:
+	_tremor = maxf(_tremor, forca)

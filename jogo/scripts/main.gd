@@ -231,6 +231,11 @@ func _obstaculos() -> void:
 	bloco(Vector3(12, 2, 8), Vector3(0.5, 4, 14), concreto)
 	bloco(Vector3(15, 2, 8), Vector3(0.5, 4, 14), concreto)
 	bloco(Vector3(-12, 3, 10), Vector3(8, 6, 8), Color(0.48, 0.47, 0.46))  # "prédio"
+	# bonecos de treino para o facão (perto do começo)
+	for p: Vector3 in [Vector3(-3, 0, 4), Vector3(-5, 0, 5.5), Vector3(-1.5, 0, 6)]:
+		var b := BonecoTreino.new()
+		b.position = p
+		add_child(b)
 	# "carro" abandonado
 	bloco(Vector3(5, 0.7, 6), Vector3(1.9, 1.0, 4.2), Color(0.3, 0.35, 0.4), Vector3(0, 20, 0))
 	bloco(Vector3(5, 1.45, 6), Vector3(1.7, 0.6, 2.2), Color(0.25, 0.3, 0.35), Vector3(0, 20, 0))

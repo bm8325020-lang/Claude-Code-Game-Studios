@@ -31,6 +31,8 @@ func _init() -> void:
 	await _animacoes()
 	await _controle_no_ar()
 	await _mira_travada()
+	await _facao()
+	await _mira_nova()
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
 
@@ -44,7 +46,7 @@ func poe(p: Vector3, yaw: float = 0.0) -> void:
 	j.global_position = p
 	j.velocity = Vector3.ZERO
 	j.camera.yaw = yaw
-	j.entrada = {"move": Vector2.ZERO, "olhar": Vector2.ZERO, "pular": false, "correr": false, "agachar": false, "andar": false, "mirar": false}
+	j.entrada = {"move": Vector2.ZERO, "olhar": Vector2.ZERO, "pular": false, "correr": false, "agachar": false, "andar": false, "mirar": false, "mira_segurando": null, "atacar": false}
 	j.mira_travada = false
 	if j.agachado:
 		j._alterna_agachar()
@@ -227,3 +229,58 @@ func _mira_travada() -> void:
 	j.entrada["mirar"] = true
 	await frames(5)
 	ok(not j.mira_travada, "aperta de novo e destrava")
+
+
+func _boneco(p: Vector3) -> BonecoTreino:
+	for n in main.get_children():
+		if n is BonecoTreino and (n as Node3D).global_position.distance_to(p) < 0.1:
+			return n
+	return null
+
+
+func _facao() -> void:
+	var b: BonecoTreino = _boneco(Vector3(-3, 0, 4))
+	ok(b != null, "boneco de treino na pista")
+	await poe(Vector3(-3, 0.1, 2.6))
+	j.modelo.rotation.y = 0.0  # virado para +Z, o boneco 1,4 m à frente
+	j.entrada["atacar"] = true
+	await frames(90)
+	ok(b.vida == BonecoTreino.VIDA_MAX - 25, "um golpe tira 25 (vida %d)" % b.vida)
+	ok(j.golpe_atual() == -1, "o golpe termina sozinho")
+	# combo: aperta 3 vezes durante os golpes
+	b.vida = BonecoTreino.VIDA_MAX
+	await frames(30)
+	for k in 3:
+		j.entrada["atacar"] = true
+		await frames(25)
+	await frames(120)
+	ok(b.vida == BonecoTreino.VIDA_MAX - 95, "combo de 3 golpes tira 25+25+45 (vida %d)" % b.vida)
+	# de costas não acerta
+	await frames(260)  # se caiu, espera levantar
+	b.vida = BonecoTreino.VIDA_MAX
+	b.caido = false
+	j.modelo.rotation.y = PI
+	j.entrada["atacar"] = true
+	await frames(50)
+	ok(b.vida == BonecoTreino.VIDA_MAX, "de costas o golpe não pega")
+	# golpeando quase não anda
+	await poe(Vector3(30, 0.1, 10))
+	j.entrada["move"] = Vector2(0, 1)
+	j.entrada["atacar"] = true
+	await frames(12)
+	ok(vel_plano() < Jogador.TROTE * 0.4, "golpeando anda devagar (%.2f)" % vel_plano())
+
+
+func _mira_nova() -> void:
+	await poe(Vector3(30, 0.1, 0), 1.0)
+	j.entrada["mira_segurando"] = true
+	j.entrada["move"] = Vector2(0, 1)
+	await frames(12)
+	ok(j.mira_travada, "segurar o botão direito mira")
+	ok(absf(wrapf(j.modelo.rotation.y - (j.camera.yaw + PI), -PI, PI)) < 0.05, "mirando o corpo acompanha a câmera em 0,2 s")
+	await frames(30)
+	ok(vel_plano() <= Jogador.MIRA_VEL + 0.05, "mirando anda devagar (%.2f)" % vel_plano())
+	j.entrada["mira_segurando"] = false
+	await frames(3)
+	ok(not j.mira_travada, "soltar o botão direito para de mirar")
+	j.entrada["mira_segurando"] = null

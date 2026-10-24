@@ -250,6 +250,9 @@ quando você aprovar.
    - Por enquanto os jogadores se atravessam (sem colisão entre eles) e só funciona no mesmo Wi-Fi;
      jogar pela internet precisa do servidor de verdade (etapa "Servidor de verdade").
 3. **Arma branca** (um facão): golpe, acerto, impacto.
+   **Status: feito, APK 0.5.** Combo de 3 golpes (25/25/45), pausa no acerto, tremida, som, bonecos de
+   treino. Mira refeita: segurar (PC) / botão MIRA, câmera mais perto e de lado, zoom, mira no centro,
+   anda devagar e o corpo segue a câmera na hora.
 4. **Arma de fogo** (uma pistola): mira manual, tiro, recarga.
 5. **Um zumbi simples**: anda até você, ataca, morre.
 6. ...depois cada comportamento de zumbi, um por vez, e assim por diante.

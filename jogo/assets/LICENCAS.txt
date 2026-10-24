@@ -1,0 +1,3 @@
+Kenney (kenney.nl) — CC0: assets/sons/*.ogg
+Quaternius — CC0: assets/armas/Sword_Bronze (Fantasy Props MegaKit)
+Kay Lousberg — CC0: assets/kaykit/ (ver License.txt)

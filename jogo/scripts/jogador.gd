@@ -20,12 +20,25 @@ const BUFFER_PULO: float = 0.15   # aperto um pouco antes de tocar o chão tamb�
 const ALTURA_EM_PE: float = 1.8
 const ALTURA_AGACHADO: float = 1.15
 const RAIO: float = 0.32
+const MIRA_VEL: float = 2.6        # mirando anda devagar (sem correr)
+const GIRO_MIRA: float = 30.0      # mirando o corpo acompanha a câmera quase na hora
+
+## Golpes do facão em sequência (aperta de novo durante o golpe = próximo do combo).
+## acerto: fração do clipe em que a lâmina pega; arco em graus na frente do corpo; alcance em metros.
+const GOLPES: Array[Dictionary] = [
+	{"clipe": "golpe1", "acerto": 0.38, "dano": 25, "alcance": 1.8, "arco": 120.0},
+	{"clipe": "golpe2", "acerto": 0.38, "dano": 25, "alcance": 1.8, "arco": 120.0},
+	{"clipe": "golpe3", "acerto": 0.45, "dano": 45, "alcance": 2.0, "arco": 90.0},
+]
+const VEL_GOLPE: float = 1.25      # velocidade dos clipes de golpe (mais ágil que o original)
+const PARADA_ACERTO: float = 0.07  # congela a animação um instante quando acerta (peso do golpe)
 
 ## Entrada do frame: move (Vector2, -1..1, y = frente), olhar (Vector2, graus), pular (bool, apertou agora),
 ## correr (bool, segurando), agachar (bool, alternou agora), andar (bool, segurando: passo lento no PC),
-## mirar (bool, alternou agora: liga/desliga a mira travada).
+## mirar (bool, alternou agora: liga/desliga a mira travada), mira_segurando (null ou bool: PC segura o botão
+## direito), atacar (bool, apertou agora).
 var entrada: Dictionary = {"move": Vector2.ZERO, "olhar": Vector2.ZERO, "pular": false, "correr": false,
-	"agachar": false, "andar": false, "mirar": false}
+	"agachar": false, "andar": false, "mirar": false, "mira_segurando": null, "atacar": false}
 
 var agachado: bool = false
 ## Mira travada: o corpo fica virado para onde a câmera olha e anda de lado/de costas (modo tiro).
@@ -55,6 +68,14 @@ var _buffer: float = 0.0
 var _no_ar_desde: float = 0.0
 var _pousando: float = 0.0
 var _clipe: String = ""
+var _golpe: int = -1          # golpe em andamento (índice em GOLPES), -1 = nenhum
+var _golpe_t: float = 0.0
+var _golpe_dur: float = 0.0
+var _acertou: bool = false
+var _proximo: bool = false    # apertou de novo: emenda o próximo golpe
+var _parada: float = 0.0
+var _som: AudioStreamPlayer3D
+var _sons: Dictionary = {}
 
 
 func _ready() -> void:
@@ -80,6 +101,12 @@ func _ready() -> void:
 	_teto.enabled = true
 	add_child(_teto)
 	_monta_modelo()
+	_monta_arma()
+	_som = AudioStreamPlayer3D.new()
+	_som.max_db = 3.0
+	add_child(_som)
+	for nome: String in ["knifeSlice", "knifeSlice2", "impactPunch_heavy_000", "impactPunch_heavy_001"]:
+		_sons[nome] = load("res://assets/sons/%s.ogg" % nome)
 	_placa = Label3D.new()
 	_placa.text = nick
 	_placa.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -127,6 +154,19 @@ func _monta_modelo() -> void:
 	_toca("parado", 0.0)
 
 
+# facão provisório (espada curta do pacote de props) na mão direita
+func _monta_arma() -> void:
+	var esq: Skeleton3D = modelo.find_children("*", "Skeleton3D", true, false)[0]
+	var mao := BoneAttachment3D.new()
+	mao.bone_name = "hand.r"
+	esq.add_child(mao)
+	var arma: Node3D = (load("res://assets/armas/Sword_Bronze.gltf") as PackedScene).instantiate()
+	# a lâmina (eixo +Y do modelo) aponta para a frente da mão (medido na pose parada do manequim)
+	arma.quaternion = Quaternion(Vector3.UP, Vector3(-0.965, 0.0, -0.264).normalized())
+	arma.scale = Vector3.ONE * 0.75
+	mao.add_child(arma)
+
+
 func _physics_process(dt: float) -> void:
 	if not local:
 		_segue_rede(dt)
@@ -143,6 +183,12 @@ func _physics_process(dt: float) -> void:
 	if entrada.get("mirar", false):
 		mira_travada = not mira_travada
 		entrada["mirar"] = false
+	if entrada.get("mira_segurando") != null:
+		mira_travada = bool(entrada["mira_segurando"])
+	if entrada.get("atacar", false):
+		entrada["atacar"] = false
+		_pede_golpe()
+	_atualiza_golpe(dt)
 	correndo = bool(entrada.get("correr", false)) and not agachado and not mira_travada and mov.y > 0.3
 
 	# direção relativa à câmera (só o giro horizontal)
@@ -153,7 +199,9 @@ func _physics_process(dt: float) -> void:
 	var forca: float = mov.length()
 
 	var alvo_vel: float
-	if agachado:
+	if mira_travada:
+		alvo_vel = MIRA_VEL
+	elif agachado:
 		alvo_vel = AGACHADO
 	elif correndo:
 		alvo_vel = CORRER
@@ -161,6 +209,8 @@ func _physics_process(dt: float) -> void:
 		alvo_vel = ANDAR  # stick meio empurrado = andar devagar
 	else:
 		alvo_vel = TROTE
+	if _golpe >= 0:
+		alvo_vel *= 0.3  # golpeando quase não anda
 	var desejada: Vector3 = dir.normalized() * alvo_vel * clampf(forca / 0.55, 0.0, 1.0) if forca > 0.08 else Vector3.ZERO
 
 	var plano := Vector3(velocity.x, 0, velocity.z)
@@ -197,7 +247,9 @@ func _physics_process(dt: float) -> void:
 
 	# mira travada: o corpo olha para a frente da câmera; senão vira para onde está andando (também no ar)
 	if mira_travada:
-		modelo.rotation.y = lerp_angle(modelo.rotation.y, yaw + PI, 1.0 - exp(-GIRO * 1.5 * dt))
+		modelo.rotation.y = lerp_angle(modelo.rotation.y, yaw + PI, 1.0 - exp(-GIRO_MIRA * dt))
+	elif _golpe >= 0:
+		pass  # durante o golpe o corpo não gira (o golpe sai para onde você estava virado)
 	elif plano.length() > 0.3:
 		var ang: float = atan2(plano.x, plano.z)
 		modelo.rotation.y = lerp_angle(modelo.rotation.y, ang, 1.0 - exp(-GIRO * dt))
@@ -218,7 +270,7 @@ func _segue_rede(dt: float) -> void:
 	_toca(clipe_rede, 0.18)
 	var vel: float = Vector2(global_position.x - antes.x, global_position.z - antes.z).length() / maxf(dt, 0.001)
 	var base: float = float(Anims.VELOCIDADE.get(clipe_rede, 0.0))
-	anim.speed_scale = clampf(vel / base, 0.7, 1.5) if base > 0.1 and vel > 0.15 else 1.0
+	anim.speed_scale = clampf(vel / base, 0.5, 1.5) if base > 0.1 and vel > 0.15 else 1.0
 
 
 func _alterna_agachar() -> void:
@@ -237,6 +289,8 @@ func _cabe_em_pe() -> bool:
 func _anima(dt: float, vel: float) -> void:
 	_pousando -= dt
 	var clipe: String
+	if _golpe >= 0:
+		return  # o golpe controla a animação
 	if not is_on_floor() and (_no_ar_desde > 0.12 or velocity.y > 0.5):
 		clipe = "no_ar" if _clipe != "pulo_inicio" or not anim.is_playing() else "pulo_inicio"
 	elif _pousando > 0.0:
@@ -256,7 +310,90 @@ func _anima(dt: float, vel: float) -> void:
 	_toca(clipe, 0.18)
 	# pés acompanham o chão: escala a velocidade do clipe pela velocidade real
 	var base: float = float(Anims.VELOCIDADE.get(clipe, 0.0))
-	anim.speed_scale = clampf(vel / base, 0.7, 1.5) if base > 0.1 and vel > 0.15 else 1.0
+	anim.speed_scale = clampf(vel / base, 0.5, 1.5) if base > 0.1 and vel > 0.15 else 1.0
+
+
+# --- facão: combo de 3 golpes ---
+func _pede_golpe() -> void:
+	if not is_on_floor() and _no_ar_desde > 0.12:
+		return
+	if _golpe < 0:
+		_inicia_golpe(0)
+	elif _golpe < GOLPES.size() - 1:
+		_proximo = true  # guarda o aperto: emenda depois que este golpe pegar
+
+
+func _inicia_golpe(i: int) -> void:
+	_golpe = i
+	_golpe_t = 0.0
+	_acertou = false
+	_proximo = false
+	if agachado and _cabe_em_pe():
+		_alterna_agachar()
+	var c: String = GOLPES[i].clipe
+	_golpe_dur = anim.get_animation(c).length / VEL_GOLPE
+	_clipe = c
+	anim.play(c, 0.08)
+	anim.speed_scale = VEL_GOLPE
+	_toca_som("knifeSlice" if i != 1 else "knifeSlice2", -4.0)
+
+
+func _atualiza_golpe(dt: float) -> void:
+	if _golpe < 0:
+		return
+	if _parada > 0.0:
+		_parada -= dt
+		anim.speed_scale = 0.0 if _parada > 0.0 else VEL_GOLPE
+		return
+	_golpe_t += dt
+	var g: Dictionary = GOLPES[_golpe]
+	if not _acertou and _golpe_t >= _golpe_dur * float(g.acerto):
+		_acertou = true
+		_acerta(g)
+	# depois do acerto, se pediu o próximo, emenda; senão termina o clipe
+	if _proximo and _golpe_t >= _golpe_dur * (float(g.acerto) + 0.15):
+		_inicia_golpe(_golpe + 1)
+	elif _golpe_t >= _golpe_dur * 0.85:
+		_golpe = -1
+		_clipe = ""
+
+
+## Quem leva o golpe: nós no grupo "golpeavel" com levar_golpe(dano, direção, quem).
+func _acerta(g: Dictionary) -> void:
+	var frente: Vector3 = modelo.global_transform.basis.z
+	frente.y = 0.0
+	frente = frente.normalized()
+	var pegou: bool = false
+	for alvo: Node in get_tree().get_nodes_in_group("golpeavel"):
+		var n3 := alvo as Node3D
+		if n3 == null or n3 == self:
+			continue
+		var d: Vector3 = n3.global_position - global_position
+		d.y = 0.0
+		if d.length() > float(g.alcance) + 0.3 or d.length() < 0.01:
+			continue
+		if rad_to_deg(frente.angle_to(d.normalized())) > float(g.arco) * 0.5:
+			continue
+		alvo.call("levar_golpe", int(g.dano), d.normalized(), self)
+		pegou = true
+	if pegou:
+		_parada = PARADA_ACERTO
+		_toca_som("impactPunch_heavy_00%d" % (randi() % 2), 0.0)
+		if camera:
+			camera.tremer(0.12 if _golpe < 2 else 0.22)
+
+
+func _toca_som(nome: String, db: float) -> void:
+	if _sons.has(nome):
+		_som.stream = _sons[nome]
+		_som.volume_db = db
+		_som.pitch_scale = randf_range(0.92, 1.08)
+		_som.play()
+
+
+## Golpe em andamento (-1 = nenhum), para testes.
+func golpe_atual() -> int:
+	return _golpe
 
 
 # andando com a mira travada: frente, lados ou costas conforme a direção em relação ao corpo

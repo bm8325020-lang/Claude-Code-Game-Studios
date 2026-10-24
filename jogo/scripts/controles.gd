@@ -1,8 +1,9 @@
 # Controles: transforma teclado/mouse (PC) e toque (celular) na `entrada` do Jogador.
 # PC: WASD anda, mouse gira a câmera, Shift corre, Alt anda devagar, Ctrl/C agacha, Espaço pula,
-# botão direito do mouse liga/desliga a mira travada, Esc solta o mouse.
+# botão esquerdo do mouse golpeia, segurar o botão direito mira, Esc solta o mouse.
 # Celular: analógico que aparece onde o polegar esquerdo toca; arrastar no lado direito gira a câmera;
-# botões PULAR, CORRER (liga/desliga), AGACHAR e MIRA (canto inferior direito, liga/desliga a mira travada).
+# botões ATACAR, PULAR, CORRER (liga/desliga), AGACHAR e MIRA (canto inferior direito, liga/desliga a mira).
+# Mirando aparece a mira no centro da tela.
 class_name Controles
 extends CanvasLayer
 
@@ -29,6 +30,7 @@ var _pino: Control
 var _btn_correr: Button
 var _btn_agachar: Button
 var _btn_mira: Button
+var _mira: Control
 
 
 func _ready() -> void:
@@ -36,6 +38,10 @@ func _ready() -> void:
 	toque = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
 	if toque:
 		_monta_toque()
+	_mira = _Mira.new()
+	_mira.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_mira.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_mira)
 	visible = jogador != null
 
 
@@ -74,6 +80,7 @@ func _process(_dt: float) -> void:
 		_btn_correr.modulate = Color(1, 0.85, 0.4) if _correr_ligado else Color.WHITE
 	if _btn_mira:
 		_btn_mira.modulate = Color(1, 0.85, 0.4) if jogador.mira_travada else Color.WHITE
+	_mira.visible = jogador.mira_travada
 
 
 func _input(ev: InputEvent) -> void:
@@ -84,10 +91,15 @@ func _input(ev: InputEvent) -> void:
 			jogador.entrada["olhar"] = (jogador.entrada["olhar"] as Vector2) + (ev as InputEventMouseMotion).relative
 		elif ev is InputEventKey and (ev as InputEventKey).pressed and (ev as InputEventKey).keycode == KEY_ESCAPE:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-		elif ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed:
-			if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_RIGHT:
-				jogador.entrada["mirar"] = true
-			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		elif ev is InputEventMouseButton:
+			var mb := ev as InputEventMouseButton
+			if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+				if mb.pressed:
+					Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+			elif mb.button_index == MOUSE_BUTTON_RIGHT:
+				jogador.entrada["mira_segurando"] = mb.pressed  # segura para mirar
+			elif mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
+				jogador.entrada["atacar"] = true
 		return
 	var tela: Vector2 = get_viewport().get_visible_rect().size
 	if ev is InputEventScreenTouch:
@@ -120,7 +132,8 @@ func _input(ev: InputEvent) -> void:
 
 
 func _em_botao(p: Vector2) -> bool:
-	for b: Control in [_btn_correr, _btn_agachar, _btn_mira, get_node_or_null("Pular") as Control]:
+	for b: Control in [_btn_correr, _btn_agachar, _btn_mira, get_node_or_null("Pular") as Control,
+			get_node_or_null("Atacar") as Control]:
 		if b and b.get_global_rect().grow(10).has_point(p):
 			return true
 	return false
@@ -133,32 +146,35 @@ func _monta_toque() -> void:
 	_pino = _circulo(90.0, Color(1, 1, 1, 0.45))
 	_base.add_child(_pino)
 	_pino.position = _base.size * 0.5 - _pino.size * 0.5
-	# MIRA no canto inferior direito; os outros em arco em volta dele
-	_btn_mira = _botao("MIRA", Vector2(-BOTAO - 20, -BOTAO - 20))
+	# MIRA no canto inferior direito; ATACAR grande ao lado; os outros em arco em volta
+	_btn_mira = _botao("MIRA", Vector2(-140, -140))
 	_btn_mira.button_down.connect(func() -> void:
 		jogador.entrada["mirar"] = true
 		_correr_ligado = false)
-	var pular := _botao("PULAR", Vector2(-BOTAO * 2 - 45, -BOTAO - 45))
+	var atacar := _botao("ATACAR", Vector2(-320, -175), 150.0)
+	atacar.name = "Atacar"
+	atacar.button_down.connect(func() -> void: jogador.entrada["atacar"] = true)
+	var pular := _botao("PULAR", Vector2(-140, -290))
 	pular.name = "Pular"
 	pular.button_down.connect(func() -> void: jogador.entrada["pular"] = true)
-	_btn_correr = _botao("CORRER", Vector2(-BOTAO * 3 - 70, -BOTAO * 0.8 - 30))
-	_btn_correr.button_down.connect(func() -> void: _correr_ligado = not _correr_ligado)
-	_btn_agachar = _botao("AGACHAR", Vector2(-BOTAO - 30, -BOTAO * 2 - 50))
+	_btn_agachar = _botao("AGACHAR", Vector2(-290, -335))
 	_btn_agachar.button_down.connect(func() -> void:
 		jogador.entrada["agachar"] = true
 		_correr_ligado = false)
+	_btn_correr = _botao("CORRER", Vector2(-470, -140))
+	_btn_correr.button_down.connect(func() -> void: _correr_ligado = not _correr_ligado)
 
 
-func _botao(texto: String, desloc: Vector2) -> Button:
+func _botao(texto: String, desloc: Vector2, tam: float = BOTAO) -> Button:
 	var b := Button.new()
 	b.text = texto
 	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(BOTAO, BOTAO)
-	b.size = Vector2(BOTAO, BOTAO)
+	b.custom_minimum_size = Vector2(tam, tam)
+	b.size = Vector2(tam, tam)
 	b.add_theme_font_size_override("font_size", 22)
 	var est := StyleBoxFlat.new()
 	est.bg_color = Color(0, 0, 0, 0.35)
-	est.set_corner_radius_all(int(BOTAO * 0.5))
+	est.set_corner_radius_all(int(tam * 0.5))
 	est.border_color = Color(1, 1, 1, 0.5)
 	est.set_border_width_all(3)
 	b.add_theme_stylebox_override("normal", est)
@@ -170,8 +186,8 @@ func _botao(texto: String, desloc: Vector2) -> Button:
 	b.anchor_bottom = 1.0
 	b.offset_left = desloc.x
 	b.offset_top = desloc.y
-	b.offset_right = desloc.x + BOTAO
-	b.offset_bottom = desloc.y + BOTAO
+	b.offset_right = desloc.x + tam
+	b.offset_bottom = desloc.y + tam
 	add_child(b)
 	return b
 
@@ -185,3 +201,16 @@ func _circulo(diam: float, cor: Color) -> Panel:
 	est.set_corner_radius_all(int(diam * 0.5))
 	p.add_theme_stylebox_override("panel", est)
 	return p
+
+
+# mira no centro da tela: ponto + quatro tracinhos
+class _Mira:
+	extends Control
+
+	func _draw() -> void:
+		var c: Vector2 = size * 0.5
+		var cor := Color(1, 1, 1, 0.9)
+		draw_circle(c, 2.5, cor)
+		for d: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
+			draw_line(c + d * 8.0, c + d * 18.0, cor, 2.5)
+		draw_arc(c, 26.0, 0.0, TAU, 32, Color(1, 1, 1, 0.25), 1.5)
