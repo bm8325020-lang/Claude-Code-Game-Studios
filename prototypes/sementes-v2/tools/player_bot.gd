@@ -45,6 +45,9 @@ func _init() -> void:
 	g = load("res://main.tscn").instantiate()
 	root.add_child(g)
 	current_scene = g
+	# the game builds behind a loading screen over several frames now: wait for the hero like a player waits
+	while g.hero == null or not g.hero.is_inside_tree():
+		await process_frame
 	await process_frame
 	hero = g.hero
 	hero.set_bot(_bot)
