@@ -1,7 +1,7 @@
 # Bloco de notas — jogo de apocalipse zumbi
 
 Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem código, sem arte).
-Última atualização: 2026-10-24 (6ª conversa).
+Última atualização: 2026-10-24 (7ª conversa).
 
 ## Plataforma e formato
 - Celular **e** PC. Vai ser publicado na Play Store.
@@ -34,9 +34,20 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - **Limite de membros: 10.** Dá para aumentar pagando **muito dinheiro do jogo** (não é com dinheiro real).
 - Para **manter a casa** é preciso **pagar dinheiro do jogo a cada 7 dias do jogo**
   (obriga a matar zumbis e movimentar a economia). Duração do dia/noite ainda não definida.
-- **Custo de manutenção:** valor provisório **~20 mil** de dinheiro do jogo (ajustar quando a economia existir;
-  a casa terá vários benefícios ainda a definir).
-- **Aviso antes do prazo:** a facção é avisada ("faltam X dias para perder a casa").
+- **Custo de manutenção:** valor provisório **~20 mil** de dinheiro do jogo (ajustar quando a economia existir).
+- **Prazo (proposta do assistente, aceita para começar):** pagar **a cada 3 dias reais (72 h)**, contando mesmo
+  com a facção offline. Motivo: grupos casuais jogam ~1 h por dia e não podem perder a casa num fim de semana
+  fora; 7 dias do jogo (~1h30 real) era curto demais. Ajustar quando a economia existir.
+- **Aviso antes do prazo:** a facção é avisada com **24 h** e com **1 h** de antecedência ("faltam X horas
+  para perder a casa").
+- **Benefícios da casa** (muitos):
+  - renascer na casa;
+  - baú da facção;
+  - acesso à loja da facção;
+  - **loja de munição** perto da casa;
+  - **loja de comida e água** perto da casa;
+  - sugestões (não decididas): **cama** que cura, **garagem** (o carro não some), **armário pessoal** por membro,
+    **bancada simples** só para armas básicas (a bancada boa continua andando pela cidade).
 - **Se não pagar: perde a casa e o baú.** Quem não quiser pagar tem que tirar os itens do baú antes.
   (O dono acha essa regra um pouco chata, mas necessária; 7 dias do jogo é tempo suficiente para pagar.)
 - **Baú da casa:**
@@ -76,11 +87,13 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - **Loja da facção:** itens que só se consegue **tendo facção** ou **roubando de alguém**.
   - **Câmera:** vem com um **dispositivo**. Você instala a câmera, dá **nome e senha**; no dispositivo, digita a
     senha e vê **em tempo real** o que acontece naquele local.
-  - Sugestões para a loja da facção (NÃO DECIDIDO):
+  - Itens da loja da facção (**APROVADOS, todos**):
     - **Alarme / fio de armadilha:** avisa a facção quando alguém entra na casa.
     - **Fechadura reforçada do baú:** o lockpick demora mais para abrir.
     - **Porta e barricadas reforçadas** para a casa.
-    - **Rádio da facção:** chat/voz só entre membros, em qualquer lugar do mapa.
+    - **Rádio da facção:** **voz** (e chat) só entre membros, em qualquer lugar do mapa. Dá para fazer:
+      serviços como Epic Online Services (voz grátis, Android e PC) ou Photon Voice resolvem; custa trabalho
+      e talvez uma taxa por uso alto. Ideia extra: **voz por proximidade** sem rádio (quem está perto ouve).
     - **Localizador:** mostra os membros da facção no mapa.
     - **Kit de reanimação:** acelera o resgate de um membro caído.
     - **Sinalizador (flare):** marca um ponto para o grupo se reunir.
@@ -105,6 +118,10 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 ## Veículos
 - Carro normal e **carro blindado**.
 - **Chave** para invadir/usar os carros.
+
+## Sobrevivência
+- O jogo tem **munição**, **comida** e **água** (lojas perto da casa da facção vendem).
+- (Em aberto: fome e sede caem com o tempo? O que acontece se zerar?)
 
 ## Armas e itens
 - **Arma branca é obrigatória no jogo** (facas, facões, tacos etc.) e é **achada pelo mapa**.
@@ -167,15 +184,14 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 
 ## Alertas anotados (para decidir depois)
 - Decidido: nada que dá vantagem é vendido com dinheiro real (evita "pay-to-win").
-- Conta de tempo: 7 dias do jogo = 7 × 13 min = **~91 minutos reais**. Se o relógio do servidor corre mesmo com
-  a facção offline, pagar a casa a cada ~1h30 pode ser pesado. Decidir: o prazo conta só com membros online?
-  Ou o prazo é maior (ex.: 7 dias reais)?
+- Prazo da casa resolvido: 7 dias do jogo davam só ~1h30 real; trocado por 3 dias reais.
+- Voz no jogo: precisa de moderação (denúncia/silenciar), porque é jogo público na Play Store.
 - Multiplayer de 30 jogadores + mapa grande + carros + PvP + destruição é o tipo de jogo mais difícil de
   fazer: precisa de servidor online pago por mês e muito teste com gente de verdade.
 - Caminho sugerido (não decidido): começar menor e crescer por etapas.
 
 ## Perguntas em aberto
-- Prazo da casa: ~1h30 real é o que você quer, ou o prazo deve contar só com a facção online / ser maior?
-- Quais benefícios a casa dá (baú, renascer, bancada fixa, loja da facção, cura)?
-- Quais itens da lista de sugestões da loja da facção você quer?
+- Fome e sede: caem com o tempo? Zerou, o que acontece (perde vida devagar)?
+- Benefícios sugeridos da casa (cama, garagem, armário pessoal, bancada simples): quais você quer?
+- Voz: só pelo rádio da facção, ou também voz por proximidade com qualquer jogador?
 - Servidor: para sempre ou reinicia (ainda indeciso).
