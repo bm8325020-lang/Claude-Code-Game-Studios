@@ -16,10 +16,12 @@ var jogador: Jogador:
 	set(v):
 		if jogador and jogador.dano_levado.is_connected(_levou_dano):
 			jogador.dano_levado.disconnect(_levou_dano)
+			jogador.item_pego.disconnect(_pegou)
 		jogador = v
 		visible = v != null
 		if v:
 			v.dano_levado.connect(_levou_dano)
+			v.item_pego.connect(_pegou)
 		if v != null and not toque:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 var toque: bool = false  # mostra os controles de toque
@@ -44,6 +46,10 @@ var _vida_barra: ColorRect
 var _vermelho: ColorRect
 var _caiu: Label
 var _relogio: Label
+var _btn_pegar: Button
+var _dica_pegar: Label
+var _aviso_item: Label
+var _aviso_t: float = 0.0
 
 
 func _ready() -> void:
@@ -96,6 +102,9 @@ func _ready() -> void:
 	_relogio.add_theme_color_override("font_outline_color", Color.BLACK)
 	_relogio.add_theme_constant_override("outline_size", 5)
 	add_child(_relogio)
+	# "Pegar munição (24)" embaixo do meio da tela quando tem item perto; aviso "+24 munição" ao pegar
+	_dica_pegar = _rotulo(22, 0.72)
+	_aviso_item = _rotulo(26, 0.62)
 	_municao = Label.new()
 	_municao.add_theme_font_size_override("font_size", 30)
 	_municao.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -108,7 +117,7 @@ func _ready() -> void:
 func _acoes() -> void:
 	var mapa: Dictionary = {"frente": [KEY_W, KEY_UP], "tras": [KEY_S, KEY_DOWN], "esq": [KEY_A, KEY_LEFT],
 		"dir": [KEY_D, KEY_RIGHT], "pular": [KEY_SPACE], "correr": [KEY_SHIFT], "agachar": [KEY_CTRL, KEY_C],
-		"andar": [KEY_ALT], "trocar": [KEY_Q], "recarregar": [KEY_R], "arma_1": [KEY_1], "arma_2": [KEY_2]}
+		"andar": [KEY_ALT], "pegar": [KEY_E], "trocar": [KEY_Q], "recarregar": [KEY_R], "arma_1": [KEY_1], "arma_2": [KEY_2]}
 	for acao: String in mapa:
 		if InputMap.has_action(acao):
 			continue
@@ -136,6 +145,8 @@ func _process(dt: float) -> void:
 			e["agachar"] = true
 		if Input.is_action_just_pressed("trocar"):
 			e["trocar"] = true
+		if Input.is_action_just_pressed("pegar"):
+			e["pegar"] = true
 		if Input.is_action_just_pressed("recarregar"):
 			e["recarregar"] = true
 		if Input.is_action_just_pressed("arma_1"):
@@ -158,6 +169,15 @@ func _process(dt: float) -> void:
 		_relogio.text = ("NOITE — amanhece em %d:%02d" if ciclo.e_noite() else "DIA — escurece em %d:%02d") % [f / 60, f % 60]
 		_relogio.add_theme_color_override("font_color", Color(0.65, 0.75, 1.0) if ciclo.e_noite() else (Color(1, 0.75, 0.4) if f < 60 else Color.WHITE))
 	_vermelho.color.a = move_toward(_vermelho.color.a, 0.35 if jogador.vida <= 0 else 0.0, dt * 0.8)
+	var it: Item = jogador.item_perto()
+	_dica_pegar.visible = it != null
+	if it:
+		_dica_pegar.text = ("PEGAR " if toque else "[E] pegar ") + it.nome()
+	if _btn_pegar:
+		_btn_pegar.visible = it != null
+	_aviso_t -= dt
+	_aviso_item.visible = _aviso_t > 0.0
+	_aviso_item.modulate.a = clampf(_aviso_t, 0.0, 1.0)
 	var com_pistola: bool = jogador.arma == "pistola"
 	_mira.visible = jogador.mira_travada or com_pistola
 	_municao.visible = com_pistola
@@ -217,12 +237,35 @@ func _input(ev: InputEvent) -> void:
 			_olhar_ult = d.position
 
 
+func _rotulo(tam: int, altura: float) -> Label:
+	var l := Label.new()
+	l.anchor_left = 0.5
+	l.anchor_right = 0.5
+	l.anchor_top = altura
+	l.anchor_bottom = altura
+	l.offset_left = -220
+	l.offset_right = 220
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_font_size_override("font_size", tam)
+	l.add_theme_color_override("font_outline_color", Color.BLACK)
+	l.add_theme_constant_override("outline_size", 6)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.visible = false
+	add_child(l)
+	return l
+
+
+func _pegou(tipo: String, qtd: int) -> void:
+	_aviso_item.text = "+%d munição" % qtd if tipo == "municao" else "Lanterna"
+	_aviso_t = 1.6
+
+
 func _levou_dano(dano: int) -> void:
 	_vermelho.color.a = clampf(0.15 + dano * 0.012, 0.0, 0.45)
 
 
 func _em_botao(p: Vector2) -> bool:
-	for b: Control in [_btn_correr, _btn_agachar, _btn_mira, _btn_atacar, _btn_recarregar,
+	for b: Control in [_btn_correr, _btn_agachar, _btn_mira, _btn_atacar, _btn_recarregar, _btn_pegar,
 			get_node_or_null("Pular") as Control, get_node_or_null("Trocar") as Control]:
 		if b and b.get_global_rect().grow(10).has_point(p):
 			return true
@@ -246,6 +289,9 @@ func _monta_toque() -> void:
 	var trocar := _botao("TROCAR", Vector2(-130, -420), 100.0)
 	trocar.name = "Trocar"
 	trocar.button_down.connect(func() -> void: jogador.entrada["trocar"] = true)
+	_btn_pegar = _botao("PEGAR", Vector2(-620, -175), 110.0)
+	_btn_pegar.button_down.connect(func() -> void: jogador.entrada["pegar"] = true)
+	_btn_pegar.visible = false
 	_btn_recarregar = _botao("RECARREGAR", Vector2(-450, -330), 110.0)
 	_btn_recarregar.add_theme_font_size_override("font_size", 16)
 	_btn_recarregar.button_down.connect(func() -> void: jogador.entrada["recarregar"] = true)

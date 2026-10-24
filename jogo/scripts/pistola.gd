@@ -6,6 +6,7 @@ extends Node3D
 
 const PENTE: int = 12
 const RESERVA_INICIAL: int = 48
+const RESERVA_MAX: int = 96
 const DANO: int = 34
 const CADENCIA: float = 0.22          # s entre tiros (semiautomática: um tiro por toque)
 const RECARGA: float = 1.6

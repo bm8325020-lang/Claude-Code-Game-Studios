@@ -21,7 +21,7 @@ const CLIPES: Dictionary = {
 	# sem arma de fogo: de lado e de costas da KayKit (as do pacote de rifle seguram um rifle)
 	"lado_esq": ["kaykit:Running_Strafe_Left", 0.0, -1.0], "lado_dir": ["kaykit:Running_Strafe_Right", 0.0, -1.0],
 	"tras": ["kaykit:Walking_Backwards", 0.0, -1.0],
-	"morte": ["kaykit:Death_A", 0.0, -1.0],
+	"morte": ["kaykit:Death_A", 0.0, -1.0], "pegar": ["kaykit:PickUp", 0.0, -1.0],
 	"golpe1": ["proprio:golpe1", 0.0, -1.0], "golpe2": ["proprio:golpe2", 0.0, -1.0],
 	"golpe3": ["proprio:golpe3", 0.0, -1.0],
 	"pistola_mira": ["soltas/shooting", 0.0, 0.1], "pistola_tiro": ["soltas/shooting", 0.13, 0.6],
@@ -32,7 +32,7 @@ const CLIPES: Dictionary = {
 	"lado_esq_p": ["pistola/pistol_strafe", 0.0, -1.0], "lado_dir_p": ["pistola/pistol_strafe_2", 0.0, -1.0],
 	"tras_p": ["pistola/pistol_run_backward", 0.0, -1.0],
 }
-const NAO_REPETE: Array[String] = ["morte", "pulo_inicio", "pouso", "golpe1", "golpe2", "golpe3", "pistola_tiro", "pistola_recarga"]
+const NAO_REPETE: Array[String] = ["morte", "pegar", "pulo_inicio", "pouso", "golpe1", "golpe2", "golpe3", "pistola_tiro", "pistola_recarga"]
 const QUADRIL: String = "Skeleton3D:mixamorig_Hips"
 
 ## Velocidade (m/s) em que cada clipe de locomoção parece natural (deslocamento do quadril no clipe original);

@@ -40,7 +40,7 @@ const PARADA_ACERTO: float = 0.07  # congela a animação um instante quando ace
 ## arma ("" ou "facao"/"pistola": escolhe direto), recarregar (bool).
 var entrada: Dictionary = {"move": Vector2.ZERO, "olhar": Vector2.ZERO, "pular": false, "correr": false,
 	"agachar": false, "andar": false, "mirar": false, "mira_segurando": null, "atacar": false,
-	"trocar": false, "arma": "", "recarregar": false}
+	"trocar": false, "arma": "", "recarregar": false, "pegar": false}
 
 ## Arma na mão: "facao" ou "pistola" (vai pela rede para os outros verem).
 var arma: String = "facao":
@@ -62,6 +62,8 @@ var inicio: Vector3
 ## provisório para testar: todos começam com lanterna; depois só quem achar uma no mapa
 var tem_lanterna: bool = true
 var _lanterna: SpotLight3D
+var _pegando: float = 0.0       # > 0: abaixado pegando um item (não anda)
+const PEGAR_DUR: float = 0.9
 var _lanterna_mao: Node3D
 var _ponta: Node3D
 ## direção da frente do modelo no espaço da mão esquerda (medida na pose parada)
@@ -175,7 +177,7 @@ func _monta_sincronia() -> void:
 	for p: String in [".:pos_rede", ".:rot_rede"]:
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
-	for p: String in [".:clipe_rede", ".:agachado", ".:nick", ".:arma", ".:cima_rede", ".:vida"]:
+	for p: String in [".:clipe_rede", ".:agachado", ".:nick", ".:arma", ".:cima_rede", ".:vida", ".:tem_lanterna"]:
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	var sync := MultiplayerSynchronizer.new()
@@ -235,6 +237,12 @@ func _physics_process(dt: float) -> void:
 	var mov: Vector2 = entrada.get("move", Vector2.ZERO)
 	if mov.length() > 1.0:
 		mov = mov.normalized()
+	if entrada.get("pegar", false):
+		entrada["pegar"] = false
+		_tenta_pegar()
+	if _pegando > 0.0:
+		_pegando -= dt
+		mov = Vector2.ZERO
 	if entrada.get("agachar", false):
 		_alterna_agachar()
 		entrada["agachar"] = false
@@ -337,6 +345,60 @@ func _physics_process(dt: float) -> void:
 
 
 # jogador de outro aparelho: vai suave até a última posição recebida e toca a mesma animação
+## Item ao alcance agora (para o botão PEGAR), ou null.
+func item_perto() -> Item:
+	return Item.perto(get_tree(), global_position) if vida > 0 else null
+
+
+func _tenta_pegar() -> void:
+	var it: Item = item_perto()
+	if it == null or _pegando > 0.0 or _golpe >= 0 or not is_on_floor():
+		return
+	_pegando = PEGAR_DUR
+	mira_travada = false
+	_toca("pegar", 0.12)
+	if multiplayer.is_server():
+		it.pegar_por(self)
+	else:
+		_pede_item.rpc_id(1, get_path_to(it))
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _pede_item(caminho: NodePath) -> void:
+	# roda no servidor, na cópia deste jogador; só o dono dele pode pedir
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority():
+		var it := get_node_or_null(caminho) as Item
+		if it:
+			it.pegar_por(self)
+
+
+## Servidor: entrega o item (no aparelho do dono do jogador).
+func ganhar(tipo: String, qtd: int) -> void:
+	if is_multiplayer_authority():
+		_recebe(tipo, qtd)
+	else:
+		_rede_ganha.rpc_id(get_multiplayer_authority(), tipo, qtd)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rede_ganha(tipo: String, qtd: int) -> void:
+	if multiplayer.get_remote_sender_id() == 1:
+		_recebe(tipo, qtd)
+
+
+func _recebe(tipo: String, qtd: int) -> void:
+	match tipo:
+		"municao":
+			pistola.reserva = mini(pistola.reserva + qtd, Pistola.RESERVA_MAX)
+		"lanterna":
+			tem_lanterna = true
+	item_pego.emit(tipo, qtd)
+
+
+## Avisa o HUD que pegou algo.
+signal item_pego(tipo: String, qtd: int)
+
+
 ## Dano de zumbi (ou, depois, de outro jogador). Quem bate pode estar em outro aparelho: o dano vai para o dono.
 func levar_dano(dano: int, dir: Vector3) -> void:
 	if is_multiplayer_authority():
@@ -415,8 +477,8 @@ func _cabe_em_pe() -> bool:
 func _anima(dt: float, vel: float) -> void:
 	_pousando -= dt
 	var clipe: String
-	if _golpe >= 0:
-		return  # o golpe controla a animação
+	if _golpe >= 0 or _pegando > 0.0:
+		return  # o golpe (ou o pegar) controla a animação
 	if not is_on_floor() and (_no_ar_desde > 0.12 or velocity.y > 0.5):
 		clipe = "no_ar" if _clipe != "pulo_inicio" or not anim.is_playing() else "pulo_inicio"
 	elif _pousando > 0.0:

@@ -62,6 +62,17 @@ func _init() -> void:
 		await espera_ms(2000)
 		if zl:
 			ok(zl.vida == Zumbi.VIDA_MAX - 30, "golpe do cliente tira vida do zumbi nos dois (vida %d)" % zl.vida)
+		# item: o cliente pega a caixa; o servidor confere, a caixa some nos dois e as balas chegam no cliente
+		var caixa: Item = main.get_node("Item_0")
+		var reserva: int = main.jogador.pistola.reserva
+		if papel == "cliente":
+			main.jogador.global_position = caixa.global_position + Vector3(0.6, 0.1, 0)
+			await espera_ms(400)
+			main.jogador.entrada["pegar"] = true
+		await espera_ms(2000)
+		ok(not caixa.ativo, "caixa pega pelo cliente some nos dois")
+		if papel == "cliente":
+			ok(main.jogador.pistola.reserva == reserva + 24, "as balas chegam no cliente (%d)" % main.jogador.pistola.reserva)
 	await espera_ms(3000)  # deixa o outro lado terminar de medir
 	print("REDE %s: %s %s" % [papel, "PASS" if falhas.is_empty() else "FAIL", ", ".join(falhas)])
 	quit(0 if falhas.is_empty() else 1)

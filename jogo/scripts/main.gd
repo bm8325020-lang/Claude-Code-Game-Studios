@@ -293,6 +293,17 @@ func _obstaculos() -> void:
 		var b := BonecoTreino.new()
 		b.position = p
 		add_child(b)
+	# caixas de munição pelo chão (mesmo nome em todos os aparelhos: só o "pegou ou não" vai pela rede)
+	var itens: Array = [[Vector3(2.5, 0, -3), 20.0], [Vector3(-8, 0, 3.5), 75.0], [Vector3(13.5, 0, 3), 160.0],
+		[Vector3(-1, 0, 19), 300.0]]
+	for k in itens.size():
+		var it := Item.new()
+		it.name = "Item_%d" % k
+		it.tipo = "municao"
+		it.quantidade = 24
+		it.position = itens[k][0]
+		it.rotation_degrees.y = itens[k][1]
+		add_child(it)
 	# "carro" abandonado
 	bloco(Vector3(5, 0.7, 6), Vector3(1.9, 1.0, 4.2), Color(0.3, 0.35, 0.4), Vector3(0, 20, 0))
 	bloco(Vector3(5, 1.45, 6), Vector3(1.7, 0.6, 2.2), Color(0.25, 0.3, 0.35), Vector3(0, 20, 0))
