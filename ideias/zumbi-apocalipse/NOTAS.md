@@ -1,9 +1,10 @@
 # Bloco de notas — jogo de apocalipse zumbi
 
 Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem código, sem arte).
-Última atualização: 2026-10-24 (14ª conversa).
+Última atualização: 2026-10-24 (15ª conversa).
 
 ## Plataforma e formato
+- **Câmera em terceira pessoa** (personagem visto de costas).
 - Celular **e** PC. Vai ser publicado na Play Store.
 - **Multiplayer obrigatório** ("jogo solo não faz sentido").
 - Até **30 jogadores por servidor**.
@@ -189,6 +190,8 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - **À noite os zumbis mudam e ficam muito mais fortes.**
 - **"Personalidade" = zumbi com IA que sabe jogar:** os zumbis devem agir como se fossem jogadores (bons),
   mas são NPC/mob — não são bots fracos.
+- **Comportamentos (todos aprovados):** cercar pelos lados, emboscar, abrir portas, usar armas,
+  chamar a horda, fugir quando está fraco (e usar cobertura).
 
 ## Orçamento e assets (plano para o próximo mês)
 - Zumbis: pacote de 35 zumbis low poly rigados (itch.io, ~US$ 12,99).
@@ -224,6 +227,5 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - Caminho sugerido (não decidido): começar menor e crescer por etapas.
 
 ## Perguntas em aberto
-- Câmera: primeira pessoa ou terceira pessoa? (resposta anterior ficou ambígua)
-- Quais comportamentos de "zumbi que joga" você quer primeiro (cercar, emboscar, abrir portas, usar armas,
-  chamar a horda, fugir)?
+- No celular: mira automática/assistida ou mira manual?
+- Nome do jogo (mesmo provisório)?
