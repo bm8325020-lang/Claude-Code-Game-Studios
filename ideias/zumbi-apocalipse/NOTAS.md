@@ -1,7 +1,7 @@
 # Bloco de notas — jogo de apocalipse zumbi
 
 Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem código, sem arte).
-Última atualização: 2026-10-24 (17ª conversa).
+Última atualização: 2026-10-24 (18ª conversa).
 
 ## Plataforma e formato
 - **Câmera em terceira pessoa** (personagem visto de costas).
@@ -182,6 +182,7 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - **Modo automático:** algumas armas têm a opção de ser **automáticas**; nelas o jogador **escolhe** numa opção
   se quer automático ou não. Outras armas não têm essa opção.
 - **Mira manual:** o jogo **não** ajuda a mirar (sem mira automática/assistida), no celular e no PC.
+  Decisão por enquanto: celular e PC juntos; se ficar desequilibrado, muda no futuro.
 
 ## Zumbis
 - Todo tipo de zumbi possível.
@@ -219,6 +220,16 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 - **Passe de temporada** com recompensas visuais (versão grátis + versão paga).
 - Remover anúncios (se o jogo tiver anúncios).
 - Mudar o nick, mais espaços de personagem.
+
+## Atualizações e passe mensal (como funciona na Play Store)
+- Atualizar o jogo **não é postar de novo**: envia-se uma **versão nova do mesmo app**; os jogadores recebem
+  como atualização normal. A revisão do Google leva de horas a alguns dias.
+- **O passe mensal não precisa de atualização do app:** as regras do passe (níveis, recompensas, datas) ficam
+  **no servidor** e o jogo baixa ao abrir.
+- **Carros/skins novos** precisam dos modelos 3D no aparelho. Duas saídas:
+  - colocar os modelos de **vários meses de antecedência** numa atualização e só "liberar" pelo servidor;
+  - ou o jogo **baixar pacotes de conteúdo** do servidor (o Godot carrega pacotes extras sem reinstalar).
+- Conclusão: atualização do app só para mudanças grandes (sistemas novos, correções); passe mensal pelo servidor.
 
 ## Alertas anotados (para decidir depois)
 - Decidido: nada que dá vantagem é vendido com dinheiro real (evita "pay-to-win") — **exceto os carros do passe**.
