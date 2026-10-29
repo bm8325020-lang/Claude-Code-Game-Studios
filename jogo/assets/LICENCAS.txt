@@ -4,3 +4,24 @@ Mixamo (Adobe) — personagem X Bot e animações em assets/mixamo/: uso livre e
   não podem ser redistribuídos, por isso ficam fora do git (baixar com tools/baixa_mixamo.sh).
 Kay Lousberg — CC0: assets/kaykit/ (ver License.txt); pulo, agachar e facão convertidos para o X Bot (scripts/retarget.gd)
 Darsycho (opengameart.org/content/zombie-moans) — CC0: assets/sons/zumbi_grito_*.ogg (trechos de "Zombie moans")
+
+== assets/sketchfab/ (Sketchfab, CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/) ==
+Texturas reduzidas e convertidas para caber no celular.
+cerca_a.glb: "Fence" por ahmagh2e — https://sketchfab.com/3d-models/51d87c04a1d346d2b9213c595b101c58
+cerca_b.glb: "Fence" por ahmagh2e — https://sketchfab.com/3d-models/0adbc93269c94b70b99d0627a3ee54f5
+barreiras_myjato.glb: "Concrete Barrier / Drum Barrel / Fences" por Myjato — https://sketchfab.com/3d-models/0b6775113093414c8174982c4d9337a4
+barreira_aco.glb: "Steel Road Barrier" por shockproof — https://sketchfab.com/3d-models/438c36d48ab04ec4b5178c6989d3ab3b
+barreira_estrada.glb: "Road Barrier" por sousinho — https://sketchfab.com/3d-models/85b489ac36344ca9af98a78ecffa186f
+objetos_rua.glb: "Street Props" por syedraza — https://sketchfab.com/3d-models/741e544242a9481fa54c1f7bca6e92b2
+entulho.glb: "Rubble Pile - Photoscan (Optimized)" por GameDevNick — https://sketchfab.com/3d-models/5986d1487d9443b883d67b121c2c903c
+facao.glb: "Machete" por Belonosoff — https://sketchfab.com/3d-models/340a3bed238f48b0aa169c38e1e75066
+lanterna.glb: "Flashlight" por mar.cos. — https://sketchfab.com/3d-models/5fa9a65e7b0141ee877ed18f4f42d953
+garrafa_agua.glb: "Plastic Water Bottle" por JeremyGrayson — https://sketchfab.com/3d-models/efa1c4c1f2a947659ded2e61e20eff31
+lata_comida.glb (só a lata alta): "Canned Food" por ultramonsterranthings — https://sketchfab.com/3d-models/a4c852c812264a208995b925e7319121
+quarto_tijolo.glb: "Low Poly Abandoned Brick Room" por jimbogies — https://sketchfab.com/3d-models/dd2a99fd9f3f456cac3680dc7127ac22
+estante.glb: "Rusty Metal Shelving" por jimbogies — https://sketchfab.com/3d-models/f1f8aa79e3ea4d93b5f05eeaf95bf6aa
+armario.glb: "Rusty Metal Cabinet Prop" por jimbogies — https://sketchfab.com/3d-models/609449c965f34014a39351d7db2e26bf
+asfalto.jpg: "Texture of old black asphalt highly degraded" por tijerin_art — https://sketchfab.com/3d-models/2a308d1829ec4f5ba11e9e7a780159ce
+correio.glb: "Post Office Building" por Grimecent — https://sketchfab.com/3d-models/b3242563adc74cc89c41ede60904ba62
+predio_props.glb: "Post Apocalyptic Building with Props" por nermin — https://sketchfab.com/3d-models/bd9ab14874804f43a18de387253953cc
+casa_b/: "Abandoned House" por Sengchor — https://sketchfab.com/3d-models/a0c01ce35a474545b805c0739806aace

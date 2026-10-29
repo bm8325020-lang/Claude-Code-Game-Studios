@@ -94,63 +94,36 @@ func _monta_modelo() -> void:
 		_bloco(Vector3(0, 0.158, 0), Vector3(0.12, 0.012, 0.025), alca)
 
 	elif tipo == "comida":
-		# lata de conserva sem rótulo, amassada de leve
-		var lata := StandardMaterial3D.new()
-		lata.albedo_color = Color(0.55, 0.53, 0.48)
-		lata.metallic = 0.7
-		lata.roughness = 0.45
-		var c := CylinderMesh.new()
-		c.top_radius = 0.045
-		c.bottom_radius = 0.047
-		c.height = 0.11
-		var mi := MeshInstance3D.new()
-		mi.mesh = c
-		mi.material_override = lata
-		mi.position.y = 0.055
-		mi.rotation_degrees.z = 4.0
-		add_child(mi)
+		_modelo("res://assets/sketchfab/lata_comida.glb", 0.12, Vector3.ZERO, "alta")  # o arquivo tem 4 latas
 	elif tipo == "agua":
-		# garrafa plástica meio cheia, deitada
-		var pet := StandardMaterial3D.new()
-		pet.albedo_color = Color(0.7, 0.8, 0.85, 0.55)
-		pet.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		pet.roughness = 0.2
-		var c := CylinderMesh.new()
-		c.top_radius = 0.035
-		c.bottom_radius = 0.035
-		c.height = 0.24
-		var mi := MeshInstance3D.new()
-		mi.mesh = c
-		mi.material_override = pet
-		mi.rotation_degrees = Vector3(0, 0, 90)
-		mi.position.y = 0.035
-		add_child(mi)
-		var tampa := StandardMaterial3D.new()
-		tampa.albedo_color = Color(0.15, 0.3, 0.6)
-		var t := CylinderMesh.new()
-		t.top_radius = 0.016
-		t.bottom_radius = 0.016
-		t.height = 0.03
-		var mt := MeshInstance3D.new()
-		mt.mesh = t
-		mt.material_override = tampa
-		mt.rotation_degrees = Vector3(0, 0, 90)
-		mt.position = Vector3(0.135, 0.035, 0)
-		add_child(mt)
+		_modelo("res://assets/sketchfab/garrafa_agua.glb", 0.24, Vector3(0, 0, 90))  # deitada
 	else:
-		# lanterna deitada no chão
-		var corpo := StandardMaterial3D.new()
-		corpo.albedo_color = Color(0.12, 0.12, 0.13)
-		var c := CylinderMesh.new()
-		c.top_radius = 0.032
-		c.bottom_radius = 0.02
-		c.height = 0.2
-		var mi := MeshInstance3D.new()
-		mi.mesh = c
-		mi.material_override = corpo
-		mi.rotation.z = PI * 0.5
-		mi.position.y = 0.032
-		add_child(mi)
+		_modelo("res://assets/sketchfab/lanterna.glb", 0.2, Vector3.ZERO)
+
+
+## Põe um modelo do Sketchfab com o lado maior medindo `tam` m, apoiado no chão e centrado.
+## `so`: fica só com as malhas cujo nome tem esse pedaço (arquivos que trazem vários objetos).
+func _modelo(caminho: String, tam: float, giro: Vector3, so: String = "") -> void:
+	var m := (load(caminho) as PackedScene).instantiate() as Node3D
+	m.rotation_degrees = giro
+	add_child(m)
+	var caixa := AABB()
+	var primeiro := true
+	for mi: Node in m.find_children("*", "MeshInstance3D", true, false):
+		if so != "" and not (mi as MeshInstance3D).mesh.resource_name.containsn(so):
+			mi.free()
+			continue
+		var c: AABB = (m.global_transform.affine_inverse() * (mi as MeshInstance3D).global_transform) * (mi as MeshInstance3D).get_aabb()
+		caixa = c if primeiro else caixa.merge(c)
+		primeiro = false
+	var k: float = tam / maxf(caixa.size[caixa.get_longest_axis_index()], 0.001)
+	m.scale = Vector3.ONE * k
+	var giro_b: Basis = Basis.from_euler(giro * PI / 180.0)
+	var baixo: float = INF
+	for i in 8:
+		baixo = minf(baixo, (giro_b * caixa.get_endpoint(i)).y)
+	var meio: Vector3 = giro_b * caixa.get_center() * k
+	m.position = Vector3(-meio.x, -baixo * k, -meio.z)
 
 
 func _bloco(p: Vector3, tam: Vector3, m: Material) -> void:
