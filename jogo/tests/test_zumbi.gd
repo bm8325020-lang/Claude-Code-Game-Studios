@@ -54,6 +54,7 @@ func _init() -> void:
 	await _tocaia()
 	await _patrulha()
 	await _esperto()
+	await _cobertura()
 	await _chefe()
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
@@ -420,3 +421,43 @@ func _chefe() -> void:
 		if j.vida < antes:
 			break
 	ok(antes - j.vida == Zumbi.DANO_CHEFE, "soco do chefe tira %d (tirou %d)" % [Zumbi.DANO_CHEFE, antes - j.vida])
+
+
+# fugindo com pouca vida, se esconde atrás do muro (x = 12) e, se o jogador der a volta, troca de esconderijo
+func _cobertura() -> void:
+	for outro in main.zumbis.get_children():
+		outro.free()
+	var zz := Zumbi.new()
+	zz.position = Vector3(9.5, 0, 8)
+	zz.casa = zz.position
+	main.zumbis.add_child(zz)
+	await frames(2)
+	zz._sem_gritar = INF
+	j.vida = 100000
+	j.velocity = Vector3.ZERO
+	j.global_position = Vector3(5, 0.1, 8)
+	zz.alvo = j
+	zz.vida = 40
+	await frames(5)
+	ok(zz._ve(j), "antes de fugir o zumbi está à vista")
+	zz.levar_golpe(20, Vector3.FORWARD, j)
+	ok(zz._abrigo != Vector3.INF, "acha um esconderijo (%s)" % str(zz._abrigo))
+	var escondido: bool = false
+	for i in 60 * 6:
+		await physics_frame
+		if not zz._ve(j) and plano(zz.global_position, zz._abrigo) < 0.8:
+			escondido = true
+			break
+	ok(escondido, "corre e se esconde atrás do muro (em %s)" % str(zz.global_position))
+	var primeiro: Vector3 = zz._abrigo
+	j.global_position = Vector3(zz.global_position.x, 0.1, zz.global_position.z - 6.0)  # dá a volta
+	var de_novo: bool = false
+	var mais_perto: float = INF
+	for i in 60 * 7:
+		await physics_frame
+		mais_perto = minf(mais_perto, plano(zz.global_position, j.global_position))
+		if zz._abrigo != primeiro and not zz._ve(j) and plano(zz.global_position, zz._abrigo) < 0.8:
+			de_novo = true
+			break
+	ok(de_novo, "visto de novo, troca de esconderijo (%s)" % str(zz.global_position))
+	ok(mais_perto > 2.5, "e não passa do lado do jogador para isso (chegou a %.1f m)" % mais_perto)

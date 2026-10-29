@@ -308,7 +308,11 @@ quando você aprovar.
 18. **Zumbi chefe.** **Status: feito, APK 0.29.** Um grandão (1,35x, pele mais escura) no fundo da pista
     (0, 40): 400 de vida, soco de 35 que empurra forte, anda 20% mais devagar. Tiro de pistola não faz ele
     cambalear (só golpe de 40+), e ele não foge com pouca vida.
-19. ...depois: quarteirão de verdade (bloco 1), cobertura, e o que o dono pedir.
+19. **Zumbi usa cobertura.** **Status: feito (sem APK, a pedido).** Fugindo com pouca vida, procura a até 9 m um
+    lugar onde quem atira não enxerga o peito dele (sem chegar mais perto e sem passar a menos de 3 m do
+    atirador), corre até lá e fica espiando por 8 s. Se o jogador der a volta e o vir, troca de esconderijo.
+    Sem cobertura por perto, só corre para longe, como antes.
+20. ...depois: quarteirão de verdade (bloco 1) e o que o dono pedir.
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)
 1. **Andar e atirar com 2 jogadores** — terceira pessoa, controles de celular e PC, 1 arma de fogo + 1 arma

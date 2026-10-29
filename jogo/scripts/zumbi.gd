@@ -53,6 +53,8 @@ const ZIGUE: float = 2.2          # m/s de desvio para o lado quando alguém mir
 const ZIGUE_LONGE: float = 4.0     # m: mais perto que isso não desvia, ataca
 const FOGE_VIDA: int = 25
 const FOGE_POR: float = 4.0
+const ESCONDE_POR: float = 8.0     # com cobertura: fica escondido esse tempo (espiando) antes de voltar
+const ABRIGO_RAIOS: Array[float] = [3.0, 5.0, 7.0, 9.0]
 const CERCO: float = 3.0           # m: distância do ponto de cerco até o alvo
 const FECHA: float = 1.8           # m: com o alvo colado assim, ataca mesmo sem ter chegado no seu lado
 
@@ -106,6 +108,8 @@ var _fechando: bool = false        # já chegou no seu lado do cerco: agora vai 
 var _porta_alvo: Porta            # o soco em andamento é na porta
 var _foge_t: float = 0.0           # > 0: fugindo
 var _fugiu: bool = false           # já fugiu nesta vida (foge uma vez só)
+var _abrigo: Vector3 = Vector3.INF # onde se esconder (INF = não achou: só corre para longe)
+var _exposto_t: float = 0.0
 var _zigue_t: float = 0.0
 var _grito_t: float = -1.0         # >= 0: gritando (parado)
 var _sem_gritar: float = 0.0       # > 0: não grita de novo ainda
@@ -245,9 +249,21 @@ func _physics_process(dt: float) -> void:
 		_atualiza_ataque(dt)
 	elif _foge_t > 0.0 and alvo:
 		_foge_t -= dt
-		var longe: Vector3 = global_position - alvo.global_position
-		longe.y = 0.0
-		desejada = _caminho(global_position + longe.normalized() * 6.0, CORRER * 1.2 * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
+		var corre: float = CORRER * 1.2 * Ciclo.forca_noite(get_tree(), NOITE_VEL)
+		if _abrigo == Vector3.INF:
+			var longe: Vector3 = global_position - alvo.global_position
+			longe.y = 0.0
+			desejada = _caminho(global_position + longe.normalized() * 6.0, corre, dt)
+		elif _plano(_abrigo - global_position) > 0.6:
+			desejada = _caminho(_abrigo, corre, dt)
+		else:
+			# escondido: espia o alvo; se ele der a volta e aparecer, procura outro lugar
+			_vira_para(alvo.global_position - global_position, dt)
+			_exposto_t = _exposto_t + dt if _ve(alvo) else 0.0
+			if _exposto_t > 0.4:
+				_exposto_t = 0.0
+				_abrigo = _acha_abrigo()
+				_foge_t = maxf(_foge_t, 6.0)  # tempo para chegar no novo lugar
 	elif alvo:
 		var d: Vector3 = alvo.global_position - global_position
 		d.y = 0.0
@@ -454,6 +470,47 @@ func _grita() -> void:
 		z._voltando = false
 
 
+# ponto perto (na malha) onde o alvo não enxerga o peito do zumbi, sem chegar mais perto dele; INF = nenhum
+func _acha_abrigo() -> Vector3:
+	var mapa: RID = _agente.get_navigation_map()
+	var olho: Vector3 = alvo.global_position + Vector3(0, 1.5, 0)
+	var espaco := get_world_3d().direct_space_state
+	var melhor := Vector3.INF
+	var custo: float = INF
+	for raio: float in ABRIGO_RAIOS:
+		for k in 16:
+			var a: float = TAU * k / 16.0
+			var p: Vector3 = global_position + Vector3(sin(a), 0, cos(a)) * raio
+			if mapa.is_valid():
+				p = NavigationServer3D.map_get_closest_point(mapa, p)
+			if _plano(p - alvo.global_position) < maxf(4.0, _plano(global_position - alvo.global_position) - 1.0):
+				continue  # não se esconde indo na direção de quem atira
+			var q := PhysicsRayQueryParameters3D.create(olho, p + Vector3(0, 1.0, 0), 1 | Porta.CAMADA, [alvo.get_rid()])
+			if espaco.intersect_ray(q).is_empty():
+				continue  # dali o alvo vê
+			var c: float = _custo_caminho(mapa, p)
+			if c < custo:
+				custo = c
+				melhor = p
+		if melhor != Vector3.INF:
+			break  # o mais perto que serve
+	return melhor
+
+
+# comprimento do caminho até `p`; INF se o caminho passa a menos de 3 m do alvo (não corre do lado de quem atira)
+func _custo_caminho(mapa: RID, p: Vector3) -> float:
+	if not mapa.is_valid():
+		return _plano(p - global_position)
+	var cam: PackedVector3Array = NavigationServer3D.map_get_path(mapa, global_position, p, true)
+	var total: float = 0.0
+	for i in range(1, cam.size()):
+		var meio: Vector3 = Geometry3D.get_closest_point_to_segment(alvo.global_position, cam[i - 1], cam[i])
+		if _plano(meio - alvo.global_position) < 3.0:
+			return INF
+		total += cam[i - 1].distance_to(cam[i])
+	return total
+
+
 func _ve(j: Jogador) -> bool:
 	var olho: Vector3 = global_position + Vector3(0, 1.5, 0)
 	var q := PhysicsRayQueryParameters3D.create(olho, j.global_position + Vector3(0, 1.4, 0), 1 | Porta.CAMADA)
@@ -521,7 +578,8 @@ func _aplica(dano: int, dir: Vector3) -> void:
 	vida = maxi(0, vida - dano)
 	if vida > 0 and vida <= FOGE_VIDA and not _fugiu and alvo and not chefe:
 		_fugiu = true
-		_foge_t = FOGE_POR
+		_abrigo = _acha_abrigo()
+		_foge_t = FOGE_POR if _abrigo == Vector3.INF else ESCONDE_POR
 	if vida > 0 and (not chefe or dano >= 40):
 		_cambaleio = CAMBALEIO
 		_ataque_t = -1.0
@@ -546,6 +604,7 @@ func _morre() -> void:
 	alvo = null
 	_foge_t = 0.0
 	_fugiu = false
+	_abrigo = Vector3.INF
 	_deitado = false
 	_levantando = -1.0
 	_grito_t = -1.0
