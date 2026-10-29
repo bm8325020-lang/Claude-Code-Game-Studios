@@ -94,7 +94,7 @@ func _ready() -> void:
 	col.add_child(bots)
 	_usar = _bot(bots, "USAR", func() -> void:
 		jogador.usar_espaco(_sel)
-		if _sel >= 0 and jogador.mochila.espacos[_sel] and jogador.mochila.espacos[_sel].tipo in ["facao", "pistola"]:
+		if _sel >= 0 and jogador.mochila.espacos[_sel] and (Armas.e_branca(jogador.mochila.espacos[_sel].tipo) or jogador.mochila.espacos[_sel].tipo == "pistola"):
 			visible = false)
 	_largar = _bot(bots, "LARGAR", func() -> void:
 		jogador.largar(_sel)
@@ -150,7 +150,7 @@ func _atualiza() -> void:
 	_qtd.text = "X%d" % e.qtd if e else ""
 	_icone.texture = Icones.de(e.tipo) if e else null
 	_texto.text = String(Mochila.TEXTOS.get(e.tipo, "")) if e else "Toque num item para ver. Com um item escolhido, toque em outro espaço para mover."
-	_usar.disabled = e == null or not (e.tipo in ["facao", "pistola", "comida", "agua"])
+	_usar.disabled = e == null or not (Armas.e_branca(e.tipo) or e.tipo in ["pistola", "comida", "agua"])
 	_largar.disabled = e == null or e.tipo in Mochila.PRESOS
 	_dividir.disabled = e == null or int(e.qtd) < 2
 

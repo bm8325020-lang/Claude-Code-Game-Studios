@@ -587,7 +587,7 @@ func _aplica(dano: int, dir: Vector3) -> void:
 		_ataque_t = -1.0
 		_grito_t = -1.0
 		_toca("dano", 0.08, true)
-		velocity += Vector3(dir.x, 0, dir.z).normalized() * 2.0  # empurrão
+		velocity += Vector3(dir.x, 0, dir.z).normalized() * 2.0 * clampf(dir.length(), 0.5, 3.0)  # empurrão (taco empurra mais)
 		if alvo == null:  # quem bate chama a atenção
 			_procura_t = 0.0
 

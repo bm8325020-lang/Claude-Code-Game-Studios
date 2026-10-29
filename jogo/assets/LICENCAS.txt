@@ -34,3 +34,6 @@ Letras (SIL Open Font License 1.1, ver assets/fontes/OFL.txt): Bebas Neue (Dharm
 
 == assets/sketchfab/fps/ (Sketchfab, CC BY 4.0) — braços em primeira pessoa ==
 pistola_fp.glb: "9mm Pistol | First Person Animations" por 1Matzh — https://sketchfab.com/3d-models/c26d7f5aa72f4b01a6da4578caa8f07f
+faca.glb: "Butcher Knife" por beyondmatter — https://sketchfab.com/3d-models/a8677d9c7a5b43fe966ac48d2798dad2
+taco.glb: "Bloody post-apo baseball bat" por Mielos3D — https://sketchfab.com/3d-models/f3c3c73529e14dc59d525a9a6a2220cd
+machado.glb: "Old Fire Axe" por MaX3Dd — https://sketchfab.com/3d-models/af6ca8fbfc6a434185e82c88001418ec

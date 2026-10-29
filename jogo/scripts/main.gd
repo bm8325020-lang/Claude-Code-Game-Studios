@@ -403,7 +403,20 @@ const BAUS: Array = [[Vector3(-26.25, 0, -0.55), 90.0, true], [Vector3(3, 0, -9)
 	[Vector3(-30, 0, 16), 200.0, false], [Vector3(19.5, 0, 13), 270.0, false]]
 
 
+## Armas brancas largadas pela pista (mecânica 4: arma branca só se acha no mapa). [tipo, posição, giro]
+const BRANCAS_MAPA: Array = [["faca", Vector3(-1.5, 0, 1.5), 30.0], ["taco", Vector3(10, 0, 5.5), 100.0],
+	["machado", Vector3(-28.6, 0, 2.6), 200.0]]
+
+
 func _baus() -> void:
+	for k in BRANCAS_MAPA.size():
+		var it := Item.new()
+		it.name = "Item_branca_%d" % k
+		it.tipo = BRANCAS_MAPA[k][0]
+		it.quantidade = 1
+		it.position = BRANCAS_MAPA[k][1]
+		it.rotation_degrees.y = BRANCAS_MAPA[k][2]
+		add_child(it)
 	for k in BAUS.size():
 		var b := Bau.new()
 		b.name = "Bau_%d" % k

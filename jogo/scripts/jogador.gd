@@ -30,7 +30,6 @@ const GOLPES: Array[Dictionary] = [
 	{"clipe": "golpe2", "acerto": 0.37, "dano": 25, "alcance": 1.8, "arco": 120.0},
 	{"clipe": "golpe3", "acerto": 0.45, "dano": 45, "alcance": 2.0, "arco": 90.0},
 ]
-const VEL_GOLPE: float = 1.0       # os golpes feitos à mão já têm o tempo certo
 const PARADA_ACERTO: float = 0.07  # congela a animação um instante quando acerta (peso do golpe)
 
 ## Entrada do frame: move (Vector2, -1..1, y = frente), olhar (Vector2, graus), pular (bool, apertou agora),
@@ -42,14 +41,24 @@ var entrada: Dictionary = {"move": Vector2.ZERO, "olhar": Vector2.ZERO, "pular":
 	"agachar": false, "andar": false, "mirar": false, "mira_segurando": null, "atacar": false,
 	"trocar": false, "arma": "", "recarregar": false, "pegar": false, "comer": false, "beber": false}
 
-## Arma na mão: "facao" ou "pistola" (vai pela rede para os outros verem).
+## Arma na mão: uma arma branca (Armas.BRANCAS) ou "pistola" (vai pela rede para os outros verem).
 var arma: String = "facao":
 	set(v):
 		arma = v
+		if Armas.e_branca(v):
+			_ultima_branca = v
 		if _facao:
-			_facao.visible = v == "facao"
+			_facao.visible = Armas.e_branca(v)
+			if Armas.e_branca(v) and _facao.get_child_count() > 0 and _facao.get_child(0).name != "Arma_" + v:
+				_facao.get_child(0).queue_free()
+				var m: Node3D = Armas.modelo(v)
+				_facao.add_child(m)
+				if camera:  # primeira pessoa: a arma da mão do corpo só faz sombra (a da tela é a Maos)
+					for g: GeometryInstance3D in m.find_children("*", "GeometryInstance3D", true, false):
+						g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 		if pistola:
 			pistola.visible = v == "pistola"
+var _ultima_branca: String = "facao"
 var pistola: Pistola
 
 const VIDA_MAX: int = 100
@@ -183,8 +192,8 @@ func _ready() -> void:
 	pistola.reserva = Pistola.RESERVA_INICIAL
 	mochila.mudou.connect(func() -> void:
 		tem_lanterna = mochila.tem("lanterna")
-		if arma == "pistola" and not mochila.tem("pistola"):
-			arma = "facao"  # largou/perdeu a pistola: volta para o facão
+		if arma != "facao" and not mochila.tem(arma):
+			arma = "facao"  # largou/perdeu a arma da mão: volta para o facão
 		_copia_t = minf(_copia_t, 0.5))  # manda a cópia ao servidor logo
 	_monta_lanterna()
 	_som = AudioStreamPlayer3D.new()
@@ -255,10 +264,10 @@ func _monta_arma() -> void:
 	var mao := BoneAttachment3D.new()
 	mao.bone_name = MAO
 	_esq.add_child(mao)
-	_facao = (load("res://assets/armas/Sword_Bronze.gltf") as PackedScene).instantiate()
-	# a lâmina (eixo +Y do modelo) aponta para a frente da mão (medido na pose parada do X Bot)
-	_facao.quaternion = Quaternion(Vector3.UP, Vector3(0.975, 0.126, 0.185).normalized())
-	_facao.scale = Vector3.ONE * 0.75
+	_facao = Node3D.new()  # suporte da arma branca na mão (o modelo vem de Armas)
+	# a ponta (+Z do modelo pronto) aponta para a frente da mão (medido na pose parada do X Bot)
+	_facao.quaternion = Quaternion(Vector3.BACK, Vector3(0.975, 0.126, 0.185).normalized())
+	_facao.add_child(Armas.modelo("facao"))
 	mao.add_child(_facao)
 	pistola = Pistola.new()
 	pistola.name = "Pistola"
@@ -316,7 +325,7 @@ func _physics_process(dt: float) -> void:
 		mira_travada = bool(entrada["mira_segurando"])
 	if entrada.get("trocar", false):
 		entrada["trocar"] = false
-		_troca_arma("pistola" if arma == "facao" else "facao")
+		_troca_arma("pistola" if arma != "pistola" else (_ultima_branca if mochila.tem(_ultima_branca) else "facao"))
 	if String(entrada.get("arma", "")) != "":
 		_troca_arma(String(entrada["arma"]))
 		entrada["arma"] = ""
@@ -555,9 +564,10 @@ func usar_espaco(i: int) -> void:
 	var e: Variant = mochila.espacos[i]
 	if e == null:
 		return
+	if Armas.e_branca(String(e.tipo)) or e.tipo == "pistola":
+		entrada["arma"] = e.tipo
+		return
 	match String(e.tipo):
-		"facao", "pistola":
-			entrada["arma"] = e.tipo
 		"comida":
 			entrada["comer"] = true
 		"agua":
@@ -1036,11 +1046,16 @@ func _inicia_golpe(i: int) -> void:
 	if agachado and _cabe_em_pe():
 		_alterna_agachar()
 	var c: String = GOLPES[i].clipe
-	_golpe_dur = anim.get_animation(c).length / VEL_GOLPE
+	_golpe_dur = anim.get_animation(c).length / _vel_golpe()
 	_clipe = c
 	anim.play(c, 0.08)
-	anim.speed_scale = VEL_GOLPE
-	_toca_som("knifeSlice" if i != 1 else "knifeSlice2", -4.0)
+	anim.speed_scale = _vel_golpe()
+	var som: String = String(Armas.BRANCAS.get(arma, Armas.BRANCAS.facao).som)
+	_toca_som(som if i != 1 or som != "knifeSlice" else "knifeSlice2", -4.0)
+
+
+func _vel_golpe() -> float:
+	return float(Armas.BRANCAS.get(arma, Armas.BRANCAS.facao).vel)
 
 
 func _atualiza_golpe(dt: float) -> void:
@@ -1048,7 +1063,7 @@ func _atualiza_golpe(dt: float) -> void:
 		return
 	if _parada > 0.0:
 		_parada -= dt
-		anim.speed_scale = 0.0 if _parada > 0.0 else VEL_GOLPE
+		anim.speed_scale = 0.0 if _parada > 0.0 else _vel_golpe()
 		return
 	_golpe_t += dt
 	var g: Dictionary = GOLPES[_golpe]
@@ -1065,6 +1080,10 @@ func _atualiza_golpe(dt: float) -> void:
 
 ## Quem leva o golpe: nós no grupo "golpeavel" com levar_golpe(dano, direção, quem).
 func _acerta(g: Dictionary) -> void:
+	var a: Dictionary = Armas.BRANCAS.get(arma, Armas.BRANCAS.facao)
+	g = g.duplicate()
+	g.dano = int(a.dano[clampi(_golpe, 0, 2)])
+	g.alcance = float(a.alcance)
 	var frente: Vector3 = modelo.global_transform.basis.z
 	frente.y = 0.0
 	frente = frente.normalized()
@@ -1079,7 +1098,7 @@ func _acerta(g: Dictionary) -> void:
 			continue
 		if rad_to_deg(frente.angle_to(d.normalized())) > float(g.arco) * 0.5:
 			continue
-		alvo.call("levar_golpe", int(g.dano), d.normalized(), self)
+		alvo.call("levar_golpe", int(g.dano), d.normalized() * float(a.empurra), self)
 		if alvo is Zumbi:
 			Pistola.sangue(get_tree(), n3.global_position + Vector3(0, 1.2, 0), d.normalized())
 			_confirma_acerto(_golpe == 2 or (alvo as Zumbi).vida <= 0, false)

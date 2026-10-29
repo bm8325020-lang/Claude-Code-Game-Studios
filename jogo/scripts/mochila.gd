@@ -12,11 +12,13 @@ const BARRA: int = 6
 ## tamanho da pilha por espaço (o que não está aqui não empilha)
 const PILHA: Dictionary = {"municao": 48, "comida": 5, "agua": 5}
 ## quanto dá para carregar no total (provisório, até existir peso)
-const LIMITE: Dictionary = {"municao": 96, "comida": 5, "agua": 5, "lanterna": 1, "facao": 1, "pistola": 1}
+const LIMITE: Dictionary = {"municao": 96, "comida": 5, "agua": 5, "lanterna": 1, "facao": 1, "pistola": 1,
+	"faca": 1, "taco": 1, "machado": 1}
 ## não dá para largar (são a mão do jogador por enquanto)
 const PRESOS: Array[String] = ["facao", "pistola"]
 const NOMES: Dictionary = {"municao": "Munição", "comida": "Lata de comida", "agua": "Garrafa de água",
-	"lanterna": "Lanterna", "facao": "Facão", "pistola": "Pistola 9 mm"}
+	"lanterna": "Lanterna", "facao": "Facão", "pistola": "Pistola 9 mm", "faca": "Faca de açougueiro",
+	"taco": "Taco de beisebol", "machado": "Machado de bombeiro"}
 const TEXTOS: Dictionary = {
 	"municao": "Balas 9 mm para a pistola.",
 	"comida": "Conserva sem rótulo. Enche a fome.",
@@ -24,6 +26,9 @@ const TEXTOS: Dictionary = {
 	"lanterna": "Acende sozinha à noite.",
 	"facao": "Arma branca. Corta zumbi sem fazer barulho.",
 	"pistola": "Semiautomática, 12 no pente. O tiro chama zumbi.",
+	"faca": "Rápida e leve. Tira pouco, mas não para de cortar.",
+	"taco": "Pesado. Empurra o zumbi para longe.",
+	"machado": "Lento e brutal. Derruba até o grandão.",
 }
 
 var espacos: Array = []  # null ou {"tipo": String, "qtd": int}

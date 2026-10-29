@@ -138,7 +138,7 @@ no lugar do corpo (qualquer um abre e pega), e o jogador renasce sem nada (só f
 Aceite: teste: jogador morre → saco com os itens; outro pega; desconectar caído larga o saco.
 
 ## 4. Armas brancas achadas no mapa
-Status: pendente
+Status: feito (APK 0.38). Faca (cutelo), taco e machado (Sketchfab CC BY) em Armas.BRANCAS; mesmos 3 cortes na tela com a velocidade de cada uma; no chão (BRANCAS_MAPA) e nos baús.
 
 Arma branca é obrigatória e só se acha no mapa (não vende na loja da facção). Além do facão: **faca**
 (rápida, dano 18, alcance 1,4), **taco** (lento, 35, empurra), **machado** (lentíssimo, 50, cambaleia sempre).

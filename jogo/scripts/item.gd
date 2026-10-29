@@ -45,7 +45,7 @@ func nome() -> String:
 			return "lata de comida"
 		"agua":
 			return "garrafa de água"
-		"facao", "pistola":
+		"facao", "pistola", "faca", "taco", "machado":
 			return Mochila.NOMES[tipo].to_lower()
 	return "lanterna"
 
@@ -107,8 +107,11 @@ func _monta_modelo() -> void:
 		alca.albedo_color = Color(0.1, 0.1, 0.1)
 		_bloco(Vector3(0, 0.158, 0), Vector3(0.12, 0.012, 0.025), alca)
 
-	elif tipo == "facao":
-		_modelo("res://assets/sketchfab/facao.glb", 0.5, Vector3(0, 90, 90))
+	elif Armas.e_branca(tipo):
+		var pega: Node3D = Armas.modelo(tipo)
+		pega.rotation_degrees = Vector3(0, 0, 90)  # deitada de lado no chão
+		pega.position = Vector3(0, 0.04, -float(Armas.BRANCAS[tipo].tam) * 0.35)
+		add_child(pega)
 	elif tipo == "pistola":
 		_modelo("res://assets/cgtrader/pistola.glb", 0.2, Vector3(0, 0, 90), "Pistola")
 	elif tipo == "comida":

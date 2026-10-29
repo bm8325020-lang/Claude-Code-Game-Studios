@@ -10,7 +10,6 @@ extends Node3D
 
 const OLHO_PISTOLA := Vector3(0, 1.41, 0.02)
 const MIRA_PISTOLA := Vector3(0.0, 0.02, 0.025)  # quanto a pistola vem para o centro/para perto mirando
-const FACAO_TAM: float = 0.52                    # m de ponta a ponta (Machete, Belonosoff, CC BY)
 const OMBRO := Vector3(0.36, -0.5, 0.12)         # pivô dos cortes (atrás e abaixo, à direita da câmera)
 const CABO := Vector3(-0.04, 0.16, -0.58)         # onde fica o cabo, a partir do ombro (sai pela borda da tela)
 const LAMINA := Vector3(-0.32, 0.72, -0.62)      # para onde a lâmina aponta parada
@@ -46,21 +45,26 @@ func _ready() -> void:
 	_ombro.position = OMBRO
 	_ombro.visible = false
 	add_child(_ombro)
-	var f: Node3D = (load("res://assets/sketchfab/facao.glb") as PackedScene).instantiate()
-	f.scale = Vector3.ONE * FACAO_TAM / 4.98  # 4,98 de comprimento no arquivo, no eixo Z (+Z = ponta)
+	_monta_branca("facao")
+
+
+# troca a arma branca na mão: o modelo vem pronto de Armas (pegada na origem, ponta para +Z)
+func _monta_branca(tipo: String) -> void:
+	for c in _ombro.get_children():
+		c.queue_free()
+	var pega: Node3D = Armas.modelo(tipo)
 	var z: Vector3 = LAMINA.normalized()
 	var x: Vector3 = (Vector3.BACK - z * z.dot(Vector3.BACK)).normalized()  # lado chato da lâmina para a câmera
-	f.basis = Basis(x, z.cross(x), z).scaled(Vector3.ONE * FACAO_TAM / 4.98)
-	f.position = CABO + z * (FACAO_TAM * 0.5 - 0.06)
-	_ombro.add_child(f)
-	for mi: MeshInstance3D in f.find_children("*", "MeshInstance3D", true, false):
+	pega.basis = Basis(x, z.cross(x), z)
+	pega.position = CABO
+	_ombro.add_child(pega)
+	for mi: MeshInstance3D in pega.find_children("*", "MeshInstance3D", true, false):
 		for i in mi.mesh.get_surface_count():
-			var m := mi.mesh.surface_get_material(i).duplicate() as BaseMaterial3D
-			m.metallic = 0.3  # metal puro fica preto sem reflexo de céu
+			var m := (mi.get_surface_override_material(i) if mi.get_surface_override_material(i) else mi.mesh.surface_get_material(i)).duplicate() as BaseMaterial3D
 			m.emission_enabled = true
-			m.emission = Color(0.1, 0.1, 0.11)  # lâmina escura: um mínimo de brilho para ler na tela
+			m.emission = Color(0.08, 0.08, 0.09)  # lâmina escura: um mínimo de brilho para ler na tela
 			mi.set_surface_override_material(i, m)
-	_sem_sombra(f)
+	_sem_sombra(pega)
 
 
 func _carrega(nome: String, olho: Vector3) -> Node3D:
@@ -92,6 +96,8 @@ func _process(dt: float) -> void:
 		_arma = alvo.arma
 		_pistola.visible = _arma == "pistola"
 		_ombro.visible = _arma != "pistola"
+		if Armas.e_branca(_arma):
+			_monta_branca(_arma)
 		_saca = 0.0
 		if _arma == "pistola":
 			_toca("Equip", true)
