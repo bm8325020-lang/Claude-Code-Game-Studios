@@ -63,7 +63,7 @@ var inicio: Vector3
 var tem_lanterna: bool = true
 var _lanterna: SpotLight3D
 var _pegando: float = 0.0       # > 0: abaixado pegando um item (não anda)
-const PEGAR_DUR: float = 0.9
+const PEGAR_DUR: float = 1.2  # = clipe "pegar" (abaixa até o chão e levanta)
 var _lanterna_mao: Node3D
 var _ponta: Node3D
 ## direção da frente do modelo no espaço da mão esquerda (medida na pose parada)

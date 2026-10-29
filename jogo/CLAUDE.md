@@ -19,6 +19,8 @@ timeout 60 $G --headless --path . -s res://tests/test_busca.gd
 # APK: subir version/code e version/name em export_presets.cfg, depois:
 timeout 600 $G --headless --path . --export-release "Android" "$SP/z.apk"; $BT/zipalign -f -p 4 "$SP/z.apk" "$SP/zumbi-X.apk" && $BT/apksigner sign --ks /root/.local/share/godot/keystores/debug.keystore --ks-key-alias androiddebugkey --ks-pass pass:android "$SP/zumbi-X.apk"; rm -f "$SP/z.apk"
 GODOT=$G bash tools/servidor/publica.sh [ip]          # publica servidor.pck na branch servidor-build
+# robô jogador (folhas de fotos de cada movimento; filtro e nº de fotos opcionais):
+xvfb-run -a -s "-screen 0 1280x720x24" $G --path . --rendering-driver opengl3 --fixed-fps 60 -s res://tools/bot.gd -- $SP/ [pulo,facão] [12]
 # foto: xvfb-run -a -s "-screen 0 1280x720x24" $G --path . --rendering-driver opengl3 -s res://tools/<f>.gd -- saida.png
 ```
 Testes zeram o relógio: `main.ciclo.tempo = 0.0; main.ciclo.set_process(false)` e apagam zumbis que não usam.
@@ -57,6 +59,11 @@ Sessão: `/root/.mixamo_sessao/estado.json` (fora do git; conta separada do dono
 API: `GET https://www.mixamo.com/api/v1/products?page=1&limit=N&type=Motion%2CMotionPack&query=X` com headers
 `Authorization: Bearer $TOK`, `X-Api-Key: mixamo2`. Se expirar: `tools/mixamo_login.js` (pede código por e-mail ao dono;
 senha nunca em arquivo). Baixados vão para `assets/mixamo/` (não commitar).
+Baixar um clipe: GET `/api/v1/characters/primary` (X Bot) → GET `/api/v1/products/<id>?similar=0&character_id=<ch>`
+(`details.gms_hash`, params viram "a,b,c") → POST `/api/v1/animations/export` {character_id, gms_hash:[...],
+preferences:{format:"fbx7_2019",skin:"false",fps:"30",reducekf:"0"}, product_name, type:"Motion"} → GET
+`/api/v1/characters/<ch>/monitor` até "completed" → `job_result` é a URL. Baixados assim (não estão no Drive):
+`soltas/pegar_chao.fbx` (Unarmed Grab Torch From Floor).
 
 ## Pendências do dono
 Servidor online: sem cartão de crédito (Oracle pediu). Opção falada: Azure for Students (18+, e-mail escolar).

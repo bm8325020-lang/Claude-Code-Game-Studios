@@ -21,7 +21,7 @@ const CLIPES: Dictionary = {
 	# sem arma de fogo: de lado e de costas da KayKit (as do pacote de rifle seguram um rifle)
 	"lado_esq": ["kaykit:Running_Strafe_Left", 0.0, -1.0], "lado_dir": ["kaykit:Running_Strafe_Right", 0.0, -1.0],
 	"tras": ["kaykit:Walking_Backwards", 0.0, -1.0],
-	"morte": ["kaykit:Death_A", 0.0, -1.0], "pegar": ["kaykit:PickUp", 0.0, -1.0],
+	"morte": ["kaykit:Death_A", 0.0, -1.0], "pegar": ["soltas/pegar_chao", 0.7, 2.8],
 	"golpe1": ["proprio:golpe1", 0.0, -1.0], "golpe2": ["proprio:golpe2", 0.0, -1.0],
 	"golpe3": ["proprio:golpe3", 0.0, -1.0],
 	"pistola_mira": ["soltas/shooting", 0.0, 0.1], "pistola_tiro": ["soltas/shooting", 0.13, 0.6],
@@ -38,6 +38,8 @@ const QUADRIL: String = "Skeleton3D:mixamorig_Hips"
 ## puxados para os do "parado" nesse tanto (0 = original, 1 = braços do parado). Pernas e tronco não mudam.
 const BRACOS_CALMOS: Dictionary = {"agachado": 0.75, "agachado_andar": 0.75, "pulo_inicio": 0.7, "no_ar": 0.5, "pouso": 0.6}
 const BRACOS: Array[String] = ["Shoulder", "Arm", "ForeArm", "Hand"]
+## clipes tocados mais rápido que o original (x vezes), para caber no tempo do jogo
+const ACELERA: Dictionary = {"pegar": 1.75}
 
 ## Velocidade (m/s) em que cada clipe de locomoção parece natural (deslocamento do quadril no clipe original);
 ## o clipe é escalado pela velocidade real para os pés não deslizarem.
@@ -91,6 +93,11 @@ static func _monta(clipes: Dictionary, nao_repete: Array[String]) -> AnimationLi
 				cena.free()
 		var a: Animation = _corta(cache[c[0]], c[1], c[2])
 		_no_lugar(a)
+		if ACELERA.has(logico):
+			for t in a.get_track_count():
+				for k in a.track_get_key_count(t):
+					a.track_set_key_time(t, k, a.track_get_key_time(t, k) / ACELERA[logico])
+			a.length /= ACELERA[logico]
 		a.loop_mode = Animation.LOOP_NONE if logico in nao_repete else Animation.LOOP_LINEAR
 		lib.add_animation(logico, a)
 	return lib

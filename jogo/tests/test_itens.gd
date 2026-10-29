@@ -53,7 +53,7 @@ func _init() -> void:
 	ok(caixa.ativo and caixa.visible, "a caixa volta depois de %d s" % int(Item.VOLTA))
 	j.pistola.reserva = Pistola.RESERVA_MAX - 5
 	j.entrada["pegar"] = true
-	await frames(60)
+	await frames(int(Jogador.PEGAR_DUR * 60) + 10)  # só pega outro depois de levantar
 	ok(j.pistola.reserva == Pistola.RESERVA_MAX, "a reserva não passa de %d" % Pistola.RESERVA_MAX)
 	# lanterna
 	j.tem_lanterna = false
