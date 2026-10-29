@@ -20,7 +20,10 @@ Regras de sempre (valem para TODOS os prompts, não repetidas abaixo):
 ---
 
 ## 0. Servidor online aguentando o máximo
-Status: em andamento (Render grátis no ar; otimização 1 publicada: sem animação e 30 Hz no servidor)
+Status: feito (APK 0.31). Render grátis: 4 jogadores 1,3 ms de física, 8 jogadores 30 quadros (quadro ~20 ms),
+10 oscila 25–30 quadros (quadro 60–100 ms) → limite MAX=8. Feito: sem animação no servidor, 30 Hz, posição a
+20/s, limite com aviso "servidor cheio", painel status.json, menu acorda o servidor antes de entrar.
+Falta (vira item novo quando precisar de mais de 8): interesse por distância e zumbis dormindo longe.
 
 Objetivo: o servidor do Render (0,1 CPU, 512 MB) aguentar o máximo de jogadores sem cair de 30 quadros, e o
 APK conectar nele pela lista "Online".

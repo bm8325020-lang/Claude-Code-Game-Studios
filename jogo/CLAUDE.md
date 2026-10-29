@@ -72,5 +72,8 @@ Sessão: `/root/.cgtrader_sessao/estado.json` (login por código de e-mail; cont
 `url.txt` (baixar). Licença Royalty Free: arquivos em `assets/cgtrader/` (fora do git), créditos em LICENCAS.txt.
 
 ## Pendências do dono
-Servidor online: sem cartão. Oracle pediu cartão; Hugging Face exige PRO para Docker (token em /root/.hf/token, conta
-bruno346). Pacote pronto em tools/servidor/site/ para Render/Back4app etc. Teste local WS: `-- dedicado ws` + test_dedicado `-- ws://127.0.0.1:7861`.
+Servidor online: Render grátis, serviço srv-dbhp57egekts73bs6j5g (chave em /root/.render/chave, API api.render.com/v1),
+https://zumbi-servidor.onrender.com (status.json), wss://.../jogo. Env MAX=8. Deploy: POST /v1/services/<id>/deploys.
+Publicar pacote: `publica.sh wss://zumbi-servidor.onrender.com/jogo` (o servidor troca sozinho em ~2 min).
+Carga: vários `tools/carga.gd -- wss://.../jogo 120` em paralelo + ler status.json. Loop: ideias/zumbi-apocalipse/PROMPTS.md.
+Teste local WS: `-- dedicado ws` + test_dedicado `-- ws://127.0.0.1:7861`.

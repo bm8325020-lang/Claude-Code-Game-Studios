@@ -35,7 +35,7 @@ func _init() -> void:
 		ok(main.jogadores.get_child_count() == 1, "só eu de jogador (o servidor não tem boneco): %d" % main.jogadores.get_child_count())
 		await espera_ms(1500)
 		ok(main.zumbis.get_child_count() == main.PONTOS_ZUMBI.size() + main.PONTOS_TOCAIA.size() + main.PATRULHAS.size() + main.PONTOS_CHEFE.size(), "recebe os zumbis do servidor (%d)" % main.zumbis.get_child_count())
-		ok(main.ciclo.tempo > Ciclo.INICIO, "recebe o horário do servidor (%.0f s)" % main.ciclo.tempo)
+		ok(absf(main.ciclo.tempo - Ciclo.INICIO) > 0.5, "recebe o horário do servidor (%.0f s; o ciclo dá a volta)" % main.ciclo.tempo)
 		var z: Zumbi = null
 		for n in main.zumbis.get_children():
 			if (n as Zumbi).casa.distance_to(Vector3(24, 0, 0)) < 0.1:

@@ -120,9 +120,34 @@ func _entrar(ip: String) -> void:
 	if ip == "":
 		_status.text = "Digite o IP ou escolha uma partida da lista"
 		return
+	if ip.begins_with("ws://") or ip.begins_with("wss://"):
+		_acorda(ip)
+		return
+	_conecta(ip)
+
+
+func _conecta(ip: String) -> void:
 	var err: Error = main.entrar_partida(ip, _nome())
 	if err != OK:
 		_status.text = "Não deu para entrar em %s (erro %d)" % [ip, err]
+
+
+# o servidor online (site grátis) dorme sem visitas: abre a página dele primeiro e só conecta quando responder
+func _acorda(ip: String) -> void:
+	_status.text = "Acordando o servidor (pode levar até 1 minuto)..."
+	var http := HTTPRequest.new()
+	http.timeout = 90.0
+	add_child(http)
+	http.request_completed.connect(func(res: int, _cod: int, _h: PackedStringArray, _c: PackedByteArray) -> void:
+		http.queue_free()
+		if res != HTTPRequest.RESULT_SUCCESS:
+			_status.text = "O servidor não respondeu. Tente de novo."
+			return
+		_status.text = "Entrando..."
+		_conecta(ip))
+	var pagina: String = ip.replace("wss://", "https://").replace("ws://", "http://").get_slice("/jogo", 0) + "/"
+	if http.request(pagina) != OK:
+		_status.text = "Sem internet."
 
 
 func _rotulo(t: String, tam: int) -> Label:

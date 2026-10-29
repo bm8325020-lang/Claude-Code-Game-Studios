@@ -15,7 +15,7 @@ rm "$TMP/servidor.pck"
 VERSAO=$(grep -oP 'const VERSAO: int = \K[0-9]+' scripts/rede.gd)
 RAMO=https://raw.githubusercontent.com/bm8325020-lang/Claude-Code-Game-Studios/servidor-build
 if [ $# -ge 1 ]; then
-	printf '{"versao": %s, "servidores": [{"nome": "Servidor 1 (Brasil)", "ip": "%s"}]}\n' "$VERSAO" "$1" > "$TMP/servidores.json"
+	printf '{"versao": %s, "servidores": [{"nome": "Servidor 1 (EUA, grátis: até 8 jogadores)", "ip": "%s"}]}\n' "$VERSAO" "$1" > "$TMP/servidores.json"
 else
 	curl -sSf "$RAMO/servidores.json" -o "$TMP/servidores.json" 2>/dev/null || echo '{"versao": '"$VERSAO"', "servidores": []}' > "$TMP/servidores.json"
 	python3 -c "import json,sys;p=sys.argv[1];d=json.load(open(p));d['versao']=int(sys.argv[2]);json.dump(d,open(p,'w'))" "$TMP/servidores.json" "$VERSAO"

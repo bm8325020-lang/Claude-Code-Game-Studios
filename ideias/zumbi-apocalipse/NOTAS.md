@@ -314,7 +314,9 @@ quando você aprovar.
     Sem cobertura por perto, só corre para longe, como antes.
 20. Quarteirão (bloco 1): feito no APK 0.30 e **apagado a pedido do dono** (mapa fica para depois; está no
     histórico do git, commit f4d1d2d). Prioridade agora: servidor online e os sistemas que faltam.
-21. Próximo: servidor online (site privado), capacidade por servidor e otimização; depois os sistemas.
+21. **Servidor online.** **Status: feito, APK 0.31.** Render.com grátis (EUA): https://zumbi-servidor.onrender.com
+    (página com status). Até 8 jogadores (medido com robôs). Dorme sem visitas; o menu acorda antes de entrar.
+    Daqui em diante o loop segue ideias/zumbi-apocalipse/PROMPTS.md (um prompt por sistema).
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)
 1. **Andar e atirar com 2 jogadores** — terceira pessoa, controles de celular e PC, 1 arma de fogo + 1 arma
