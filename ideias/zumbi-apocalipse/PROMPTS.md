@@ -1,0 +1,225 @@
+# Prompts do loop — um sistema por vez
+
+Cada iteração do loop pega o **primeiro item com `Status: pendente`**, executa o prompt dele por inteiro, e só
+então marca `Status: feito (APK x.yy / commit abc1234)`. Ordem = dependência (um sistema usa o anterior).
+Regras de sempre (valem para TODOS os prompts, não repetidas abaixo):
+
+- Ler `jogo/CLAUDE.md` antes de abrir arquivos. Uma mecânica por vez, o mais perfeita possível, sem cara de IA
+  (nada de brilho/giro em item, nada de texto robótico na tela, sons e números críveis).
+- **O servidor decide** (zumbis, loot, dinheiro, dano, baús, casas); o cliente só pede por RPC e o servidor
+  confere distância, vida e posse antes de aceitar. Nunca confiar no cliente para dinheiro/itens.
+- Mudou o que vai pela rede → subir `Rede.VERSAO`. Pensar no custo no servidor grátis (Render 0,1 CPU):
+  nada por quadro que possa ser por evento; sincronia a 10–20 Hz; nada animado no servidor sem tela.
+- Teste automático novo em `jogo/tests/` para a regra principal (e ver o teste falhar sem o código novo).
+  Rodar todos os testes da tabela do CLAUDE.md antes do commit. Robô `tools/bot.gd` para olhar animação nova.
+- Valores provisórios em `const` com comentário "provisório"; textos da tela em pt-BR curto e natural.
+- Ao terminar: commit (trailer da sessão), push, publicar servidor (`publica.sh wss://zumbi-servidor.onrender.com/jogo`),
+  APK novo assinado, atualizar `NOTAS.md` (status) e `CLAUDE.md` (mapa), resumo curto em pt-BR para o dono.
+- Economia de créditos: sem agentes, poucas fotos (folha de contato), testes curtos.
+
+---
+
+## 0. Servidor online aguentando o máximo
+Status: em andamento (Render grátis no ar; otimização 1 publicada: sem animação e 30 Hz no servidor)
+
+Objetivo: o servidor do Render (0,1 CPU, 512 MB) aguentar o máximo de jogadores sem cair de 30 quadros, e o
+APK conectar nele pela lista "Online".
+1. Medir com `tools/carga.gd` (4, 8, 12 robôs) lendo `status.json`; registrar a tabela em NOTAS.md.
+2. Se `fisica_ms` > 25 com 8: **interesse por distância** — cada cliente só recebe zumbis/jogadores a até
+   ~60 m (MultiplayerSynchronizer `add_visibility_filter` / `set_visibility_for`), zumbis longe de todos os
+   jogadores "dormem" (sem navegação nem raio, checam a cada 1 s), escolha de alvo e cerco a 3 Hz.
+3. Ajustar `MAX` no Render (variável de ambiente) para o número que segura 30 quadros com folga de 20%.
+4. Reconexão: se cair, o cliente volta ao menu com aviso claro ("O servidor caiu. Tente de novo.").
+5. O Render dorme sem visita: o menu "Online" mostra "acordando o servidor (até 1 min)..." e tenta de novo.
+Aceite: 2 celulares jogando juntos pela internet; tabela de capacidade anotada; APK novo.
+
+## 1. Mochila (inventário)
+Status: pendente
+
+Hoje munição/comida/água/lanterna são contadores soltos no Jogador. Criar a **mochila**: lista de espaços
+(provisório 16) com itens empilháveis (munição 96 por pilha, comida/água 5) e não empilháveis (armas,
+lanterna, receitas, peças). Classe `Mochila` (dados puros, testável sem cena) + tela de mochila (botão
+MOCHILA / tecla Tab) com ícones simples desenhados (sem imagem de IA), arrastar para largar no chão.
+Itens viram `Item` no chão ao largar (mesmo sistema do PEGAR). Servidor é dono da mochila de cada jogador;
+cliente recebe a mochila dele por RPC quando muda (não sincronizar a mochila dos outros).
+Aceite: pegar, largar, empilhar, cheio = "mochila cheia"; testes da classe Mochila (adicionar, tirar,
+empilhar, cheia) e de rede (cliente pega item, servidor confirma).
+
+## 2. Baús com loot
+Status: pendente
+
+Baú (modelo simples de caixa de madeira/metal) espalhado pela pista: abrir leva 1,5 s (barra), mostra a lista
+do conteúdo, pegar item por item para a mochila. Conteúdo sorteado no servidor por **tabela de loot**
+(`loot.gd`: item, chance, quantidade) com raridades comum/incomum/rara; o baú esvazia e **re-sorteia depois
+de 5 min** (provisório). Baús da "cidade inicial" (região marcada) com mais chance de comum útil.
+Aceite: dois jogadores veem o mesmo conteúdo; um pega, some para o outro; teste de distribuição da tabela
+(10 000 sorteios dentro da margem).
+
+## 3. Morte com loot no chão
+Status: pendente
+
+Ao morrer (vida 0 e sem resgate — o resgate vem no prompt 10), a mochila inteira vira um **saco no chão**
+no lugar do corpo (qualquer um abre e pega), e o jogador renasce sem nada (só facão). O saco some em 10 min.
+"Sair do jogo morrendo" (desconectar com vida 0 ou nos últimos 10 s após levar dano) também larga o saco.
+Aceite: teste: jogador morre → saco com os itens; outro pega; desconectar caído larga o saco.
+
+## 4. Armas brancas achadas no mapa
+Status: pendente
+
+Arma branca é obrigatória e só se acha no mapa (não vende na loja da facção). Além do facão: **faca**
+(rápida, dano 18, alcance 1,4), **taco** (lento, 35, empurra), **machado** (lentíssimo, 50, cambaleia sempre).
+Cada uma com combo próprio feito à mão em `golpes.gd` (poses-chave, arco visível de trás) e som de impacto
+diferente. Ficam no chão/baús como item; trocar de arma branca pela mochila. Modelos: procurar grátis
+(Sketchfab CC BY / CGTrader royalty free, logados) e creditar em LICENCAS.txt.
+Aceite: robô `bot.gd` mostra o combo de cada uma; testes de dano/alcance por arma.
+
+## 5. Peças de arma e drop de zumbi
+Status: pendente
+
+Itens novos: peças (cano, ferrolho, mola, gatilho, cabo, carregador) com raridade. Fontes: baú, chão e
+**drop de zumbi** (importante): ao morrer, zumbi sorteia drop (tabela própria; chefe dropa mais e mais raro).
+Drop aparece como item no chão onde o zumbi caiu (some em 3 min).
+Aceite: teste de drop do zumbi e do chefe (chance dentro da margem em muitos sorteios).
+
+## 6. Receitas e bancada andante
+Status: pendente
+
+Receita é **item na mochila** (pode ser roubada se você morrer). Cada arma tem receita: lista de peças.
+Desbloquear = usar a receita (some da mochila e fica aprendida na conta/personagem). **Bancada** (modelo de
+mesa de trabalho) aparece em ponto aleatório da cidade e **muda a cada 10 min reais**, com aviso "A bancada
+apareceu em outro lugar da cidade". Na bancada: lista das receitas aprendidas, peças que faltam em vermelho,
+FABRICAR (3 s). Raridades: simples (receita em baú/zumbi comum), mediana (difícil), rara (muito difícil: baú
+chance pequena, drop de zumbi, chefe chance maior). Pistola atual vira "arma simples" fabricável.
+Aceite: testes: sem peças não fabrica; com peças consome e cria; bancada troca de lugar e avisa.
+
+## 7. Arma automática com seletor
+Status: pendente
+
+Uma submetralhadora (ou fuzil) com **seletor**: o jogador escolhe semi/automático num botão (só nessa arma).
+Automático: segura ATIRAR e sai rajada com cadência, dispersão crescente e coice forte (câmera e braços,
+igual ao coice da pistola). Mira manual, sem ajuda. Recarga própria. Fabricável (receita mediana) e rara
+em baú. Animações do Mixamo (rifle) misturadas como as da pistola.
+Aceite: teste de cadência/dispersão; robô mostra mira, rajada e recarga.
+
+## 8. Dinheiro do jogo e lojista
+Status: pendente
+
+Dinheiro (moeda do jogo, sem dinheiro real): matar zumbi dá (provisório 10, chefe 300, noite +50%). HUD mostra
+o saldo discreto. **Lojista** NPC (parado, numa barraca) compra qualquer item por um preço e vende munição,
+comida e água. **Venda entre jogadores**: troca segura (os dois confirmam; servidor troca de uma vez).
+Ideia a pensar (deixar desligada numa const): matar jogador pega metade do dinheiro dele.
+Aceite: testes: matar zumbi soma; comprar sem dinheiro falha; troca entre dois jogadores atômica.
+
+## 9. Grupos
+Status: pendente
+
+Convidar por nick (aceitar/recusar), até 4 no grupo (provisório). Membros do grupo aparecem com nome e seta na
+borda da tela; sem fogo amigo entre membros (PvP contra os outros continua). Sair do grupo.
+Aceite: testes de convite/aceite/saída em rede; dano entre membros = 0.
+
+## 10. Resgate com raid
+Status: pendente
+
+Morreu com **2+ membros do grupo a até 75 m**: em vez de morrer, fica **caído 90 s**. Zumbis surgem em volta
+do corpo (quantidade e força pelo valor da mochila do caído e quantos zumbis ele já matou). Se o grupo matar
+todos: o caído levanta com 30 de vida e todos ganham recompensa (dinheiro + chance de peça). Se o tempo
+acabar: morte normal (saco no chão, prompt 3). Contador de zumbis mortos por jogador (registro, sem nível).
+Aceite: teste com 3 jogadores (robôs): resgate dá certo e dá errado.
+
+## 11. Nascer em lugar aleatório
+Status: pendente
+
+Pontos de nascimento marcados como bom/ruim; sorteio com mais chance de bom (provisório 75%). "Bom" = perto de
+baús fáceis, longe de horda. Quem tem casa de facção renasce nela (prompt 13).
+Aceite: teste de distribuição do sorteio.
+
+## 12. Facção: criar dominando uma casa
+Status: pendente
+
+Casas completas marcadas como domináveis. Criar facção: **3+ jogadores dentro da casa** apertam "Dominar"
+e seguram **5–7 min** (provisório 6). Ao começar, **anúncio para o servidor**: "Alguém está tentando dominar
+<nome da área>". Se sair gente e ficar menos de 3, o tempo pausa; se todos saírem ou morrerem, falha.
+Ao dominar: facção criada (nome escolhido), botão **FACÇÃO** aparece (adicionar membro por nick, limite 10,
+aumentar pagando muito dinheiro). Uma facção = uma casa. Facção já existente redomina com **1 membro, 3 min**.
+Aceite: testes do relógio de domínio (pausa, falha, sucesso) e do anúncio.
+
+## 13. Casa da facção e manutenção
+Status: pendente
+
+Benefícios: renascer na casa, **baú da facção**, **armário pessoal** por membro, **cama que cura**, loja de
+munição e de comida/água ao lado (só membros compram), garagem. **Manutenção ~20 mil a cada 7 dias do jogo**
+(conta só com a casa ativa), aviso "faltam X dias para perder a casa"; não pagou = perde casa e baú.
+Todos os membros saíram do servidor = casa liberada e os itens do baú/armários **vão com a facção** (ficam
+guardados para a próxima casa). Outro grupo dominou = perde a área, não a facção.
+Aceite: testes de prazo, aviso, perda, liberação e devolução dos itens.
+
+## 14. Lockpick no baú da casa
+Status: pendente
+
+Invasor usa **lockpick** (item) no baú da facção: leva tempo (provisório 40 s; fechadura reforçada 90 s),
+precisa ficar perto e parado; **todos da facção recebem notificação** ("Estão arrombando o baú da casa!").
+Lockpick também abre carros do mapa (prompt 18).
+Aceite: teste: arrombar abre; sair de perto cancela; notificação chega a todos os membros.
+
+## 15. Loja da facção
+Status: pendente
+
+Itens só para quem tem facção (ou roubando): **alarme/fio de armadilha**, **fechadura reforçada**, **porta e
+barricadas reforçadas**, **localizador** (membros no mapa), **kit de reanimação** (resgate mais rápido),
+**sinalizador** (marca ponto para o grupo), **armadilhas e minas**, **holofote com gerador**, **drone de vigia**,
+**estandarte** (marca território), **câmera com dispositivo** (nome + senha; ver em tempo real). Fazer em
+partes: 15a alarme+fechadura+barricada, 15b localizador+sinalizador+estandarte, 15c armadilhas+holofote,
+15d drone+câmera, 15e kit de reanimação. Cada parte com teste.
+
+## 16. Conta e progresso salvo
+Status: pendente
+
+Conta (nick + senha, ou ID do aparelho) num serviço grátis de dados (ex.: Supabase/Firebase sem cartão —
+pesquisar e pedir ao dono para criar). Salva **mochila inteira**, dinheiro, receitas aprendidas, facção, zumbis
+mortos. Sair vivo e em paz salva tudo; sair morrendo larga o saco (prompt 3) e salva sem loot. Chaves
+nunca no git nem no APK com permissão de escrita (servidor do jogo é quem grava).
+Aceite: entrar, sair, entrar de novo com a mesma mochila; teste do "sair morrendo".
+
+## 17. Entrar com amigo e servidores
+Status: pendente
+
+Chamar amigo pelo nick para o mesmo servidor; sem convite, servidor aleatório com espaço. Servidor com 5 ou
+menos jogadores manda todos para um com 7–10 (aviso antes) e pode desligar. Facção reconectada domina casa
+nova no servidor novo (itens vão junto).
+Aceite: teste com 2 servidores locais e robôs.
+
+## 18. Carros do mapa
+Status: pendente
+
+Carro comum dirigível (VehicleBody3D), entrar/sair, motorista + passageiros, atropelar zumbi, combustível.
+Carros espalhados e numa concessionária abandonada; **lockpick** para levar. Carro **blindado** do mapa
+(aguenta menos tiro que o do passe). Carro do mapa nunca vai para outro servidor (fica onde foi deixado).
+Controles de carro no celular e PC. Sincronia de veículo leve (o motorista manda, servidor confere).
+Aceite: dirigir em rede sem tremer; testes de lockpick e combustível.
+
+## 19. Voz
+Status: pendente
+
+**Voz por proximidade** (qualquer jogador perto ouve) e **rádio da facção** (só membros, qualquer distância).
+Pesquisar serviço grátis (Epic Online Services voz) ou voz pelo próprio servidor (Opus, AudioEffectCapture).
+Botão falar (segurar), silenciar jogador e denunciar (exigência da Play Store).
+
+## 20. Destruição
+Status: pendente
+
+Paredes e portas quebráveis por tiro/golpe (vida por pedaço, troca para versão quebrada, escombros que
+viram cobertura). Servidor decide e sincroniza o estado.
+
+## 21. Mapa grande (depois — o dono pediu para deixar o mapa por último)
+Status: pendente
+
+Cidade inicial (mais fácil) + outras cidades, escombros, lugares preservados, concessionária, casas
+domináveis. Usar os modelos já baixados (Sketchfab) e pacotes grátis; dividir por áreas que carregam por
+proximidade.
+
+## 22. Passe, loja visual e Play Store (por último)
+Status: pendente
+
+Passe mensal pelo servidor (versão grátis e paga), visuais sem vantagem (roupas, skins, pinturas, emblemas,
+emotes), carros do passe (exceção aceita pelo dono). Publicação: conta Google Play (US$ 25), assinatura de
+release, ficha da loja.
