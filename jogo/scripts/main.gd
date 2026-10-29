@@ -74,6 +74,9 @@ func iniciar_servidor() -> Error:
 	_comeca()
 	controles.visible = false
 	_poe_zumbis()
+	for a: String in OS.get_cmdline_user_args():
+		if a.begins_with("status="):
+			_status(a.trim_prefix("status="))
 	print("SERVIDOR pronto na porta %d%s (versão de rede %d)" % [Rede.PORTA_WS if ws else Rede.PORTA, " (WebSocket)" if ws else "", Rede.VERSAO])
 	return OK
 
@@ -143,7 +146,42 @@ func _comeca() -> void:
 
 func _peer_conectou(id: int) -> void:
 	if multiplayer.is_server():
+		if jogadores.get_child_count() >= limite_jogadores():
+			_cheio.rpc_id(id)  # avisa e fecha: acima do limite o servidor pesa e todo mundo sente
+			get_tree().create_timer(0.5).timeout.connect(func() -> void:
+				if multiplayer.multiplayer_peer:
+					multiplayer.multiplayer_peer.disconnect_peer(id))
+			return
 		spawner.spawn({"id": id, "pos": _ponto_inicial(jogadores.get_child_count())})
+
+
+# servidor: a cada 5 s escreve como está (para a página do site e para medir até onde aguenta)
+func _status(caminho: String) -> void:
+	var t := Timer.new()
+	t.wait_time = 5.0
+	t.autostart = true
+	add_child(t)
+	t.timeout.connect(func() -> void:
+		var f := FileAccess.open(caminho, FileAccess.WRITE)
+		if f:
+			f.store_string(JSON.stringify({"jogadores": jogadores.get_child_count(), "limite": limite_jogadores(),
+				"zumbis": zumbis.get_child_count(), "fps": Engine.get_frames_per_second(),
+				"fisica_ms": snappedf(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0, 0.01),
+				"quadro_ms": snappedf(Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, 0.01),
+				"memoria_mb": snappedf(OS.get_static_memory_usage() / 1048576.0, 0.1), "versao": Rede.VERSAO})))
+
+
+## Máximo de jogadores neste servidor: Rede.MAX_JOGADORES, ou "max=N" na linha de comando (servidor pequeno).
+func limite_jogadores() -> int:
+	for a: String in OS.get_cmdline_user_args():
+		if a.begins_with("max="):
+			return int(a.trim_prefix("max="))
+	return Rede.MAX_JOGADORES
+
+
+@rpc("authority", "call_remote", "reliable")
+func _cheio() -> void:
+	_caiu_conexao("Servidor cheio. Tente de novo mais tarde.")
 
 
 func _peer_saiu(id: int) -> void:

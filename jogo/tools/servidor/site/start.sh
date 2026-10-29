@@ -16,9 +16,12 @@ baixa() {
 	mv novo.pck servidor.pck && echo "$v" > versao.txt
 }
 sobe() {
-	/opt/godot --headless --main-pack /tmp/srv/servidor.pck -- dedicado ws &
+	/opt/godot --headless --main-pack /tmp/srv/servidor.pck -- dedicado ws "max=${MAX:-10}" status=/tmp/www/status.json &
 	GODOT=$!
-	echo "<h1>Servidor zumbi</h1><p>Pacote $(cut -c1-12 versao.txt), ligado em $(date -u)</p>" > /tmp/www/index.html
+	cat > /tmp/www/index.html <<HTML
+<h1>Servidor zumbi</h1><p>Pacote $(cut -c1-12 versao.txt), ligado em $(date -u)</p><pre id="s">...</pre>
+<script>setInterval(()=>fetch('status.json').then(r=>r.text()).then(t=>s.textContent=t).catch(()=>{}),5000)</script>
+HTML
 }
 until baixa; do sleep 10; done
 envsubst '${PORT}' < /app/nginx.conf > /tmp/nginx.conf
