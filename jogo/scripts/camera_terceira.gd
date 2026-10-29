@@ -61,8 +61,10 @@ func _process(dt: float) -> void:
 		return
 	var olhar: Vector2 = alvo.entrada.get("olhar", Vector2.ZERO)
 	alvo.entrada["olhar"] = Vector2.ZERO
-	_yaw_alvo -= deg_to_rad(olhar.x * sensibilidade)
-	_pitch_alvo = clampf(_pitch_alvo + deg_to_rad(olhar.y * sensibilidade), deg_to_rad(PITCH_MIN), deg_to_rad(PITCH_MAX))
+	var sens: float = Config.sensibilidade(alvo.arma, alvo.mira_travada) * sensibilidade / Config.PADRAO.sens
+	var y: float = -olhar.y if Config.v.inverter_y else olhar.y
+	_yaw_alvo -= deg_to_rad(olhar.x * sens)
+	_pitch_alvo = clampf(_pitch_alvo + deg_to_rad(y * sens), deg_to_rad(PITCH_MIN), deg_to_rad(PITCH_MAX))
 	var k: float = 1.0 - exp(-SUAVE_OLHAR * dt)
 	yaw = lerp_angle(yaw, _yaw_alvo, k)
 	pitch = lerpf(pitch, _pitch_alvo, k)
@@ -78,7 +80,8 @@ func _process(dt: float) -> void:
 	global_position = Vector3(p.x, _y_suave + _altura, p.z) + direita * _ombro
 	_recuo = move_toward(_recuo, 0.0, dt * deg_to_rad(9.0))
 	rotation = Vector3(-(pitch - _recuo), yaw, 0)
-	var fov_alvo: float = FOV_MIRA if mira else (FOV_CORRENDO if alvo.correndo else FOV)
+	var base: float = float(Config.v.fov)  # FOV/FOV_MIRA/FOV_CORRENDO são proporções do padrão 70
+	var fov_alvo: float = base * (FOV_MIRA if mira else (FOV_CORRENDO if alvo.correndo else FOV)) / FOV
 	cam.fov = lerpf(cam.fov, fov_alvo, 1.0 - exp(-10.0 * dt))
 	braco.spring_length = lerpf(braco.spring_length, DISTANCIA_MIRA if mira else DISTANCIA, 1.0 - exp(-12.0 * dt))
 	# tremida do golpe: some rápido

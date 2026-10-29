@@ -66,7 +66,7 @@ Aceite: foto de cada tela (folha de contato) no celular (paisagem 1280x720) e PC
 estilo próprio; testes existentes passando.
 
 ## 0d. Configurações (sensibilidade e o resto)
-Status: pendente
+Status: feito (APK 0.32)
 
 Tela CONFIGURAÇÕES (do menu e da pausa), salva em `user://config.cfg` e aplicada na hora:
 sensibilidade do olhar (geral), **sensibilidade mirando por arma** (pistola, futuras armas), inverter eixo Y,

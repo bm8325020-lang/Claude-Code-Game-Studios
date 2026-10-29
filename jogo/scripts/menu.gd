@@ -61,8 +61,9 @@ func _ready() -> void:
 	wif.add_child(linha)
 	_voltar(wif)
 	# configurações (a tela completa vem no prompt 0d)
-	var cfg := _pagina(raiz, "config")
+	var cfg := _pagina(raiz, "config", 760.0)
 	cfg.add_child(UiTema.titulo("CONFIGURAÇÕES", 44, UiTema.DESTAQUE))
+	cfg.add_child(TelaConfig.new())
 	_voltar(cfg)
 	# faixa de estado embaixo
 	_status = UiTema.rotulo(aviso_inicial, 22, UiTema.APAGADO)
@@ -77,8 +78,8 @@ func _ready() -> void:
 	main.rede.procurar()
 
 
-func _pagina(raiz: Control, nome: String) -> VBoxContainer:
-	var col := UiTema.painel_central(raiz)
+func _pagina(raiz: Control, nome: String, largura: float = 620.0) -> VBoxContainer:
+	var col := UiTema.painel_central(raiz, largura)
 	_paginas[nome] = col
 	return col
 

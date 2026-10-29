@@ -52,6 +52,8 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   (MIRA, ATACAR/ATIRAR, PULAR, AGACHAR, CORRER, TROCAR, RECARREGAR, PEGAR/USAR, COMER, BEBER). PC: WASD, mouse, E F G Q R 1 2.
 - `rede.gd` — ENet 7777, broadcast 7778, pergunta direta 7779, `VERSAO`, `LISTA_URL` (servidores.json). Endereço
   "ws://"/"wss://" = WebSocket (servidor online atrás de site; `-- dedicado ws` escuta em `PORTA_WS` 7861).
+- `config.gd` (Config) — `Config.v[...]` salvo em user://config.cfg, `muda()`, `aplica()`, `sensibilidade(arma, mirando)`,
+  `cor_mira()`. `tela_config.gd` (TelaConfig) — a tela (menu e pausa). Teste: tests/test_config.gd (8).
 - `ui_tema.gd` (UiTema) — visual único: `tema()`, `botao()`, `rotulo()`, `campo()`, `painel_central()`, cores.
 - `menu.gd` — páginas (`_mostra`): inicio, online (acorda o servidor), wifi, config. `controles.gd` também tem
   `aviso(texto)` (faixa no alto), `pausa(bool)` (Esc / botão II) e a tela de queda com contagem.

@@ -27,6 +27,7 @@ var nick_local: String = "Jogador"
 
 func _ready() -> void:
 	add_to_group("principal")
+	Config.carrega()
 	_luz()
 	_chao()
 	_obstaculos()
@@ -266,7 +267,9 @@ func _luz() -> void:
 	sol.light_energy = 1.2
 	sol.shadow_enabled = true
 	sol.directional_shadow_max_distance = 40.0
+	sol.add_to_group("sol")
 	add_child(sol)
+	Config.aplica.call_deferred(get_tree())  # sombras, som, resolução e quadros do jogador
 	var amb := WorldEnvironment.new()
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR

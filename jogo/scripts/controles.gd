@@ -59,6 +59,7 @@ var _faixa_estilo: StyleBoxFlat
 var _barras: Array[_Barra] = []  # vida, fome, sede
 var _faixa_t: float = 0.0
 var _pausa: Control
+var _estilos_toque: Array[StyleBoxFlat] = []  # fundo dos botões de toque (transparência das configurações)
 
 
 func _ready() -> void:
@@ -196,6 +197,8 @@ func _process(dt: float) -> void:
 			e["arma"] = "facao"
 		if Input.is_action_just_pressed("arma_2"):
 			e["arma"] = "pistola"
+	for est in _estilos_toque:
+		est.bg_color.a = float(Config.v.botoes_opacidade)
 	if _btn_agachar:
 		_btn_agachar.modulate = Color(1, 0.85, 0.4) if jogador.agachado else Color.WHITE
 	if _btn_correr:
@@ -384,8 +387,21 @@ func _monta_pausa() -> void:
 	cont.pressed.connect(func() -> void: pausa(false))
 	col.add_child(cont)
 	var cfg := UiTema.botao("CONFIGURAÇÕES")
-	cfg.disabled = true  # a tela vem no prompt 0d
 	col.add_child(cfg)
+	var col_cfg := UiTema.painel_central(_pausa, 760.0)
+	col_cfg.add_child(UiTema.titulo("CONFIGURAÇÕES", 40, UiTema.DESTAQUE))
+	col_cfg.add_child(TelaConfig.new())
+	var volta := UiTema.botao("VOLTAR", true)
+	col_cfg.add_child(volta)
+	var p_menu: Control = col.get_parent().get_parent()
+	var p_cfg: Control = col_cfg.get_parent().get_parent()
+	p_cfg.visible = false
+	cfg.pressed.connect(func() -> void:
+		p_menu.visible = false
+		p_cfg.visible = true)
+	volta.pressed.connect(func() -> void:
+		p_cfg.visible = false
+		p_menu.visible = true)
 	var sair := UiTema.botao("SAIR DA PARTIDA")
 	sair.pressed.connect(func() -> void:
 		pausa(false)
@@ -455,6 +471,9 @@ func _monta_toque() -> void:
 
 
 func _botao(texto: String, desloc: Vector2, tam: float = BOTAO) -> Button:
+	var k: float = float(Config.v.botoes_tamanho)
+	desloc *= k
+	tam *= k
 	var b := Button.new()
 	b.text = texto
 	b.focus_mode = Control.FOCUS_NONE
@@ -464,6 +483,7 @@ func _botao(texto: String, desloc: Vector2, tam: float = BOTAO) -> Button:
 	var est := StyleBoxFlat.new()
 	est.bg_color = Color(0, 0, 0, 0.35)
 	est.set_corner_radius_all(int(tam * 0.5))
+	_estilos_toque.append(est)
 	est.border_color = Color(1, 1, 1, 0.5)
 	est.set_border_width_all(3)
 	b.add_theme_stylebox_override("normal", est)
@@ -512,7 +532,7 @@ class _Mira:
 
 	func _draw() -> void:
 		var c: Vector2 = size * 0.5
-		var cor := Color(1, 1, 1, 0.9)
+		var cor := Color(Config.cor_mira(), 0.9)
 		draw_circle(c, 2.5, cor)
 		for d: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
 			draw_line(c + d * 8.0, c + d * 18.0, cor, 2.5)

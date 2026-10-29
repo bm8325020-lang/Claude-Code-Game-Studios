@@ -1,4 +1,4 @@
-# Folha com as telas da interface (menu, online, Wi-Fi, HUD no PC e no celular, pausa, queda):
+# Folha com as telas da interface (menu, online, Wi-Fi, configurações, HUD no PC e no celular, pausa, queda):
 #   xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 -s res://tools/foto_telas.gd -- saida.png
 extends SceneTree
 
@@ -15,6 +15,8 @@ func _init() -> void:
 	for i in 90: await process_frame
 	await _foto()
 	main.menu._mostra("wifi")
+	await _foto()
+	main.menu._mostra("config")
 	await _foto()
 	main.iniciar_solo("Foto")
 	for i in 20: await process_frame
