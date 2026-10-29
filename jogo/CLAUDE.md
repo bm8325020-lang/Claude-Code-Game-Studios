@@ -11,7 +11,7 @@ G=/home/user/.local/godot/Godot_v4.7.2-stable_linux.x86_64
 SP=/tmp/claude-0/-home-user/09449103-5068-5eff-93a6-3d4914815589/scratchpad
 BT=/home/user/.local/android/build-tools/35.0.1
 $G --headless --path . --import                       # depois de criar class_name nova
-timeout 400 $G --headless --path . --fixed-fps 60 -s res://tests/<t>.gd   # t: test_movimento(60) test_zumbi(42) test_itens(13) test_portas(9)
+timeout 400 $G --headless --path . --fixed-fps 60 -s res://tests/<t>.gd   # t: test_movimento(60) test_zumbi(49) test_itens(13) test_portas(9)
 # rede (2 processos): servidor em background, depois cliente; matar: for p in $(pgrep -x "Godot_v4.7.2-st"); do kill $p; done
 (timeout 120 $G --headless --path . -s res://tests/test_rede.gd -- servidor > $SP/srv.log 2>&1 &); sleep 2; timeout 120 $G --headless --path . -s res://tests/test_rede.gd -- cliente
 timeout 60 $G --headless --path . -s res://tests/test_busca.gd
@@ -28,7 +28,7 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 
 ## Arquivos (scripts/)
 - `main.gd` — pista de teste (blocos, rampas, túnel, prédio, casinha com `Porta_0`, carro), bonecos de treino, itens
-  (`Item_0..3` munição, `Item_casa`, `Item_comida_k`/`Item_agua_k`), `PONTOS_ZUMBI`, `PONTOS_TOCAIA`, spawners
+  (`Item_0..3` munição, `Item_casa`, `Item_comida_k`/`Item_agua_k`), `PONTOS_ZUMBI`, `PONTOS_TOCAIA`, `PATRULHAS`, `PONTOS_CHEFE`, spawners
   (jogadores e zumbis), malha de navegação (grupo "cenario", raio 0.35), `iniciar_solo/criar_partida/entrar_partida/iniciar_servidor`.
 - `jogador.gd` (Jogador) — `entrada` dict (move, olhar, pular, correr, agachar, andar, mirar, mira_segurando, atacar,
   trocar, arma, recarregar, pegar, comer, beber). Vida/`levar_dano`/`_cai`/`_caido`, fome/sede (`_passa_fome`),
@@ -38,7 +38,7 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   `item_pego`, `acertou_alvo`. Osso da mão: `MAO`, tronco: `TRONCO` (Mixamo).
 - `zumbi.gd` (Zumbi) — servidor decide. Estados: alvo (ver 18 m/ouvir 5 m), ataque, cambaleio, grito/horda (22 m),
   ouvir tiro (`Zumbi.barulho`), procurar/voltar, cerco (`_calcula_cerco`), tocaia (`_deita/_acorda`), porta
-  (`_porta_na_frente`), ziguezague/fuga, noite (`Ciclo.forca_noite`). Camada 8.
+  (`_porta_na_frente`), ziguezague/fuga, noite (`Ciclo.forca_noite`), patrulha (`rota`), chefe (`chefe`, `VIDA_CHEFE`, `DANO_CHEFE`). Camada 8.
 - `anims.gd` — `CLIPES` (jogador) e `CLIPES_ZUMBI`: nome lógico → [arquivo, ini, fim]; "kaykit:" (retarget),
   "proprio:" (golpes.gd). `VELOCIDADE*` p/ pés.
 - `retarget.gd` — KayKit→X Bot. `golpes.gd` — golpes do facão feitos à mão (poses-chave).

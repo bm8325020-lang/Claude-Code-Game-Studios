@@ -33,7 +33,7 @@ func _init() -> void:
 		main.controles.jogador = null
 		ok(main.jogadores.get_child_count() == 1, "só eu de jogador (o servidor não tem boneco): %d" % main.jogadores.get_child_count())
 		await espera_ms(1500)
-		ok(main.zumbis.get_child_count() == main.PONTOS_ZUMBI.size() + main.PONTOS_TOCAIA.size() + main.PATRULHAS.size(), "recebe os zumbis do servidor (%d)" % main.zumbis.get_child_count())
+		ok(main.zumbis.get_child_count() == main.PONTOS_ZUMBI.size() + main.PONTOS_TOCAIA.size() + main.PATRULHAS.size() + main.PONTOS_CHEFE.size(), "recebe os zumbis do servidor (%d)" % main.zumbis.get_child_count())
 		ok(main.ciclo.tempo > Ciclo.INICIO, "recebe o horário do servidor (%.0f s)" % main.ciclo.tempo)
 		var z: Zumbi = null
 		for n in main.zumbis.get_children():

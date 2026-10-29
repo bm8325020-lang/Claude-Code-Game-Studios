@@ -37,7 +37,7 @@ func _init() -> void:
 	main.ciclo.tempo = 0.0  # dia parado: a noite tem o teste dela
 	main.ciclo.set_process(false)
 	main.ciclo._process(0.0)
-	ok(main.zumbis.get_child_count() == main.PONTOS_ZUMBI.size() + main.PONTOS_TOCAIA.size() + main.PATRULHAS.size(), "zumbis nascem (%d)" % main.zumbis.get_child_count())
+	ok(main.zumbis.get_child_count() == main.PONTOS_ZUMBI.size() + main.PONTOS_TOCAIA.size() + main.PATRULHAS.size() + main.PONTOS_CHEFE.size(), "zumbis nascem (%d)" % main.zumbis.get_child_count())
 	z = main.zumbis.get_child(0)
 	z._sem_gritar = INF  # o grito tem o teste dele (no fim)
 	for outro in main.zumbis.get_children():
@@ -54,6 +54,7 @@ func _init() -> void:
 	await _tocaia()
 	await _patrulha()
 	await _esperto()
+	await _chefe()
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
 
@@ -389,3 +390,33 @@ func _patrulha() -> void:
 	j.vida = 100000
 	await frames(40)
 	ok(p.alvo == j, "sai da patrulha quando vê alguém")
+
+
+func _chefe() -> void:
+	for outro in main.zumbis.get_children():
+		outro.free()
+	var c := Zumbi.new()
+	c.chefe = true
+	c.position = Vector3(30, 0, -14)
+	c.casa = c.position
+	main.zumbis.add_child(c)
+	j.global_position = Vector3(-30, 0.1, 30)
+	await frames(2)
+	c._sem_gritar = INF
+	ok(c.vida == Zumbi.VIDA_CHEFE and c.modelo.scale.x > 1.2, "chefe nasce grande e com %d de vida" % c.vida)
+	c.levar_golpe(Pistola.DANO, Vector3.FORWARD, j)
+	await frames(2)
+	ok(c._cambaleio <= 0.0, "tiro de pistola não faz o chefe cambalear")
+	c.vida = 30
+	c.levar_golpe(10, Vector3.FORWARD, j)
+	await frames(2)
+	ok(not c._fugiu, "chefe não foge com pouca vida")
+	c.vida = Zumbi.VIDA_CHEFE
+	j.vida = Jogador.VIDA_MAX
+	j.global_position = c.global_position + Vector3(0, 0.1, 1.2)
+	var antes: int = j.vida
+	for i in 60 * 6:
+		await physics_frame
+		if j.vida < antes:
+			break
+	ok(antes - j.vida == Zumbi.DANO_CHEFE, "soco do chefe tira %d (tirou %d)" % [Zumbi.DANO_CHEFE, antes - j.vida])

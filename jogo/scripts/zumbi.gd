@@ -10,6 +10,8 @@
 # Mecânica 10: tocaia. Zumbi de tocaia fica deitado no chão como morto; levanta e ataca (sem gritar) quando
 # alguém passa a menos de EMBOSCA, quando há barulho perto ou quando leva golpe. Depois de morto, deita de novo.
 # Mecânica 12: porta fechada no caminho segura o zumbi; ele soca a porta até arrombar.
+# Mecânica 17: chefe. Maior (ESCALA_CHEFE), 400 de vida, soco de 35 que empurra longe, mais lento, não foge
+# e só cambaleia com golpe forte.
 # Mecânica 16: patrulha. Zumbi com `rota` anda de ponto em ponto (parando um pouco em cada) em vez de ficar
 # parado em casa; depois de perseguir ou procurar, volta para a rota.
 # Mecânica 13: esperto contra tiro. Com alguém mirando a pistola nele de longe, vem em ziguezague; com pouca
@@ -56,6 +58,13 @@ const FECHA: float = 1.8           # m: com o alvo colado assim, ataca mesmo sem
 
 ## altura (acima dos pés) a partir da qual o tiro conta como na cabeça (o zumbi anda curvado)
 var altura_cabeca: float = 1.4
+## zumbi chefe (vem nos dados do spawner)
+var chefe: bool = false
+const ESCALA_CHEFE: float = 1.35
+const VIDA_CHEFE: int = 400
+const DANO_CHEFE: int = 35
+var _vida_max: int = VIDA_MAX
+var _pele: Color = Color(0.46, 0.5, 0.41)
 var vida: int = VIDA_MAX:
 	set(v):
 		var antes: int = vida
@@ -113,18 +122,25 @@ func _ready() -> void:
 	collision_layer = 8
 	collision_mask = 1 | 8 | Porta.CAMADA
 	floor_snap_length = 0.4
+	var k: float = ESCALA_CHEFE if chefe else 1.0
+	if chefe:
+		_vida_max = VIDA_CHEFE
+		vida = VIDA_CHEFE
+		altura_cabeca *= k
+		_pele = Color(0.33, 0.36, 0.3)
 	var cs := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
-	cap.radius = RAIO
-	cap.height = ALTURA
+	cap.radius = RAIO * k
+	cap.height = ALTURA * k
 	cs.shape = cap
-	cs.position.y = ALTURA * 0.5
+	cs.position.y = ALTURA * k * 0.5
 	add_child(cs)
 	_forma = cs
 	modelo = (load(Anims.MODELO) as PackedScene).instantiate()
+	modelo.scale = Vector3.ONE * k
 	add_child(modelo)
 	_mat_pele = StandardMaterial3D.new()
-	_mat_pele.albedo_color = Color(0.46, 0.5, 0.41)
+	_mat_pele.albedo_color = _pele
 	_mat_pele.roughness = 0.9
 	var roupa := StandardMaterial3D.new()
 	roupa.albedo_color = Color(0.24, 0.17, 0.14)
@@ -190,7 +206,7 @@ func _physics_process(dt: float) -> void:
 		_morto_t -= dt
 		if _morto_t <= 0.0:
 			global_position = casa
-			vida = VIDA_MAX
+			vida = _vida_max
 		velocity.x = 0.0
 		velocity.z = 0.0
 		move_and_slide()
@@ -248,7 +264,7 @@ func _physics_process(dt: float) -> void:
 					_fechando = true
 				else:
 					destino = lado
-			desejada = _caminho(destino, (CORRER if d.length() < PERTO else ANDAR) * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
+			desejada = _caminho(destino, (CORRER if d.length() < PERTO else ANDAR) * (0.8 if chefe else 1.0) * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
 			# mirando nele de longe: desvia para os lados (troca de lado a cada ~0,7 s, sem ritmo fixo)
 			if d.length() > ZIGUE_LONGE and alvo.mirando_em(global_position, 12.0):
 				_zigue_t += dt * randf_range(0.8, 1.2)
@@ -475,7 +491,8 @@ func _atualiza_ataque(dt: float) -> void:
 			d.y = 0.0
 			var frente: Vector3 = modelo.global_basis.z
 			if d.length() < ALCANCE_ACERTO and rad_to_deg(Vector3(frente.x, 0, frente.z).angle_to(d)) < 70.0:
-				alvo.levar_dano(roundi(DANO * Ciclo.forca_noite(get_tree(), NOITE_DANO)), d.normalized())
+				# o chefe empurra longe (o empurrão do jogador é proporcional ao tamanho de `dir`)
+				alvo.levar_dano(roundi((DANO_CHEFE if chefe else DANO) * Ciclo.forca_noite(get_tree(), NOITE_DANO)), d.normalized() * (2.5 if chefe else 1.0))
 	if _ataque_t >= dur:
 		_ataque_t = -1.0
 
@@ -502,10 +519,10 @@ func _aplica(dano: int, dir: Vector3) -> void:
 	if _deitado:
 		_acorda()
 	vida = maxi(0, vida - dano)
-	if vida > 0 and vida <= FOGE_VIDA and not _fugiu and alvo:
+	if vida > 0 and vida <= FOGE_VIDA and not _fugiu and alvo and not chefe:
 		_fugiu = true
 		_foge_t = FOGE_POR
-	if vida > 0:
+	if vida > 0 and (not chefe or dano >= 40):
 		_cambaleio = CAMBALEIO
 		_ataque_t = -1.0
 		_grito_t = -1.0
@@ -518,7 +535,7 @@ func _aplica(dano: int, dir: Vector3) -> void:
 func _pisca() -> void:
 	var t := create_tween()
 	t.tween_property(_mat_pele, "albedo_color", Color(0.85, 0.3, 0.25), 0.04)
-	t.tween_property(_mat_pele, "albedo_color", Color(0.46, 0.5, 0.41), 0.18)
+	t.tween_property(_mat_pele, "albedo_color", _pele, 0.18)
 
 
 func _morre() -> void:
