@@ -40,7 +40,7 @@ const PARADA_ACERTO: float = 0.07  # congela a animação um instante quando ace
 ## arma ("" ou "facao"/"pistola": escolhe direto), recarregar (bool).
 var entrada: Dictionary = {"move": Vector2.ZERO, "olhar": Vector2.ZERO, "pular": false, "correr": false,
 	"agachar": false, "andar": false, "mirar": false, "mira_segurando": null, "atacar": false,
-	"trocar": false, "arma": "", "recarregar": false, "pegar": false}
+	"trocar": false, "arma": "", "recarregar": false, "pegar": false, "comer": false, "beber": false}
 
 ## Arma na mão: "facao" ou "pistola" (vai pela rede para os outros verem).
 var arma: String = "facao":
@@ -69,6 +69,19 @@ var _ponta: Node3D
 ## direção da frente do modelo no espaço da mão esquerda (medida na pose parada)
 const LANTERNA_EIXO: Vector3 = Vector3(-0.511, 0.769, -0.384)
 var _morto_t: float = 0.0
+
+# fome e sede (mecânica 15): caem com o tempo; zeradas, tiram vida aos poucos. Só no aparelho do dono.
+const FOME_TEMPO: float = 900.0     # s de cheio (100) até zerar
+const SEDE_TEMPO: float = 600.0
+const DANO_FOME: int = 2            # vida perdida a cada INTERVALO_FOME com fome ou sede zerada
+const INTERVALO_FOME: float = 3.0
+const COMIDA_MAX: int = 5
+const ENCHE: float = 45.0           # quanto uma lata/garrafa enche
+var fome: float = 100.0
+var sede: float = 100.0
+var comida: int = 0
+var agua: int = 0
+var _fome_t: float = INTERVALO_FOME
 ## Parte de cima do corpo (mirar/atirar/recarregar) por cima das pernas; vai pela rede.
 var cima_rede: String = ""
 
@@ -240,6 +253,17 @@ func _physics_process(dt: float) -> void:
 	if entrada.get("pegar", false):
 		entrada["pegar"] = false
 		_tenta_pegar()
+	if entrada.get("comer", false):
+		entrada["comer"] = false
+		if comida > 0 and fome < 100.0:
+			comida -= 1
+			fome = minf(100.0, fome + ENCHE)
+	if entrada.get("beber", false):
+		entrada["beber"] = false
+		if agua > 0 and sede < 100.0:
+			agua -= 1
+			sede = minf(100.0, sede + ENCHE)
+	_passa_fome(dt)
 	if _pegando > 0.0:
 		_pegando -= dt
 		mov = Vector2.ZERO
@@ -435,6 +459,10 @@ func _recebe(tipo: String, qtd: int) -> void:
 			pistola.reserva = mini(pistola.reserva + qtd, Pistola.RESERVA_MAX)
 		"lanterna":
 			tem_lanterna = true
+		"comida":
+			comida = mini(comida + qtd, COMIDA_MAX)
+		"agua":
+			agua = mini(agua + qtd, COMIDA_MAX)
 	item_pego.emit(tipo, qtd)
 
 
@@ -466,12 +494,32 @@ func _recebe_dano(dano: int, dir: Vector3) -> void:
 		camera.tremer(0.25)
 	dano_levado.emit(dano)
 	if vida == 0:
-		_morto_t = RENASCE
-		_golpe = -1
-		mira_travada = false
-		if pistola.recarregando:
-			pistola.recarregando = false
-		_toca("morte", 0.1)
+		_cai()
+
+
+func _passa_fome(dt: float) -> void:
+	fome = maxf(0.0, fome - 100.0 / FOME_TEMPO * dt)
+	sede = maxf(0.0, sede - 100.0 / SEDE_TEMPO * dt)
+	if fome > 0.0 and sede > 0.0:
+		_fome_t = INTERVALO_FOME
+		return
+	_fome_t -= dt
+	if _fome_t <= 0.0:
+		_fome_t = INTERVALO_FOME
+		vida = maxi(0, vida - DANO_FOME)
+		dano_levado.emit(DANO_FOME)
+		if vida == 0:
+			_cai()
+
+
+# vida zerada: cai e volta no início depois de RENASCE
+func _cai() -> void:
+	_morto_t = RENASCE
+	_golpe = -1
+	mira_travada = false
+	if pistola.recarregando:
+		pistola.recarregando = false
+	_toca("morte", 0.1)
 
 
 func _caido(dt: float) -> void:
@@ -484,6 +532,8 @@ func _caido(dt: float) -> void:
 		global_position = inicio
 		velocity = Vector3.ZERO
 		vida = VIDA_MAX
+		fome = 100.0
+		sede = 100.0
 		reset_physics_interpolation()
 		_toca("parado", 0.0)
 	pos_rede = global_position

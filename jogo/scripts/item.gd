@@ -34,7 +34,14 @@ func _ready() -> void:
 
 ## Nome para o botão ("munição (24)", "lanterna").
 func nome() -> String:
-	return "munição (%d)" % quantidade if tipo == "municao" else "lanterna"
+	match tipo:
+		"municao":
+			return "munição (%d)" % quantidade
+		"comida":
+			return "lata de comida"
+		"agua":
+			return "garrafa de água"
+	return "lanterna"
 
 
 ## O item ativo mais perto de `pos` a até ALCANCE, ou null.
@@ -56,6 +63,8 @@ func pegar_por(j: Jogador) -> bool:
 		return false
 	if tipo == "lanterna" and j.tem_lanterna:
 		return false
+	if (tipo == "comida" and j.comida >= Jogador.COMIDA_MAX) or (tipo == "agua" and j.agua >= Jogador.COMIDA_MAX):
+		return false  # mochila cheia disso
 	ativo = false
 	_volta_t = VOLTA
 	j.ganhar(tipo, quantidade)
@@ -84,6 +93,50 @@ func _monta_modelo() -> void:
 		alca.albedo_color = Color(0.1, 0.1, 0.1)
 		_bloco(Vector3(0, 0.158, 0), Vector3(0.12, 0.012, 0.025), alca)
 
+	elif tipo == "comida":
+		# lata de conserva sem rótulo, amassada de leve
+		var lata := StandardMaterial3D.new()
+		lata.albedo_color = Color(0.55, 0.53, 0.48)
+		lata.metallic = 0.7
+		lata.roughness = 0.45
+		var c := CylinderMesh.new()
+		c.top_radius = 0.045
+		c.bottom_radius = 0.047
+		c.height = 0.11
+		var mi := MeshInstance3D.new()
+		mi.mesh = c
+		mi.material_override = lata
+		mi.position.y = 0.055
+		mi.rotation_degrees.z = 4.0
+		add_child(mi)
+	elif tipo == "agua":
+		# garrafa plástica meio cheia, deitada
+		var pet := StandardMaterial3D.new()
+		pet.albedo_color = Color(0.7, 0.8, 0.85, 0.55)
+		pet.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		pet.roughness = 0.2
+		var c := CylinderMesh.new()
+		c.top_radius = 0.035
+		c.bottom_radius = 0.035
+		c.height = 0.24
+		var mi := MeshInstance3D.new()
+		mi.mesh = c
+		mi.material_override = pet
+		mi.rotation_degrees = Vector3(0, 0, 90)
+		mi.position.y = 0.035
+		add_child(mi)
+		var tampa := StandardMaterial3D.new()
+		tampa.albedo_color = Color(0.15, 0.3, 0.6)
+		var t := CylinderMesh.new()
+		t.top_radius = 0.016
+		t.bottom_radius = 0.016
+		t.height = 0.03
+		var mt := MeshInstance3D.new()
+		mt.mesh = t
+		mt.material_override = tampa
+		mt.rotation_degrees = Vector3(0, 0, 90)
+		mt.position = Vector3(0.135, 0.035, 0)
+		add_child(mt)
 	else:
 		# lanterna deitada no chão
 		var corpo := StandardMaterial3D.new()

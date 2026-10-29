@@ -49,6 +49,11 @@ var _vermelho: ColorRect
 var _caiu: Label
 var _relogio: Label
 var _btn_pegar: Button
+var _btn_comer: Button
+var _btn_beber: Button
+var _fome_barra: ColorRect
+var _sede_barra: ColorRect
+var _bolso: Label
 var _dica_pegar: Label
 var _aviso_item: Label
 var _aviso_t: float = 0.0
@@ -84,6 +89,18 @@ func _ready() -> void:
 	_vida_barra.size = Vector2(316, 12)
 	_vida_barra.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_vida_fundo.add_child(_vida_barra)
+	# fome (laranja) e sede (azul): duas barras finas embaixo da vida, e quantas latas/garrafas tem
+	_fome_barra = _barrinha(38, Color(0.85, 0.55, 0.2))
+	_sede_barra = _barrinha(46, Color(0.35, 0.6, 0.9))
+	_bolso = Label.new()
+	_bolso.anchor_left = 0.5
+	_bolso.anchor_right = 0.5
+	_bolso.offset_left = 168
+	_bolso.offset_top = 14
+	_bolso.add_theme_font_size_override("font_size", 18)
+	_bolso.add_theme_color_override("font_outline_color", Color.BLACK)
+	_bolso.add_theme_constant_override("outline_size", 5)
+	add_child(_bolso)
 	_caiu = Label.new()
 	_caiu.text = "VOCÊ CAIU"
 	_caiu.set_anchors_preset(Control.PRESET_CENTER)
@@ -98,7 +115,7 @@ func _ready() -> void:
 	_relogio.anchor_right = 0.5
 	_relogio.offset_left = -160
 	_relogio.offset_right = 160
-	_relogio.offset_top = 38
+	_relogio.offset_top = 54
 	_relogio.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_relogio.add_theme_font_size_override("font_size", 20)
 	_relogio.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -119,7 +136,7 @@ func _ready() -> void:
 func _acoes() -> void:
 	var mapa: Dictionary = {"frente": [KEY_W, KEY_UP], "tras": [KEY_S, KEY_DOWN], "esq": [KEY_A, KEY_LEFT],
 		"dir": [KEY_D, KEY_RIGHT], "pular": [KEY_SPACE], "correr": [KEY_SHIFT], "agachar": [KEY_CTRL, KEY_C],
-		"andar": [KEY_ALT], "pegar": [KEY_E], "trocar": [KEY_Q], "recarregar": [KEY_R], "arma_1": [KEY_1], "arma_2": [KEY_2]}
+		"andar": [KEY_ALT], "pegar": [KEY_E], "comer": [KEY_F], "beber": [KEY_G], "trocar": [KEY_Q], "recarregar": [KEY_R], "arma_1": [KEY_1], "arma_2": [KEY_2]}
 	for acao: String in mapa:
 		if InputMap.has_action(acao):
 			continue
@@ -149,6 +166,10 @@ func _process(dt: float) -> void:
 			e["trocar"] = true
 		if Input.is_action_just_pressed("pegar"):
 			e["pegar"] = true
+		if Input.is_action_just_pressed("comer"):
+			e["comer"] = true
+		if Input.is_action_just_pressed("beber"):
+			e["beber"] = true
 		if Input.is_action_just_pressed("recarregar"):
 			e["recarregar"] = true
 		if Input.is_action_just_pressed("arma_1"):
@@ -165,6 +186,14 @@ func _process(dt: float) -> void:
 	_vida_barra.size.x = 316.0 * frac
 	_vida_barra.color = Color(0.75, 0.12, 0.1) if frac < 0.3 else Color(0.85, 0.82, 0.78)
 	_caiu.visible = jogador.vida <= 0
+	_fome_barra.size.x = 316.0 * jogador.fome / 100.0
+	_sede_barra.size.x = 316.0 * jogador.sede / 100.0
+	_fome_barra.modulate.a = 0.5 + 0.5 * absf(sin(Time.get_ticks_msec() * 0.006)) if jogador.fome < 15.0 else 1.0
+	_sede_barra.modulate.a = 0.5 + 0.5 * absf(sin(Time.get_ticks_msec() * 0.006)) if jogador.sede < 15.0 else 1.0
+	_bolso.text = "comida %d  água %d" % [jogador.comida, jogador.agua]
+	if _btn_comer:
+		_btn_comer.visible = jogador.comida > 0 and jogador.fome < 80.0
+		_btn_beber.visible = jogador.agua > 0 and jogador.sede < 80.0
 	var ciclo := get_tree().get_first_node_in_group("ciclo") as Ciclo
 	if ciclo:
 		var f: int = int(ciclo.falta())
@@ -243,6 +272,26 @@ func _input(ev: InputEvent) -> void:
 			_olhar_ult = d.position
 
 
+func _barrinha(topo: float, cor: Color) -> ColorRect:
+	var fundo := ColorRect.new()
+	fundo.color = Color(0, 0, 0, 0.45)
+	fundo.anchor_left = 0.5
+	fundo.anchor_right = 0.5
+	fundo.offset_left = -160
+	fundo.offset_right = 160
+	fundo.offset_top = topo
+	fundo.offset_bottom = topo + 6
+	fundo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(fundo)
+	var b := ColorRect.new()
+	b.color = cor
+	b.position = Vector2(2, 1)
+	b.size = Vector2(316, 4)
+	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fundo.add_child(b)
+	return b
+
+
 func _rotulo(tam: int, altura: float) -> Label:
 	var l := Label.new()
 	l.anchor_left = 0.5
@@ -275,7 +324,7 @@ func _levou_dano(dano: int) -> void:
 
 
 func _em_botao(p: Vector2) -> bool:
-	for b: Control in [_btn_correr, _btn_agachar, _btn_mira, _btn_atacar, _btn_recarregar, _btn_pegar,
+	for b: Control in [_btn_correr, _btn_agachar, _btn_mira, _btn_atacar, _btn_recarregar, _btn_pegar, _btn_comer, _btn_beber,
 			get_node_or_null("Pular") as Control, get_node_or_null("Trocar") as Control]:
 		if b and b.get_global_rect().grow(10).has_point(p):
 			return true
@@ -299,6 +348,12 @@ func _monta_toque() -> void:
 	var trocar := _botao("TROCAR", Vector2(-130, -420), 100.0)
 	trocar.name = "Trocar"
 	trocar.button_down.connect(func() -> void: jogador.entrada["trocar"] = true)
+	_btn_comer = _botao("COMER", Vector2(-140, -560), 90.0)
+	_btn_comer.add_theme_font_size_override("font_size", 16)
+	_btn_comer.button_down.connect(func() -> void: jogador.entrada["comer"] = true)
+	_btn_beber = _botao("BEBER", Vector2(-245, -560), 90.0)
+	_btn_beber.add_theme_font_size_override("font_size", 16)
+	_btn_beber.button_down.connect(func() -> void: jogador.entrada["beber"] = true)
 	_btn_pegar = _botao("PEGAR", Vector2(-620, -175), 110.0)
 	_btn_pegar.button_down.connect(func() -> void: jogador.entrada["pegar"] = true)
 	_btn_pegar.visible = false

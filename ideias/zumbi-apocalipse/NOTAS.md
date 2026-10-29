@@ -298,7 +298,11 @@ quando você aprovar.
     cabeça/golpe forte/morte), respingo de sangue escuro no ponto (tiro e facão, visto por todos) e baque
     (mais forte na cabeça). Boneco de treino continua com faísca. Versão de rede 4.
    APK 0.26: busca no Wi-Fi também pergunta direto a cada endereço (Android sem multicast lock não ouve broadcast).
-16. ...depois: quarteirão de verdade (bloco 1), cobertura, e o que o dono pedir.
+16. **Fome e sede.** **Status: feito, APK 0.27.** Fome zera em 15 min, sede em 10 min; zerada, tira 2 de vida a
+    cada 3 s. Latas de comida e garrafas de água no chão (3 de cada, junto da caixa na casinha também);
+    guarda até 5 de cada; COMER/BEBER (PC: F/G) enche 45. Barras finas laranja (fome) e azul (sede) embaixo
+    da vida, piscando abaixo de 15. Cair enche as duas de novo. Versão de rede 5.
+17. ...depois: quarteirão de verdade (bloco 1), cobertura, e o que o dono pedir.
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)
 1. **Andar e atirar com 2 jogadores** — terceira pessoa, controles de celular e PC, 1 arma de fogo + 1 arma

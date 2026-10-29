@@ -65,5 +65,25 @@ func _init() -> void:
 	j.entrada["pegar"] = true
 	await frames(60)
 	ok(j.tem_lanterna and not l.ativo, "acha a lanterna e passa a ter lanterna")
+	# fome e sede
+	var f0: float = j.fome
+	await frames(60 * 9)
+	ok(j.fome < f0 and j.sede < 100.0, "fome e sede caem com o tempo (%.2f, %.2f)" % [j.fome, j.sede])
+	var v0: int = j.vida
+	j.fome = 0.0
+	await frames(int(Jogador.INTERVALO_FOME * 60) + 5)
+	ok(j.vida == v0 - Jogador.DANO_FOME, "fome zerada tira vida aos poucos (%d -> %d)" % [v0, j.vida])
+	var lata: Item = main.get_node("Item_comida_0")
+	j.global_position = lata.global_position + Vector3(-0.6, 0.1, 0)  # lado oposto da garrafa
+	await frames(5)
+	j.entrada["pegar"] = true
+	await frames(60)
+	ok(j.comida == 1 and not lata.ativo, "pega a lata de comida e guarda")
+	j.entrada["comer"] = true
+	await frames(3)
+	ok(j.comida == 0 and absf(j.fome - Jogador.ENCHE) < 0.5, "come: gasta a lata e enche a fome (%.0f)" % j.fome)
+	j.entrada["comer"] = true
+	await frames(3)
+	ok(absf(j.fome - Jogador.ENCHE) < 0.5, "sem lata não come")
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)

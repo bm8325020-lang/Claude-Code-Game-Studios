@@ -347,6 +347,16 @@ func _obstaculos() -> void:
 	dentro.name = "Item_casa"
 	dentro.position = Vector3(-25.8, 0, -3.6)
 	add_child(dentro)
+	# comida e água (mecânica 15)
+	for k in 3:
+		for tipo: String in ["comida", "agua"]:
+			var it := Item.new()
+			it.name = "Item_%s_%d" % [tipo, k]
+			it.tipo = tipo
+			it.quantidade = 1
+			it.position = [Vector3(-3.5, 0, -2.5), Vector3(9, 0, 4), Vector3(-25, 0, -0.8)][k] + (Vector3(0.45, 0, 0.2) if tipo == "agua" else Vector3.ZERO)
+			it.rotation_degrees.y = 37.0 * k + (90.0 if tipo == "agua" else 0.0)
+			add_child(it)
 	# "carro" abandonado
 	bloco(Vector3(5, 0.7, 6), Vector3(1.9, 1.0, 4.2), Color(0.3, 0.35, 0.4), Vector3(0, 20, 0))
 	bloco(Vector3(5, 1.45, 6), Vector3(1.7, 0.6, 2.2), Color(0.25, 0.3, 0.35), Vector3(0, 20, 0))
