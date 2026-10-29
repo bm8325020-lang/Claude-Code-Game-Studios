@@ -48,7 +48,7 @@ func _init() -> void:
 	await _faz("pistola: mirando", {"arma": "pistola", "mira_segurando": true}, 1.5)
 	await _faz("pistola: mirando de lado", {"arma": "pistola", "mira_segurando": true, "move": Vector2(1, 0)}, 1.5)
 	await _faz("pistola: agachado mirando", {"arma": "pistola", "mira_segurando": true, "agachar": true}, 1.5)
-	await _faz("pistola: tiro", {"arma": "pistola", "mira_segurando": true}, 1.0, ["atacar"])
+	await _tiro()
 	await _faz("pistola: correndo sem mirar", {"arma": "pistola", "move": Vector2(0, 1)}, 1.5)
 	await _faz("pistola: recarga", {"arma": "pistola"}, 2.0, ["recarregar"])
 	await _pega_item()
@@ -108,6 +108,28 @@ func _foto() -> Image:
 	var corte: Image = img.get_region(Rect2i(x, y, largo, alto))
 	corte.resize(LARGURA, ALTURA, Image.INTERPOLATE_BILINEAR)
 	return corte
+
+
+## mira parado, atira e fotografa: 1 antes e 5 a cada 2 quadros depois (o coice dura ~0,2 s)
+func _tiro() -> void:
+	var nome := "pistola: tiro (1ª foto antes)"
+	var filtro: PackedStringArray = OS.get_cmdline_user_args()[1].split(",") if OS.get_cmdline_user_args().size() > 1 else PackedStringArray()
+	if not filtro.is_empty() and not Array(filtro).any(func(f: String) -> bool: return f in nome):
+		return
+	_solta()
+	j.arma = "pistola"
+	j.global_position = j.inicio
+	j.camera.virar(0.0)
+	j.entrada["mira_segurando"] = true
+	await _espera(60)
+	var fotos: Array = [_foto()]
+	j.entrada["atacar"] = true
+	for i in 10:
+		await process_frame
+		if i % 2 == 1:
+			fotos.append(_foto())
+	linhas.append([nome, fotos])
+	print("robô: ", nome, " -> ", j.clipe_atual())
 
 
 func _pega_item() -> void:

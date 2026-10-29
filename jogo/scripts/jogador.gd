@@ -128,6 +128,8 @@ var _cima_t: float = 0.0
 var _cima_clipe: String = ""
 var _encara: float = 0.0        # depois de atirar sem mirar, o corpo fica virado para a mira um instante
 var _tiro_t: float = 9.0
+const COICE_GRAUS: float = 20.0  # quanto a arma sobe no tiro
+const COICE_DURA: float = 0.3   # s até voltar à mira
 const TRONCO: String = "mixamorig_Spine2"
 const MAO: String = "mixamorig_RightHand"
 
@@ -664,7 +666,7 @@ func _escolhe_cima() -> String:
 		return ""
 	if pistola.recarregando:
 		return "pistola_recarga"
-	if _tiro_t < 0.18:
+	if _tiro_t < maxf(0.18, COICE_DURA):
 		return "pistola_tiro"
 	if olha_camera():
 		return "pistola_mira"
@@ -774,6 +776,23 @@ func _aplica_cima(clipe: String, t: float, peso: float) -> void:
 		_esq.set_bone_pose_rotation(idx, _esq.get_bone_pose_rotation(idx).slerp(q, peso))
 	if clipe.begins_with("pistola"):
 		_aponta_tronco(peso)
+		if _tiro_t < COICE_DURA:
+			_coice()
+
+
+# coice do tiro, por cima da mira (que senão anularia o coice do clipe): sobe rápido e volta devagar
+func _coice() -> void:
+	var k: float = minf(_tiro_t / 0.035, 1.0) * pow(1.0 - _tiro_t / COICE_DURA, 1.5)
+	var xf: Transform3D = _esq.global_transform
+	var ombro: Vector3 = xf * _esq.get_bone_global_pose(_esq.find_bone("mixamorig_RightArm")).origin
+	var mao: Vector3 = xf * _esq.get_bone_global_pose(_esq.find_bone(MAO)).origin
+	var braco: Vector3 = (mao - ombro).normalized()
+	var sobe: Quaternion = Quaternion(braco, (braco + Vector3.UP * tan(deg_to_rad(COICE_GRAUS * k))).normalized())
+	for osso: String in [TRONCO, "mixamorig_RightArm", "mixamorig_LeftArm"]:
+		var r: Quaternion = Quaternion.IDENTITY.slerp(sobe, 0.3) if osso == TRONCO else sobe
+		var i: int = _esq.find_bone(osso)
+		var q_pai: Quaternion = (xf.basis * _esq.get_bone_global_pose(_esq.get_bone_parent(i)).basis).orthonormalized().get_rotation_quaternion()
+		_esq.set_bone_pose_rotation(i, (q_pai.inverse() * r * q_pai * _esq.get_bone_pose_rotation(i)).normalized())
 
 
 # braços, mãos, dedos, tronco e cabeça (as pernas e o quadril ficam com a locomoção)
