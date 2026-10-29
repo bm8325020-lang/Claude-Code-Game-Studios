@@ -36,6 +36,33 @@ APK conectar nele pela lista "Online".
 5. O Render dorme sem visita: o menu "Online" mostra "acordando o servidor (até 1 min)..." e tenta de novo.
 Aceite: 2 celulares jogando juntos pela internet; tabela de capacidade anotada; APK novo.
 
+## 0b. Primeira pessoa (decisão do dono: animação de terceira pessoa não fica com qualidade)
+Status: pendente
+
+O jogo passa a ser em **primeira pessoa** (celular e PC). Os outros jogadores continuam vendo o corpo inteiro
+com as animações de hoje (rede igual); só a visão do próprio jogador muda.
+1. **Câmera nos olhos**: filha do Jogador na altura dos olhos (em pé ~1,62 m, agachado ~1,05 m, transição
+   suave), mesma entrada de olhar (toque/mouse, sensibilidade igual), FOV ~75. O próprio corpo não aparece
+   para quem joga (camada de render escondida só da própria câmera), mas continua fazendo sombra.
+   Tirar a câmera de terceira pessoa e o "corpo segue a câmera" (o corpo agora sempre gira com o olhar).
+2. **Braços e arma na tela (viewmodel)**: braços leves (procurar "fps arms"/"first person hands" grátis no
+   Sketchfab CC BY ou CGTrader royalty free, logados; se não achar bom, luvas simples low poly feitas em código)
+   segurando a pistola e o facão de verdade (modelos já baixados). Desenhar por cima do cenário (sem
+   atravessar parede: camada própria ou câmera do viewmodel). Tudo **procedural, sem depender de animação
+   pronta**: balanço ao andar (bob discreto), atraso ao virar (sway), queda ao pousar, abaixar ao correr,
+   coice do tiro (arma sobe e volta, câmera sobe 1–2°), recarga (arma desce e gira, pente sai/entra por tween),
+   golpes do facão como arcos rápidos com preparação (direita→esquerda, diagonal, de cima para baixo),
+   pegar item (mão desce rápido), comer/beber (item vai à boca), lanterna na mão esquerda apontando junto.
+3. **Mira**: sem mirar = ponto/mira pequena no centro e dispersão maior; MIRA = arma vai para o centro
+   (alça e massa alinhadas), FOV cai para ~55, anda devagar. Tiro e golpe saem do centro da câmera
+   (já é assim: conferir).
+4. **Celular**: botões continuam; tirar o que só fazia sentido em terceira pessoa.
+5. **Testes**: altura da câmera em pé/agachado; corpo próprio invisível só para a própria câmera; tiro acerta
+   o que está no centro; golpe do facão acerta o boneco à frente; outros jogadores ainda veem o corpo animado
+   (teste de rede). Atualizar `tools/bot.gd` para fotografar a visão em primeira pessoa (viewmodel) e olhar
+   cada movimento: parado, andar, correr, pular, agachar, mirar, atirar, recarregar, 3 golpes, pegar, comer.
+Aceite: jogar a pista inteira em primeira pessoa sem nada atravessando a tela; robô aprovado nas folhas; APK.
+
 ## 1. Mochila (inventário)
 Status: pendente
 

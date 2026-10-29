@@ -4,7 +4,8 @@ Só anotações das ideias do dono do projeto. Nada foi criado ainda (sem códig
 Última atualização: 2026-10-24 (20ª conversa).
 
 ## Plataforma e formato
-- **Câmera em terceira pessoa** (personagem visto de costas).
+- **Câmera em primeira pessoa** (decidido em 2026-10-29: em terceira pessoa a animação aparece demais e não dá
+  para ter qualidade). Os outros jogadores continuam vendo o corpo inteiro animado.
 - Celular **e** PC. Vai ser publicado na Play Store.
 - **Multiplayer obrigatório** ("jogo solo não faz sentido").
 - Até **30 jogadores por servidor**.
