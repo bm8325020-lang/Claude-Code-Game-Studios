@@ -25,3 +25,7 @@ asfalto.jpg: "Texture of old black asphalt highly degraded" por tijerin_art — 
 correio.glb: "Post Office Building" por Grimecent — https://sketchfab.com/3d-models/b3242563adc74cc89c41ede60904ba62
 predio_props.glb: "Post Apocalyptic Building with Props" por nermin — https://sketchfab.com/3d-models/bd9ab14874804f43a18de387253953cc
 casa_b/: "Abandoned House" por Sengchor — https://sketchfab.com/3d-models/a0c01ce35a474545b805c0739806aace
+
+== assets/cgtrader/ (CGTrader, Royalty Free License — pode usar no jogo, não pode redistribuir o arquivo; fica fora do git) ==
+pistola.glb: "Low Poly Pistol" por lowpwpc — https://www.cgtrader.com/free-3d-models/military/gun/low-poly-pistol-64ea2ecc-60c1-4abf-a517-0702adb20302
+  (baixar de novo: logado no CGTrader, página do modelo > Free Download > PistolaLow.glb; texturas reduzidas para 1024 webp)

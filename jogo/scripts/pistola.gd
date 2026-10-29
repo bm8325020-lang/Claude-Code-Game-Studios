@@ -1,4 +1,4 @@
-# Pistola de teste (modelo de blocos provisório). Tiro semiautomático na direção da mira (centro da tela),
+# Pistola de teste. Tiro semiautomático na direção da mira (centro da tela),
 # pente + reserva, recarga, dispersão (menor mirando), tiro na cabeça x2, clarão, rastro, coice e som.
 # Quem atira manda o efeito para os outros aparelhos (rastro e clarão), o dano é calculado no atirador.
 class_name Pistola
@@ -44,34 +44,22 @@ func _ready() -> void:
 	cano.add_child(_luz)
 
 
-# pistola de blocos: ferrolho, cano, empunhadura e gatilho
+# modelo "Low Poly Pistol" (lowpwpc, CGTrader). O arquivo vem com pente e bala soltos: fica só a pistola.
+# No arquivo o cano aponta para -Z; aqui é +Z (cano para a frente), empunhadura para -Y, na mão em (0, -0.04, 0).
 func _monta_modelo() -> void:
-	var metal := StandardMaterial3D.new()
-	metal.albedo_color = Color(0.16, 0.16, 0.18)
-	metal.metallic = 0.6
-	metal.roughness = 0.4
-	var cabo := StandardMaterial3D.new()
-	cabo.albedo_color = Color(0.22, 0.17, 0.12)
-	# eixo +Z = cano para a frente; empunhadura para -Y
-	_bloco(Vector3(0, 0.035, 0.07), Vector3(0.032, 0.04, 0.2), metal)     # ferrolho
-	_bloco(Vector3(0, 0.02, 0.18), Vector3(0.02, 0.02, 0.04), metal)      # boca do cano
-	_bloco(Vector3(0, -0.04, 0.0), Vector3(0.028, 0.1, 0.04), cabo).rotation_degrees.x = -12.0  # empunhadura
-	_bloco(Vector3(0, -0.005, 0.04), Vector3(0.006, 0.025, 0.02), metal)  # gatilho
+	var m := (load("res://assets/cgtrader/pistola.glb") as PackedScene).instantiate() as Node3D
+	for mi: Node in m.find_children("*", "MeshInstance3D", true, false):
+		if mi.name != "Pistola":
+			mi.free()
+		else:
+			(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	m.rotation_degrees.y = 180.0
+	m.scale = Vector3.ONE * 0.035  # 5,7 unidades de comprimento no arquivo -> 20 cm
+	m.position = Vector3(0, 0.02, 0.066)
+	add_child(m)
 	cano = Node3D.new()
-	cano.position = Vector3(0, 0.035, 0.2)
+	cano.position = Vector3(0, 0.06, 0.17)
 	add_child(cano)
-
-
-func _bloco(p: Vector3, tam: Vector3, m: Material) -> MeshInstance3D:
-	var mi := MeshInstance3D.new()
-	var bm := BoxMesh.new()
-	bm.size = tam
-	mi.mesh = bm
-	mi.material_override = m
-	mi.position = p
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mi)
-	return mi
 
 
 func _process(dt: float) -> void:

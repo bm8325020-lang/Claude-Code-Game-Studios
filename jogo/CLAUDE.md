@@ -65,5 +65,10 @@ preferences:{format:"fbx7_2019",skin:"false",fps:"30",reducekf:"0"}, product_nam
 `/api/v1/characters/<ch>/monitor` até "completed" → `job_result` é a URL. Baixados assim (não estão no Drive):
 `soltas/pegar_chao.fbx` (Unarmed Grab Torch From Floor).
 
+## CGTrader (logado)
+Sessão: `/root/.cgtrader_sessao/estado.json` (login por código de e-mail; conta separada do dono). Scripts lá:
+`busca2.js <palavra>` (lista grátis), `info.js <url>` (licença/polígonos), `direto.js <item_id> <arquivo>` + curl do
+`url.txt` (baixar). Licença Royalty Free: arquivos em `assets/cgtrader/` (fora do git), créditos em LICENCAS.txt.
+
 ## Pendências do dono
 Servidor online: sem cartão de crédito (Oracle pediu). Opção falada: Azure for Students (18+, e-mail escolar).
