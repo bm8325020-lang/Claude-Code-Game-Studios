@@ -51,8 +51,6 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   (MIRA, ATACAR/ATIRAR, PULAR, AGACHAR, CORRER, TROCAR, RECARREGAR, PEGAR/USAR, COMER, BEBER). PC: WASD, mouse, E F G Q R 1 2.
 - `rede.gd` — ENet 7777, broadcast 7778, pergunta direta 7779, `VERSAO`, `LISTA_URL` (servidores.json).
 - `menu.gd` — online (lista do GitHub), sozinho, criar no Wi-Fi, lista Wi-Fi, IP.
-- `quarteirao.gd` — bloco 1 (centro 70,60): ruas, calçadas, prédios e peças do Sketchfab. `modelo()` põe um .glb
-  com tamanho em metros, colisão "caixa"/"malha", `abre` (tira triângulos: abrir parede) e `dois_lados`.
 - `camera_terceira.gd`, `boneco_treino.gd`.
 - tools/: `foto.gd`, `baixa_mixamo.sh` (rebaixa assets/mixamo do Drive), `servidor/instalar.sh` + `publica.sh`.
 

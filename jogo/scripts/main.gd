@@ -15,8 +15,7 @@ var spawner_zumbis: MultiplayerSpawner
 var navegacao: NavigationRegion3D
 var ciclo: Ciclo
 ## Onde os zumbis nascem (e levantam depois de mortos).
-const PONTOS_ZUMBI: Array[Vector3] = [Vector3(-6, 0, 22), Vector3(0, 0, 26), Vector3(6, 0, 22), Vector3(24, 0, 0),
-	Vector3(70, 0, 48), Vector3(60, 0, 60), Vector3(70, 0, 72)]  # os 3 últimos no quarteirão
+const PONTOS_ZUMBI: Array[Vector3] = [Vector3(-6, 0, 22), Vector3(0, 0, 26), Vector3(6, 0, 22), Vector3(24, 0, 0)]
 ## zumbis de tocaia: deitados ao lado do carro e no corredor entre os muros
 const PONTOS_TOCAIA: Array[Vector3] = [Vector3(3.2, 0, 9.5), Vector3(13.5, 0, 9)]
 ## zumbis de patrulha: rota em volta da casinha (longe o bastante do início para não ver quem nasce)
@@ -30,7 +29,6 @@ func _ready() -> void:
 	_luz()
 	_chao()
 	_obstaculos()
-	Quarteirao.monta(self)
 	jogadores = Node3D.new()
 	jogadores.name = "Jogadores"
 	add_child(jogadores)
@@ -167,7 +165,7 @@ func _poe_zumbis() -> void:
 	malha.geometry_collision_mask = 1
 	malha.geometry_source_geometry_mode = NavigationMesh.SOURCE_GEOMETRY_GROUPS_WITH_CHILDREN
 	malha.geometry_source_group_name = &"cenario"
-	malha.filter_baking_aabb = AABB(Vector3(-40, -1, -30), Vector3(140, 10, 120))  # a pista e o quarteirão
+	malha.filter_baking_aabb = AABB(Vector3(-40, -1, -30), Vector3(80, 10, 70))  # só a pista
 	navegacao.navigation_mesh = malha
 	add_child(navegacao)
 	add_to_group("cenario")
