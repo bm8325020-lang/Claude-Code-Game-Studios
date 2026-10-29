@@ -148,7 +148,7 @@ diferente. Ficam no chão/baús como item; trocar de arma branca pela mochila. M
 Aceite: robô `bot.gd` mostra o combo de cada uma; testes de dano/alcance por arma.
 
 ## 5. Peças de arma e drop de zumbi
-Status: pendente
+Status: feito (APK 0.39). Loot.PECAS, Loot.DROP_ZUMBI (35%), chefe 2–3 com raras ×3; drop some em 3 min.
 
 Itens novos: peças (cano, ferrolho, mola, gatilho, cabo, carregador) com raridade. Fontes: baú, chão e
 **drop de zumbi** (importante): ao morrer, zumbi sorteia drop (tabela própria; chefe dropa mais e mais raro).

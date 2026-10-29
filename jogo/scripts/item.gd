@@ -45,8 +45,8 @@ func nome() -> String:
 			return "lata de comida"
 		"agua":
 			return "garrafa de água"
-		"facao", "pistola", "faca", "taco", "machado":
-			return Mochila.NOMES[tipo].to_lower()
+		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador":
+			return Mochila.NOMES[tipo].to_lower() + (" (%d)" % quantidade if quantidade > 1 else "")
 	return "lanterna"
 
 
@@ -107,6 +107,8 @@ func _monta_modelo() -> void:
 		alca.albedo_color = Color(0.1, 0.1, 0.1)
 		_bloco(Vector3(0, 0.158, 0), Vector3(0.12, 0.012, 0.025), alca)
 
+	elif tipo in Loot.PECAS:
+		_monta_peca()
 	elif Armas.e_branca(tipo):
 		var pega: Node3D = Armas.modelo(tipo)
 		pega.rotation_degrees = Vector3(0, 0, 90)  # deitada de lado no chão
@@ -147,7 +149,52 @@ func _modelo(caminho: String, tam: float, giro: Vector3, so: String = "") -> voi
 	m.position = Vector3(-meio.x, -baixo * k, -meio.z)
 
 
-func _bloco(p: Vector3, tam: Vector3, m: Material) -> void:
+# peças de arma: metal oxidado ou polímero preto, deitadas no chão
+func _monta_peca() -> void:
+	var aco := StandardMaterial3D.new()
+	aco.albedo_color = Color(0.32, 0.32, 0.33)
+	aco.metallic = 0.5
+	aco.roughness = 0.45
+	var preto := StandardMaterial3D.new()
+	preto.albedo_color = Color(0.08, 0.08, 0.09)
+	preto.roughness = 0.7
+	match tipo:
+		"mola":
+			for k in 7:  # espiras
+				var mi := MeshInstance3D.new()
+				var t := TorusMesh.new()
+				t.inner_radius = 0.008
+				t.outer_radius = 0.012
+				mi.mesh = t
+				mi.material_override = aco
+				mi.rotation_degrees.z = 90
+				mi.position = Vector3(-0.024 + k * 0.008, 0.012, 0)
+				add_child(mi)
+		"gatilho":
+			_bloco(Vector3(0, 0.006, 0), Vector3(0.03, 0.012, 0.012), preto)
+			_bloco(Vector3(0.008, 0.018, 0), Vector3(0.008, 0.026, 0.01), preto).rotation_degrees.z = -18.0
+		"cano":
+			var mi := MeshInstance3D.new()
+			var c := CylinderMesh.new()
+			c.top_radius = 0.009
+			c.bottom_radius = 0.009
+			c.height = 0.11
+			mi.mesh = c
+			mi.material_override = aco
+			mi.rotation_degrees.z = 90
+			mi.position.y = 0.009
+			add_child(mi)
+		"cabo":
+			_bloco(Vector3(0, 0.014, 0), Vector3(0.032, 0.028, 0.1), preto).rotation_degrees.y = 8.0
+		"ferrolho":
+			_bloco(Vector3(0, 0.014, 0), Vector3(0.16, 0.028, 0.03), aco)
+			_bloco(Vector3(0.02, 0.029, 0), Vector3(0.05, 0.004, 0.02), preto)  # janela de ejeção
+		"carregador":
+			_bloco(Vector3(0, 0.011, 0), Vector3(0.025, 0.022, 0.11), preto)
+			_bloco(Vector3(0, 0.011, -0.058), Vector3(0.028, 0.024, 0.008), aco)  # base
+
+
+func _bloco(p: Vector3, tam: Vector3, m: Material) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	var b := BoxMesh.new()
 	b.size = tam
@@ -155,3 +202,4 @@ func _bloco(p: Vector3, tam: Vector3, m: Material) -> void:
 	mi.material_override = m
 	mi.position = p
 	add_child(mi)
+	return mi

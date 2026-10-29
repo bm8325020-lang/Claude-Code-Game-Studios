@@ -189,11 +189,12 @@ func _status(caminho: String) -> void:
 
 
 ## Servidor (ou sozinho): põe no chão um item largado/que não coube na mochila.
-func solta_item(tipo: String, qtd: int, pos: Vector3) -> void:
+func solta_item(tipo: String, qtd: int, pos: Vector3, some: float = Item.SOME) -> void:
+	var d := {"tipo": tipo, "qtd": qtd, "pos": pos, "some": some}
 	if multiplayer.has_multiplayer_peer():
-		spawner_itens.spawn({"tipo": tipo, "qtd": qtd, "pos": pos})
+		spawner_itens.spawn(d)
 	else:
-		soltos.add_child(_cria_item_solto({"tipo": tipo, "qtd": qtd, "pos": pos}))
+		soltos.add_child(_cria_item_solto(d))
 
 
 func _cria_item_solto(d: Dictionary) -> Node:
@@ -207,6 +208,7 @@ func _cria_item_solto(d: Dictionary) -> Node:
 	it.tipo = String(d.tipo)
 	it.quantidade = int(d.qtd)
 	it.solto = true
+	it._some_t = float(d.get("some", Item.SOME))
 	it.position = d.pos
 	return it
 

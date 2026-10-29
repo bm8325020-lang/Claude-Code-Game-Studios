@@ -108,6 +108,7 @@ var _fechando: bool = false        # já chegou no seu lado do cerco: agora vai 
 var _porta_alvo: Porta            # o soco em andamento é na porta
 var _foge_t: float = 0.0           # > 0: fugindo
 var _fugiu: bool = false           # já fugiu nesta vida (foge uma vez só)
+var _rng_drop := RandomNumberGenerator.new()
 var _abrigo: Vector3 = Vector3.INF # onde se esconder (INF = não achou: só corre para longe)
 var _exposto_t: float = 0.0
 var _zigue_t: float = 0.0
@@ -616,6 +617,23 @@ func _morre() -> void:
 	_morto_t = MORTO_POR
 	anim.speed_scale = 1.0
 	_toca("morte", 0.1, true)
+	if _manda():
+		_larga_drop()
+
+
+const DROP_SOME: float = 180.0  # s até o que o zumbi largou sumir
+
+
+# servidor: sorteia o que o zumbi larga (Loot.drop) e põe no chão em volta do corpo
+func _larga_drop() -> void:
+	var principal := get_tree().get_first_node_in_group("principal")
+	if principal == null:
+		return
+	var coisas: Array = Loot.drop(_rng_drop, chefe)
+	for k in coisas.size():
+		var a: float = TAU * k / maxf(coisas.size(), 1.0) + _rng_drop.randf()
+		var p: Vector3 = global_position + Vector3(cos(a), 0, sin(a)) * 0.5
+		principal.solta_item(String(coisas[k].tipo), int(coisas[k].qtd), Vector3(p.x, global_position.y, p.z), DROP_SOME)
 
 
 func _levanta() -> void:

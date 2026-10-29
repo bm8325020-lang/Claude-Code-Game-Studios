@@ -60,7 +60,8 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   Espaco), `icones.gd` (Icones.de(tipo): modelo 3D renderizado). Teste: tests/test_mochila.gd (16).
 - `bau.gd` (Bau) — `conteudo` (sincronizado), `pega_por(j, i)` no servidor, reenche em REENCHE; `loot.gd` (Loot.TABELA,
   `sorteia(rng, facil)`, raridade/cores); `tela_bau.gd`. Jogador: `bau_perto()`, abrir parado (`abrindo`), `pega_do_bau`.
-  `main.BAUS` (posições). Teste: tests/test_baus.gd (11).
+  `main.BAUS` (posições). Teste: tests/test_baus.gd (11). Peças: Loot.PECAS, `Loot.drop(rng, chefe)` (Zumbi._larga_drop
+  no servidor ao morrer, some em DROP_SOME). Teste: tests/test_pecas.gd (8).
   Morte: `Jogador._larga_tudo()` → `main.solta_saco()` (Bau com `saco`); `copia_mochila`/`dano_srv_t` no servidor e
   `main.saiu_morrendo(j)`. Teste: tests/test_morte.gd (11).
 - `armas.gd` (Armas) — BRANCAS (modelo, ponta, tam, vel, dano[3], alcance, empurra, som), `modelo(tipo)` = pegada na
