@@ -134,11 +134,17 @@ func _jogador_cai() -> void:
 		if j.vida <= 0:
 			break
 	ok(j.vida == 0 and j.clipe_atual() == "morte", "jogador cai com a vida zerada (%s)" % j.clipe_atual())
+	ok(j.mochila.tem("facao") and not j.mochila.tem("pistola"), "caído: só o facão fica (o resto vai no saco)")
 	await frames(int(Jogador.RENASCE * 60) + 10)
 	ok(j.vida == Jogador.VIDA_MAX and plano(j.global_position, j.inicio) < 0.5, "volta no início com a vida cheia")
 
 
 func _ouve_tiro() -> void:
+	# o jogador caiu no teste anterior e largou o saco: devolve pistola, balas e lanterna para os próximos
+	j.mochila.adicionar("pistola", 1)
+	j.mochila.adicionar("lanterna", 1)
+	j.pistola.reserva = Pistola.RESERVA_INICIAL
+	j.pistola.balas = Pistola.PENTE
 	# jogador atrás do prédio (o zumbi não vê); o tiro chama o zumbi até o lugar do barulho
 	j.vida = 100000
 	j.velocity = Vector3.ZERO

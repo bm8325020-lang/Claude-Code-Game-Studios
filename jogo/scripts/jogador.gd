@@ -181,7 +181,11 @@ func _ready() -> void:
 	if tem_lanterna:
 		mochila.adicionar("lanterna", 1)
 	pistola.reserva = Pistola.RESERVA_INICIAL
-	mochila.mudou.connect(func() -> void: tem_lanterna = mochila.tem("lanterna"))
+	mochila.mudou.connect(func() -> void:
+		tem_lanterna = mochila.tem("lanterna")
+		if arma == "pistola" and not mochila.tem("pistola"):
+			arma = "facao"  # largou/perdeu a pistola: volta para o facão
+		_copia_t = minf(_copia_t, 0.5))  # manda a cópia ao servidor logo
 	_monta_lanterna()
 	_som = AudioStreamPlayer3D.new()
 	_som.max_db = 3.0
@@ -292,6 +296,10 @@ func _physics_process(dt: float) -> void:
 			sede = minf(100.0, sede + ENCHE)
 	_passa_fome(dt)
 	_abre_bau(dt, mov)
+	_copia_t -= dt
+	if _copia_t <= 0.0 and multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		_copia_t = 5.0
+		_copia.rpc_id(1, conteudo_para_saco(mochila, pistola.balas))
 	if _pegando > 0.0:
 		_pegando -= dt
 		mov = Vector2.ZERO
@@ -580,6 +588,7 @@ signal item_pego(tipo: String, qtd: int)
 
 ## Dano de zumbi (ou, depois, de outro jogador). Quem bate pode estar em outro aparelho: o dano vai para o dono.
 func levar_dano(dano: int, dir: Vector3) -> void:
+	dano_srv_t = Time.get_ticks_msec() / 1000.0
 	if is_multiplayer_authority():
 		_recebe_dano(dano, dir)
 	else:
@@ -628,6 +637,58 @@ func _cai() -> void:
 	if pistola.recarregando:
 		pistola.recarregando = false
 	_toca("morte", 0.1)
+	if is_multiplayer_authority():
+		_larga_tudo()
+
+
+## Tudo da mochila (menos o facão) vira um saco no chão onde caiu; as balas do pente vão junto.
+func _larga_tudo() -> void:
+	var tudo: Array = conteudo_para_saco(mochila, pistola.balas)
+	for i in Mochila.ESPACOS:
+		var e: Variant = mochila.espacos[i]
+		if e and e.tipo != "facao":
+			mochila.espacos[i] = null
+	pistola.balas = 0
+	mochila.mudou.emit()
+	if tudo.is_empty():
+		return
+	if not multiplayer.has_multiplayer_peer() or multiplayer.is_server():
+		get_tree().get_first_node_in_group("principal").solta_saco(tudo, global_position)
+	else:
+		_pede_saco.rpc_id(1, tudo)
+
+
+## O que vai para o saco: tudo menos o facão, juntando o mesmo tipo; `pente` = balas na pistola.
+static func conteudo_para_saco(m: Mochila, pente: int) -> Array:
+	var junta: Dictionary = {}
+	for e: Variant in m.espacos:
+		if e and e.tipo != "facao":
+			junta[e.tipo] = int(junta.get(e.tipo, 0)) + int(e.qtd)
+	if pente > 0 and junta.has("pistola"):
+		junta["municao"] = int(junta.get("municao", 0)) + pente
+	var out: Array = []
+	for t: String in junta:
+		out.append({"tipo": t, "qtd": junta[t]})
+	return out
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _pede_saco(tudo: Array) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority() and tudo.size() <= Mochila.ESPACOS:
+		get_tree().get_first_node_in_group("principal").solta_saco(tudo, global_position)
+
+
+## Servidor: última cópia da mochila deste jogador (o dono manda) e quando levou dano pela última vez —
+## para largar o saco se ele sair do jogo caído ou em luta.
+var copia_mochila: Array = []
+var dano_srv_t: float = -99.0
+var _copia_t: float = 0.0
+
+
+@rpc("any_peer", "call_remote", "unreliable_ordered")
+func _copia(tudo: Array) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority() and tudo.size() <= Mochila.ESPACOS:
+		copia_mochila = tudo
 
 
 func _caido(dt: float) -> void:
@@ -715,7 +776,7 @@ const PISTOLA_POS: Vector3 = Vector3(0, 0.08, 0)
 
 
 func _troca_arma(nova: String) -> void:
-	if nova == arma or _golpe >= 0:
+	if nova == arma or _golpe >= 0 or not mochila.tem(nova):
 		return
 	arma = nova
 	if pistola.recarregando:

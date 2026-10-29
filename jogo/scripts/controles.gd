@@ -242,7 +242,7 @@ func _process(dt: float) -> void:
 	if jogador.abrindo:
 		_dica_pegar.text = "ABRINDO... %d%%" % roundi((1.0 - jogador.abrindo_t / Bau.ABRIR_T) * 100.0)
 	elif bau:
-		_dica_pegar.text = ("ABRIR BAÚ" if toque else "[E] abrir baú")
+		_dica_pegar.text = ("REVISTAR" if toque else "[E] revistar") if bau.saco else ("ABRIR BAÚ" if toque else "[E] abrir baú")
 	elif it:
 		_dica_pegar.text = ("PEGAR " if toque else "[E] pegar ") + it.nome()
 	elif porta:

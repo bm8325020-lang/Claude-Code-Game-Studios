@@ -7,6 +7,7 @@ var jogador: Jogador
 var bau: Bau
 var _lista: VBoxContainer
 var _visto: Array = []
+var _titulo: Label
 
 
 func _ready() -> void:
@@ -17,7 +18,8 @@ func _ready() -> void:
 	fundo.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(fundo)
 	var col := UiTema.painel_central(self, 640.0)
-	col.add_child(UiTema.titulo("BAÚ", 44, UiTema.DESTAQUE))
+	_titulo = UiTema.titulo("BAÚ", 44, UiTema.DESTAQUE)
+	col.add_child(_titulo)
 	_lista = VBoxContainer.new()
 	_lista.add_theme_constant_override("separation", 8)
 	col.add_child(_lista)
@@ -35,6 +37,7 @@ func abre(j: Jogador, b: Bau) -> void:
 	bau = b
 	_visto = []
 	visible = true
+	_titulo.text = "MOCHILA NO CHÃO" if b.saco else "BAÚ"
 	move_to_front()
 
 

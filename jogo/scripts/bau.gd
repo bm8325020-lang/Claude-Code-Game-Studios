@@ -10,6 +10,10 @@ const REENCHE: float = 300.0
 
 ## cidade inicial: mais comida e água
 @export var facil: bool = false
+## saco de quem caiu (não sorteia, não reenche, some vazio ou em SOME_SACO)
+var saco: bool = false
+const SOME_SACO: float = 600.0
+var _saco_t: float = SOME_SACO
 ## [{"tipo", "qtd"}] — vai pela rede quando muda
 var conteudo: Array = []
 var _vazio_t: float = 0.0
@@ -28,7 +32,7 @@ func _ready() -> void:
 	sync.root_path = NodePath("..")
 	sync.replication_config = cfg
 	add_child(sync)
-	if _manda():
+	if _manda() and not saco:
 		_rng.seed = hash(name) ^ Time.get_ticks_usec()
 		conteudo = Loot.sorteia(_rng, facil)
 
@@ -68,6 +72,12 @@ func pega_por(j: Jogador, i: int) -> void:
 
 
 func _process(dt: float) -> void:
+	if saco:
+		if _manda():
+			_saco_t -= dt
+			if conteudo.is_empty() or _saco_t <= 0.0:
+				queue_free()
+		return
 	_tampa.rotation.x = lerp_angle(_tampa.rotation.x, deg_to_rad(-100.0) if conteudo.is_empty() else 0.0, 1.0 - exp(-6.0 * dt))
 	if _manda() and conteudo.is_empty():
 		_vazio_t -= dt
@@ -75,8 +85,11 @@ func _process(dt: float) -> void:
 			conteudo = Loot.sorteia(_rng, facil)
 
 
-# caixa de madeira escura com cantoneiras de metal e tampa (dobradiça atrás)
+# caixa de madeira escura com cantoneiras de metal e tampa (dobradiça atrás); o saco é uma mochila de lona
 func _monta() -> void:
+	if saco:
+		_monta_saco()
+		return
 	var madeira := StandardMaterial3D.new()
 	madeira.albedo_color = Color(0.33, 0.22, 0.13)
 	madeira.roughness = 0.85
@@ -99,6 +112,28 @@ func _monta() -> void:
 	add_child(_tampa)
 	_bloco(_tampa, Vector3(0, 0.06, corpo.z * 0.5), Vector3(corpo.x + 0.02, 0.12, corpo.z + 0.02), madeira)
 	_bloco(_tampa, Vector3(0, 0.02, corpo.z + 0.01), Vector3(0.12, 0.1, 0.03), metal)  # fecho
+
+
+func _monta_saco() -> void:
+	collision_layer = 0  # não atrapalha ninguém de andar
+	var lona := StandardMaterial3D.new()
+	lona.albedo_color = Color(0.27, 0.3, 0.2)
+	lona.roughness = 0.95
+	var mi := MeshInstance3D.new()
+	var c := CapsuleMesh.new()
+	c.radius = 0.2
+	c.height = 0.62
+	mi.mesh = c
+	mi.material_override = lona
+	mi.rotation_degrees = Vector3(0, 25, 90)  # deitada
+	mi.position.y = 0.17
+	mi.scale = Vector3(1, 1, 0.75)
+	add_child(mi)
+	var tira := StandardMaterial3D.new()
+	tira.albedo_color = Color(0.12, 0.12, 0.1)
+	_bloco(self, Vector3(0, 0.3, 0), Vector3(0.05, 0.03, 0.42), tira)
+	_tampa = Node3D.new()
+	add_child(_tampa)
 
 
 func _bloco(pai: Node3D, p: Vector3, tam: Vector3, m: Material) -> void:

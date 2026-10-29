@@ -130,7 +130,7 @@ Aceite: dois jogadores veem o mesmo conteúdo; um pega, some para o outro; teste
 (10 000 sorteios dentro da margem).
 
 ## 3. Morte com loot no chão
-Status: pendente
+Status: feito (APK 0.37). Saco = Bau com `saco` (spawner), revistar 1,5 s, some vazio/10 min; sair caído ou em luta (<10 s) larga a cópia da mochila que o dono manda a cada 5 s.
 
 Ao morrer (vida 0 e sem resgate — o resgate vem no prompt 10), a mochila inteira vira um **saco no chão**
 no lugar do corpo (qualquer um abre e pega), e o jogador renasce sem nada (só facão). O saco some em 10 min.

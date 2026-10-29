@@ -197,6 +197,12 @@ func solta_item(tipo: String, qtd: int, pos: Vector3) -> void:
 
 
 func _cria_item_solto(d: Dictionary) -> Node:
+	if d.has("saco"):
+		var b := Bau.new()
+		b.saco = true
+		b.conteudo = d.saco
+		b.position = d.pos
+		return b
 	var it := Item.new()
 	it.tipo = String(d.tipo)
 	it.quantidade = int(d.qtd)
@@ -221,7 +227,27 @@ func _cheio() -> void:
 func _peer_saiu(id: int) -> void:
 	var n: Node = jogadores.get_node_or_null(str(id))
 	if n:
+		if multiplayer.is_server():
+			saiu_morrendo(n as Jogador)
 		n.queue_free()
+
+
+## Servidor: quem sai do jogo caído ou em luta (dano há menos de 10 s) larga o saco com a última cópia da mochila.
+func saiu_morrendo(j: Jogador) -> bool:
+	var em_luta: bool = Time.get_ticks_msec() / 1000.0 - j.dano_srv_t < 10.0
+	if (j.vida <= 0 or em_luta) and not j.copia_mochila.is_empty():
+		solta_saco(j.copia_mochila, j.global_position)
+		return true
+	return false
+
+
+## Servidor (ou sozinho): saco com as coisas de quem caiu; qualquer um revista. Some vazio ou em 10 min.
+func solta_saco(tudo: Array, pos: Vector3) -> void:
+	var d := {"saco": tudo, "pos": pos}
+	if multiplayer.has_multiplayer_peer():
+		spawner_itens.spawn(d)
+	else:
+		soltos.add_child(_cria_item_solto(d))
 
 
 # quem manda nos zumbis (sozinho ou servidor): faz a malha de navegação e cria os zumbis
