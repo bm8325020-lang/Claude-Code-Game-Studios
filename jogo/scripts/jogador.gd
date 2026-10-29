@@ -60,7 +60,13 @@ var vida: int = VIDA_MAX
 signal dano_levado(dano: int)
 var inicio: Vector3
 ## provisório para testar: todos começam com lanterna; depois só quem achar uma no mapa
-var tem_lanterna: bool = true
+var tem_lanterna: bool = true:
+	set(v):
+		tem_lanterna = v
+		if mochila and mochila.tem("lanterna") != v:
+			mochila.definir("lanterna", 1 if v else 0)
+## Mochila (os 6 primeiros espaços são a barra rápida). Comida, água e a reserva da pistola moram aqui.
+var mochila := Mochila.new()
 var _lanterna: SpotLight3D
 var _pegando: float = 0.0       # > 0: abaixado pegando um item (não anda)
 const PEGAR_DUR: float = 1.2  # = clipe "pegar" (abaixa até o chão e levanta)
@@ -79,8 +85,16 @@ const COMIDA_MAX: int = 5
 const ENCHE: float = 45.0           # quanto uma lata/garrafa enche
 var fome: float = 100.0
 var sede: float = 100.0
-var comida: int = 0
-var agua: int = 0
+var comida: int:
+	get:
+		return mochila.conta("comida")
+	set(v):
+		mochila.definir("comida", v)
+var agua: int:
+	get:
+		return mochila.conta("agua")
+	set(v):
+		mochila.definir("agua", v)
 var _fome_t: float = INTERVALO_FOME
 ## Parte de cima do corpo (mirar/atirar/recarregar) por cima das pernas; vai pela rede.
 var cima_rede: String = ""
@@ -161,6 +175,13 @@ func _ready() -> void:
 	add_child(_teto)
 	_monta_modelo()
 	_monta_arma()
+	# começa com facão, pistola, lanterna (provisório) e um pente de reserva
+	mochila.adicionar("facao", 1)
+	mochila.adicionar("pistola", 1)
+	if tem_lanterna:
+		mochila.adicionar("lanterna", 1)
+	pistola.reserva = Pistola.RESERVA_INICIAL
+	mochila.mudou.connect(func() -> void: tem_lanterna = mochila.tem("lanterna"))
 	_monta_lanterna()
 	_som = AudioStreamPlayer3D.new()
 	_som.max_db = 3.0
@@ -460,16 +481,50 @@ func _rede_ganha(tipo: String, qtd: int) -> void:
 
 
 func _recebe(tipo: String, qtd: int) -> void:
-	match tipo:
-		"municao":
-			pistola.reserva = mini(pistola.reserva + qtd, Pistola.RESERVA_MAX)
-		"lanterna":
-			tem_lanterna = true
+	var coube: int = mochila.adicionar(tipo, qtd)
+	if coube < qtd:
+		_larga_no_chao(tipo, qtd - coube)  # o que não coube volta para o chão
+	if coube > 0:
+		item_pego.emit(tipo, coube)
+
+
+## Larga o que está no espaço `i` da mochila no chão, à frente (facão e pistola não saem).
+func largar(i: int) -> void:
+	var e: Dictionary = mochila.tirar_espaco(i)
+	if not e.is_empty():
+		_larga_no_chao(e.tipo, e.qtd)
+
+
+## Barra rápida: arma vai para a mão; comida e água são consumidas.
+func usar_espaco(i: int) -> void:
+	var e: Variant = mochila.espacos[i]
+	if e == null:
+		return
+	match String(e.tipo):
+		"facao", "pistola":
+			entrada["arma"] = e.tipo
 		"comida":
-			comida = mini(comida + qtd, COMIDA_MAX)
+			entrada["comer"] = true
 		"agua":
-			agua = mini(agua + qtd, COMIDA_MAX)
-	item_pego.emit(tipo, qtd)
+			entrada["beber"] = true
+
+
+func _larga_no_chao(tipo: String, qtd: int) -> void:
+	var frente: Vector3 = -camera.cam.global_basis.z if camera else modelo.global_basis.z
+	frente.y = 0.0
+	var pos: Vector3 = global_position + frente.normalized() * 0.9
+	if not multiplayer.has_multiplayer_peer() or multiplayer.is_server():
+		get_tree().get_first_node_in_group("principal").solta_item(tipo, qtd, pos)
+	else:
+		_pede_largar.rpc_id(1, tipo, qtd, pos)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _pede_largar(tipo: String, qtd: int, pos: Vector3) -> void:
+	# roda no servidor: só o dono pede, e só perto de onde ele está
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority() \
+			and pos.distance_to(global_position) < 2.5 and qtd > 0 and qtd <= 96 and Mochila.NOMES.has(tipo):
+		get_tree().get_first_node_in_group("principal").solta_item(tipo, qtd, pos)
 
 
 ## Avisa o HUD que pegou algo.

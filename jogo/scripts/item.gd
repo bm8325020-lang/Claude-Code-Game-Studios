@@ -17,6 +17,10 @@ var ativo: bool = true:
 		ativo = v
 		visible = v
 var _volta_t: float = 0.0
+## Largado por alguém (não faz parte do mapa): some ao ser pego ou depois de SOME segundos.
+var solto: bool = false
+const SOME: float = 600.0
+var _some_t: float = SOME
 
 
 func _ready() -> void:
@@ -41,6 +45,8 @@ func nome() -> String:
 			return "lata de comida"
 		"agua":
 			return "garrafa de água"
+		"facao", "pistola":
+			return Mochila.NOMES[tipo].to_lower()
 	return "lanterna"
 
 
@@ -68,10 +74,18 @@ func pegar_por(j: Jogador) -> bool:
 	ativo = false
 	_volta_t = VOLTA
 	j.ganhar(tipo, quantidade)
+	if solto:
+		queue_free()  # o spawner tira dos outros aparelhos
 	return true
 
 
 func _process(dt: float) -> void:
+	if solto:
+		if not multiplayer.has_multiplayer_peer() or multiplayer.is_server():
+			_some_t -= dt
+			if _some_t <= 0.0:
+				queue_free()
+		return
 	if not ativo and (not multiplayer.has_multiplayer_peer() or multiplayer.is_server()):
 		_volta_t -= dt
 		if _volta_t <= 0.0:
@@ -93,6 +107,10 @@ func _monta_modelo() -> void:
 		alca.albedo_color = Color(0.1, 0.1, 0.1)
 		_bloco(Vector3(0, 0.158, 0), Vector3(0.12, 0.012, 0.025), alca)
 
+	elif tipo == "facao":
+		_modelo("res://assets/sketchfab/facao.glb", 0.5, Vector3(0, 90, 90))
+	elif tipo == "pistola":
+		_modelo("res://assets/cgtrader/pistola.glb", 0.2, Vector3(0, 0, 90), "Pistola")
 	elif tipo == "comida":
 		_modelo("res://assets/sketchfab/lata_comida.glb", 0.12, Vector3.ZERO, "alta")  # o arquivo tem 4 latas
 	elif tipo == "agua":

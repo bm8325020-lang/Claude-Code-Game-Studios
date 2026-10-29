@@ -106,7 +106,9 @@ com as animações de hoje (rede igual); só a visão do próprio jogador muda.
 Aceite: jogar a pista inteira em primeira pessoa sem nada atravessando a tela; robô aprovado nas folhas; APK.
 
 ## 1. Mochila (inventário)
-Status: pendente
+Status: feito (APK 0.35). Mochila de 24 espaços (barra 1–6), empilha, limites provisórios, largar (item vai
+para o chão via spawner, some em 10 min), dividir, mover; telas no estilo Decay com ícones do modelo 3D.
+Ainda do lado do dono do jogador (servidor dono da mochila fica para o prompt 16, junto com a conta).
 
 Hoje munição/comida/água/lanterna são contadores soltos no Jogador. Criar a **mochila**: lista de espaços
 (provisório 16) com itens empilháveis (munição 96 por pilha, comida/água 5) e não empilháveis (armas,

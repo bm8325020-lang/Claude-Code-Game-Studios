@@ -18,7 +18,16 @@ const COICE: float = 1.3              # graus que a câmera sobe por tiro
 const BARULHO: float = 35.0           # m: zumbis a essa distância ouvem o tiro e vão ver
 
 var balas: int = PENTE
-var reserva: int = RESERVA_INICIAL
+## Balas guardadas (moram na mochila do dono; sem dono, aqui mesmo).
+var reserva: int:
+	get:
+		return dono.mochila.conta("municao") if dono else _reserva
+	set(v):
+		if dono:
+			dono.mochila.definir("municao", v)
+		else:
+			_reserva = v
+var _reserva: int = RESERVA_INICIAL
 var recarregando: bool = false
 var dono: Jogador
 var cano: Node3D                       # ponta do cano (de onde saem clarão e rastro)

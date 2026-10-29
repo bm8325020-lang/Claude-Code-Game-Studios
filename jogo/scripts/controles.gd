@@ -59,6 +59,8 @@ var _faixa_estilo: StyleBoxFlat
 var _barras: Array[_Barra] = []  # vida, fome, sede
 var _faixa_t: float = 0.0
 var _pausa: Control
+var _barra: Array = []  # espaços 1–6 da barra rápida (TelaMochila.Espaco)
+var _mochila: TelaMochila
 var _estilos_toque: Array[StyleBoxFlat] = []  # fundo dos botões de toque (transparência das configurações)
 
 
@@ -87,8 +89,8 @@ func _ready() -> void:
 		# no celular fica mais à esquerda e estreita: à direita estão CORRER/ATACAR
 		barra.offset_left = (-400 + i * 182) if toque else (-300 + i * 205)
 		barra.offset_right = barra.offset_left + (170 if toque else 190)
-		barra.offset_top = -62
-		barra.offset_bottom = -30
+		barra.offset_top = -150
+		barra.offset_bottom = -120
 		barra.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(barra)
 		_barras.append(barra)
@@ -98,7 +100,7 @@ func _ready() -> void:
 	_bolso.anchor_top = 1.0
 	_bolso.anchor_bottom = 1.0
 	_bolso.offset_left = -400 if toque else -300
-	_bolso.offset_top = -96
+	_bolso.offset_top = -184
 	_bolso.add_theme_font_size_override("font_size", 18)
 	_bolso.add_theme_color_override("font_outline_color", Color.BLACK)
 	_bolso.add_theme_constant_override("outline_size", 5)
@@ -142,6 +144,7 @@ func _ready() -> void:
 	_municao.offset_top = -240 if toque else -76
 	add_child(_municao)
 	_monta_aviso()
+	_monta_barra_rapida()
 	_monta_pausa()
 	# letras do tema também no HUD
 	for l: Label in [_bolso, _relogio, _municao, _dica_pegar, _aviso_item]:
@@ -157,7 +160,8 @@ func _ready() -> void:
 func _acoes() -> void:
 	var mapa: Dictionary = {"frente": [KEY_W, KEY_UP], "tras": [KEY_S, KEY_DOWN], "esq": [KEY_A, KEY_LEFT],
 		"dir": [KEY_D, KEY_RIGHT], "pular": [KEY_SPACE], "correr": [KEY_SHIFT], "agachar": [KEY_CTRL, KEY_C],
-		"andar": [KEY_ALT], "pegar": [KEY_E], "comer": [KEY_F], "beber": [KEY_G], "trocar": [KEY_Q], "recarregar": [KEY_R], "arma_1": [KEY_1], "arma_2": [KEY_2]}
+		"andar": [KEY_ALT], "pegar": [KEY_E], "comer": [KEY_F], "beber": [KEY_G], "trocar": [KEY_Q], "recarregar": [KEY_R], "mochila": [KEY_TAB],
+		"espaco_1": [KEY_1], "espaco_2": [KEY_2], "espaco_3": [KEY_3], "espaco_4": [KEY_4], "espaco_5": [KEY_5], "espaco_6": [KEY_6]}
 	for acao: String in mapa:
 		if InputMap.has_action(acao):
 			continue
@@ -193,10 +197,15 @@ func _process(dt: float) -> void:
 			e["beber"] = true
 		if Input.is_action_just_pressed("recarregar"):
 			e["recarregar"] = true
-		if Input.is_action_just_pressed("arma_1"):
-			e["arma"] = "facao"
-		if Input.is_action_just_pressed("arma_2"):
-			e["arma"] = "pistola"
+		for k in Mochila.BARRA:
+			if Input.is_action_just_pressed("espaco_%d" % (k + 1)):
+				jogador.usar_espaco(k)
+		if Input.is_action_just_pressed("mochila"):
+			abre_mochila(not _mochila.visible)
+	for i in _barra.size():
+		var it: Variant = jogador.mochila.espacos[i]
+		_barra[i].destaque = it != null and it.tipo == jogador.arma
+		_barra[i].mostra(it, false)
 	for est in _estilos_toque:
 		est.bg_color.a = float(Config.v.botoes_opacidade)
 	if _btn_agachar:
@@ -251,8 +260,10 @@ func _process(dt: float) -> void:
 func _input(ev: InputEvent) -> void:
 	if jogador == null:
 		return
-	if _pausa.visible and toque:
-		return  # na pausa o toque é dos botões da tela, não do analógico nem da câmera
+	if (_pausa.visible or _mochila.visible) and toque:
+		return  # na pausa/mochila o toque é dos botões da tela, não do analógico nem da câmera
+	if _mochila.visible and ev is InputEventMouseMotion:
+		return
 	if not toque:
 		if ev is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 			jogador.entrada["olhar"] = (jogador.entrada["olhar"] as Vector2) + (ev as InputEventMouseMotion).relative
@@ -327,6 +338,50 @@ func aviso(texto: String, cor: Color = UiTema.DESTAQUE, tempo: float = 3.0) -> v
 ## Abre/fecha a pausa. O jogo não para (é em rede): só tira os controles da mão e mostra o mouse.
 func pausa(abrir: bool) -> void:
 	_pausa.visible = abrir
+	if not toque:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if abrir else Input.MOUSE_MODE_CAPTURED
+	if jogador and abrir:
+		jogador.entrada["move"] = Vector2.ZERO
+
+
+func _monta_barra_rapida() -> void:
+	var caixa := HBoxContainer.new()
+	caixa.anchor_left = 0.5
+	caixa.anchor_right = 0.5
+	caixa.anchor_top = 1.0
+	caixa.anchor_bottom = 1.0
+	caixa.offset_left = (-470 if toque else -330)
+	caixa.offset_top = -108
+	caixa.add_theme_constant_override("separation", 8)
+	add_child(caixa)
+	for i in Mochila.BARRA:
+		var e := TelaMochila.Espaco.new()
+		e.indice = i
+		e.numero = str(i + 1)
+		e.pressed.connect(func() -> void:
+			if jogador:
+				jogador.usar_espaco(i))
+		e.lado = 72.0 if toque else 84.0
+		caixa.add_child(e)
+		_barra.append(e)
+	var b := Button.new()
+	b.name = "Mochila"
+	b.text = "MOCHILA"
+	b.focus_mode = Control.FOCUS_NONE
+	b.theme = UiTema.tema()
+	b.custom_minimum_size = Vector2(120, 72 if toque else 84)
+	b.pressed.connect(func() -> void: abre_mochila(not _mochila.visible))
+	caixa.add_child(b)
+	_mochila = TelaMochila.new()
+	_mochila.visible = false
+	add_child(_mochila)
+
+
+## Abre/fecha a tela da mochila (Tab no PC, botão MOCHILA no celular).
+func abre_mochila(abrir: bool) -> void:
+	_mochila.jogador = jogador
+	_mochila.visible = abrir
+	_mochila.move_to_front()  # por cima do HUD
 	if not toque:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if abrir else Input.MOUSE_MODE_CAPTURED
 	if jogador and abrir:
@@ -424,7 +479,7 @@ func _levou_dano(dano: int) -> void:
 
 func _em_botao(p: Vector2) -> bool:
 	for b: Control in [_btn_correr, _btn_agachar, _btn_mira, _btn_atacar, _btn_recarregar, _btn_pegar, _btn_comer, _btn_beber,
-			get_node_or_null("Pular") as Control, get_node_or_null("Trocar") as Control, get_node_or_null("Pausa") as Control]:
+			get_node_or_null("Pular") as Control, get_node_or_null("Trocar") as Control, get_node_or_null("Pausa") as Control] + _barra:
 		if b and b.get_global_rect().grow(10).has_point(p):
 			return true
 	return false

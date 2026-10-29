@@ -11,6 +11,8 @@ var menu: Menu
 var jogadores: Node3D
 var spawner: MultiplayerSpawner
 var zumbis: Node3D
+var soltos: Node3D  # itens largados (spawner: aparecem em todos os aparelhos)
+var spawner_itens: MultiplayerSpawner
 var spawner_zumbis: MultiplayerSpawner
 var navegacao: NavigationRegion3D
 var ciclo: Ciclo
@@ -40,6 +42,14 @@ func _ready() -> void:
 	spawner.spawn_path = spawner.get_path_to(jogadores)
 	spawner.spawn_function = _cria_jogador
 	jogadores.child_entered_tree.connect(_jogador_entrou)
+	soltos = Node3D.new()
+	soltos.name = "ItensSoltos"
+	add_child(soltos)
+	spawner_itens = MultiplayerSpawner.new()
+	spawner_itens.name = "SpawnerItens"
+	add_child(spawner_itens)
+	spawner_itens.spawn_path = spawner_itens.get_path_to(soltos)
+	spawner_itens.spawn_function = _cria_item_solto
 	zumbis = Node3D.new()
 	zumbis.name = "Zumbis"
 	add_child(zumbis)
@@ -175,6 +185,23 @@ func _status(caminho: String) -> void:
 				"fisica_ms": snappedf(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0, 0.01),
 				"quadro_ms": snappedf(Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, 0.01),
 				"memoria_mb": snappedf(OS.get_static_memory_usage() / 1048576.0, 0.1), "versao": Rede.VERSAO})))
+
+
+## Servidor (ou sozinho): põe no chão um item largado/que não coube na mochila.
+func solta_item(tipo: String, qtd: int, pos: Vector3) -> void:
+	if multiplayer.has_multiplayer_peer():
+		spawner_itens.spawn({"tipo": tipo, "qtd": qtd, "pos": pos})
+	else:
+		soltos.add_child(_cria_item_solto({"tipo": tipo, "qtd": qtd, "pos": pos}))
+
+
+func _cria_item_solto(d: Dictionary) -> Node:
+	var it := Item.new()
+	it.tipo = String(d.tipo)
+	it.quantidade = int(d.qtd)
+	it.solto = true
+	it.position = d.pos
+	return it
 
 
 ## Máximo de jogadores neste servidor: Rede.MAX_JOGADORES, ou "max=N" na linha de comando (servidor pequeno).

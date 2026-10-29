@@ -23,6 +23,13 @@ func _init() -> void:
 	main.ciclo.tempo = 0.0
 	main.controles.aviso("Lanterna pega")
 	await _foto()
+	main.jogador.mochila.adicionar("comida", 3)
+	main.jogador.mochila.adicionar("agua", 2)
+	main.controles.abre_mochila(true)
+	main.controles._mochila._toque(2)
+	for i in 10: await process_frame
+	await _foto()
+	main.controles.abre_mochila(false)
 	var c: Controles = main.controles
 	c.toque = true
 	c._monta_toque()
@@ -33,7 +40,7 @@ func _init() -> void:
 	main.jogador.levar_dano(1000, Vector3.FORWARD)
 	for i in 30: await process_frame
 	await _foto()
-	var o := Image.create(640 * 4, 360 * 2, false, fotos[0].get_format())
+	var o := Image.create(640 * 4, 360 * 3, false, fotos[0].get_format())
 	for k in fotos.size():
 		o.blit_rect(fotos[k], Rect2i(0, 0, 640, 360), Vector2i(640 * (k % 4), 360 * (k / 4)))
 	o.save_png(OS.get_cmdline_user_args()[0])

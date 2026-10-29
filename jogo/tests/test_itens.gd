@@ -85,5 +85,24 @@ func _init() -> void:
 	j.entrada["comer"] = true
 	await frames(3)
 	ok(absf(j.fome - Jogador.ENCHE) < 0.5, "sem lata não come")
+	# mochila: largar a lanterna no chão, pegar de volta; facão não sai
+	await frames(int(Jogador.PEGAR_DUR * 60) + 10)
+	j.global_position = Vector3(-20, 0.1, 30)  # longe dos itens do mapa
+	await frames(5)
+	ok(j.mochila.espacos[0].tipo == "facao" and j.mochila.espacos[1].tipo == "pistola", "facão e pistola nos espaços 1 e 2 da barra")
+	var n0: int = main.soltos.get_child_count()  # munição que não coube antes já está no chão
+	j.largar(j.mochila.onde("facao"))
+	ok(j.mochila.tem("facao") and main.soltos.get_child_count() == n0, "o facão não sai da mão")
+	j.largar(j.mochila.onde("lanterna"))
+	await frames(2)
+	ok(not j.tem_lanterna and main.soltos.get_child_count() == n0 + 1, "larga a lanterna: sai da mochila e aparece no chão")
+	var solta: Item = main.soltos.get_child(n0)
+	ok(solta.tipo == "lanterna" and solta.solto and solta.global_position.distance_to(j.global_position) < 1.5, "no chão à frente")
+	j.entrada["pegar"] = true
+	await frames(int(Jogador.PEGAR_DUR * 60) + 10)
+	ok(j.tem_lanterna and main.soltos.get_child_count() == n0, "pega de volta e o item largado some")
+	j.usar_espaco(j.mochila.onde("pistola"))
+	await frames(3)
+	ok(j.arma == "pistola", "barra rápida: tocar na pistola põe na mão")
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
