@@ -302,7 +302,10 @@ quando você aprovar.
     cada 3 s. Latas de comida e garrafas de água no chão (3 de cada, junto da caixa na casinha também);
     guarda até 5 de cada; COMER/BEBER (PC: F/G) enche 45. Barras finas laranja (fome) e azul (sede) embaixo
     da vida, piscando abaixo de 15. Cair enche as duas de novo. Versão de rede 5.
-17. ...depois: quarteirão de verdade (bloco 1), cobertura, e o que o dono pedir.
+17. **Zumbi que patrulha.** **Status: feito, APK 0.28.** Um zumbi anda numa rota em volta da casinha (4 pontos,
+    devagar, parando 1,5–3,5 s em cada); vendo/ouvindo alguém sai da rota, depois volta para ela. Versão de rede 6.
+    Também: Mixamo logado daqui (conta separada do dono), dá para baixar animações sem o Drive.
+18. ...depois: quarteirão de verdade (bloco 1), cobertura, e o que o dono pedir.
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)
 1. **Andar e atirar com 2 jogadores** — terceira pessoa, controles de celular e PC, 1 arma de fogo + 1 arma

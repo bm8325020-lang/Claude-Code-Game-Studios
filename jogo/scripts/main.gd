@@ -18,6 +18,8 @@ var ciclo: Ciclo
 const PONTOS_ZUMBI: Array[Vector3] = [Vector3(-6, 0, 22), Vector3(0, 0, 26), Vector3(6, 0, 22), Vector3(24, 0, 0)]
 ## zumbis de tocaia: deitados ao lado do carro e no corredor entre os muros
 const PONTOS_TOCAIA: Array[Vector3] = [Vector3(3.2, 0, 9.5), Vector3(13.5, 0, 9)]
+## zumbis de patrulha: rota em volta da casinha (longe o bastante do início para não ver quem nasce)
+const PATRULHAS: Array = [[Vector3(-32, 0, -9), Vector3(-32, 0, 5), Vector3(-19, 0, 5), Vector3(-19, 0, -9)]]
 var nick_local: String = "Jogador"
 
 
@@ -170,6 +172,8 @@ func _poe_zumbis() -> void:
 		spawner_zumbis.spawn({"pos": p})
 	for p: Vector3 in PONTOS_TOCAIA:
 		spawner_zumbis.spawn({"pos": p, "tocaia": true})
+	for r: Array in PATRULHAS:
+		spawner_zumbis.spawn({"pos": r[0], "rota": r})
 
 
 func _cria_zumbi(dados: Dictionary) -> Node:
@@ -177,6 +181,7 @@ func _cria_zumbi(dados: Dictionary) -> Node:
 	z.position = dados.pos
 	z.casa = dados.pos
 	z.tocaia = bool(dados.get("tocaia", false))
+	z.rota = dados.get("rota", [])
 	return z
 
 

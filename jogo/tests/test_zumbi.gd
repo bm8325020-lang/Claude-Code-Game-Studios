@@ -37,7 +37,7 @@ func _init() -> void:
 	main.ciclo.tempo = 0.0  # dia parado: a noite tem o teste dela
 	main.ciclo.set_process(false)
 	main.ciclo._process(0.0)
-	ok(main.zumbis.get_child_count() == main.PONTOS_ZUMBI.size() + main.PONTOS_TOCAIA.size(), "zumbis nascem (%d)" % main.zumbis.get_child_count())
+	ok(main.zumbis.get_child_count() == main.PONTOS_ZUMBI.size() + main.PONTOS_TOCAIA.size() + main.PATRULHAS.size(), "zumbis nascem (%d)" % main.zumbis.get_child_count())
 	z = main.zumbis.get_child(0)
 	z._sem_gritar = INF  # o grito tem o teste dele (no fim)
 	for outro in main.zumbis.get_children():
@@ -52,6 +52,7 @@ func _init() -> void:
 	await _cerca()
 	await _noite()
 	await _tocaia()
+	await _patrulha()
 	await _esperto()
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
@@ -359,3 +360,32 @@ func _esperto() -> void:
 	ok(d1 > d0 + 5.0, "com pouca vida foge (%.1f -> %.1f m)" % [d0, d1])
 	await frames(60 * 6)
 	ok(plano(zz.global_position, j.global_position) < d1 - 4.0, "depois volta (%.1f -> %.1f m)" % [d1, plano(zz.global_position, j.global_position)])
+
+
+func _patrulha() -> void:
+	for outro in main.zumbis.get_children():
+		outro.free()
+	var rota: Array = [Vector3(30, 0, -10), Vector3(30, 0, 2), Vector3(40, 0, 2)]
+	var p := Zumbi.new()
+	p.position = rota[0]
+	p.casa = rota[0]
+	p.rota = rota
+	main.zumbis.add_child(p)
+	j.global_position = Vector3(-30, 0.1, 30)  # longe: ninguém vê
+	await frames(2)
+	p._sem_gritar = INF
+	var passou: Array[int] = []
+	for i in 60 * 80:  # volta inteira ~38 m a 0,8 m/s, mais as paradas
+		await physics_frame
+		for k in rota.size():
+			if plano(p.global_position, rota[k]) < 1.0 and not passou.has(k):
+				passou.append(k)
+		if passou.size() == rota.size() and plano(p.global_position, rota[0]) < 1.0:
+			break
+	ok(passou.size() == rota.size(), "patrulha passa por todos os pontos (%s)" % str(passou))
+	ok(plano(p.global_position, rota[0]) < 1.5, "e volta ao começo da rota")
+	# vê alguém: sai da rota e persegue
+	j.global_position = p.global_position + Vector3(0, 0.1, 8)
+	j.vida = 100000
+	await frames(40)
+	ok(p.alvo == j, "sai da patrulha quando vê alguém")

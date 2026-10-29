@@ -52,5 +52,11 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `camera_terceira.gd`, `boneco_treino.gd`.
 - tools/: `foto.gd`, `baixa_mixamo.sh` (rebaixa assets/mixamo do Drive), `servidor/instalar.sh` + `publica.sh`.
 
+## Mixamo (logado)
+Sessão: `/root/.mixamo_sessao/estado.json` (fora do git; conta separada do dono). Token = localStorage `access_token`.
+API: `GET https://www.mixamo.com/api/v1/products?page=1&limit=N&type=Motion%2CMotionPack&query=X` com headers
+`Authorization: Bearer $TOK`, `X-Api-Key: mixamo2`. Se expirar: `tools/mixamo_login.js` (pede código por e-mail ao dono;
+senha nunca em arquivo). Baixados vão para `assets/mixamo/` (não commitar).
+
 ## Pendências do dono
 Servidor online: sem cartão de crédito (Oracle pediu). Opção falada: Azure for Students (18+, e-mail escolar).

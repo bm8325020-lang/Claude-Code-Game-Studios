@@ -10,6 +10,8 @@
 # Mecânica 10: tocaia. Zumbi de tocaia fica deitado no chão como morto; levanta e ataca (sem gritar) quando
 # alguém passa a menos de EMBOSCA, quando há barulho perto ou quando leva golpe. Depois de morto, deita de novo.
 # Mecânica 12: porta fechada no caminho segura o zumbi; ele soca a porta até arrombar.
+# Mecânica 16: patrulha. Zumbi com `rota` anda de ponto em ponto (parando um pouco em cada) em vez de ficar
+# parado em casa; depois de perseguir ou procurar, volta para a rota.
 # Mecânica 13: esperto contra tiro. Com alguém mirando a pistola nele de longe, vem em ziguezague; com pouca
 # vida, foge um tempo correndo para longe e depois volta.
 # Quem decide tudo é o servidor (ou o aparelho jogando sozinho); os outros só recebem posição, giro,
@@ -68,6 +70,10 @@ var rot_rede: float
 var casa: Vector3                  # onde nasce e onde levanta
 ## nasce deitado de tocaia (vem nos dados do spawner)
 var tocaia: bool = false
+## pontos da patrulha (vazio = fica parado em casa)
+var rota: Array = []
+var _rota_i: int = 0
+var _pausa_t: float = 0.0
 var _deitado: bool = false
 var _levantando: float = -1.0
 var _forma: CollisionShape3D
@@ -259,6 +265,9 @@ func _physics_process(dt: float) -> void:
 			_olhando_t = PROCURA
 		else:
 			desejada = _caminho(_ouvido, VAI_OUVIR * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
+	elif not rota.is_empty():
+		_voltando = false
+		desejada = _patrulha(dt)
 	elif _voltando:
 		if _plano(casa - global_position) < 0.8:
 			_voltando = false
@@ -300,6 +309,19 @@ func _caminho(destino: Vector3, vel: float, dt: float) -> Vector3:
 		prox.y = 0.0
 	_vira_para(prox, dt)
 	return prox.normalized() * vel
+
+
+# vai para o ponto atual da rota, devagar; chegando, para de 1,5 a 3,5 s e segue para o próximo
+func _patrulha(dt: float) -> Vector3:
+	if _pausa_t > 0.0:
+		_pausa_t -= dt
+		return Vector3.ZERO
+	var alvo_p: Vector3 = rota[_rota_i]
+	if _plano(alvo_p - global_position) < 0.8:
+		_rota_i = (_rota_i + 1) % rota.size()
+		_pausa_t = randf_range(1.5, 3.5)
+		return Vector3.ZERO
+	return _caminho(alvo_p, ANDAR * 0.8, dt)
 
 
 static func _plano(v: Vector3) -> float:
