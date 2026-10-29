@@ -66,6 +66,10 @@ func _ready() -> void:
 ## Rodar: godot --headless --main-pack servidor.pck -- dedicado   (com "ws": WebSocket na porta PORTA_WS, para o site)
 func iniciar_servidor() -> Error:
 	var ws: bool = "ws" in OS.get_cmdline_user_args()
+	Rede.servidor_sem_tela = DisplayServer.get_name() == "headless"
+	if Rede.servidor_sem_tela:
+		Engine.physics_ticks_per_second = 30  # zumbis e colisões a 30 Hz bastam; cada celular roda o próprio a 60
+		Engine.max_fps = 30
 	var err: Error = rede.criar("Servidor", false, Rede.PORTA_WS if ws else 0)
 	if err != OK:
 		printerr("SERVIDOR: não abriu a porta %d (erro %d)" % [Rede.PORTA, err])

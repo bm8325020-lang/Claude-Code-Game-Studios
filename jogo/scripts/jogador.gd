@@ -676,6 +676,8 @@ func _escolhe_cima() -> String:
 
 
 func _process(dt: float) -> void:
+	if Rede.servidor_sem_tela:
+		return  # animação, braços e lanterna são só para ver
 	anim.advance(dt)
 	_atualiza_lanterna()
 	var cima: String = cima_rede if not local else _escolhe_cima()

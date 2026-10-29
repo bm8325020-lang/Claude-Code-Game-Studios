@@ -16,6 +16,9 @@ const VERSAO: int = 9
 ## Lista de servidores online (o servidor na nuvem se atualiza pela mesma branch).
 const LISTA_URL: String = "https://raw.githubusercontent.com/bm8325020-lang/Claude-Code-Game-Studios/servidor-build/servidores.json"
 
+## Servidor dedicado sem tela: ninguém vê nada aqui, então jogadores e zumbis não animam (só a lógica roda).
+static var servidor_sem_tela: bool = false
+
 ## Partidas achadas no Wi-Fi: ip -> {"nick": String, "porta": int, "visto": float (segundos)}
 var partidas: Dictionary = {}
 var anunciando: bool = false

@@ -171,6 +171,8 @@ func _ready() -> void:
 	_monta_sincronia()
 	_toca("parado", 0.0)
 	anim.seek(randf() * 3.0, true)  # cada um num ponto da animação
+	if Rede.servidor_sem_tela:
+		anim.active = false  # ninguém vê: não mexe nos ossos (os tempos vêm do tamanho dos clipes)
 	if tocaia and _manda():
 		_deita()
 
