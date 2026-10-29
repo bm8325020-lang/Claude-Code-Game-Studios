@@ -25,6 +25,10 @@ var jogador: Jogador:
 			v.item_pego.connect(_pegou)
 			v.acertou_alvo.connect(_acertou)
 			v.bau_aberto.connect(func(b: Bau) -> void: _tela_bau.abre(v, b))
+			v.bancada_aberta.connect(func() -> void: _tela_bancada.abre(v))
+			v.fabricou.connect(func(a: String, n: int) -> void:
+				if n > 0:
+					aviso("%s fabricada" % String(Mochila.NOMES.get(a, a)), Color(0.35, 0.6, 0.9)))
 		if v != null and not toque:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 var toque: bool = false  # mostra os controles de toque
@@ -63,6 +67,7 @@ var _pausa: Control
 var _barra: Array = []  # espaços 1–6 da barra rápida (TelaMochila.Espaco)
 var _mochila: TelaMochila
 var _tela_bau: TelaBau
+var _tela_bancada: TelaBancada
 var _estilos_toque: Array[StyleBoxFlat] = []  # fundo dos botões de toque (transparência das configurações)
 
 
@@ -237,10 +242,13 @@ func _process(dt: float) -> void:
 	_vermelho.color.a = move_toward(_vermelho.color.a, 0.35 if jogador.vida <= 0 else 0.0, dt * 0.8)
 	var it: Item = jogador.item_perto()
 	var bau: Bau = jogador.bau_perto() if it == null else null
-	var porta: Porta = jogador.porta_perto() if it == null and bau == null else null
-	_dica_pegar.visible = it != null or porta != null or bau != null
+	var banc: Bancada = jogador.bancada_perto() if it == null and bau == null else null
+	var porta: Porta = jogador.porta_perto() if it == null and bau == null and banc == null else null
+	_dica_pegar.visible = it != null or porta != null or bau != null or banc != null
 	if jogador.abrindo:
 		_dica_pegar.text = "ABRINDO... %d%%" % roundi((1.0 - jogador.abrindo_t / Bau.ABRIR_T) * 100.0)
+	elif banc:
+		_dica_pegar.text = ("BANCADA" if toque else "[E] usar a bancada")
 	elif bau:
 		_dica_pegar.text = ("REVISTAR" if toque else "[E] revistar") if bau.saco else ("ABRIR BAÚ" if toque else "[E] abrir baú")
 	elif it:
@@ -249,7 +257,7 @@ func _process(dt: float) -> void:
 		_dica_pegar.text = ("USAR: " if toque else "[E] ") + porta.acao()
 	if _btn_pegar:
 		_btn_pegar.visible = _dica_pegar.visible
-		_btn_pegar.text = "PEGAR" if it else ("ABRIR" if bau else "USAR")
+		_btn_pegar.text = "PEGAR" if it else ("ABRIR" if bau else ("BANCADA" if banc else "USAR"))
 	_aviso_t -= dt
 	_aviso_item.visible = _aviso_t > 0.0
 	_aviso_item.modulate.a = clampf(_aviso_t, 0.0, 1.0)
@@ -267,9 +275,9 @@ func _process(dt: float) -> void:
 func _input(ev: InputEvent) -> void:
 	if jogador == null:
 		return
-	if (_pausa.visible or _mochila.visible or _tela_bau.visible) and toque:
+	if (_pausa.visible or _mochila.visible or _tela_bau.visible or _tela_bancada.visible) and toque:
 		return  # na pausa/mochila o toque é dos botões da tela, não do analógico nem da câmera
-	if (_mochila.visible or _tela_bau.visible) and ev is InputEventMouseMotion:
+	if (_mochila.visible or _tela_bau.visible or _tela_bancada.visible) and ev is InputEventMouseMotion:
 		return
 	if not toque:
 		if ev is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
@@ -385,6 +393,12 @@ func _monta_barra_rapida() -> void:
 	_tela_bau = TelaBau.new()
 	_tela_bau.visible = false
 	add_child(_tela_bau)
+	_tela_bancada = TelaBancada.new()
+	_tela_bancada.visible = false
+	add_child(_tela_bancada)
+	_tela_bancada.visibility_changed.connect(func() -> void:
+		if not toque:
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if _tela_bancada.visible else Input.MOUSE_MODE_CAPTURED)
 	_tela_bau.visibility_changed.connect(func() -> void:
 		if not toque:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if _tela_bau.visible else Input.MOUSE_MODE_CAPTURED)
@@ -482,7 +496,11 @@ func _acertou(forte: bool) -> void:
 
 
 func _pegou(tipo: String, qtd: int) -> void:
-	_aviso_item.text = "+%d munição" % qtd if tipo == "municao" else "Lanterna"
+	if tipo == "aprendeu":
+		aviso("Receita aprendida", Color(0.35, 0.6, 0.9))
+		return
+	var nome: String = String(Mochila.NOMES.get(tipo, tipo))
+	_aviso_item.text = ("+%d %s" % [qtd, nome.to_lower()]) if qtd > 1 else nome
 	_aviso_t = 1.6
 
 

@@ -45,7 +45,7 @@ func nome() -> String:
 			return "lata de comida"
 		"agua":
 			return "garrafa de água"
-		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador":
+		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador", "receita_pistola":
 			return Mochila.NOMES[tipo].to_lower() + (" (%d)" % quantidade if quantidade > 1 else "")
 	return "lanterna"
 
@@ -109,6 +109,15 @@ func _monta_modelo() -> void:
 
 	elif tipo in Loot.PECAS:
 		_monta_peca()
+	elif tipo.begins_with("receita_"):
+		# folha dobrada com o desenho da arma (papel envelhecido e o traço azul da planta)
+		var papel := StandardMaterial3D.new()
+		papel.albedo_color = Color(0.82, 0.78, 0.66)
+		papel.roughness = 1.0
+		var traco := StandardMaterial3D.new()
+		traco.albedo_color = Color(0.2, 0.3, 0.5)
+		_bloco(Vector3(0, 0.002, 0), Vector3(0.21, 0.004, 0.15), papel).rotation_degrees.y = 12.0
+		_bloco(Vector3(0.01, 0.005, 0.01), Vector3(0.12, 0.002, 0.05), traco).rotation_degrees.y = 12.0
 	elif Armas.e_branca(tipo):
 		var pega: Node3D = Armas.modelo(tipo)
 		pega.rotation_degrees = Vector3(0, 0, 90)  # deitada de lado no chão

@@ -156,7 +156,7 @@ Drop aparece como item no chão onde o zumbi caiu (some em 3 min).
 Aceite: teste de drop do zumbi e do chefe (chance dentro da margem em muitos sorteios).
 
 ## 6. Receitas e bancada andante
-Status: pendente
+Status: feito (APK 0.40). Receitas.LISTA (pistola simples), item receita_pistola (baú/zumbi/chefe), Jogador.receitas, Bancada em PONTOS_BANCADA muda a cada 10 min com aviso, TelaBancada estilo Decay.
 
 Receita é **item na mochila** (pode ser roubada se você morrer). Cada arma tem receita: lista de peças.
 Desbloquear = usar a receita (some da mochila e fica aprendida na conta/personagem). **Bancada** (modelo de

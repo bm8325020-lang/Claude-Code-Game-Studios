@@ -305,6 +305,7 @@ func _physics_process(dt: float) -> void:
 			sede = minf(100.0, sede + ENCHE)
 	_passa_fome(dt)
 	_abre_bau(dt, mov)
+	_fabrica(dt)
 	_copia_t -= dt
 	if _copia_t <= 0.0 and multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
 		_copia_t = 5.0
@@ -445,6 +446,44 @@ func porta_perto() -> Porta:
 	return Porta.perto(get_tree(), global_position) if vida > 0 else null
 
 
+## Receitas aprendidas (nomes das armas). Por enquanto no aparelho; vão para a conta no prompt 16.
+var receitas: Array[String] = []
+## Fabricando: segundos que faltam (> 0), qual arma e quantas.
+var fabrica_t: float = 0.0
+var _fabrica_arma: String = ""
+var _fabrica_n: int = 0
+signal bancada_aberta
+signal fabricou(arma: String, n: int)
+
+
+func bancada_perto() -> Bancada:
+	var b := get_tree().get_first_node_in_group("bancada") as Bancada
+	return b if b and vida > 0 and b.perto(global_position) else null
+
+
+## Começa a fabricar `n` da arma (precisa saber a receita, estar na bancada e ter as peças).
+func comeca_fabricar(arma: String, n: int) -> bool:
+	if not arma in receitas or bancada_perto() == null or n <= 0 or Receitas.quantas(mochila, arma) < n or fabrica_t > 0.0:
+		return false
+	_fabrica_arma = arma
+	_fabrica_n = n
+	fabrica_t = Receitas.FABRICAR_T * n
+	return true
+
+
+func _fabrica(dt: float) -> void:
+	if fabrica_t <= 0.0:
+		return
+	if bancada_perto() == null:
+		fabrica_t = 0.0  # saiu da bancada: cancela (as peças não foram gastas)
+		return
+	fabrica_t -= dt
+	if fabrica_t <= 0.0:
+		fabrica_t = 0.0
+		var feitas: int = Receitas.fabrica(mochila, _fabrica_arma, _fabrica_n)
+		fabricou.emit(_fabrica_arma, feitas)
+
+
 ## Baú perto (para o botão ABRIR).
 func bau_perto() -> Bau:
 	return Bau.perto(get_tree(), global_position) if vida > 0 else null
@@ -493,6 +532,9 @@ func _tenta_pegar() -> void:
 	if it == null and bau_perto() != null:
 		abrindo = bau_perto()
 		abrindo_t = Bau.ABRIR_T
+		return
+	if it == null and bancada_perto() != null:
+		bancada_aberta.emit()
 		return
 	if it == null:
 		var p: Porta = porta_perto()
@@ -566,6 +608,13 @@ func usar_espaco(i: int) -> void:
 		return
 	if Armas.e_branca(String(e.tipo)) or e.tipo == "pistola":
 		entrada["arma"] = e.tipo
+		return
+	var ensina: String = Receitas.arma_de(String(e.tipo))
+	if ensina != "":
+		if not ensina in receitas:
+			receitas.append(ensina)
+			mochila.tirar(String(e.tipo), 1)  # aprendeu: a receita some
+			item_pego.emit("aprendeu", 0)
 		return
 	match String(e.tipo):
 		"comida":

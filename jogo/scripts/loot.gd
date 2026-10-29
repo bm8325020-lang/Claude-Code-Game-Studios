@@ -24,6 +24,7 @@ const TABELA: Array = [
 	["cabo", 3, 1, 1, INCOMUM],
 	["ferrolho", 1, 1, 1, RARO],
 	["carregador", 1, 1, 1, RARO],
+	["receita_pistola", 3, 1, 1, INCOMUM],
 ]
 ## peças de arma (para fabricar, prompt 6)
 const PECAS: Array[String] = ["mola", "gatilho", "cano", "cabo", "ferrolho", "carregador"]
@@ -37,6 +38,7 @@ const DROP_ZUMBI: Array = [
 	["carregador", 2, 1, 1, RARO],
 	["municao", 12, 4, 10, COMUM],
 	["comida", 5, 1, 1, COMUM],
+	["receita_pistola", 1, 1, 1, RARO],
 ]
 const CHANCE_ZUMBI: float = 0.35  # zumbi comum: chance de largar alguma coisa
 const CHEFE_ROLAGENS: Vector2i = Vector2i(2, 3)  # chefe sempre larga, mais coisas

@@ -11,16 +11,16 @@ const ESPACOS: int = 24
 const BARRA: int = 6
 ## tamanho da pilha por espaço (o que não está aqui não empilha)
 const PILHA: Dictionary = {"municao": 48, "comida": 5, "agua": 5, "mola": 10, "gatilho": 10, "cano": 10, "cabo": 10,
-	"ferrolho": 10, "carregador": 10}
+	"ferrolho": 10, "carregador": 10, "receita_pistola": 5}
 ## quanto dá para carregar no total (provisório, até existir peso)
 const LIMITE: Dictionary = {"municao": 96, "comida": 5, "agua": 5, "lanterna": 1, "facao": 1, "pistola": 1,
-	"faca": 1, "taco": 1, "machado": 1, "mola": 30, "gatilho": 30, "cano": 30, "cabo": 30, "ferrolho": 30, "carregador": 30}
+	"faca": 1, "taco": 1, "machado": 1, "mola": 30, "gatilho": 30, "cano": 30, "cabo": 30, "ferrolho": 30, "carregador": 30, "receita_pistola": 5}
 ## não dá para largar (são a mão do jogador por enquanto)
 const PRESOS: Array[String] = ["facao", "pistola"]
 const NOMES: Dictionary = {"municao": "Munição", "comida": "Lata de comida", "agua": "Garrafa de água",
 	"lanterna": "Lanterna", "facao": "Facão", "pistola": "Pistola 9 mm", "faca": "Faca de açougueiro",
 	"taco": "Taco de beisebol", "machado": "Machado de bombeiro", "mola": "Mola", "gatilho": "Gatilho", "cano": "Cano",
-	"cabo": "Empunhadura", "ferrolho": "Ferrolho", "carregador": "Carregador"}
+	"cabo": "Empunhadura", "ferrolho": "Ferrolho", "carregador": "Carregador", "receita_pistola": "Receita: Pistola 9 mm"}
 const TEXTOS: Dictionary = {
 	"municao": "Balas 9 mm para a pistola.",
 	"comida": "Conserva sem rótulo. Enche a fome.",
@@ -37,6 +37,7 @@ const TEXTOS: Dictionary = {
 	"cabo": "Peça de arma (cabo de pistola). Pouco comum.",
 	"ferrolho": "Peça de arma. Rara.",
 	"carregador": "Peça de arma. Rara.",
+	"receita_pistola": "Ensina a fazer a pistola na bancada (arma simples). USAR para aprender.",
 }
 
 var espacos: Array = []  # null ou {"tipo": String, "qtd": int}

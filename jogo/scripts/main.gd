@@ -188,6 +188,13 @@ func _status(caminho: String) -> void:
 				"memoria_mb": snappedf(OS.get_static_memory_usage() / 1048576.0, 0.1), "versao": Rede.VERSAO})))
 
 
+## Aviso na tela de todos (faixa no alto).
+@rpc("authority", "call_local", "reliable")
+func aviso_todos(texto: String) -> void:
+	if controles:
+		controles.aviso(texto)
+
+
 ## Servidor (ou sozinho): põe no chão um item largado/que não coube na mochila.
 func solta_item(tipo: String, qtd: int, pos: Vector3, some: float = Item.SOME) -> void:
 	var d := {"tipo": tipo, "qtd": qtd, "pos": pos, "some": some}
@@ -410,7 +417,22 @@ const BRANCAS_MAPA: Array = [["faca", Vector3(-1.5, 0, 1.5), 30.0], ["taco", Vec
 	["machado", Vector3(-28.6, 0, 2.6), 200.0]]
 
 
+## Pontos da cidade onde a bancada pode aparecer (ela muda a cada 10 min).
+const PONTOS_BANCADA: Array = [Vector3(-6, 0, -2), Vector3(14, 0, -3), Vector3(-17, 0, -12), Vector3(4, 0, 18), Vector3(-30, 0, 9)]
+var bancada: Bancada
+
+
 func _baus() -> void:
+	bancada = Bancada.new()
+	bancada.name = "Bancada"
+	bancada.pontos = PONTOS_BANCADA
+	bancada.position = PONTOS_BANCADA[0]
+	add_child(bancada)
+	bancada.mudou_de_lugar.connect(func() -> void:
+		if multiplayer.has_multiplayer_peer():
+			aviso_todos.rpc("A bancada apareceu em outro lugar da cidade")
+		else:
+			aviso_todos("A bancada apareceu em outro lugar da cidade"))
 	for k in BRANCAS_MAPA.size():
 		var it := Item.new()
 		it.name = "Item_branca_%d" % k
