@@ -5,9 +5,9 @@
 extends SceneTree
 
 const FOTOS: int = 6
-const LARGURA: int = 320
-const ALTURA: int = 180
-const POR_FOLHA: int = 7
+const LARGURA: int = 240  # recorte em volta do boneco (zoom)
+const ALTURA: int = 300
+const POR_FOLHA: int = 5
 
 var main: Node3D
 var j: Jogador
@@ -95,8 +95,15 @@ func _solta() -> void:
 
 func _foto() -> Image:
 	var img: Image = root.get_viewport().get_texture().get_image()
-	img.resize(LARGURA, ALTURA, Image.INTERPOLATE_BILINEAR)
-	return img
+	var cam: Camera3D = root.get_viewport().get_camera_3d()
+	var meio: Vector2 = cam.unproject_position(j.global_position + Vector3(0, 0.9, 0))
+	var alto: int = int(img.get_height() * 0.6)
+	var largo: int = int(alto * float(LARGURA) / ALTURA)
+	var x: int = clampi(int(meio.x) - largo / 2, 0, img.get_width() - largo)
+	var y: int = clampi(int(meio.y) - alto / 2, 0, img.get_height() - alto)
+	var corte: Image = img.get_region(Rect2i(x, y, largo, alto))
+	corte.resize(LARGURA, ALTURA, Image.INTERPOLATE_BILINEAR)
+	return corte
 
 
 func _pega_item() -> void:
