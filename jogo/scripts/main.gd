@@ -63,9 +63,10 @@ func _ready() -> void:
 
 
 ## Servidor dedicado (na nuvem): sem tela e sem jogador próprio; só recebe os jogadores e roda os zumbis.
-## Rodar: godot --headless --main-pack servidor.pck -- dedicado
+## Rodar: godot --headless --main-pack servidor.pck -- dedicado   (com "ws": WebSocket na porta PORTA_WS, para o site)
 func iniciar_servidor() -> Error:
-	var err: Error = rede.criar("Servidor", false)
+	var ws: bool = "ws" in OS.get_cmdline_user_args()
+	var err: Error = rede.criar("Servidor", false, Rede.PORTA_WS if ws else 0)
 	if err != OK:
 		printerr("SERVIDOR: não abriu a porta %d (erro %d)" % [Rede.PORTA, err])
 		get_tree().quit(1)
@@ -73,7 +74,7 @@ func iniciar_servidor() -> Error:
 	_comeca()
 	controles.visible = false
 	_poe_zumbis()
-	print("SERVIDOR pronto na porta %d (versão de rede %d)" % [Rede.PORTA, Rede.VERSAO])
+	print("SERVIDOR pronto na porta %d%s (versão de rede %d)" % [Rede.PORTA_WS if ws else Rede.PORTA, " (WebSocket)" if ws else "", Rede.VERSAO])
 	return OK
 
 

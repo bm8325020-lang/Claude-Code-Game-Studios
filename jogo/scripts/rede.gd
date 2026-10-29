@@ -9,6 +9,7 @@ extends Node
 const PORTA: int = 7777
 const PORTA_ANUNCIO: int = 7778
 const PORTA_PERGUNTA: int = 7779
+const PORTA_WS: int = 7861  # servidor online: o site (porta 7860) repassa /jogo para cá
 const MAX_JOGADORES: int = 30
 ## Sobe quando o que vai pela rede muda: jogo e servidor precisam ter o mesmo número para jogar juntos.
 const VERSAO: int = 9
@@ -30,9 +31,18 @@ var _relogio: float = 0.0
 
 
 ## Cria a partida neste aparelho. Retorna OK ou o erro do ENet. `anunciar` = avisar no Wi-Fi (não no servidor).
-func criar(nick: String, anunciar: bool = true) -> Error:
-	var peer := ENetMultiplayerPeer.new()
-	var err: Error = peer.create_server(PORTA, MAX_JOGADORES)
+## `porta_ws` > 0: servidor online por WebSocket nessa porta (o site na frente repassa; ENet/UDP não passa por lá).
+func criar(nick: String, anunciar: bool = true, porta_ws: int = 0) -> Error:
+	var peer: MultiplayerPeer
+	var err: Error
+	if porta_ws > 0:
+		var ws := WebSocketMultiplayerPeer.new()
+		err = ws.create_server(porta_ws, "127.0.0.1")
+		peer = ws
+	else:
+		var en := ENetMultiplayerPeer.new()
+		err = en.create_server(PORTA, MAX_JOGADORES)
+		peer = en
 	if err != OK:
 		return err
 	multiplayer.multiplayer_peer = peer
@@ -45,10 +55,18 @@ func criar(nick: String, anunciar: bool = true) -> Error:
 	return OK
 
 
-## Entra na partida de outro aparelho.
+## Entra na partida de outro aparelho (IP) ou de um servidor online (endereço "wss://...").
 func entrar(ip: String) -> Error:
-	var peer := ENetMultiplayerPeer.new()
-	var err: Error = peer.create_client(ip, PORTA)
+	var peer: MultiplayerPeer
+	var err: Error
+	if ip.begins_with("ws://") or ip.begins_with("wss://"):
+		var ws := WebSocketMultiplayerPeer.new()
+		err = ws.create_client(ip)
+		peer = ws
+	else:
+		var en := ENetMultiplayerPeer.new()
+		err = en.create_client(ip, PORTA)
+		peer = en
 	if err != OK:
 		return err
 	multiplayer.multiplayer_peer = peer

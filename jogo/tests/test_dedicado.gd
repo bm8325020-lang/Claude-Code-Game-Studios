@@ -24,7 +24,8 @@ func _init() -> void:
 	main = (load("res://main.tscn") as PackedScene).instantiate()
 	root.add_child(main)
 	await espera_ms(300)
-	ok(main.entrar_partida("127.0.0.1", "Cliente") == OK, "conecta")
+	var onde: String = OS.get_cmdline_user_args()[0] if OS.get_cmdline_user_args().size() > 0 else "127.0.0.1"  # ou "ws://127.0.0.1:7861"
+	ok(main.entrar_partida(onde, "Cliente") == OK, "conecta em %s" % onde)
 	var t0: int = Time.get_ticks_msec()
 	while main.jogador == null and Time.get_ticks_msec() - t0 < 15000:
 		await espera_ms(100)

@@ -49,10 +49,11 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `ciclo.gd` — dia 480 s/noite 300 s, `noite()` 0..1, `INICIO` provisório (noite em 1:30).
 - `controles.gd` — HUD e toque: vida, fome/sede, relógio, munição, mira (`_Mira` com marca de acerto), botões
   (MIRA, ATACAR/ATIRAR, PULAR, AGACHAR, CORRER, TROCAR, RECARREGAR, PEGAR/USAR, COMER, BEBER). PC: WASD, mouse, E F G Q R 1 2.
-- `rede.gd` — ENet 7777, broadcast 7778, pergunta direta 7779, `VERSAO`, `LISTA_URL` (servidores.json).
+- `rede.gd` — ENet 7777, broadcast 7778, pergunta direta 7779, `VERSAO`, `LISTA_URL` (servidores.json). Endereço
+  "ws://"/"wss://" = WebSocket (servidor online atrás de site; `-- dedicado ws` escuta em `PORTA_WS` 7861).
 - `menu.gd` — online (lista do GitHub), sozinho, criar no Wi-Fi, lista Wi-Fi, IP.
 - `camera_terceira.gd`, `boneco_treino.gd`.
-- tools/: `foto.gd`, `baixa_mixamo.sh` (rebaixa assets/mixamo do Drive), `servidor/instalar.sh` + `publica.sh`.
+- tools/: `servidor/site/` (Dockerfile + nginx + start.sh: servidor online num serviço de site, porta $PORT, /jogo = WebSocket), `foto.gd`, `baixa_mixamo.sh` (rebaixa assets/mixamo do Drive), `servidor/instalar.sh` + `publica.sh`.
 
 ## Mixamo (logado)
 Sessão: `/root/.mixamo_sessao/estado.json` (fora do git; conta separada do dono). Token = localStorage `access_token`.
@@ -71,4 +72,5 @@ Sessão: `/root/.cgtrader_sessao/estado.json` (login por código de e-mail; cont
 `url.txt` (baixar). Licença Royalty Free: arquivos em `assets/cgtrader/` (fora do git), créditos em LICENCAS.txt.
 
 ## Pendências do dono
-Servidor online: sem cartão de crédito (Oracle pediu). Opção falada: Azure for Students (18+, e-mail escolar).
+Servidor online: sem cartão. Oracle pediu cartão; Hugging Face exige PRO para Docker (token em /root/.hf/token, conta
+bruno346). Pacote pronto em tools/servidor/site/ para Render/Back4app etc. Teste local WS: `-- dedicado ws` + test_dedicado `-- ws://127.0.0.1:7861`.
