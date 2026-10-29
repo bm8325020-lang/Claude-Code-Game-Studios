@@ -36,10 +36,12 @@ const PARADA_ACERTO: float = 0.07  # congela a animação um instante quando ace
 ## correr (bool, segurando), agachar (bool, alternou agora), andar (bool, segurando: passo lento no PC),
 ## mirar (bool, alternou agora: liga/desliga a mira travada), mira_segurando (null ou bool: PC segura o botão
 ## direito), atacar (bool, apertou agora: golpe ou tiro), trocar (bool: troca facão/pistola),
-## arma ("" ou "facao"/"pistola": escolhe direto), recarregar (bool).
+## arma ("" ou o tipo: escolhe direto), recarregar (bool), atirando (bool, segurando o gatilho: rajada no
+## automático), modo (bool, apertou: troca semi/automático na arma com seletor).
 var entrada: Dictionary = {"move": Vector2.ZERO, "olhar": Vector2.ZERO, "pular": false, "correr": false,
 	"agachar": false, "andar": false, "mirar": false, "mira_segurando": null, "atacar": false,
-	"trocar": false, "arma": "", "recarregar": false, "pegar": false, "comer": false, "beber": false}
+	"trocar": false, "arma": "", "recarregar": false, "pegar": false, "comer": false, "beber": false,
+	"atirando": false, "modo": false}
 
 ## Arma na mão: uma arma branca (Armas.BRANCAS) ou "pistola" (vai pela rede para os outros verem).
 var arma: String = "facao":
@@ -58,8 +60,30 @@ var arma: String = "facao":
 						g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 		if pistola:
 			pistola.visible = v == "pistola"
+		if smg:
+			smg.visible = v == "smg"
+		if e_fogo(v):
+			_ultima_fogo = v
 var _ultima_branca: String = "facao"
 var pistola: Pistola
+## Submetralhadora (mesma classe da pistola, com seletor de tiro). Só aparece se estiver na mochila.
+var smg: Pistola
+var _ultima_fogo: String = "pistola"
+
+
+## É arma de fogo? (pistola ou submetralhadora)
+static func e_fogo(tipo: String) -> bool:
+	return tipo == "pistola" or tipo == "smg"
+
+
+## A arma de fogo da mão (ou a pistola, se a mão está com arma branca).
+func fogo() -> Pistola:
+	return smg if arma == "smg" and smg else pistola
+
+
+# balas que estão nos pentes das armas que ainda estão na mochila (vão para o saco junto)
+func _balas_pentes() -> int:
+	return (pistola.balas if mochila.tem("pistola") else 0) + (smg.balas if smg and mochila.tem("smg") else 0)
 
 const VIDA_MAX: int = 100
 const RENASCE: float = 4.0  # s caído até voltar no ponto de início (o resgate do grupo vem depois)
@@ -277,6 +301,13 @@ func _monta_arma() -> void:
 	pistola.basis = Basis(x, z.cross(x), z)  # cano (+Z) para a frente, ferrolho (+Y) para cima
 	pistola.position = PISTOLA_POS
 	mao.add_child(pistola)
+	smg = Pistola.new()
+	smg.tipo = "smg"
+	smg.name = "Smg"
+	smg.dono = self
+	smg.basis = pistola.basis
+	smg.position = PISTOLA_POS
+	mao.add_child(smg)
 	arma = arma  # aplica a visibilidade
 
 
@@ -309,7 +340,7 @@ func _physics_process(dt: float) -> void:
 	_copia_t -= dt
 	if _copia_t <= 0.0 and multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
 		_copia_t = 5.0
-		_copia.rpc_id(1, conteudo_para_saco(mochila, pistola.balas))
+		_copia.rpc_id(1, conteudo_para_saco(mochila, _balas_pentes()))
 	if _pegando > 0.0:
 		_pegando -= dt
 		mov = Vector2.ZERO
@@ -326,20 +357,30 @@ func _physics_process(dt: float) -> void:
 		mira_travada = bool(entrada["mira_segurando"])
 	if entrada.get("trocar", false):
 		entrada["trocar"] = false
-		_troca_arma("pistola" if arma != "pistola" else (_ultima_branca if mochila.tem(_ultima_branca) else "facao"))
+		if e_fogo(arma):
+			_troca_arma(_ultima_branca if mochila.tem(_ultima_branca) else "facao")
+		else:
+			_troca_arma(_ultima_fogo if mochila.tem(_ultima_fogo) else ("pistola" if mochila.tem("pistola") else "smg"))
 	if String(entrada.get("arma", "")) != "":
 		_troca_arma(String(entrada["arma"]))
 		entrada["arma"] = ""
 	if entrada.get("recarregar", false):
 		entrada["recarregar"] = false
-		if arma == "pistola":
-			pistola.recarregar()
+		if e_fogo(arma):
+			fogo().recarregar()
+	if entrada.get("modo", false):
+		entrada["modo"] = false
+		if arma == "smg":
+			smg.modo_auto = not smg.modo_auto
+			item_pego.emit("modo_auto" if smg.modo_auto else "modo_semi", 0)
 	if entrada.get("atacar", false):
 		entrada["atacar"] = false
-		if arma == "pistola":
+		if e_fogo(arma):
 			_atira()
 		else:
 			_pede_golpe()
+	elif arma == "smg" and smg.modo_auto and entrada.get("atirando", false):
+		_atira()  # automático: segurando o gatilho, a cadência da arma faz a rajada
 	_atualiza_golpe(dt)
 	_encara -= dt
 	_tiro_t += dt
@@ -417,7 +458,7 @@ func _physics_process(dt: float) -> void:
 # jogador de outro aparelho: vai suave até a última posição recebida e toca a mesma animação
 ## Está mirando a pistola neste ponto? (para o zumbi desviar; usa o giro do corpo, que vai pela rede)
 func mirando_em(ponto: Vector3, graus: float) -> bool:
-	if not mira_travada or arma != "pistola" or vida <= 0:
+	if not mira_travada or not e_fogo(arma) or vida <= 0:
 		return false
 	var d: Vector3 = ponto - global_position
 	var f: Vector3 = modelo.global_basis.z
@@ -606,7 +647,7 @@ func usar_espaco(i: int) -> void:
 	var e: Variant = mochila.espacos[i]
 	if e == null:
 		return
-	if Armas.e_branca(String(e.tipo)) or e.tipo == "pistola":
+	if Armas.e_branca(String(e.tipo)) or e_fogo(String(e.tipo)):
 		entrada["arma"] = e.tipo
 		return
 	var ensina: String = Receitas.arma_de(String(e.tipo))
@@ -693,8 +734,8 @@ func _cai() -> void:
 	_morto_t = RENASCE
 	_golpe = -1
 	mira_travada = false
-	if pistola.recarregando:
-		pistola.recarregando = false
+	pistola.recarregando = false
+	smg.recarregando = false
 	_toca("morte", 0.1)
 	if is_multiplayer_authority():
 		_larga_tudo()
@@ -702,12 +743,15 @@ func _cai() -> void:
 
 ## Tudo da mochila (menos o facão) vira um saco no chão onde caiu; as balas do pente vão junto.
 func _larga_tudo() -> void:
-	var tudo: Array = conteudo_para_saco(mochila, pistola.balas)
+	var tudo: Array = conteudo_para_saco(mochila, _balas_pentes())
 	for i in Mochila.ESPACOS:
 		var e: Variant = mochila.espacos[i]
 		if e and e.tipo != "facao":
 			mochila.espacos[i] = null
-	pistola.balas = 0
+	if not mochila.tem("pistola"):
+		pistola.balas = 0
+	if not mochila.tem("smg"):
+		smg.balas = 0
 	mochila.mudou.emit()
 	if tudo.is_empty():
 		return
@@ -723,7 +767,7 @@ static func conteudo_para_saco(m: Mochila, pente: int) -> Array:
 	for e: Variant in m.espacos:
 		if e and e.tipo != "facao":
 			junta[e.tipo] = int(junta.get(e.tipo, 0)) + int(e.qtd)
-	if pente > 0 and junta.has("pistola"):
+	if pente > 0 and (junta.has("pistola") or junta.has("smg")):
 		junta["municao"] = int(junta.get("municao", 0)) + pente
 	var out: Array = []
 	for t: String in junta:
@@ -838,8 +882,9 @@ func _troca_arma(nova: String) -> void:
 	if nova == arma or _golpe >= 0 or not mochila.tem(nova):
 		return
 	arma = nova
-	if pistola.recarregando:
-		pistola.recarregando = false  # trocar cancela a recarga
+	pistola.recarregando = false  # trocar cancela a recarga
+	if smg:
+		smg.recarregando = false
 
 
 ## Raio da mira: do centro da tela para a frente, começando na altura do jogador (não acerta o que está
@@ -855,12 +900,13 @@ func raio_mira() -> Array[Vector3]:
 
 
 func _atira() -> void:
-	if not pistola.pronta() and pistola.balas > 0:
+	var f: Pistola = fogo()
+	if not f.pronta() and f.balas > 0:
 		return
 	var yaw: float = camera.yaw if camera else modelo.rotation.y - PI
 	modelo.rotation.y = yaw + PI  # vira para a mira na hora do tiro
 	var r: Array[Vector3] = raio_mira()
-	var res: Dictionary = pistola.atirar(r[0], r[1], mira_travada)
+	var res: Dictionary = f.atirar(r[0], r[1], mira_travada)
 	if not res.atirou:
 		return
 	_encara = 0.7
@@ -868,11 +914,11 @@ func _atira() -> void:
 	if multiplayer.is_server():  # quem roda os zumbis ouve aqui; os tiros dos clientes chegam por _rede_tiro
 		Zumbi.barulho(get_tree(), global_position, Pistola.BARULHO)
 	if camera:
-		camera.coice(Pistola.COICE)
+		camera.coice(f.coice)
 	if res.acertou is Zumbi:
 		var z: Zumbi = res.acertou
 		# no servidor a vida já caiu; no cliente o dano ainda vai chegar: prevê se matou
-		var morreu: bool = z.vida <= 0 if multiplayer.is_server() else z.vida - Pistola.DANO * (2 if res.cabeca else 1) <= 0
+		var morreu: bool = z.vida <= 0 if multiplayer.is_server() else z.vida - f.dano * (2 if res.cabeca else 1) <= 0
 		_confirma_acerto(res.cabeca or morreu, res.cabeca)
 	if multiplayer.has_multiplayer_peer() and multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
 		_rede_tiro.rpc(res.ponto, res.acertou != null, res.carne)
@@ -880,7 +926,7 @@ func _atira() -> void:
 
 @rpc("authority", "call_remote", "unreliable")
 func _rede_tiro(ponto: Vector3, bateu: bool, carne: bool) -> void:
-	pistola.efeito(ponto, bateu, carne)
+	fogo().efeito(ponto, bateu, carne)
 	if multiplayer.is_server():
 		Zumbi.barulho(get_tree(), global_position, Pistola.BARULHO)
 
@@ -898,9 +944,9 @@ func _so_sombra() -> void:
 
 # pose da parte de cima: recarregar > tiro recente > mirando/encarando > segurando a pistola
 func _escolhe_cima() -> String:
-	if arma != "pistola" or vida <= 0:
+	if not e_fogo(arma) or vida <= 0:
 		return ""
-	if pistola.recarregando:
+	if fogo().recarregando:
 		return "pistola_recarga"
 	if _tiro_t < maxf(0.18, COICE_DURA):
 		return "pistola_tiro"
@@ -921,7 +967,7 @@ func _process(dt: float) -> void:
 		if cima != "" or _cima_peso <= 0.01:
 			_cima_clipe = cima if cima != "" else _cima_clipe
 	_cima_peso = move_toward(_cima_peso, 1.0 if cima != "" else 0.0, dt * 8.0)
-	var em_guarda: bool = not mira_travada and _tiro_t > 0.6 and not pistola.recarregando
+	var em_guarda: bool = not mira_travada and _tiro_t > 0.6 and not fogo().recarregando
 	_guarda = move_toward(_guarda, 1.0 if em_guarda else 0.0, dt * (3.0 if em_guarda else 9.0))
 	if _cima_peso > 0.0 and _cima_clipe != "":
 		_cima_t += dt
@@ -1014,7 +1060,7 @@ func _aplica_cima(clipe: String, t: float, peso: float) -> void:
 	if a == null:
 		return
 	if clipe == "pistola_recarga":
-		t = t * a.length / Pistola.RECARGA  # encaixa o clipe no tempo da recarga
+		t = t * a.length / fogo().recarga  # encaixa o clipe no tempo da recarga
 	t = fmod(t, a.length) if a.loop_mode != Animation.LOOP_NONE else minf(t, a.length)
 	for i in a.get_track_count():
 		if a.track_get_type(i) != Animation.TYPE_ROTATION_3D:
@@ -1181,7 +1227,7 @@ func _clipe_mirando() -> String:
 
 
 func _toca(clipe: String, mistura: float) -> void:
-	if arma == "pistola" and anim.has_animation(clipe + "_p"):
+	if e_fogo(arma) and anim.has_animation(clipe + "_p"):
 		clipe += "_p"  # mesma ação segurando a pistola
 	if clipe == _clipe:
 		return

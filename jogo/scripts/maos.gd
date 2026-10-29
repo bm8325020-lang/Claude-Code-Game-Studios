@@ -9,6 +9,13 @@ class_name Maos
 extends Node3D
 
 const OLHO_PISTOLA := Vector3(0, 1.41, 0.02)
+const OLHO_SMG := Vector3(0, 1.4, -0.25)  # "FPS Animations LowPoly MP5" (ccransh, CC BY)
+## nomes das animações de cada pacote de arma de fogo
+const ANIMS: Dictionary = {
+	"pistola": {"idle": "Idle", "walk": "Walk", "run": "Run", "fire": "Fire", "reload": "Reload", "reload_vazio": "Reload_Empty", "equip": "Equip"},
+	"smg": {"idle": "Arms_Idle", "walk": "Arms_Walk", "run": "Arms_Run", "fire": "Arms_Fire", "reload": "Arms_notfullreload",
+		"reload_vazio": "Arms_fullreload", "equip": "Arms_Draw"},
+}
 const MIRA_PISTOLA := Vector3(0.0, 0.02, 0.025)  # quanto a pistola vem para o centro/para perto mirando
 const OMBRO := Vector3(0.36, -0.5, 0.12)         # pivô dos cortes (atrás e abaixo, à direita da câmera)
 const CABO := Vector3(-0.04, 0.16, -0.58)         # onde fica o cabo, a partir do ombro (sai pela borda da tela)
@@ -26,6 +33,7 @@ const CORTES: Array = [
 var alvo: Jogador
 var _pistola: Node3D
 var _ap_p: AnimationPlayer
+var _rigs: Dictionary = {}  # tipo de arma de fogo -> pacote (Node3D)
 var _ombro: Node3D
 var _arma: String = ""
 var _ult_tiro: float = 99.0
@@ -40,6 +48,7 @@ var _respira: float = 0.0
 
 func _ready() -> void:
 	_pistola = _carrega("pistola_fp", OLHO_PISTOLA)
+	_rigs = {"pistola": _pistola, "smg": _carrega("smg_fp", OLHO_SMG)}
 	_ap_p = _pistola.find_children("*", "AnimationPlayer", true, false)[0]
 	_ombro = Node3D.new()
 	_ombro.position = OMBRO
@@ -94,16 +103,18 @@ func _process(dt: float) -> void:
 	visible = alvo.vida > 0
 	if alvo.arma != _arma:
 		_arma = alvo.arma
-		_pistola.visible = _arma == "pistola"
-		_ombro.visible = _arma != "pistola"
+		for t: String in _rigs:
+			(_rigs[t] as Node3D).visible = t == _arma
+		_ombro.visible = not Jogador.e_fogo(_arma)
 		if Armas.e_branca(_arma):
 			_monta_branca(_arma)
 		_saca = 0.0
-		if _arma == "pistola":
-			_toca("Equip", true)
+		if _rigs.has(_arma):
+			_ap_p = (_rigs[_arma] as Node3D).find_children("*", "AnimationPlayer", true, false)[0]
+			_toca(ANIMS[_arma].equip, true)
 	_saca = move_toward(_saca, 1.0, dt * 3.5)
 	var vel: float = Vector2(alvo.velocity.x, alvo.velocity.z).length()
-	if _arma == "pistola":
+	if _rigs.has(_arma):
 		_pistola_anima(vel)
 	else:
 		_facao_anima(dt)
@@ -114,7 +125,7 @@ func _process(dt: float) -> void:
 		_ult_yaw = cam.yaw
 		_ult_pitch = cam.pitch
 		_balanco = (_balanco + d * 0.6).limit_length(0.12).lerp(Vector2.ZERO, 1.0 - exp(-9.0 * dt))
-	_mira = move_toward(_mira, 1.0 if alvo.mira_travada and _arma == "pistola" else 0.0, dt * 6.0)
+	_mira = move_toward(_mira, 1.0 if alvo.mira_travada and Jogador.e_fogo(_arma) else 0.0, dt * 6.0)
 	var baixa: float = (0.06 if alvo.correndo else 0.0) + (1.0 - _saca) * 0.35
 	if alvo._pegando > Jogador.PEGAR_DUR * 0.4:
 		baixa += 0.3  # pegando do chão: a arma sai da frente
@@ -142,18 +153,20 @@ func _facao_anima(dt: float) -> void:
 		_ombro.rotation_degrees = _ombro.rotation_degrees.lerp(giro, 1.0 - exp(-10.0 * dt))
 
 
+# arma de fogo: tiro, recarga (no tempo da recarga da arma), andar/correr/parado com o pacote dela
 func _pistola_anima(vel: float) -> void:
-	var p: Pistola = alvo.pistola
+	var p: Pistola = alvo.fogo()
+	var nomes: Dictionary = ANIMS[_arma]
 	if alvo._tiro_t < _ult_tiro:
-		_toca("Fire", true)
+		_toca(nomes.fire, true, 1.0 if not p.automatica else _ap_p.get_animation(nomes.fire).length / maxf(p.cadencia * 1.6, 0.05))
 	_ult_tiro = alvo._tiro_t
 	if p.recarregando and not _recarregando:
-		var nome: String = "Reload_Empty" if p.balas == 0 else "Reload"
-		_toca(nome, true, _ap_p.get_animation(nome).length / Pistola.RECARGA)
+		var nome: String = nomes.reload_vazio if p.balas == 0 else nomes.reload
+		_toca(nome, true, _ap_p.get_animation(nome).length / p.recarga)
 	_recarregando = p.recarregando
 	if _ocupada(_ap_p):
 		return
-	_toca("Run" if alvo.correndo else ("Walk" if vel > 0.6 else "Idle"))
+	_toca(nomes.run if alvo.correndo else (nomes.walk if vel > 0.6 else nomes.idle))
 
 
 # animação de ação (tiro, recarga, golpe, pegar, sacar) ainda tocando: a de andar/parado espera

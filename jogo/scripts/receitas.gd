@@ -12,6 +12,7 @@ const FABRICAR_T: float = 3.0  # s por unidade
 ## arma -> {"pecas": {peça: qtd}, "raridade", "categoria"}
 const LISTA: Dictionary = {
 	"pistola": {"pecas": {"mola": 2, "gatilho": 1, "cano": 1, "cabo": 1}, "raridade": SIMPLES, "categoria": "ARMAS"},
+	"smg": {"pecas": {"mola": 3, "gatilho": 1, "cano": 2, "ferrolho": 1, "carregador": 1}, "raridade": MEDIANA, "categoria": "ARMAS"},
 }
 const CATEGORIAS: Array[String] = ["ARMAS", "ÚTEIS", "SAÚDE", "BASE"]
 

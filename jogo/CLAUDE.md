@@ -45,7 +45,9 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `anims.gd` — `CLIPES` (jogador) e `CLIPES_ZUMBI`: nome lógico → [arquivo, ini, fim]; "kaykit:" (retarget),
   "proprio:" (golpes.gd). `VELOCIDADE*` p/ pés.
 - `retarget.gd` — KayKit→X Bot. `golpes.gd` — golpes do facão feitos à mão (poses-chave).
-- `pistola.gd` — tiro (máscara 1|8), dispersão, recarga, `efeito`, `Pistola.sangue`, `BARULHO`.
+- `pistola.gd` — arma de fogo: `tipo` (FOGO: pistola/smg) define pente/dano/cadência/dispersão/coice/recarga/automática;
+  `modo_auto`, tiro (máscara 1|8), `efeito`, `Pistola.sangue`, `BARULHO`. Jogador: `pistola`, `smg`, `fogo()`, `e_fogo(tipo)`,
+  entrada `atirando` (segurando) e `modo` (seletor). Teste: tests/test_auto.gd (13).
 - `porta.gd` — camada 16, `alterna_por`, `leva_soco`, conserto 90 s. `item.gd` — tipos municao/lanterna/comida/agua, volta 60 s.
 - `ciclo.gd` — dia 480 s/noite 300 s, `noite()` 0..1, `INICIO` provisório (noite em 1:30).
 - `controles.gd` — HUD e toque: vida, fome/sede, relógio, munição, mira (`_Mira` com marca de acerto), botões

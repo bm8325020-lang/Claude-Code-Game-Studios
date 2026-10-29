@@ -37,3 +37,5 @@ pistola_fp.glb: "9mm Pistol | First Person Animations" por 1Matzh — https://sk
 faca.glb: "Butcher Knife" por beyondmatter — https://sketchfab.com/3d-models/a8677d9c7a5b43fe966ac48d2798dad2
 taco.glb: "Bloody post-apo baseball bat" por Mielos3D — https://sketchfab.com/3d-models/f3c3c73529e14dc59d525a9a6a2220cd
 machado.glb: "Old Fire Axe" por MaX3Dd — https://sketchfab.com/3d-models/af6ca8fbfc6a434185e82c88001418ec
+fps/smg_fp.glb: "FPS Animations LowPoly MP5" por ccransh — https://sketchfab.com/3d-models/568f00dd76944baaa5eae1a1cc871423
+smg.glb: "Low Poly MP5A3" por samanthacford — https://sketchfab.com/3d-models/a77e9f726a9d4647b4a84d0bfd656ddc

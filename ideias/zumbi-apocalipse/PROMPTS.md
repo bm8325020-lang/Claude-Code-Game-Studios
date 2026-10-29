@@ -167,7 +167,7 @@ chance pequena, drop de zumbi, chefe chance maior). Pistola atual vira "arma sim
 Aceite: testes: sem peças não fabrica; com peças consome e cria; bancada troca de lugar e avisa.
 
 ## 7. Arma automática com seletor
-Status: pendente
+Status: feito (APK 0.41). Pistola.FOGO (smg: 30, 22 de dano, cadência 0,085, AUTO/SEMI), Jogador.smg/fogo(), entrada atirando/modo, viewmodel MP5 (ccransh), receita_smg mediana, rara em baú.
 
 Uma submetralhadora (ou fuzil) com **seletor**: o jogador escolhe semi/automático num botão (só nessa arma).
 Automático: segura ATIRAR e sai rajada com cadência, dispersão crescente e coice forte (câmera e braços,

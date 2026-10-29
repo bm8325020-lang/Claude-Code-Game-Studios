@@ -17,6 +17,25 @@ const DISPERSAO_POR_TIRO: float = 1.2 # cresce a cada tiro e volta sozinha
 const COICE: float = 1.3              # graus que a câmera sobe por tiro
 const BARULHO: float = 35.0           # m: zumbis a essa distância ouvem o tiro e vão ver
 
+## Tipo de arma de fogo (FOGO): "pistola" ou "smg" — escolher antes de pôr na árvore.
+var tipo: String = "pistola"
+## números da arma (vêm de FOGO[tipo]); as constantes acima são os da pistola, usados nos testes
+var pente: int = PENTE
+var dano: int = DANO
+var cadencia: float = CADENCIA
+var disp_mira: float = DISPERSAO_MIRA
+var disp_quadril: float = DISPERSAO_QUADRIL
+var disp_tiro: float = DISPERSAO_POR_TIRO
+var coice: float = COICE
+var recarga: float = RECARGA
+## tem seletor de tiro (só algumas armas); modo_auto = segurando o gatilho sai rajada
+var automatica: bool = false
+var modo_auto: bool = false
+const FOGO: Dictionary = {
+	"pistola": {},
+	"smg": {"pente": 30, "dano": 22, "cadencia": 0.085, "disp_mira": 1.0, "disp_quadril": 4.0, "disp_tiro": 0.7,
+		"coice": 0.9, "recarga": 2.2, "automatica": true},
+}
 var balas: int = PENTE
 ## Balas guardadas (moram na mochila do dono; sem dono, aqui mesmo).
 var reserva: int:
@@ -41,6 +60,10 @@ var _luz: OmniLight3D
 
 
 func _ready() -> void:
+	for k: String in FOGO.get(tipo, {}):
+		set(k, FOGO[tipo][k])
+	balas = pente
+	modo_auto = automatica
 	_monta_modelo()
 	_som = AudioStreamPlayer3D.new()
 	_som.max_db = 6.0
@@ -56,6 +79,9 @@ func _ready() -> void:
 # modelo "Low Poly Pistol" (lowpwpc, CGTrader). O arquivo vem com pente e bala soltos: fica só a pistola.
 # No arquivo o cano aponta para -Z; aqui é +Z (cano para a frente), empunhadura para -Y, na mão em (0, -0.04, 0).
 func _monta_modelo() -> void:
+	if tipo == "smg":
+		_monta_smg()
+		return
 	var m := (load("res://assets/cgtrader/pistola.glb") as PackedScene).instantiate() as Node3D
 	for mi: Node in m.find_children("*", "MeshInstance3D", true, false):
 		if mi.name != "Pistola":
@@ -71,6 +97,20 @@ func _monta_modelo() -> void:
 	add_child(cano)
 
 
+# "Low Poly MP5A3" (samanthacford, Sketchfab, CC BY): no arquivo o cano aponta para -Z e mede 0,245; aqui +Z, 60 cm
+func _monta_smg() -> void:
+	var m := (load("res://assets/sketchfab/smg.glb") as PackedScene).instantiate() as Node3D
+	for g: GeometryInstance3D in m.find_children("*", "GeometryInstance3D", true, false):
+		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	m.rotation_degrees.y = 180.0
+	m.scale = Vector3.ONE * 2.45
+	m.position = Vector3(0, 0.1, 0.1)  # empunhadura na mão
+	add_child(m)
+	cano = Node3D.new()
+	cano.position = Vector3(0, 0.12, 0.34)
+	add_child(cano)
+
+
 func _process(dt: float) -> void:
 	_espera -= dt
 	_abertura = move_toward(_abertura, 0.0, dt * 4.0)
@@ -78,7 +118,7 @@ func _process(dt: float) -> void:
 	if recarregando:
 		_recarga_t -= dt
 		if _recarga_t <= 0.0:
-			var falta: int = mini(PENTE - balas, reserva)
+			var falta: int = mini(pente - balas, reserva)
 			balas += falta
 			reserva -= falta
 			recarregando = false
@@ -99,10 +139,10 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 	if not pronta():
 		return res
 	balas -= 1
-	_espera = CADENCIA
-	# dispersão: um pequeno desvio aleatório dentro de um cone
-	var graus: float = (DISPERSAO_MIRA if mirando else DISPERSAO_QUADRIL) + _abertura
-	_abertura = minf(_abertura + DISPERSAO_POR_TIRO, 4.0)
+	_espera = cadencia
+	# dispersão: um pequeno desvio aleatório dentro de um cone (cresce a cada tiro seguido)
+	var graus: float = (disp_mira if mirando else disp_quadril) + _abertura
+	_abertura = minf(_abertura + disp_tiro, 4.0 if not automatica else 6.0)
 	var desvio := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)).normalized()
 	dir = dir.rotated(dir.cross(desvio).normalized(), deg_to_rad(randf() * graus)) if dir.cross(desvio).length() > 0.01 else dir
 	var q := PhysicsRayQueryParameters3D.create(origem, origem + dir * ALCANCE, 1 | 8)  # mundo e zumbis
@@ -115,7 +155,7 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 		var alvo: Node3D = hit.collider
 		var altura: Variant = alvo.get("altura_cabeca")
 		var cabeca: bool = ponto.y - alvo.global_position.y > (float(altura) if altura != null else 1.65)
-		alvo.call("levar_golpe", DANO * (2 if cabeca else 1), dir, dono)
+		alvo.call("levar_golpe", dano * (2 if cabeca else 1), dir, dono)
 		res.acertou = alvo
 		res.cabeca = cabeca
 	res.carne = res.acertou is Zumbi
@@ -124,10 +164,10 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 
 
 func recarregar() -> void:
-	if recarregando or balas == PENTE or reserva <= 0:
+	if recarregando or balas == pente or reserva <= 0:
 		return
 	recarregando = true
-	_recarga_t = RECARGA
+	_recarga_t = recarga
 
 
 ## Clarão, som e rastro até `ponto` (também chamado nos outros aparelhos quando alguém atira).

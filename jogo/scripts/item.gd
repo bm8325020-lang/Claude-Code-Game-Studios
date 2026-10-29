@@ -45,7 +45,7 @@ func nome() -> String:
 			return "lata de comida"
 		"agua":
 			return "garrafa de água"
-		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador", "receita_pistola":
+		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador", "receita_pistola", "smg", "receita_smg":
 			return Mochila.NOMES[tipo].to_lower() + (" (%d)" % quantidade if quantidade > 1 else "")
 	return "lanterna"
 
@@ -123,6 +123,8 @@ func _monta_modelo() -> void:
 		pega.rotation_degrees = Vector3(0, 0, 90)  # deitada de lado no chão
 		pega.position = Vector3(0, 0.04, -float(Armas.BRANCAS[tipo].tam) * 0.35)
 		add_child(pega)
+	elif tipo == "smg":
+		_modelo("res://assets/sketchfab/smg.glb", 0.6, Vector3(0, 0, 90))
 	elif tipo == "pistola":
 		_modelo("res://assets/cgtrader/pistola.glb", 0.2, Vector3(0, 0, 90), "Pistola")
 	elif tipo == "comida":

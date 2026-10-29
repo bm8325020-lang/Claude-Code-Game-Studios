@@ -68,6 +68,7 @@ var _barra: Array = []  # espaços 1–6 da barra rápida (TelaMochila.Espaco)
 var _mochila: TelaMochila
 var _tela_bau: TelaBau
 var _tela_bancada: TelaBancada
+var _btn_modo: Button
 var _estilos_toque: Array[StyleBoxFlat] = []  # fundo dos botões de toque (transparência das configurações)
 
 
@@ -167,7 +168,7 @@ func _ready() -> void:
 func _acoes() -> void:
 	var mapa: Dictionary = {"frente": [KEY_W, KEY_UP], "tras": [KEY_S, KEY_DOWN], "esq": [KEY_A, KEY_LEFT],
 		"dir": [KEY_D, KEY_RIGHT], "pular": [KEY_SPACE], "correr": [KEY_SHIFT], "agachar": [KEY_CTRL, KEY_C],
-		"andar": [KEY_ALT], "pegar": [KEY_E], "comer": [KEY_F], "beber": [KEY_G], "trocar": [KEY_Q], "recarregar": [KEY_R], "mochila": [KEY_TAB],
+		"andar": [KEY_ALT], "pegar": [KEY_E], "comer": [KEY_F], "beber": [KEY_G], "trocar": [KEY_Q], "recarregar": [KEY_R], "mochila": [KEY_TAB], "modo": [KEY_B],
 		"espaco_1": [KEY_1], "espaco_2": [KEY_2], "espaco_3": [KEY_3], "espaco_4": [KEY_4], "espaco_5": [KEY_5], "espaco_6": [KEY_6]}
 	for acao: String in mapa:
 		if InputMap.has_action(acao):
@@ -261,12 +262,20 @@ func _process(dt: float) -> void:
 	_aviso_t -= dt
 	_aviso_item.visible = _aviso_t > 0.0
 	_aviso_item.modulate.a = clampf(_aviso_t, 0.0, 1.0)
-	var com_pistola: bool = jogador.arma == "pistola"
+	var com_pistola: bool = Jogador.e_fogo(jogador.arma)
 	_mira.visible = jogador.mira_travada or com_pistola or (_mira as _Mira).marca_t > 0.0
 	_municao.visible = com_pistola
+	if _btn_modo:
+		_btn_modo.visible = jogador.arma == "smg"
+		_btn_modo.text = "AUTO" if jogador.smg.modo_auto else "SEMI"
+	if not toque:
+		e["atirando"] = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+		if Input.is_action_just_pressed("modo"):
+			e["modo"] = true
 	if com_pistola:
-		var p: Pistola = jogador.pistola
-		_municao.text = ("RECARREGANDO" if p.recarregando else "%d | %d" % [p.balas, p.reserva])
+		var p: Pistola = jogador.fogo()
+		_municao.text = ("RECARREGANDO" if p.recarregando else "%d | %d" % [p.balas, p.reserva]) + \
+			(("  AUTO" if p.modo_auto else "  SEMI") if p.automatica else "")
 	if _btn_atacar:
 		_btn_atacar.text = "ATIRAR" if com_pistola else "ATACAR"
 		_btn_recarregar.visible = com_pistola
@@ -499,6 +508,9 @@ func _pegou(tipo: String, qtd: int) -> void:
 	if tipo == "aprendeu":
 		aviso("Receita aprendida", Color(0.35, 0.6, 0.9))
 		return
+	if tipo.begins_with("modo_"):
+		aviso("Automático" if tipo == "modo_auto" else "Tiro a tiro", Color(0.35, 0.6, 0.9), 1.2)
+		return
 	var nome: String = String(Mochila.NOMES.get(tipo, tipo))
 	_aviso_item.text = ("+%d %s" % [qtd, nome.to_lower()]) if qtd > 1 else nome
 	_aviso_t = 1.6
@@ -510,7 +522,8 @@ func _levou_dano(dano: int) -> void:
 
 func _em_botao(p: Vector2) -> bool:
 	for b: Control in [_btn_correr, _btn_agachar, _btn_mira, _btn_atacar, _btn_recarregar, _btn_pegar, _btn_comer, _btn_beber,
-			get_node_or_null("Pular") as Control, get_node_or_null("Trocar") as Control, get_node_or_null("Pausa") as Control] + _barra:
+			get_node_or_null("Pular") as Control, get_node_or_null("Trocar") as Control, get_node_or_null("Pausa") as Control,
+			_btn_modo] + _barra:
 		if b and b.get_global_rect().grow(10).has_point(p):
 			return true
 	return false
@@ -529,7 +542,15 @@ func _monta_toque() -> void:
 		jogador.entrada["mirar"] = true
 		_correr_ligado = false)
 	_btn_atacar = _botao("ATACAR", Vector2(-320, -175), 150.0)
-	_btn_atacar.button_down.connect(func() -> void: jogador.entrada["atacar"] = true)
+	_btn_atacar.button_down.connect(func() -> void:
+		jogador.entrada["atacar"] = true
+		jogador.entrada["atirando"] = true)
+	_btn_atacar.button_up.connect(func() -> void: jogador.entrada["atirando"] = false)
+	_btn_modo = _botao("SEMI", Vector2(-300, -470), 90.0)
+	_btn_modo.name = "Modo"
+	_btn_modo.add_theme_font_size_override("font_size", 18)
+	_btn_modo.button_down.connect(func() -> void: jogador.entrada["modo"] = true)
+	_btn_modo.visible = false
 	var trocar := _botao("TROCAR", Vector2(-130, -420), 100.0)
 	trocar.name = "Trocar"
 	trocar.button_down.connect(func() -> void: jogador.entrada["trocar"] = true)
