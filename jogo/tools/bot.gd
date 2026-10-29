@@ -1,11 +1,12 @@
 # Robô jogador: faz cada movimento como um jogador faria e tira 6 fotos de cada um, da câmera do jogo,
 # montando folhas de contato (uma linha por movimento) para avaliar as animações sem abrir o jogo.
-#   xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 -s res://tools/bot.gd -- pasta/
+#   xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 --fixed-fps 60 -s res://tools/bot.gd -- pasta/
+# (--fixed-fps: sem ele a tela virtual é lenta e cada foto pula vários quadros da animação)
 # Só alguns: -- pasta/ pulo,agachado  (roda só os movimentos com esses pedaços no nome)
 # Saída: pasta/bot_1.png, bot_2.png ... (7 movimentos por folha).
 extends SceneTree
 
-const FOTOS: int = 6
+var FOTOS: int = 6  # 3º argumento muda (ex.: 12 para ver um golpe quadro a quadro)
 const LARGURA: int = 240  # recorte em volta do boneco (zoom)
 const ALTURA: int = 300
 const POR_FOLHA: int = 5
@@ -16,6 +17,8 @@ var linhas: Array = []  # [nome, [Image]]
 
 
 func _init() -> void:
+	if OS.get_cmdline_user_args().size() > 2:
+		FOTOS = int(OS.get_cmdline_user_args()[2])
 	main = (load("res://main.tscn") as PackedScene).instantiate()
 	root.add_child(main)
 	await _espera(10)
@@ -43,7 +46,7 @@ func _init() -> void:
 	await _faz("pulo correndo", {"move": Vector2(0, 1)}, 1.2, ["pular"])
 	await _faz("agachado", {"agachar": true}, 1.5)
 	await _faz("agachado andando", {"agachar": true, "move": Vector2(0, 1)}, 1.5)
-	await _faz("facão: golpe", {}, 1.2, ["atacar"])
+	await _faz("facão: golpe", {}, 0.55, ["atacar"])  # 6 fotos no golpe
 	await _faz("facão: 3 golpes seguidos", {}, 2.0, ["atacar"], 0.4)
 	await _faz("pistola: mirando", {"arma": "pistola", "mira_segurando": true}, 1.5)
 	await _faz("pistola: mirando de lado", {"arma": "pistola", "mira_segurando": true, "move": Vector2(1, 0)}, 1.5)
@@ -72,9 +75,12 @@ func _faz(nome: String, segura: Dictionary, tempo: float, apertos: Array = [], r
 	j.global_position = j.inicio  # cada movimento começa no mesmo lugar livre
 	j.velocity = Vector3.ZERO
 	j.camera.virar(0.0)
+	j.entrada["move"] = Vector2(0, 1)  # uns passos para frente: fica de costas para a câmera, como no jogo
+	await _espera(15)
+	j.entrada["move"] = Vector2.ZERO
 	if j.agachado != segura.get("agachar", false):
 		j.entrada["agachar"] = true  # agachar é liga/desliga
-	await _espera(20)  # assenta a pose anterior
+	await _espera(30)  # assenta a pose anterior
 	for k: String in segura:
 		if k != "agachar":
 			j.entrada[k] = segura[k]

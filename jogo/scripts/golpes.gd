@@ -16,16 +16,23 @@ const GUARDA: Dictionary = {"giro": -10.0, "quadril": -5.0, "inclina": 5.0, "bai
 
 ## nome -> [[tempo (s), pose], ...]; o que a pose não diz vem da guarda
 const POSES: Dictionary = {
-	# 1: corte na horizontal, da direita para a esquerda
+	# 1: corte na horizontal, da direita para a esquerda. Arco largo, na altura do ombro, para aparecer de
+	# trás (é assim que o jogador vê); a preparação segura um instante antes do corte (peso)
 	"golpe1": [
 		[0.0, {}],
-		[0.16, {"giro": -45.0, "quadril": -15.0, "braco": Vector3(-0.85, 0.15, -0.5), "antebraco": Vector3(-0.6, 0.2, -0.78),
-			"lamina": Vector3(-0.45, 0.3, -0.84)}],
-		[0.25, {"giro": 0.0, "quadril": 0.0, "braco": Vector3(-0.35, 0.05, 0.94), "antebraco": Vector3(-0.05, 0.05, 1.0),
-			"lamina": Vector3(0.25, 0.05, 0.97)}],
-		[0.34, {"giro": 40.0, "quadril": 15.0, "braco": Vector3(0.45, -0.1, 0.88), "antebraco": Vector3(0.85, -0.15, 0.5),
-			"lamina": Vector3(0.95, -0.15, 0.25)}],
-		[0.6, {}],
+		[0.2, {"giro": -60.0, "quadril": -20.0, "braco": Vector3(-0.9, 0.4, -0.15), "antebraco": Vector3(-0.55, 0.75, -0.35),
+			"lamina": Vector3(-0.3, 0.6, -0.75)}],
+		[0.25, {"giro": -55.0, "quadril": -18.0, "braco": Vector3(-0.92, 0.35, -0.1), "antebraco": Vector3(-0.6, 0.7, -0.3),
+			"lamina": Vector3(-0.35, 0.55, -0.75)}],
+		[0.29, {"giro": -15.0, "quadril": -5.0, "braco": Vector3(-0.75, 0.25, 0.6), "antebraco": Vector3(-0.5, 0.2, 0.84),
+			"lamina": Vector3(-0.2, 0.1, 0.97)}],
+		[0.33, {"giro": 20.0, "quadril": 8.0, "inclina": 10.0, "baixa": 0.04, "braco": Vector3(-0.1, 0.1, 0.99),
+			"antebraco": Vector3(0.4, 0.0, 0.92), "lamina": Vector3(0.85, -0.05, 0.5)}],
+		[0.4, {"giro": 55.0, "quadril": 20.0, "inclina": 12.0, "baixa": 0.05, "braco": Vector3(0.7, -0.05, 0.7),
+			"antebraco": Vector3(0.95, -0.1, 0.2), "lamina": Vector3(0.8, -0.2, -0.55)}],
+		[0.52, {"giro": 50.0, "quadril": 18.0, "inclina": 8.0, "baixa": 0.03, "braco": Vector3(0.65, -0.15, 0.72),
+			"antebraco": Vector3(0.9, -0.2, 0.3), "lamina": Vector3(0.75, -0.3, -0.5)}],
+		[0.7, {}],
 	],
 	# 2: de volta, subindo na diagonal, da esquerda para a direita
 	"golpe2": [
