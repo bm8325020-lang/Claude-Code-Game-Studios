@@ -89,7 +89,7 @@ var agachado: bool = false
 ## Mira travada: o corpo fica virado para onde a câmera olha e anda de lado/de costas (modo tiro).
 var mira_travada: bool = false
 var correndo: bool = false
-var camera: CameraTerceira
+var camera: CameraPrimeira
 ## Rede: true no aparelho que controla este jogador (só ele tem câmera e lê os controles).
 var local: bool = true
 ## Estado enviado pela rede (o dono escreve, os outros aparelhos leem e suavizam).
@@ -181,9 +181,11 @@ func _ready() -> void:
 	inicio = global_position
 	_monta_sincronia()
 	if local:
-		camera = CameraTerceira.new()
+		camera = CameraPrimeira.new()
 		camera.alvo = self
+		camera.yaw = modelo.rotation.y - PI
 		add_child(camera)
+		_so_sombra.call_deferred()
 	else:
 		collision_layer = 4  # os outros jogadores: não empurram a sua física local por enquanto
 
@@ -586,8 +588,10 @@ func _anima(dt: float, vel: float) -> void:
 		clipe = "agachado" if vel < 0.2 else "agachado_andar"
 	elif vel < 0.15:
 		clipe = "parado"
-	elif olha_camera():
-		clipe = _clipe_mirando()
+	elif _clipe_mirando() != "trote":
+		clipe = _clipe_mirando()  # de lado ou de costas (para a frente usa andar/trote/correr)
+	elif mira_travada:
+		clipe = "trote"
 	elif vel < 3.0:
 		clipe = "andar"
 	elif vel < 6.0:
@@ -661,7 +665,13 @@ func _rede_tiro(ponto: Vector3, bateu: bool, carne: bool) -> void:
 
 ## O corpo fica virado para a câmera? (mirando, logo depois do tiro, ou com a pistola sem correr)
 func olha_camera() -> bool:
-	return mira_travada or _encara > 0.0 or (arma == "pistola" and not correndo)
+	return true  # primeira pessoa: o corpo sempre vira junto com o olhar (os outros veem andar de lado/de costas)
+
+
+# primeira pessoa: o próprio corpo (com as armas e a lanterna da mão) some da tela mas continua fazendo sombra
+func _so_sombra() -> void:
+	for g: GeometryInstance3D in modelo.find_children("*", "GeometryInstance3D", true, false):
+		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 
 
 # pose da parte de cima: recarregar > tiro recente > mirando/encarando > segurando a pistola
@@ -762,12 +772,18 @@ func _atualiza_lanterna() -> void:
 	_lanterna.visible = forca > 0.0
 	_lente_mat.emission_energy_multiplier = 3.0 * forca
 	if forca > 0.0:
-		var p: float = camera.pitch if camera else 0.0
-		var frente: Vector3 = modelo.global_basis.z
-		frente.y = 0.0
-		var dir: Vector3 = (frente.normalized() * cos(p) - Vector3.UP * sin(p)).normalized()
-		_lanterna.global_position = _ponta.global_position
-		_lanterna.global_basis = Basis.looking_at(dir)  # SpotLight ilumina para -Z, que é o looking_at
+		if camera:
+			# primeira pessoa: a luz sai de perto do olho, um pouco à esquerda, para onde se olha
+			var b: Basis = camera.cam.global_basis
+			_lanterna.global_position = camera.cam.global_position + b * Vector3(-0.2, -0.15, 0.0)
+			_lanterna.global_basis = b
+		else:
+			var frente: Vector3 = modelo.global_basis.z
+			frente.y = 0.0
+			var p: float = 0.0  # os outros não mandam o olhar vertical: luz reta para a frente
+			var dir: Vector3 = (frente.normalized() * cos(p) - Vector3.UP * sin(p)).normalized()
+			_lanterna.global_position = _ponta.global_position
+			_lanterna.global_basis = Basis.looking_at(dir)  # SpotLight ilumina para -Z, que é o looking_at
 
 
 # sobrepõe nos ossos de cima a pose do clipe da pistola (as pernas continuam com a locomoção)

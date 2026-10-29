@@ -75,7 +75,11 @@ dos botões de toque, cor da mira. Botão "voltar ao padrão". Classe `Config` c
 (salvar, ler, aplicar, padrão).
 
 ## 0b. Primeira pessoa (decisão do dono: animação de terceira pessoa não fica com qualidade)
-Status: pendente
+Status: feito (APK 0.33). Câmera nos olhos (CameraPrimeira), braços com animação de animador (Sketchfab 1Matzh:
+pistola com sacar/tiro/recarga/andar/correr; punhos com soco/pegar, facão na mão direita = estocada). Próprio
+corpo só faz sombra; os outros veem o corpo animado. Lanterna sai de perto do olho. Falta (melhorar depois):
+golpes de facão de verdade (corte lateral) — hoje é estocada do soco; braços da pistola são de luva preta e os
+dos punhos de pele (unificar); viewmodel pode atravessar parede quando encosta.
 
 O jogo passa a ser em **primeira pessoa** (celular e PC). Os outros jogadores continuam vendo o corpo inteiro
 com as animações de hoje (rede igual); só a visão do próprio jogador muda.

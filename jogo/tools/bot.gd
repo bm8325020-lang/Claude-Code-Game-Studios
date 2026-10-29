@@ -7,8 +7,8 @@
 extends SceneTree
 
 var FOTOS: int = 6  # 3º argumento muda (ex.: 12 para ver um golpe quadro a quadro)
-const LARGURA: int = 240  # recorte em volta do boneco (zoom)
-const ALTURA: int = 300
+const LARGURA: int = 400  # tela inteira (primeira pessoa)
+const ALTURA: int = 225
 const POR_FOLHA: int = 5
 
 var main: Node3D
@@ -104,16 +104,10 @@ func _solta() -> void:
 
 
 func _foto() -> Image:
+	# primeira pessoa: a tela inteira (braços e arma), reduzida
 	var img: Image = root.get_viewport().get_texture().get_image()
-	var cam: Camera3D = root.get_viewport().get_camera_3d()
-	var meio: Vector2 = cam.unproject_position(j.global_position + Vector3(0, 0.9, 0))
-	var alto: int = int(img.get_height() * 0.6)
-	var largo: int = int(alto * float(LARGURA) / ALTURA)
-	var x: int = clampi(int(meio.x) - largo / 2, 0, img.get_width() - largo)
-	var y: int = clampi(int(meio.y) - alto / 2, 0, img.get_height() - alto)
-	var corte: Image = img.get_region(Rect2i(x, y, largo, alto))
-	corte.resize(LARGURA, ALTURA, Image.INTERPOLATE_BILINEAR)
-	return corte
+	img.resize(LARGURA, ALTURA, Image.INTERPOLATE_BILINEAR)
+	return img
 
 
 ## mira parado, atira e fotografa: 1 antes e 5 a cada 2 quadros depois (o coice dura ~0,2 s)

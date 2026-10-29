@@ -31,3 +31,7 @@ pistola.glb: "Low Poly Pistol" por lowpwpc — https://www.cgtrader.com/free-3d-
   (baixar de novo: logado no CGTrader, página do modelo > Free Download > PistolaLow.glb; texturas reduzidas para 1024 webp)
 
 Letras (SIL Open Font License 1.1, ver assets/fontes/OFL.txt): Bebas Neue (Dharma Type) e Oswald (Vernon Adams e outros) — assets/fontes/
+
+== assets/sketchfab/fps/ (Sketchfab, CC BY 4.0) — braços em primeira pessoa ==
+pistola_fp.glb: "9mm Pistol | First Person Animations" por 1Matzh — https://sketchfab.com/3d-models/c26d7f5aa72f4b01a6da4578caa8f07f
+punhos_fp.glb: "Fists (2025) | First Person Animations" por 1Matzh — https://sketchfab.com/3d-models/c7e8f959c4094be991b02213d4e66c20

@@ -173,7 +173,7 @@ func _camera_parede() -> void:
 	ok(cam_x < 14.75 and cam_x > 12.25, "câmera fica entre os muros (x=%.2f)" % cam_x)
 	j.entrada["olhar"] = Vector2(0, 400)
 	await frames(5)
-	ok(rad_to_deg(j.camera.pitch) <= CameraTerceira.PITCH_MAX + 0.01, "giro vertical tem limite (%.1f°)" % rad_to_deg(j.camera.pitch))
+	ok(rad_to_deg(j.camera.pitch) <= CameraPrimeira.PITCH_MAX + 0.01, "giro vertical tem limite (%.1f°)" % rad_to_deg(j.camera.pitch))
 
 
 func _animacoes() -> void:
@@ -248,7 +248,7 @@ func _facao() -> void:
 	var b: BonecoTreino = _boneco(Vector3(-3, 0, 4))
 	ok(b != null, "boneco de treino na pista")
 	await poe(Vector3(-3, 0.1, 2.6))
-	j.modelo.rotation.y = 0.0  # virado para +Z, o boneco 1,4 m à frente
+	j.camera.virar(PI)  # olhando para +Z (o corpo vira junto), o boneco 1,4 m à frente
 	j.entrada["atacar"] = true
 	await frames(90)
 	ok(b.vida == BonecoTreino.VIDA_MAX - 25, "um golpe tira 25 (vida %d)" % b.vida)
@@ -265,7 +265,7 @@ func _facao() -> void:
 	await frames(260)  # se caiu, espera levantar
 	b.vida = BonecoTreino.VIDA_MAX
 	b.caido = false
-	j.modelo.rotation.y = PI
+	j.camera.virar(0.0)  # de costas para o boneco
 	j.entrada["atacar"] = true
 	await frames(50)
 	ok(b.vida == BonecoTreino.VIDA_MAX, "de costas o golpe não pega")
@@ -289,9 +289,13 @@ func _mira_nova() -> void:
 	j.entrada["move"] = Vector2.ZERO
 	await frames(40)
 	await process_frame
-	var tela: Vector2 = j.camera.cam.get_viewport().get_visible_rect().size
-	var cabeca: Vector2 = j.camera.cam.unproject_position(j.global_position + Vector3(0, 1.4, 0))
-	ok(cabeca.x < tela.x * 0.42, "mirando o boneco sai do centro, para a esquerda (x=%.0f de %.0f)" % [cabeca.x, tela.x])
+	var olho: float = j.camera.cam.global_position.y - j.global_position.y
+	ok(absf(olho - CameraPrimeira.ALTURA_EM_PE) < 0.12, "primeira pessoa: câmera nos olhos (%.2f m)" % olho)
+	var corpo: Array = j.modelo.find_children("*", "GeometryInstance3D", true, false)
+	ok(corpo.all(func(g: GeometryInstance3D) -> bool: return g.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY),
+		"o próprio corpo não aparece na tela, só a sombra")
+	ok(j.camera.maos.visible and j.camera.maos._pistola.visible == (j.arma == "pistola") and j.camera.maos._punhos.visible != (j.arma == "pistola"),
+		"braços com a arma certa na tela (%s)" % j.arma)
 	j.entrada["mira_segurando"] = false
 	await frames(3)
 	ok(not j.mira_travada, "soltar o botão direito para de mirar")

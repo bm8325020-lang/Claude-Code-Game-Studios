@@ -318,6 +318,7 @@ quando você aprovar.
 21. **Servidor online.** **Status: feito, APK 0.31.** Render.com grátis (EUA): https://zumbi-servidor.onrender.com
     (página com status). Até 8 jogadores (medido com robôs). Dorme sem visitas; o menu acorda antes de entrar.
     Daqui em diante o loop segue ideias/zumbi-apocalipse/PROMPTS.md (um prompt por sistema).
+22. Interfaces no estilo Decay (APK 0.32), configurações (APK 0.32) e **primeira pessoa** (APK 0.33).
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)
 1. **Andar e atirar com 2 jogadores** — terceira pessoa, controles de celular e PC, 1 arma de fogo + 1 arma
