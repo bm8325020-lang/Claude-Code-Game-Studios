@@ -9,7 +9,10 @@ apt-get update -y && apt-get install -y unzip curl
 ARQ=$(uname -m | sed 's/aarch64/arm64/')  # x86_64 (AMD) ou arm64 (Ampere)
 curl -sSfL -o godot.zip "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.$ARQ.zip"
 unzip -o godot.zip && mv "Godot_v4.7.2-stable_linux.$ARQ" godot && chmod +x godot && rm godot.zip
-curl -sSfL -o servidor.pck "$RAMO/servidor.pck"
+# o pacote vem em partes (limite de 100 MB do GitHub): servidor.pck.00, .01...
+N=$(curl -sSf "$RAMO/partes.txt")
+: > servidor.pck
+for i in $(seq 0 $((N - 1))); do curl -sSfL "$RAMO/servidor.pck.$(printf %02d "$i")" >> servidor.pck; done
 sha256sum servidor.pck | cut -d' ' -f1 > versao.txt
 # porta do jogo no firewall da máquina (as imagens Ubuntu da Oracle bloqueiam tudo menos o SSH)
 iptables -I INPUT 1 -p udp --dport 7777 -j ACCEPT
@@ -35,7 +38,9 @@ cat > /opt/zumbi/atualiza.sh <<EOF
 cd /opt/zumbi
 NOVA=\$(curl -sSf "$RAMO/versao.txt") || exit 0
 [ "\$NOVA" = "\$(cat versao.txt 2>/dev/null)" ] && exit 0
-curl -sSfL -o servidor.pck.novo "$RAMO/servidor.pck" || exit 0
+N=\$(curl -sSf "$RAMO/partes.txt") || exit 0
+: > servidor.pck.novo
+for i in \$(seq 0 \$((N - 1))); do curl -sSfL "$RAMO/servidor.pck.\$(printf %02d "\$i")" >> servidor.pck.novo || exit 0; done
 [ "\$(sha256sum servidor.pck.novo | cut -d' ' -f1)" = "\$NOVA" ] || { rm -f servidor.pck.novo; exit 0; }
 mv servidor.pck.novo servidor.pck && echo "\$NOVA" > versao.txt && chown zumbi servidor.pck versao.txt
 systemctl restart zumbi

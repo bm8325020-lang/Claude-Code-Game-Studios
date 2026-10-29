@@ -8,6 +8,10 @@ G=${GODOT:-godot}
 TMP=$(mktemp -d)
 "$G" --headless --path . --export-pack "Android" "$TMP/servidor.pck"
 sha256sum "$TMP/servidor.pck" | cut -d' ' -f1 > "$TMP/versao.txt"
+# o GitHub não aceita arquivo acima de 100 MB: vai em partes de 90 MB (servidor.pck.00, .01...), o servidor junta
+split -b 90M -d "$TMP/servidor.pck" "$TMP/servidor.pck."
+ls "$TMP" | grep -c '^servidor\.pck\.[0-9]' > "$TMP/partes.txt"
+rm "$TMP/servidor.pck"
 VERSAO=$(grep -oP 'const VERSAO: int = \K[0-9]+' scripts/rede.gd)
 RAMO=https://raw.githubusercontent.com/bm8325020-lang/Claude-Code-Game-Studios/servidor-build
 if [ $# -ge 1 ]; then

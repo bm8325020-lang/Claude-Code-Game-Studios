@@ -308,11 +308,11 @@ quando você aprovar.
 18. **Zumbi chefe.** **Status: feito, APK 0.29.** Um grandão (1,35x, pele mais escura) no fundo da pista
     (0, 40): 400 de vida, soco de 35 que empurra forte, anda 20% mais devagar. Tiro de pistola não faz ele
     cambalear (só golpe de 40+), e ele não foge com pouca vida.
-19. **Zumbi usa cobertura.** **Status: feito (sem APK, a pedido).** Fugindo com pouca vida, procura a até 9 m um
+19. **Zumbi usa cobertura.** **Status: feito, APK 0.30.** Fugindo com pouca vida, procura a até 9 m um
     lugar onde quem atira não enxerga o peito dele (sem chegar mais perto e sem passar a menos de 3 m do
     atirador), corre até lá e fica espiando por 8 s. Se o jogador der a volta e o vir, troca de esconderijo.
     Sem cobertura por perto, só corre para longe, como antes.
-20. **Quarteirão de verdade (bloco 1).** **Status: primeira versão (sem APK, a pedido).** Ao lado da pista
+20. **Quarteirão de verdade (bloco 1).** **Status: feito, APK 0.30 (147 MB).** Ao lado da pista
     (centro 70, 60): cruzamento de duas ruas de asfalto, calçadas e 4 lotes — prédio em ruína (20 m), correio,
     quarto de tijolo com a parede dos fundos desabada (dá para entrar; estante e entulho), terreno baldio com
     muro, grades e entulho. Barreiras de concreto fecham a saída leste, cancela "KEEP OUT" e grades na sul.

@@ -18,7 +18,7 @@ timeout 60 $G --headless --path . -s res://tests/test_busca.gd
 # servidor dedicado: pck + "-- dedicado"; tests/test_dedicado.gd é o cliente
 # APK: subir version/code e version/name em export_presets.cfg, depois:
 timeout 600 $G --headless --path . --export-release "Android" "$SP/z.apk"; $BT/zipalign -f -p 4 "$SP/z.apk" "$SP/zumbi-X.apk" && $BT/apksigner sign --ks /root/.local/share/godot/keystores/debug.keystore --ks-key-alias androiddebugkey --ks-pass pass:android "$SP/zumbi-X.apk"; rm -f "$SP/z.apk"
-GODOT=$G bash tools/servidor/publica.sh [ip]          # publica servidor.pck na branch servidor-build
+GODOT=$G bash tools/servidor/publica.sh [ip]          # publica servidor.pck em partes de 90 MB (limite do GitHub) na branch servidor-build
 # robô jogador (folhas de fotos de cada movimento; filtro e nº de fotos opcionais):
 xvfb-run -a -s "-screen 0 1280x720x24" $G --path . --rendering-driver opengl3 --fixed-fps 60 -s res://tools/bot.gd -- $SP/ [pulo,facão] [12]
 # foto: xvfb-run -a -s "-screen 0 1280x720x24" $G --path . --rendering-driver opengl3 -s res://tools/<f>.gd -- saida.png
