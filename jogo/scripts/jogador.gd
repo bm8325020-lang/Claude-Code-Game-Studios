@@ -200,7 +200,7 @@ func _monta_sincronia() -> void:
 	var sync := MultiplayerSynchronizer.new()
 	sync.name = "Sincronia"
 	sync.root_path = NodePath("..")
-	sync.replication_interval = 1.0 / 30.0
+	sync.replication_interval = 1.0 / 20.0  # quem recebe suaviza (_segue_rede); 30/s pesava no servidor grátis
 	sync.replication_config = cfg
 	sync.set_multiplayer_authority(get_multiplayer_authority())  # criado depois: herda o dono à mão
 	add_child(sync)
@@ -552,6 +552,8 @@ func _segue_rede(dt: float) -> void:
 	else:
 		global_position = global_position.lerp(pos_rede, 1.0 - exp(-15.0 * dt))
 	modelo.rotation.y = lerp_angle(modelo.rotation.y, rot_rede, 1.0 - exp(-15.0 * dt))
+	if Rede.servidor_sem_tela:
+		return
 	_toca(clipe_rede, 0.18)
 	var vel: float = Vector2(global_position.x - antes.x, global_position.z - antes.z).length() / maxf(dt, 0.001)
 	var base: float = float(Anims.VELOCIDADE.get(clipe_rede, 0.0))
