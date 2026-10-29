@@ -312,7 +312,12 @@ quando você aprovar.
     lugar onde quem atira não enxerga o peito dele (sem chegar mais perto e sem passar a menos de 3 m do
     atirador), corre até lá e fica espiando por 8 s. Se o jogador der a volta e o vir, troca de esconderijo.
     Sem cobertura por perto, só corre para longe, como antes.
-20. ...depois: quarteirão de verdade (bloco 1) e o que o dono pedir.
+20. **Quarteirão de verdade (bloco 1).** **Status: primeira versão (sem APK, a pedido).** Ao lado da pista
+    (centro 70, 60): cruzamento de duas ruas de asfalto, calçadas e 4 lotes — prédio em ruína (20 m), correio,
+    quarto de tijolo com a parede dos fundos desabada (dá para entrar; estante e entulho), terreno baldio com
+    muro, grades e entulho. Barreiras de concreto fecham a saída leste, cancela "KEEP OUT" e grades na sul.
+    3 zumbis no quarteirão. Modelos do Sketchfab (CC BY).
+21. ...depois: o que o dono pedir (mais lotes, carros abandonados, interiores).
 
 ### Visão geral (grandes blocos, cada um quebrado em mecânicas pequenas como acima)
 1. **Andar e atirar com 2 jogadores** — terceira pessoa, controles de celular e PC, 1 arma de fogo + 1 arma
