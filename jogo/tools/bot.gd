@@ -94,7 +94,7 @@ func _faz(nome: String, segura: Dictionary, tempo: float, apertos: Array = [], r
 func _solta() -> void:
 	for k: String in j.entrada:
 		var v = j.entrada[k]
-		j.entrada[k] = Vector2.ZERO if v is Vector2 else (null if k == "mira_segurando" else ("" if v is String else false))
+		j.entrada[k] = Vector2.ZERO if v is Vector2 else ("" if v is String else false)  # mira_segurando false = solta a mira
 
 
 func _foto() -> Image:

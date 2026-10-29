@@ -130,6 +130,8 @@ var _encara: float = 0.0        # depois de atirar sem mirar, o corpo fica virad
 var _tiro_t: float = 9.0
 const COICE_GRAUS: float = 20.0  # quanto a arma sobe no tiro
 const COICE_DURA: float = 0.3   # s até voltar à mira
+const GUARDA_GRAUS: float = 35.0  # sem mirar, a pistola fica baixa (guarda); mirando ou atirando, sobe
+var _guarda: float = 0.0
 const TRONCO: String = "mixamorig_Spine2"
 const MAO: String = "mixamorig_RightHand"
 
@@ -683,6 +685,8 @@ func _process(dt: float) -> void:
 		if cima != "" or _cima_peso <= 0.01:
 			_cima_clipe = cima if cima != "" else _cima_clipe
 	_cima_peso = move_toward(_cima_peso, 1.0 if cima != "" else 0.0, dt * 8.0)
+	var em_guarda: bool = not mira_travada and _tiro_t > 0.6 and not pistola.recarregando
+	_guarda = move_toward(_guarda, 1.0 if em_guarda else 0.0, dt * (3.0 if em_guarda else 9.0))
 	if _cima_peso > 0.0 and _cima_clipe != "":
 		_cima_t += dt
 		_aplica_cima(_cima_clipe, _cima_t, _cima_peso)
@@ -776,6 +780,8 @@ func _aplica_cima(clipe: String, t: float, peso: float) -> void:
 		_esq.set_bone_pose_rotation(idx, _esq.get_bone_pose_rotation(idx).slerp(q, peso))
 	if clipe.begins_with("pistola"):
 		_aponta_tronco(peso)
+		if _guarda > 0.01:
+			_gira_bracos(-GUARDA_GRAUS * _guarda, 0.0)
 		if _tiro_t < COICE_DURA:
 			_coice()
 
@@ -783,13 +789,20 @@ func _aplica_cima(clipe: String, t: float, peso: float) -> void:
 # coice do tiro, por cima da mira (que senão anularia o coice do clipe): sobe rápido e volta devagar
 func _coice() -> void:
 	var k: float = minf(_tiro_t / 0.035, 1.0) * pow(1.0 - _tiro_t / COICE_DURA, 1.5)
+	_gira_bracos(COICE_GRAUS * k, 0.3)
+
+
+# sobe (graus > 0) ou baixa os dois braços em volta dos ombros; o peito acompanha uma fração
+func _gira_bracos(graus: float, tronco: float) -> void:
 	var xf: Transform3D = _esq.global_transform
 	var ombro: Vector3 = xf * _esq.get_bone_global_pose(_esq.find_bone("mixamorig_RightArm")).origin
 	var mao: Vector3 = xf * _esq.get_bone_global_pose(_esq.find_bone(MAO)).origin
 	var braco: Vector3 = (mao - ombro).normalized()
-	var sobe: Quaternion = Quaternion(braco, (braco + Vector3.UP * tan(deg_to_rad(COICE_GRAUS * k))).normalized())
+	var gira: Quaternion = Quaternion(braco, (braco + Vector3.UP * tan(deg_to_rad(graus))).normalized())
 	for osso: String in [TRONCO, "mixamorig_RightArm", "mixamorig_LeftArm"]:
-		var r: Quaternion = Quaternion.IDENTITY.slerp(sobe, 0.3) if osso == TRONCO else sobe
+		var r: Quaternion = Quaternion.IDENTITY.slerp(gira, tronco) if osso == TRONCO else gira
+		if r.is_equal_approx(Quaternion.IDENTITY):
+			continue
 		var i: int = _esq.find_bone(osso)
 		var q_pai: Quaternion = (xf.basis * _esq.get_bone_global_pose(_esq.get_bone_parent(i)).basis).orthonormalized().get_rotation_quaternion()
 		_esq.set_bone_pose_rotation(i, (q_pai.inverse() * r * q_pai * _esq.get_bone_pose_rotation(i)).normalized())
