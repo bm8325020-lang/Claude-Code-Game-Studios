@@ -26,6 +26,7 @@ var nick_local: String = "Jogador"
 
 
 func _ready() -> void:
+	add_to_group("principal")
 	_luz()
 	_chao()
 	_obstaculos()

@@ -36,6 +36,30 @@ APK conectar nele pela lista "Online".
 5. O Render dorme sem visita: o menu "Online" mostra "acordando o servidor (até 1 min)..." e tenta de novo.
 Aceite: 2 celulares jogando juntos pela internet; tabela de capacidade anotada; APK novo.
 
+## 0c. Interfaces (pedido do dono: adiantar as interfaces)
+Status: feito (commit abaixo; foto em tools/foto_telas.gd)
+
+Um visual só para todas as telas, sem cara de IA: painéis escuros meio transparentes, cantos retos, uma cor de
+destaque (laranja ferrugem), letra legível e grande no celular, botões de toque com no mínimo 56 px, textos
+curtos em pt-BR. Tema central (`ui_tema.gd`: cores, tamanhos, `painel()`, `botao()`, `rotulo()`) usado por
+todas as telas, nada de estilo espalhado.
+Telas: **menu inicial** (nome, JOGAR ONLINE, NO WI-FI, SOZINHO, CONFIGURAÇÕES), **lista online** com estado
+("acordando o servidor...", "cheio", "versão diferente"), **Wi-Fi** (criar, lista, IP), **carregando/entrando**,
+**pausa** (CONTINUAR, CONFIGURAÇÕES, SAIR DA PARTIDA; Esc/botão no canto), **morte** ("Você caiu" + contagem
+para voltar), **avisos** (faixa no alto que some sozinha: servidor cheio, caiu a conexão, item pego) e **HUD**
+reorganizado (vida/fome/sede agrupadas, munição perto do botão de tiro, relógio do dia discreto).
+Aceite: foto de cada tela (folha de contato) no celular (paisagem 1280x720) e PC; nenhuma tela antiga com
+estilo próprio; testes existentes passando.
+
+## 0d. Configurações (sensibilidade e o resto)
+Status: pendente
+
+Tela CONFIGURAÇÕES (do menu e da pausa), salva em `user://config.cfg` e aplicada na hora:
+sensibilidade do olhar (geral), **sensibilidade mirando por arma** (pistola, futuras armas), inverter eixo Y,
+campo de visão, volume geral/efeitos, qualidade (sombras, resolução 3D, 30/60 quadros), tamanho e transparência
+dos botões de toque, cor da mira. Botão "voltar ao padrão". Classe `Config` com valores padrão e teste
+(salvar, ler, aplicar, padrão).
+
 ## 0b. Primeira pessoa (decisão do dono: animação de terceira pessoa não fica com qualidade)
 Status: pendente
 

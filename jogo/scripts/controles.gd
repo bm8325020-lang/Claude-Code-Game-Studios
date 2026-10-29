@@ -10,6 +10,8 @@ extends CanvasLayer
 
 const RAIO_STICK: float = 110.0
 const BOTAO: float = 120.0
+const BARRA: float = 280.0  # largura das barras de vida/fome/sede
+const X0: float = 26.0
 
 ## O jogador controlado; os controles só aparecem (e o mouse só é capturado) quando a partida começa.
 var jogador: Jogador:
@@ -57,6 +59,10 @@ var _bolso: Label
 var _dica_pegar: Label
 var _aviso_item: Label
 var _aviso_t: float = 0.0
+var _faixa: PanelContainer
+var _faixa_texto: Label
+var _faixa_t: float = 0.0
+var _pausa: Control
 
 
 func _ready() -> void:
@@ -73,30 +79,34 @@ func _ready() -> void:
 	_vermelho.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_vermelho.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_vermelho)
-	# barra de vida no alto, no meio
+	# vida, fome e sede juntas no canto de cima à esquerda, num painel discreto
+	var grupo := Panel.new()
+	var est := StyleBoxFlat.new()
+	est.bg_color = Color(UiTema.PAINEL, 0.55)
+	grupo.add_theme_stylebox_override("panel", est)
+	grupo.position = Vector2(16, 12)
+	grupo.size = Vector2(BARRA + 20, 70)
+	grupo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(grupo)
 	_vida_fundo = ColorRect.new()
 	_vida_fundo.color = Color(0, 0, 0, 0.45)
-	_vida_fundo.anchor_left = 0.5
-	_vida_fundo.anchor_right = 0.5
-	_vida_fundo.offset_left = -160
-	_vida_fundo.offset_right = 160
-	_vida_fundo.offset_top = 18
-	_vida_fundo.offset_bottom = 34
+	_vida_fundo.offset_left = X0
+	_vida_fundo.offset_right = X0 + BARRA + 4
+	_vida_fundo.offset_top = 22
+	_vida_fundo.offset_bottom = 38
 	_vida_fundo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_vida_fundo)
 	_vida_barra = ColorRect.new()
 	_vida_barra.position = Vector2(2, 2)
-	_vida_barra.size = Vector2(316, 12)
+	_vida_barra.size = Vector2(BARRA, 12)
 	_vida_barra.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_vida_fundo.add_child(_vida_barra)
 	# fome (laranja) e sede (azul): duas barras finas embaixo da vida, e quantas latas/garrafas tem
-	_fome_barra = _barrinha(38, Color(0.85, 0.55, 0.2))
-	_sede_barra = _barrinha(46, Color(0.35, 0.6, 0.9))
+	_fome_barra = _barrinha(50, Color(0.85, 0.55, 0.2))
+	_sede_barra = _barrinha(62, Color(0.35, 0.6, 0.9))
 	_bolso = Label.new()
-	_bolso.anchor_left = 0.5
-	_bolso.anchor_right = 0.5
-	_bolso.offset_left = 168
-	_bolso.offset_top = 14
+	_bolso.offset_left = X0
+	_bolso.offset_top = 86
 	_bolso.add_theme_font_size_override("font_size", 18)
 	_bolso.add_theme_color_override("font_outline_color", Color.BLACK)
 	_bolso.add_theme_constant_override("outline_size", 5)
@@ -104,6 +114,8 @@ func _ready() -> void:
 	_caiu = Label.new()
 	_caiu.text = "VOCÊ CAIU"
 	_caiu.set_anchors_preset(Control.PRESET_CENTER)
+	_caiu.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_caiu.grow_vertical = Control.GROW_DIRECTION_BOTH
 	_caiu.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_caiu.add_theme_font_size_override("font_size", 46)
 	_caiu.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -111,13 +123,13 @@ func _ready() -> void:
 	_caiu.visible = false
 	add_child(_caiu)
 	_relogio = Label.new()
-	_relogio.anchor_left = 0.5
-	_relogio.anchor_right = 0.5
-	_relogio.offset_left = -160
-	_relogio.offset_right = 160
-	_relogio.offset_top = 54
-	_relogio.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_relogio.add_theme_font_size_override("font_size", 20)
+	_relogio.anchor_left = 1.0
+	_relogio.anchor_right = 1.0
+	_relogio.offset_left = -440
+	_relogio.offset_right = -100  # deixa lugar para o botão de pausa
+	_relogio.offset_top = 22
+	_relogio.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_relogio.add_theme_font_size_override("font_size", 19)
 	_relogio.add_theme_color_override("font_outline_color", Color.BLACK)
 	_relogio.add_theme_constant_override("outline_size", 5)
 	add_child(_relogio)
@@ -128,8 +140,17 @@ func _ready() -> void:
 	_municao.add_theme_font_size_override("font_size", 30)
 	_municao.add_theme_color_override("font_outline_color", Color.BLACK)
 	_municao.add_theme_constant_override("outline_size", 6)
-	_municao.position = Vector2(24, 70)  # abaixo do aviso da partida
+	_municao.anchor_left = 1.0
+	_municao.anchor_right = 1.0
+	_municao.anchor_top = 1.0
+	_municao.anchor_bottom = 1.0
+	_municao.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_municao.offset_left = -420
+	_municao.offset_right = -175 if toque else -32  # no celular: acima do botão ATIRAR
+	_municao.offset_top = -240 if toque else -76
 	add_child(_municao)
+	_monta_aviso()
+	_monta_pausa()
 	visible = jogador != null
 
 
@@ -183,11 +204,16 @@ func _process(dt: float) -> void:
 	if _btn_mira:
 		_btn_mira.modulate = Color(1, 0.85, 0.4) if jogador.mira_travada else Color.WHITE
 	var frac: float = clampf(float(jogador.vida) / Jogador.VIDA_MAX, 0.0, 1.0)
-	_vida_barra.size.x = 316.0 * frac
+	_vida_barra.size.x = BARRA * frac
 	_vida_barra.color = Color(0.75, 0.12, 0.1) if frac < 0.3 else Color(0.85, 0.82, 0.78)
 	_caiu.visible = jogador.vida <= 0
-	_fome_barra.size.x = 316.0 * jogador.fome / 100.0
-	_sede_barra.size.x = 316.0 * jogador.sede / 100.0
+	if _caiu.visible:
+		_caiu.text = "VOCÊ CAIU\n" + ("voltando em %d s" % ceili(maxf(jogador._morto_t, 0.0)))
+	_faixa_t -= dt
+	_faixa.visible = _faixa_t > 0.0
+	_faixa.modulate.a = clampf(_faixa_t * 2.0, 0.0, 1.0)
+	_fome_barra.size.x = BARRA * jogador.fome / 100.0
+	_sede_barra.size.x = BARRA * jogador.sede / 100.0
 	_fome_barra.modulate.a = 0.5 + 0.5 * absf(sin(Time.get_ticks_msec() * 0.006)) if jogador.fome < 15.0 else 1.0
 	_sede_barra.modulate.a = 0.5 + 0.5 * absf(sin(Time.get_ticks_msec() * 0.006)) if jogador.sede < 15.0 else 1.0
 	_bolso.text = "comida %d  água %d" % [jogador.comida, jogador.agua]
@@ -227,11 +253,13 @@ func _process(dt: float) -> void:
 func _input(ev: InputEvent) -> void:
 	if jogador == null:
 		return
+	if _pausa.visible and toque:
+		return  # na pausa o toque é dos botões da tela, não do analógico nem da câmera
 	if not toque:
 		if ev is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 			jogador.entrada["olhar"] = (jogador.entrada["olhar"] as Vector2) + (ev as InputEventMouseMotion).relative
 		elif ev is InputEventKey and (ev as InputEventKey).pressed and (ev as InputEventKey).keycode == KEY_ESCAPE:
-			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+			pausa(not _pausa.visible)
 		elif ev is InputEventMouseButton:
 			var mb := ev as InputEventMouseButton
 			if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
@@ -275,10 +303,8 @@ func _input(ev: InputEvent) -> void:
 func _barrinha(topo: float, cor: Color) -> ColorRect:
 	var fundo := ColorRect.new()
 	fundo.color = Color(0, 0, 0, 0.45)
-	fundo.anchor_left = 0.5
-	fundo.anchor_right = 0.5
-	fundo.offset_left = -160
-	fundo.offset_right = 160
+	fundo.offset_left = X0
+	fundo.offset_right = X0 + BARRA + 4
 	fundo.offset_top = topo
 	fundo.offset_bottom = topo + 6
 	fundo.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -286,7 +312,7 @@ func _barrinha(topo: float, cor: Color) -> ColorRect:
 	var b := ColorRect.new()
 	b.color = cor
 	b.position = Vector2(2, 1)
-	b.size = Vector2(316, 4)
+	b.size = Vector2(BARRA, 4)
 	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fundo.add_child(b)
 	return b
@@ -310,6 +336,77 @@ func _rotulo(tam: int, altura: float) -> Label:
 	return l
 
 
+## Faixa de aviso no alto da tela que some sozinha (servidor, itens, facção...).
+func aviso(texto: String, cor: Color = UiTema.TEXTO, tempo: float = 3.0) -> void:
+	_faixa_texto.text = texto
+	_faixa_texto.add_theme_color_override("font_color", cor)
+	_faixa_t = tempo
+
+
+## Abre/fecha a pausa. O jogo não para (é em rede): só tira os controles da mão e mostra o mouse.
+func pausa(abrir: bool) -> void:
+	_pausa.visible = abrir
+	if not toque:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if abrir else Input.MOUSE_MODE_CAPTURED
+	if jogador and abrir:
+		jogador.entrada["move"] = Vector2.ZERO
+
+
+func _monta_aviso() -> void:
+	_faixa = PanelContainer.new()
+	_faixa.theme = UiTema.tema()
+	_faixa.anchor_left = 0.5
+	_faixa.anchor_right = 0.5
+	_faixa.offset_left = -330
+	_faixa.offset_right = 330
+	_faixa.offset_top = 96
+	_faixa.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_faixa.visible = false
+	add_child(_faixa)
+	_faixa_texto = UiTema.rotulo("", 22)
+	_faixa_texto.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_faixa.add_child(_faixa_texto)
+
+
+func _monta_pausa() -> void:
+	var b := Button.new()
+	b.text = "II"
+	b.name = "Pausa"
+	b.focus_mode = Control.FOCUS_NONE
+	b.anchor_left = 1.0
+	b.anchor_right = 1.0
+	b.offset_left = -88
+	b.offset_right = -20
+	b.offset_top = 12
+	b.offset_bottom = 80
+	b.theme = UiTema.tema()
+	b.pressed.connect(func() -> void: pausa(true))
+	add_child(b)
+	_pausa = Control.new()
+	_pausa.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_pausa.theme = UiTema.tema()
+	_pausa.visible = false
+	add_child(_pausa)
+	var fundo := ColorRect.new()
+	fundo.color = Color(UiTema.FUNDO, 0.7)
+	fundo.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_pausa.add_child(fundo)
+	var col := UiTema.painel_central(_pausa, 520.0)
+	col.add_child(UiTema.rotulo("PAUSA", 34, UiTema.DESTAQUE))
+	col.add_child(UiTema.rotulo("O jogo continua para os outros.", 20, UiTema.APAGADO))
+	var cont := UiTema.botao("CONTINUAR", true)
+	cont.pressed.connect(func() -> void: pausa(false))
+	col.add_child(cont)
+	var cfg := UiTema.botao("CONFIGURAÇÕES")
+	cfg.disabled = true  # a tela vem no prompt 0d
+	col.add_child(cfg)
+	var sair := UiTema.botao("SAIR DA PARTIDA")
+	sair.pressed.connect(func() -> void:
+		pausa(false)
+		get_tree().get_first_node_in_group("principal")._caiu_conexao(""))
+	col.add_child(sair)
+
+
 func _acertou(forte: bool) -> void:
 	(_mira as _Mira).marca(forte)
 
@@ -325,7 +422,7 @@ func _levou_dano(dano: int) -> void:
 
 func _em_botao(p: Vector2) -> bool:
 	for b: Control in [_btn_correr, _btn_agachar, _btn_mira, _btn_atacar, _btn_recarregar, _btn_pegar, _btn_comer, _btn_beber,
-			get_node_or_null("Pular") as Control, get_node_or_null("Trocar") as Control]:
+			get_node_or_null("Pular") as Control, get_node_or_null("Trocar") as Control, get_node_or_null("Pausa") as Control]:
 		if b and b.get_global_rect().grow(10).has_point(p):
 			return true
 	return false

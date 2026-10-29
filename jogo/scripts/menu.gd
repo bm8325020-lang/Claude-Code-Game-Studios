@@ -1,5 +1,5 @@
-# Menu inicial da mecânica 2: nome, jogar sozinho, criar partida, ou entrar numa partida achada no Wi-Fi
-# (ou digitando o IP). Feito para dedo: botões grandes.
+# Menu inicial: nome e quatro caminhos (online, Wi-Fi, sozinho, configurações), cada um na sua página.
+# Visual de UiTema; feito para o dedo (botões grandes) e funciona com mouse.
 class_name Menu
 extends CanvasLayer
 
@@ -8,59 +8,89 @@ var _nick: LineEdit
 var _ip: LineEdit
 var _lista: VBoxContainer
 var _status: Label
+var _online: VBoxContainer
+var _paginas: Dictionary = {}  # nome -> coluna (só uma visível)
 var _t: float = 0.0
-
 
 ## Mensagem para mostrar quando o menu volta (ex.: "Não conectou no servidor").
 static var aviso_inicial: String = ""
-var _online: VBoxContainer
 
 
 func _ready() -> void:
+	var raiz := Control.new()
+	raiz.set_anchors_preset(Control.PRESET_FULL_RECT)
+	raiz.theme = UiTema.tema()
+	add_child(raiz)
 	var fundo := ColorRect.new()
-	fundo.color = Color(0.06, 0.07, 0.08, 0.88)
+	fundo.color = UiTema.FUNDO
 	fundo.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(fundo)
-	var centro := CenterContainer.new()
-	centro.set_anchors_preset(Control.PRESET_FULL_RECT)
-	fundo.add_child(centro)
-	var caixa := VBoxContainer.new()
-	caixa.custom_minimum_size = Vector2(640, 0)
-	caixa.add_theme_constant_override("separation", 12)
-	centro.add_child(caixa)
-	var titulo := _rotulo("ZUMBI APOCALIPSE — teste de rede", 34)
-	caixa.add_child(titulo)
-	_nick = _campo("Seu nome", "Jogador%d" % (randi() % 900 + 100))
-	caixa.add_child(_nick)
-	caixa.add_child(_rotulo("Jogar online:", 24))
+	raiz.add_child(fundo)
+	# início
+	var ini := _pagina(raiz, "inicio")
+	ini.add_child(UiTema.rotulo("SEM NOME", 44, UiTema.DESTAQUE))
+	ini.add_child(UiTema.rotulo("sobreviver é com você", 22, UiTema.APAGADO))
+	_nick = UiTema.campo("Seu nome", "Jogador%d" % (randi() % 900 + 100))
+	ini.add_child(_nick)
+	_liga(ini, UiTema.botao("JOGAR ONLINE", true), func() -> void: _mostra("online"); _busca_servidores())
+	_liga(ini, UiTema.botao("NO WI-FI"), func() -> void: _mostra("wifi"))
+	_liga(ini, UiTema.botao("SOZINHO"), func() -> void: main.iniciar_solo(_nome()))
+	_liga(ini, UiTema.botao("CONFIGURAÇÕES"), func() -> void: _mostra("config"))
+	# online
+	var onl := _pagina(raiz, "online")
+	onl.add_child(UiTema.rotulo("ONLINE", 34, UiTema.DESTAQUE))
 	_online = VBoxContainer.new()
-	_online.add_theme_constant_override("separation", 8)
-	caixa.add_child(_online)
-	_online.add_child(_rotulo("Buscando servidores...", 20))
-	_busca_servidores()
-	var b_solo := _botao("JOGAR SOZINHO")
-	b_solo.pressed.connect(func() -> void: main.iniciar_solo(_nome()))
-	caixa.add_child(b_solo)
-	var b_criar := _botao("CRIAR PARTIDA (no Wi-Fi)")
-	b_criar.pressed.connect(_criar)
-	caixa.add_child(b_criar)
-	caixa.add_child(_rotulo("Partidas no Wi-Fi (toque para entrar):", 24))
+	_online.add_theme_constant_override("separation", 10)
+	onl.add_child(_online)
+	_liga(onl, UiTema.botao("VOLTAR"), func() -> void: _mostra("inicio"))
+	# Wi-Fi
+	var wif := _pagina(raiz, "wifi")
+	wif.add_child(UiTema.rotulo("NO WI-FI", 34, UiTema.DESTAQUE))
+	_liga(wif, UiTema.botao("CRIAR PARTIDA", true), _criar)
+	wif.add_child(UiTema.rotulo("Partidas achadas (toque para entrar):", 22, UiTema.APAGADO))
 	_lista = VBoxContainer.new()
-	_lista.add_theme_constant_override("separation", 8)
-	caixa.add_child(_lista)
+	_lista.add_theme_constant_override("separation", 10)
+	wif.add_child(_lista)
 	var linha := HBoxContainer.new()
-	_ip = _campo("ou digite o IP", "")
+	_ip = UiTema.campo("ou digite o IP")
 	_ip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	linha.add_child(_ip)
-	var b_ip := _botao("ENTRAR")
-	b_ip.custom_minimum_size.x = 180
+	var b_ip := UiTema.botao("ENTRAR")
+	b_ip.custom_minimum_size.x = 170
 	b_ip.pressed.connect(func() -> void: _entrar(_ip.text.strip_edges()))
 	linha.add_child(b_ip)
-	caixa.add_child(linha)
-	_status = _rotulo(aviso_inicial if aviso_inicial != "" else "Procurando partidas...", 22)
+	wif.add_child(linha)
+	_liga(wif, UiTema.botao("VOLTAR"), func() -> void: _mostra("inicio"))
+	# configurações (a tela completa vem no prompt 0d)
+	var cfg := _pagina(raiz, "config")
+	cfg.add_child(UiTema.rotulo("CONFIGURAÇÕES", 34, UiTema.DESTAQUE))
+	_liga(cfg, UiTema.botao("VOLTAR"), func() -> void: _mostra("inicio"))
+	# faixa de estado embaixo
+	_status = UiTema.rotulo(aviso_inicial, 22, UiTema.APAGADO)
+	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_status.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_status.position.y -= 70
+	_status.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_status.custom_minimum_size.x = 900
+	raiz.add_child(_status)
 	aviso_inicial = ""
-	caixa.add_child(_status)
+	_mostra("inicio")
 	main.rede.procurar()
+
+
+func _pagina(raiz: Control, nome: String) -> VBoxContainer:
+	var col := UiTema.painel_central(raiz)
+	_paginas[nome] = col
+	return col
+
+
+func _mostra(nome: String) -> void:
+	for n: String in _paginas:
+		(_paginas[n] as Control).get_parent().get_parent().visible = n == nome  # o CenterContainer da página
+
+
+func _liga(pai: Control, b: Button, acao: Callable) -> void:
+	b.pressed.connect(acao)
+	pai.add_child(b)
 
 
 func _process(dt: float) -> void:
@@ -74,15 +104,18 @@ func _process(dt: float) -> void:
 		c.queue_free()
 	for ip: String in main.rede.partidas:
 		var d: Dictionary = main.rede.partidas[ip]
-		var b := _botao("Partida de %s  (%s)" % [d.nick, ip])
+		var b := UiTema.botao("%s  (%s)" % [d.nick, ip])
 		b.pressed.connect(func() -> void: _entrar(ip))
 		_lista.add_child(b)
-	if main.rede.partidas.is_empty():
-		_status.text = "Procurando partidas no Wi-Fi... (o outro aparelho precisa tocar em CRIAR PARTIDA)"
+	if main.rede.partidas.is_empty() and _lista.get_child_count() == 0 and (_paginas["wifi"] as Control).get_parent().get_parent().visible:
+		_status.text = "Procurando partidas no Wi-Fi... (o outro aparelho toca em CRIAR PARTIDA)"
 
 
 # baixa a lista de servidores (arquivo no GitHub) e mostra um botão por servidor
 func _busca_servidores() -> void:
+	for c in _online.get_children():
+		c.queue_free()
+	_online.add_child(UiTema.rotulo("Buscando servidores...", 22, UiTema.APAGADO))
 	var http := HTTPRequest.new()
 	http.timeout = 8.0
 	add_child(http)
@@ -91,18 +124,18 @@ func _busca_servidores() -> void:
 			c.queue_free()
 		var dados: Variant = JSON.parse_string(corpo.get_string_from_utf8()) if res == OK and cod == 200 else null
 		if not dados is Dictionary or (dados as Dictionary).get("servidores", []).is_empty():
-			_online.add_child(_rotulo("Nenhum servidor online agora.", 20))
+			_online.add_child(UiTema.rotulo("Nenhum servidor online agora.", 22, UiTema.APAGADO))
 			return
 		if int(dados.get("versao", 0)) != Rede.VERSAO:
-			_online.add_child(_rotulo("O servidor está numa versão diferente: atualize o jogo.", 20))
+			_online.add_child(UiTema.rotulo("O servidor está numa versão diferente: atualize o jogo.", 22, UiTema.PERIGO))
 			return
 		for s: Dictionary in dados.servidores:
-			var b := _botao("%s" % s.get("nome", s.ip))
+			var b := UiTema.botao("%s" % s.get("nome", s.ip), true)
 			b.pressed.connect(func() -> void: _entrar(String(s.ip)))
 			_online.add_child(b)
 		http.queue_free())
 	if http.request(Rede.LISTA_URL) != OK:
-		_online.get_child(0).text = "Sem internet para buscar servidores."
+		(_online.get_child(_online.get_child_count() - 1) as Label).text = "Sem internet para buscar servidores."
 
 
 func _nome() -> String:
@@ -148,28 +181,3 @@ func _acorda(ip: String) -> void:
 	var pagina: String = ip.replace("wss://", "https://").replace("ws://", "http://").get_slice("/jogo", 0) + "/"
 	if http.request(pagina) != OK:
 		_status.text = "Sem internet."
-
-
-func _rotulo(t: String, tam: int) -> Label:
-	var l := Label.new()
-	l.text = t
-	l.add_theme_font_size_override("font_size", tam)
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	return l
-
-
-func _campo(dica: String, valor: String) -> LineEdit:
-	var e := LineEdit.new()
-	e.placeholder_text = dica
-	e.text = valor
-	e.custom_minimum_size = Vector2(0, 72)
-	e.add_theme_font_size_override("font_size", 28)
-	return e
-
-
-func _botao(t: String) -> Button:
-	var b := Button.new()
-	b.text = t
-	b.custom_minimum_size = Vector2(0, 88)
-	b.add_theme_font_size_override("font_size", 28)
-	return b
