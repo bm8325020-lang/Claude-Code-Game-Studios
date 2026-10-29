@@ -27,7 +27,7 @@ func _ready() -> void:
 	raiz.add_child(fundo)
 	# início
 	var ini := _pagina(raiz, "inicio")
-	ini.add_child(UiTema.rotulo("SEM NOME", 44, UiTema.DESTAQUE))
+	ini.add_child(UiTema.titulo("SEM NOME", 64, UiTema.DESTAQUE))
 	ini.add_child(UiTema.rotulo("sobreviver é com você", 22, UiTema.APAGADO))
 	_nick = UiTema.campo("Seu nome", "Jogador%d" % (randi() % 900 + 100))
 	ini.add_child(_nick)
@@ -37,14 +37,14 @@ func _ready() -> void:
 	_liga(ini, UiTema.botao("CONFIGURAÇÕES"), func() -> void: _mostra("config"))
 	# online
 	var onl := _pagina(raiz, "online")
-	onl.add_child(UiTema.rotulo("ONLINE", 34, UiTema.DESTAQUE))
+	onl.add_child(UiTema.titulo("ONLINE", 44, UiTema.DESTAQUE))
 	_online = VBoxContainer.new()
 	_online.add_theme_constant_override("separation", 10)
 	onl.add_child(_online)
-	_liga(onl, UiTema.botao("VOLTAR"), func() -> void: _mostra("inicio"))
+	_voltar(onl)
 	# Wi-Fi
 	var wif := _pagina(raiz, "wifi")
-	wif.add_child(UiTema.rotulo("NO WI-FI", 34, UiTema.DESTAQUE))
+	wif.add_child(UiTema.titulo("NO WI-FI", 44, UiTema.DESTAQUE))
 	_liga(wif, UiTema.botao("CRIAR PARTIDA", true), _criar)
 	wif.add_child(UiTema.rotulo("Partidas achadas (toque para entrar):", 22, UiTema.APAGADO))
 	_lista = VBoxContainer.new()
@@ -59,11 +59,11 @@ func _ready() -> void:
 	b_ip.pressed.connect(func() -> void: _entrar(_ip.text.strip_edges()))
 	linha.add_child(b_ip)
 	wif.add_child(linha)
-	_liga(wif, UiTema.botao("VOLTAR"), func() -> void: _mostra("inicio"))
+	_voltar(wif)
 	# configurações (a tela completa vem no prompt 0d)
 	var cfg := _pagina(raiz, "config")
-	cfg.add_child(UiTema.rotulo("CONFIGURAÇÕES", 34, UiTema.DESTAQUE))
-	_liga(cfg, UiTema.botao("VOLTAR"), func() -> void: _mostra("inicio"))
+	cfg.add_child(UiTema.titulo("CONFIGURAÇÕES", 44, UiTema.DESTAQUE))
+	_voltar(cfg)
 	# faixa de estado embaixo
 	_status = UiTema.rotulo(aviso_inicial, 22, UiTema.APAGADO)
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -86,6 +86,15 @@ func _pagina(raiz: Control, nome: String) -> VBoxContainer:
 func _mostra(nome: String) -> void:
 	for n: String in _paginas:
 		(_paginas[n] as Control).get_parent().get_parent().visible = n == nome  # o CenterContainer da página
+
+
+# botão redondo de voltar no canto de cima à esquerda (some junto com a página)
+func _voltar(col: VBoxContainer) -> void:
+	var b := UiTema.botao_voltar()
+	b.position = Vector2(36, 28)
+	b.pressed.connect(func() -> void: _mostra("inicio"))
+	col.get_parent().get_parent().add_child(b)  # no CenterContainer não: fica no canto
+	b.top_level = true
 
 
 func _liga(pai: Control, b: Button, acao: Callable) -> void:

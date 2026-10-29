@@ -16,6 +16,20 @@ Regras de sempre (valem para TODOS os prompts, não repetidas abaixo):
 - Ao terminar: commit (trailer da sessão), push, publicar servidor (`publica.sh wss://zumbi-servidor.onrender.com/jogo`),
   APK novo assinado, atualizar `NOTAS.md` (status) e `CLAUDE.md` (mapa), resumo curto em pt-BR para o dono.
 - Economia de créditos: sem agentes, poucas fotos (folha de contato), testes curtos.
+- **Estilo das telas (referência do dono: jogo Decay, prints de 2026-10-29):** tudo pelo `UiTema` — letra
+  condensada (Oswald) e títulos em Bebas Neue MAIÚSCULOS e espaçados ("I N F O R M A Ç Õ E S"); painéis escuros
+  meio transparentes de cantos retos; botão redondo de voltar com seta no canto de cima à esquerda; avisos numa
+  faixa no alto com barrinha colorida à esquerda (laranja aviso, vermelho perigo, azul informação);
+  vida/fome/sede embaixo no meio com ícone e número dentro da barra; botões de toque redondos e escuros
+  (com ícone desenhado em vez de texto, quando der). **Inventário:** grade de quadrados cinza (6 colunas),
+  **barra rápida 1–6** embaixo (selecionado em azul, quantidade "X3" no canto), personagem e fome/sede à
+  esquerda, painel do item à direita (nome, QUANTIDADE, descrição curta, botões LARGAR e DIVIDIR), botão
+  FABRICAR no alto. **Fabricação:** abas de categoria no alto (COMUM, ARMAS, ÚTEIS, SAÚDE, TRAJES, BASE,
+  RECURSOS), lista de receitas (ícone, nome, X1) com a selecionada destacada, painel INFORMAÇÕES (ícone, nome,
+  descrição, peças necessárias em vermelho quando faltam "10X PANO (X3)"), seletor de quantidade (− xN + MAX)
+  e botão FABRICAR; FILA ao lado. **Carregando:** fundo com arte, linha fina de progresso e "DICA: ..." com
+  dicas verdadeiras do jogo. Ícones dos itens: renderizar o próprio modelo 3D do item num SubViewport (sem
+  desenho de IA).
 
 ---
 

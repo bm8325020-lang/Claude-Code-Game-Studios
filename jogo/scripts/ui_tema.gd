@@ -1,5 +1,6 @@
-# Visual único de todas as telas: painéis escuros meio transparentes, cantos retos, um laranja ferrugem de
-# destaque, letra grande para o dedo. As telas usam `tema()` na raiz e os atalhos abaixo; nada de estilo solto.
+# Visual único de todas as telas (referência do dono: Decay): painéis escuros meio transparentes, cantos retos,
+# letra condensada (Oswald) e títulos em Bebas Neue espaçados, laranja ferrugem de destaque, letra grande para o
+# dedo. As telas usam `tema()` na raiz e os atalhos abaixo; nada de estilo solto. Letras: OFL (assets/fontes).
 class_name UiTema
 extends RefCounted
 
@@ -14,12 +15,63 @@ const LETRA: int = 26
 const ALTURA_BOTAO: int = 76  # dedo: acima de 56 px mesmo em tela pequena
 
 static var _tema: Theme
+static var _titulo: FontVariation
+
+
+## Letra dos títulos: Bebas Neue com espaço entre as letras ("I N F O R M A Ç Õ E S").
+static func fonte_titulo() -> Font:
+	if _titulo == null:
+		_titulo = FontVariation.new()
+		_titulo.base_font = load("res://assets/fontes/BebasNeue-Regular.ttf")
+		_titulo.spacing_glyph = 3
+	return _titulo
+
+
+static func titulo(texto: String, tam: int = 40, cor: Color = TEXTO) -> Label:
+	var l := rotulo(texto, tam, cor)
+	l.add_theme_font_override("font", fonte_titulo())
+	return l
+
+
+## Botão redondo de voltar (seta), para o canto de cima à esquerda das telas.
+static func botao_voltar() -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(84, 84)
+	b.focus_mode = Control.FOCUS_NONE
+	for estado: String in ["normal", "hover", "pressed"]:
+		var c := StyleBoxFlat.new()
+		c.bg_color = Color(0, 0, 0, 0.25 if estado != "pressed" else 0.5)
+		c.set_corner_radius_all(42)
+		c.set_border_width_all(3)
+		c.border_color = Color(1, 1, 1, 0.75 if estado == "normal" else 1.0)
+		b.add_theme_stylebox_override(estado, c)
+	var seta := _Seta.new()
+	seta.set_anchors_preset(Control.PRESET_FULL_RECT)
+	seta.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(seta)
+	return b
+
+
+class _Seta:
+	extends Control
+
+	func _draw() -> void:
+		var c: Vector2 = size * 0.5
+		var cor := Color(1, 1, 1, 0.85)
+		draw_line(c + Vector2(-18, 0), c + Vector2(16, 0), cor, 4.0, true)
+		draw_line(c + Vector2(-18, 0), c + Vector2(-6, -12), cor, 4.0, true)
+		draw_line(c + Vector2(-18, 0), c + Vector2(-6, 12), cor, 4.0, true)
 
 
 static func tema() -> Theme:
 	if _tema:
 		return _tema
 	var t := Theme.new()
+	var oswald := FontVariation.new()
+	oswald.base_font = load("res://assets/fontes/Oswald.ttf")
+	oswald.variation_opentype = {"wght": 450}
+	oswald.spacing_glyph = 1
+	t.default_font = oswald
 	t.default_font_size = LETRA
 	t.set_color("font_color", "Label", TEXTO)
 	for estado: String in ["normal", "hover", "pressed", "disabled", "focus"]:

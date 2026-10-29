@@ -29,3 +29,5 @@ casa_b/: "Abandoned House" por Sengchor — https://sketchfab.com/3d-models/a0c0
 == assets/cgtrader/ (CGTrader, Royalty Free License — pode usar no jogo, não pode redistribuir o arquivo; fica fora do git) ==
 pistola.glb: "Low Poly Pistol" por lowpwpc — https://www.cgtrader.com/free-3d-models/military/gun/low-poly-pistol-64ea2ecc-60c1-4abf-a517-0702adb20302
   (baixar de novo: logado no CGTrader, página do modelo > Free Download > PistolaLow.glb; texturas reduzidas para 1024 webp)
+
+Letras (SIL Open Font License 1.1, ver assets/fontes/OFL.txt): Bebas Neue (Dharma Type) e Oswald (Vernon Adams e outros) — assets/fontes/

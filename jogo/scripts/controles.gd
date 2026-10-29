@@ -10,8 +10,6 @@ extends CanvasLayer
 
 const RAIO_STICK: float = 110.0
 const BOTAO: float = 120.0
-const BARRA: float = 280.0  # largura das barras de vida/fome/sede
-const X0: float = 26.0
 
 ## O jogador controlado; os controles só aparecem (e o mouse só é capturado) quando a partida começa.
 var jogador: Jogador:
@@ -45,22 +43,20 @@ var _mira: Control
 var _btn_atacar: Button
 var _btn_recarregar: Button
 var _municao: Label
-var _vida_fundo: ColorRect
-var _vida_barra: ColorRect
 var _vermelho: ColorRect
 var _caiu: Label
 var _relogio: Label
 var _btn_pegar: Button
 var _btn_comer: Button
 var _btn_beber: Button
-var _fome_barra: ColorRect
-var _sede_barra: ColorRect
 var _bolso: Label
 var _dica_pegar: Label
 var _aviso_item: Label
 var _aviso_t: float = 0.0
 var _faixa: PanelContainer
 var _faixa_texto: Label
+var _faixa_estilo: StyleBoxFlat
+var _barras: Array[_Barra] = []  # vida, fome, sede
 var _faixa_t: float = 0.0
 var _pausa: Control
 
@@ -79,34 +75,29 @@ func _ready() -> void:
 	_vermelho.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_vermelho.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_vermelho)
-	# vida, fome e sede juntas no canto de cima à esquerda, num painel discreto
-	var grupo := Panel.new()
-	var est := StyleBoxFlat.new()
-	est.bg_color = Color(UiTema.PAINEL, 0.55)
-	grupo.add_theme_stylebox_override("panel", est)
-	grupo.position = Vector2(16, 12)
-	grupo.size = Vector2(BARRA + 20, 70)
-	grupo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(grupo)
-	_vida_fundo = ColorRect.new()
-	_vida_fundo.color = Color(0, 0, 0, 0.45)
-	_vida_fundo.offset_left = X0
-	_vida_fundo.offset_right = X0 + BARRA + 4
-	_vida_fundo.offset_top = 22
-	_vida_fundo.offset_bottom = 38
-	_vida_fundo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_vida_fundo)
-	_vida_barra = ColorRect.new()
-	_vida_barra.position = Vector2(2, 2)
-	_vida_barra.size = Vector2(BARRA, 12)
-	_vida_barra.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_vida_fundo.add_child(_vida_barra)
-	# fome (laranja) e sede (azul): duas barras finas embaixo da vida, e quantas latas/garrafas tem
-	_fome_barra = _barrinha(50, Color(0.85, 0.55, 0.2))
-	_sede_barra = _barrinha(62, Color(0.35, 0.6, 0.9))
+	# vida, fome e sede embaixo no meio, lado a lado: ícone + barra com o número dentro
+	for i in 3:
+		var barra := _Barra.new()
+		barra.tipo = i
+		barra.anchor_left = 0.5
+		barra.anchor_right = 0.5
+		barra.anchor_top = 1.0
+		barra.anchor_bottom = 1.0
+		# no celular fica mais à esquerda e estreita: à direita estão CORRER/ATACAR
+		barra.offset_left = (-400 + i * 182) if toque else (-300 + i * 205)
+		barra.offset_right = barra.offset_left + (170 if toque else 190)
+		barra.offset_top = -62
+		barra.offset_bottom = -30
+		barra.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(barra)
+		_barras.append(barra)
 	_bolso = Label.new()
-	_bolso.offset_left = X0
-	_bolso.offset_top = 86
+	_bolso.anchor_left = 0.5
+	_bolso.anchor_right = 0.5
+	_bolso.anchor_top = 1.0
+	_bolso.anchor_bottom = 1.0
+	_bolso.offset_left = -400 if toque else -300
+	_bolso.offset_top = -96
 	_bolso.add_theme_font_size_override("font_size", 18)
 	_bolso.add_theme_color_override("font_outline_color", Color.BLACK)
 	_bolso.add_theme_constant_override("outline_size", 5)
@@ -151,6 +142,14 @@ func _ready() -> void:
 	add_child(_municao)
 	_monta_aviso()
 	_monta_pausa()
+	# letras do tema também no HUD
+	for l: Label in [_bolso, _relogio, _municao, _dica_pegar, _aviso_item]:
+		l.add_theme_font_override("font", UiTema.tema().default_font)
+	_caiu.add_theme_font_override("font", UiTema.fonte_titulo())
+	_caiu.add_theme_font_size_override("font_size", 64)
+	_municao.add_theme_font_override("font", UiTema.fonte_titulo())
+	_municao.add_theme_font_size_override("font_size", 44)
+	_bolso.add_theme_font_size_override("font_size", 20)
 	visible = jogador != null
 
 
@@ -203,19 +202,15 @@ func _process(dt: float) -> void:
 		_btn_correr.modulate = Color(1, 0.85, 0.4) if _correr_ligado else Color.WHITE
 	if _btn_mira:
 		_btn_mira.modulate = Color(1, 0.85, 0.4) if jogador.mira_travada else Color.WHITE
-	var frac: float = clampf(float(jogador.vida) / Jogador.VIDA_MAX, 0.0, 1.0)
-	_vida_barra.size.x = BARRA * frac
-	_vida_barra.color = Color(0.75, 0.12, 0.1) if frac < 0.3 else Color(0.85, 0.82, 0.78)
+	_barras[0].valor = clampf(float(jogador.vida) / Jogador.VIDA_MAX * 100.0, 0.0, 100.0)
+	_barras[1].valor = jogador.fome
+	_barras[2].valor = jogador.sede
 	_caiu.visible = jogador.vida <= 0
 	if _caiu.visible:
 		_caiu.text = "VOCÊ CAIU\n" + ("voltando em %d s" % ceili(maxf(jogador._morto_t, 0.0)))
 	_faixa_t -= dt
 	_faixa.visible = _faixa_t > 0.0
 	_faixa.modulate.a = clampf(_faixa_t * 2.0, 0.0, 1.0)
-	_fome_barra.size.x = BARRA * jogador.fome / 100.0
-	_sede_barra.size.x = BARRA * jogador.sede / 100.0
-	_fome_barra.modulate.a = 0.5 + 0.5 * absf(sin(Time.get_ticks_msec() * 0.006)) if jogador.fome < 15.0 else 1.0
-	_sede_barra.modulate.a = 0.5 + 0.5 * absf(sin(Time.get_ticks_msec() * 0.006)) if jogador.sede < 15.0 else 1.0
 	_bolso.text = "comida %d  água %d" % [jogador.comida, jogador.agua]
 	if _btn_comer:
 		_btn_comer.visible = jogador.comida > 0 and jogador.fome < 80.0
@@ -300,24 +295,6 @@ func _input(ev: InputEvent) -> void:
 			_olhar_ult = d.position
 
 
-func _barrinha(topo: float, cor: Color) -> ColorRect:
-	var fundo := ColorRect.new()
-	fundo.color = Color(0, 0, 0, 0.45)
-	fundo.offset_left = X0
-	fundo.offset_right = X0 + BARRA + 4
-	fundo.offset_top = topo
-	fundo.offset_bottom = topo + 6
-	fundo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(fundo)
-	var b := ColorRect.new()
-	b.color = cor
-	b.position = Vector2(2, 1)
-	b.size = Vector2(BARRA, 4)
-	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	fundo.add_child(b)
-	return b
-
-
 func _rotulo(tam: int, altura: float) -> Label:
 	var l := Label.new()
 	l.anchor_left = 0.5
@@ -337,9 +314,10 @@ func _rotulo(tam: int, altura: float) -> Label:
 
 
 ## Faixa de aviso no alto da tela que some sozinha (servidor, itens, facção...).
-func aviso(texto: String, cor: Color = UiTema.TEXTO, tempo: float = 3.0) -> void:
-	_faixa_texto.text = texto
-	_faixa_texto.add_theme_color_override("font_color", cor)
+## `cor` é a barrinha da esquerda: laranja = aviso, vermelho = perigo, azul = informação.
+func aviso(texto: String, cor: Color = UiTema.DESTAQUE, tempo: float = 3.0) -> void:
+	_faixa_texto.text = texto.to_upper()
+	_faixa_estilo.border_color = cor
 	_faixa_t = tempo
 
 
@@ -355,6 +333,14 @@ func pausa(abrir: bool) -> void:
 func _monta_aviso() -> void:
 	_faixa = PanelContainer.new()
 	_faixa.theme = UiTema.tema()
+	_faixa_estilo = StyleBoxFlat.new()
+	_faixa_estilo.bg_color = Color(0.12, 0.13, 0.14, 0.9)
+	_faixa_estilo.border_width_left = 6
+	_faixa_estilo.content_margin_left = 28
+	_faixa_estilo.content_margin_right = 28
+	_faixa_estilo.content_margin_top = 12
+	_faixa_estilo.content_margin_bottom = 12
+	_faixa.add_theme_stylebox_override("panel", _faixa_estilo)
 	_faixa.anchor_left = 0.5
 	_faixa.anchor_right = 0.5
 	_faixa.offset_left = -330
@@ -363,7 +349,7 @@ func _monta_aviso() -> void:
 	_faixa.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_faixa.visible = false
 	add_child(_faixa)
-	_faixa_texto = UiTema.rotulo("", 22)
+	_faixa_texto = UiTema.titulo("", 28)
 	_faixa_texto.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_faixa.add_child(_faixa_texto)
 
@@ -536,3 +522,53 @@ class _Mira:
 			var mc := Color(0.95, 0.15, 0.1, a) if marca_forte else Color(1, 1, 1, a)
 			for d: Vector2 in [Vector2(1, 1), Vector2(1, -1), Vector2(-1, 1), Vector2(-1, -1)]:
 				draw_line(c + d.normalized() * 10.0, c + d.normalized() * 19.0, mc, 3.0)
+
+
+# barra de vida/fome/sede: ícone desenhado à esquerda, barra com o número dentro; pisca quando está baixa
+class _Barra:
+	extends Control
+
+	const CORES: Array[Color] = [Color(0.45, 0.62, 0.22), Color(0.8, 0.48, 0.2), Color(0.28, 0.52, 0.78)]
+	## 0 vida, 1 fome, 2 sede
+	var tipo: int = 0
+	var valor: float = 100.0:
+		set(v):
+			if roundi(v) != roundi(valor) or (v < 15.0) != (valor < 15.0):
+				queue_redraw()
+			valor = v
+
+	func _process(_dt: float) -> void:
+		if valor < 15.0:
+			queue_redraw()  # piscando
+
+	func _draw() -> void:
+		var h: float = size.y
+		var x0: float = h + 6.0
+		var w: float = size.x - x0
+		draw_rect(Rect2(x0, 0, w, h), Color(0.05, 0.05, 0.05, 0.55))
+		var cor: Color = CORES[tipo]
+		if valor < 15.0:
+			cor.a = 0.55 + 0.45 * absf(sin(Time.get_ticks_msec() * 0.006))
+		if tipo == 0 and valor < 30.0:
+			cor = Color(0.75, 0.15, 0.12, cor.a)
+		draw_rect(Rect2(x0, 0, w * clampf(valor / 100.0, 0.0, 1.0), h), cor)
+		var f: Font = UiTema.tema().default_font
+		draw_string(f, Vector2(x0 + 10, h * 0.5 + 9), str(roundi(valor)), HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1, 1, 1, 0.95))
+		_icone(Vector2(h * 0.5, h * 0.5), h * 0.36)
+
+	# coração, garfo e gota em traços simples (sem imagem)
+	func _icone(c: Vector2, r: float) -> void:
+		var b := Color(1, 1, 1, 0.9)
+		match tipo:
+			0:
+				draw_circle(c + Vector2(-r * 0.45, -r * 0.2), r * 0.5, b)
+				draw_circle(c + Vector2(r * 0.45, -r * 0.2), r * 0.5, b)
+				draw_colored_polygon(PackedVector2Array([c + Vector2(-r * 0.93, 0), c + Vector2(r * 0.93, 0), c + Vector2(0, r)]), b)
+			1:
+				draw_line(c + Vector2(0, -r), c + Vector2(0, r), b, 3.0)
+				for dx in [-r * 0.45, 0.0, r * 0.45]:
+					draw_line(c + Vector2(dx, -r), c + Vector2(dx, -r * 0.2), b, 2.0)
+				draw_line(c + Vector2(-r * 0.45, -r * 0.2), c + Vector2(r * 0.45, -r * 0.2), b, 2.0)
+			_:
+				draw_circle(c + Vector2(0, r * 0.3), r * 0.62, b)
+				draw_colored_polygon(PackedVector2Array([c + Vector2(-r * 0.55, r * 0.1), c + Vector2(r * 0.55, r * 0.1), c + Vector2(0, -r)]), b)
