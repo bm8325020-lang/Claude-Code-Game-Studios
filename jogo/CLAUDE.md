@@ -58,8 +58,8 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `menu.gd` — páginas (`_mostra`): inicio, online (acorda o servidor), wifi, config. `controles.gd` também tem
   `aviso(texto)` (faixa no alto), `pausa(bool)` (Esc / botão II) e a tela de queda com contagem.
 - `camera_primeira.gd` (CameraPrimeira) — primeira pessoa: olhos 1,62/1,05 m, `virar/coice/tremer`, `cam`, `maos`.
-- `maos.gd` (Maos) — braços na tela: pacotes `assets/sketchfab/fps/` (pistola_fp, punhos_fp) com olho em OLHO_*,
-  animação escolhida pelo estado do jogador; facão (sketchfab/facao.glb) no osso hand_tweak.R. `boneco_treino.gd`.
+- `maos.gd` (Maos) — arma na tela: pistola = pacote `assets/sketchfab/fps/pistola_fp.glb` (olho em OLHO_PISTOLA,
+  animação pelo estado do jogador); facão = sketchfab/facao.glb girando em volta de OMBRO pelos CORTES (código). `boneco_treino.gd`.
 - tools/: `servidor/site/` (Dockerfile + nginx + start.sh: servidor online num serviço de site, porta $PORT, /jogo = WebSocket), `foto.gd`, `baixa_mixamo.sh` (rebaixa assets/mixamo do Drive), `servidor/instalar.sh` + `publica.sh`.
 
 ## Mixamo (logado)

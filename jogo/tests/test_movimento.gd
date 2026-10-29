@@ -294,7 +294,7 @@ func _mira_nova() -> void:
 	var corpo: Array = j.modelo.find_children("*", "GeometryInstance3D", true, false)
 	ok(corpo.all(func(g: GeometryInstance3D) -> bool: return g.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY),
 		"o próprio corpo não aparece na tela, só a sombra")
-	ok(j.camera.maos.visible and j.camera.maos._pistola.visible == (j.arma == "pistola") and j.camera.maos._punhos.visible != (j.arma == "pistola"),
+	ok(j.camera.maos.visible and j.camera.maos._pistola.visible == (j.arma == "pistola") and j.camera.maos._ombro.visible != (j.arma == "pistola"),
 		"braços com a arma certa na tela (%s)" % j.arma)
 	j.entrada["mira_segurando"] = false
 	await frames(3)
