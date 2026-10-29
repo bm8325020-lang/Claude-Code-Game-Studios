@@ -34,6 +34,10 @@ const CLIPES: Dictionary = {
 }
 const NAO_REPETE: Array[String] = ["morte", "pegar", "pulo_inicio", "pouso", "golpe1", "golpe2", "golpe3", "pistola_tiro", "pistola_recarga"]
 const QUADRIL: String = "Skeleton3D:mixamorig_Hips"
+## Clipes do KayKit cujos braços abrem demais (em T no começo do pulo, de avião agachado): os braços são
+## puxados para os do "parado" nesse tanto (0 = original, 1 = braços do parado). Pernas e tronco não mudam.
+const BRACOS_CALMOS: Dictionary = {"agachado": 0.75, "agachado_andar": 0.75, "pulo_inicio": 0.7, "no_ar": 0.5, "pouso": 0.6}
+const BRACOS: Array[String] = ["Shoulder", "Arm", "ForeArm", "Hand"]
 
 ## Velocidade (m/s) em que cada clipe de locomoção parece natural (deslocamento do quadril no clipe original);
 ## o clipe é escalado pela velocidade real para os pés não deslizarem.
@@ -60,6 +64,7 @@ static var _cache: Dictionary = {}
 static func biblioteca() -> AnimationLibrary:
 	if _lib == null:
 		_lib = _monta(CLIPES, NAO_REPETE)
+		_acalma_bracos(_lib)
 	return _lib
 
 
@@ -89,6 +94,23 @@ static func _monta(clipes: Dictionary, nao_repete: Array[String]) -> AnimationLi
 		a.loop_mode = Animation.LOOP_NONE if logico in nao_repete else Animation.LOOP_LINEAR
 		lib.add_animation(logico, a)
 	return lib
+
+
+static func _acalma_bracos(lib: AnimationLibrary) -> void:
+	var ref: Animation = lib.get_animation("parado")
+	for logico: String in BRACOS_CALMOS:
+		var a: Animation = lib.get_animation(logico)
+		for lado in ["Left", "Right"]:
+			for osso in BRACOS:
+				var trilha := NodePath("Skeleton3D:mixamorig_%s%s" % [lado, osso])
+				var t: int = a.find_track(trilha, Animation.TYPE_ROTATION_3D)
+				var tr: int = ref.find_track(trilha, Animation.TYPE_ROTATION_3D)
+				if t < 0 or tr < 0:
+					continue
+				for k in a.track_get_key_count(t):
+					var q: Quaternion = a.track_get_key_value(t, k)
+					var calmo: Quaternion = ref.rotation_track_interpolate(tr, fmod(a.track_get_key_time(t, k), ref.length))
+					a.track_set_key_value(t, k, q.slerp(calmo, BRACOS_CALMOS[logico]))
 
 
 # cópia só com as chaves entre ini e fim (fim < 0 = até o fim), começando em 0

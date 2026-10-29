@@ -1,6 +1,7 @@
 # Robô jogador: faz cada movimento como um jogador faria e tira 6 fotos de cada um, da câmera do jogo,
 # montando folhas de contato (uma linha por movimento) para avaliar as animações sem abrir o jogo.
 #   xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 -s res://tools/bot.gd -- pasta/
+# Só alguns: -- pasta/ pulo,agachado  (roda só os movimentos com esses pedaços no nome)
 # Saída: pasta/bot_1.png, bot_2.png ... (7 movimentos por folha).
 extends SceneTree
 
@@ -63,6 +64,9 @@ func _espera(n: int) -> void:
 
 ## Solta tudo, segura `segura` por `tempo` s, aperta `apertos` no começo (e a cada `repete` s, se > 0).
 func _faz(nome: String, segura: Dictionary, tempo: float, apertos: Array = [], repete: float = 0.0) -> void:
+	var filtro: PackedStringArray = OS.get_cmdline_user_args()[1].split(",") if OS.get_cmdline_user_args().size() > 1 else PackedStringArray()
+	if not filtro.is_empty() and not Array(filtro).any(func(f: String) -> bool: return f in nome):
+		return
 	_solta()
 	j.arma = segura.get("arma", "facao")
 	j.global_position = j.inicio  # cada movimento começa no mesmo lugar livre
