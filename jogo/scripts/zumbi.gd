@@ -157,7 +157,7 @@ func _ready() -> void:
 	_agente = NavigationAgent3D.new()
 	_agente.radius = RAIO + 0.05
 	_agente.height = ALTURA
-	_agente.path_desired_distance = 0.6
+	_agente.path_desired_distance = 0.3  # 0,6 dava a quina por alcançada cedo e ele raspava na parede
 	_agente.target_desired_distance = 0.5
 	add_child(_agente)
 	if casa == Vector3.ZERO:

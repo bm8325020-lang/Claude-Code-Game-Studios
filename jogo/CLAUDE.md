@@ -58,6 +58,9 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   dividir/mover/tirar_espaco. Jogador: `mochila`, `comida`/`agua`/`pistola.reserva`/`tem_lanterna` leem dela, `largar(i)`,
   `usar_espaco(i)`; `main.solta_item()` + `spawner_itens` (itens soltos, `Item.solto`). `tela_mochila.gd` (TelaMochila +
   Espaco), `icones.gd` (Icones.de(tipo): modelo 3D renderizado). Teste: tests/test_mochila.gd (16).
+- `bau.gd` (Bau) — `conteudo` (sincronizado), `pega_por(j, i)` no servidor, reenche em REENCHE; `loot.gd` (Loot.TABELA,
+  `sorteia(rng, facil)`, raridade/cores); `tela_bau.gd`. Jogador: `bau_perto()`, abrir parado (`abrindo`), `pega_do_bau`.
+  `main.BAUS` (posições). Teste: tests/test_baus.gd (11).
 - `ui_tema.gd` (UiTema) — visual único: `tema()`, `botao()`, `rotulo()`, `campo()`, `painel_central()`, cores.
 - `menu.gd` — páginas (`_mostra`): inicio, online (acorda o servidor), wifi, config. `controles.gd` também tem
   `aviso(texto)` (faixa no alto), `pausa(bool)` (Esc / botão II) e a tela de queda com contagem.

@@ -291,6 +291,7 @@ func _physics_process(dt: float) -> void:
 			agua -= 1
 			sede = minf(100.0, sede + ENCHE)
 	_passa_fome(dt)
+	_abre_bau(dt, mov)
 	if _pegando > 0.0:
 		_pegando -= dt
 		mov = Vector2.ZERO
@@ -427,9 +428,55 @@ func porta_perto() -> Porta:
 	return Porta.perto(get_tree(), global_position) if vida > 0 else null
 
 
-# USAR: pega o item perto; se não tiver item, abre/fecha a porta perto
+## Baú perto (para o botão ABRIR).
+func bau_perto() -> Bau:
+	return Bau.perto(get_tree(), global_position) if vida > 0 else null
+
+
+## Abrindo baú: segundos que faltam (> 0 = abrindo) e qual.
+var abrindo_t: float = 0.0
+var abrindo: Bau
+## Avisa a tela que o baú abriu.
+signal bau_aberto(b: Bau)
+
+
+## Pede ao servidor o item `i` do baú (i < 0 = tudo).
+func pega_do_bau(b: Bau, i: int) -> void:
+	if not multiplayer.has_multiplayer_peer() or multiplayer.is_server():
+		b.pega_por(self, i)
+	else:
+		_pede_bau.rpc_id(1, get_path_to(b), i)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _pede_bau(caminho: NodePath, i: int) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority():
+		var b := get_node_or_null(caminho) as Bau
+		if b:
+			b.pega_por(self, i)
+
+
+# abre o baú parado; andar, cair ou se afastar cancela
+func _abre_bau(dt: float, mov: Vector2) -> void:
+	if abrindo == null:
+		return
+	if mov.length() > 0.2 or vida <= 0 or bau_perto() != abrindo:
+		abrindo = null
+		abrindo_t = 0.0
+		return
+	abrindo_t -= dt
+	if abrindo_t <= 0.0:
+		bau_aberto.emit(abrindo)
+		abrindo = null
+
+
+# USAR: pega o item perto; senão abre o baú perto; senão abre/fecha a porta perto
 func _tenta_pegar() -> void:
 	var it: Item = item_perto()
+	if it == null and bau_perto() != null:
+		abrindo = bau_perto()
+		abrindo_t = Bau.ABRIR_T
+		return
 	if it == null:
 		var p: Porta = porta_perto()
 		if p:

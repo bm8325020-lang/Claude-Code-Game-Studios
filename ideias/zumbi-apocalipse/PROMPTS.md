@@ -120,7 +120,7 @@ Aceite: pegar, largar, empilhar, cheio = "mochila cheia"; testes da classe Mochi
 empilhar, cheia) e de rede (cliente pega item, servidor confirma).
 
 ## 2. Baús com loot
-Status: pendente
+Status: feito (APK 0.36). 4 baús na pista (Bau_0 dentro da casinha, fácil), Loot.TABELA, tela do baú, reenche em 5 min.
 
 Baú (modelo simples de caixa de madeira/metal) espalhado pela pista: abrir leva 1,5 s (barra), mostra a lista
 do conteúdo, pegar item por item para a mochila. Conteúdo sorteado no servidor por **tabela de loot**

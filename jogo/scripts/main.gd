@@ -33,6 +33,7 @@ func _ready() -> void:
 	_luz()
 	_chao()
 	_obstaculos()
+	_baus()
 	jogadores = Node3D.new()
 	jogadores.name = "Jogadores"
 	add_child(jogadores)
@@ -369,6 +370,21 @@ func _rampa(base: Vector3, graus: float, comprimento: float, largura: float, cor
 	bloco(meio - Vector3(0, 0.1, 0), Vector3(largura, 0.2, comprimento), cor, Vector3(-graus, 0, 0), true)
 	var topo_z: float = base.z + cos(deg_to_rad(graus)) * comprimento
 	bloco(Vector3(base.x, h * 0.5 - 0.01, topo_z + 2.0), Vector3(largura, h, 4.0), cor, Vector3.ZERO, true)
+
+
+## Baús da pista (nome fixo: o mesmo em todos os aparelhos). [posição, giro em graus, fácil]
+const BAUS: Array = [[Vector3(-26.25, 0, -0.55), 90.0, true], [Vector3(3, 0, -9), 0.0, false],
+	[Vector3(-30, 0, 16), 200.0, false], [Vector3(19.5, 0, 13), 270.0, false]]
+
+
+func _baus() -> void:
+	for k in BAUS.size():
+		var b := Bau.new()
+		b.name = "Bau_%d" % k
+		b.position = BAUS[k][0]
+		b.rotation_degrees.y = BAUS[k][1]
+		b.facil = BAUS[k][2]
+		add_child(b)
 
 
 func _obstaculos() -> void:
