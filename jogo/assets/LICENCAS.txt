@@ -15,7 +15,7 @@ barreira_estrada.glb: "Road Barrier" por sousinho — https://sketchfab.com/3d-m
 objetos_rua.glb: "Street Props" por syedraza — https://sketchfab.com/3d-models/741e544242a9481fa54c1f7bca6e92b2
 entulho.glb: "Rubble Pile - Photoscan (Optimized)" por GameDevNick — https://sketchfab.com/3d-models/5986d1487d9443b883d67b121c2c903c
 facao.glb: "Machete" por Belonosoff — https://sketchfab.com/3d-models/340a3bed238f48b0aa169c38e1e75066
-lanterna.glb: "Flashlight" por mar.cos. — https://sketchfab.com/3d-models/5fa9a65e7b0141ee877ed18f4f42d953
+lanterna.glb (no chão e na mão): "Flashlight" por mar.cos. — https://sketchfab.com/3d-models/5fa9a65e7b0141ee877ed18f4f42d953
 garrafa_agua.glb: "Plastic Water Bottle" por JeremyGrayson — https://sketchfab.com/3d-models/efa1c4c1f2a947659ded2e61e20eff31
 lata_comida.glb (só a lata alta): "Canned Food" por ultramonsterranthings — https://sketchfab.com/3d-models/a4c852c812264a208995b925e7319121
 quarto_tijolo.glb: "Low Poly Abandoned Brick Room" por jimbogies — https://sketchfab.com/3d-models/dd2a99fd9f3f456cac3680dc7127ac22

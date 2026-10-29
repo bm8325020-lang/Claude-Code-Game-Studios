@@ -702,17 +702,22 @@ func _monta_lanterna() -> void:
 	_lanterna_mao.quaternion = Quaternion(Vector3.UP, LANTERNA_EIXO.normalized())
 	_lanterna_mao.position = Vector3(0, 0.07, 0)
 	mao.add_child(_lanterna_mao)
-	var corpo := StandardMaterial3D.new()
-	corpo.albedo_color = Color(0.12, 0.12, 0.13)
-	corpo.metallic = 0.4
-	corpo.roughness = 0.5
-	_cilindro(0.02, 0.15, Vector3.ZERO, corpo)                      # cabo (eixo +Y = para onde aponta)
-	_cilindro(0.032, 0.05, Vector3(0, 0.095, 0), corpo)             # cabeça
+	# modelo "Flashlight" (mar.cos., Sketchfab): no arquivo fica deitado na diagonal, cabeça para EIXO_ARQ;
+	# aqui o eixo +Y é para onde aponta, com a cabeça em y = 0,125
+	var m := (load("res://assets/sketchfab/lanterna.glb") as PackedScene).instantiate() as Node3D
+	const EIXO_ARQ := Vector3(0.9276, 0.0383, 0.3716)
+	const CENTRO_ARQ := Vector3(0.0211, 0.0141, 0.0093)
+	const K := 1.5  # 13 cm no arquivo -> 20 cm
+	var r := Basis(Quaternion(EIXO_ARQ.normalized(), Vector3.UP))
+	m.transform = Transform3D(r.scaled(Vector3.ONE * K), Vector3(0, 0.125 - 0.059 * K, 0) - r * CENTRO_ARQ * K)
+	for mi: Node in m.find_children("*", "MeshInstance3D", true, false):
+		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_lanterna_mao.add_child(m)
 	var lente := StandardMaterial3D.new()
 	lente.albedo_color = Color(1, 0.95, 0.8)
 	lente.emission_enabled = true
 	lente.emission = Color(1, 0.93, 0.75)
-	_lente = _cilindro(0.027, 0.006, Vector3(0, 0.121, 0), lente)
+	_lente = _cilindro(0.03, 0.004, Vector3(0, 0.126, 0), lente)  # vidro que acende à noite
 	_lente_mat = lente
 	_ponta = Node3D.new()
 	_ponta.position = Vector3(0, 0.13, 0)
