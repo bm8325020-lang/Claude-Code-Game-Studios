@@ -65,7 +65,9 @@ var _municao: Label
 var _vermelho: ColorRect
 var _filme: ColorRect
 var _raid_t: float = 0.0
-var _raids_avisadas: Dictionary = {}  # bordas escuras, granulado e bordas vermelhas pulsando com pouca vida
+var _raids_avisadas: Dictionary = {}
+var _bilhete_t: float = 0.0
+var _lidos: Dictionary = {}  # bordas escuras, granulado e bordas vermelhas pulsando com pouca vida
 var _caiu: Label
 var _relogio: Label
 var _btn_pegar: Button
@@ -218,6 +220,7 @@ func _process(dt: float) -> void:
 	_atualiza_barras()
 	(_filme.material as ShaderMaterial).set_shader_parameter("vida", float(jogador.vida) / Jogador.VIDA_MAX)
 	_avisa_raid(dt)
+	_le_bilhete(dt)
 	_qte.jogador = jogador
 	_qte.visible = jogador.mordida_t > 0.0 and jogador.mordida_zumbi != null
 	if _qte.visible:
@@ -1235,3 +1238,16 @@ func _avisa_raid(dt: float) -> void:
 		if not _raids_avisadas.has(r.nome) and jogador.global_position.distance_to(r.pos) < 35.0:
 			_raids_avisadas[r.nome] = true
 			aviso("%s — zumbis armados lá dentro, loot raro" % r.nome, UiTema.PERIGO)
+
+
+## Bilhete no chão a até 1,6 m: mostra o que está escrito (uma vez cada).
+func _le_bilhete(dt: float) -> void:
+	_bilhete_t -= dt
+	if _bilhete_t > 0.0:
+		return
+	_bilhete_t = 0.3
+	for b: Node3D in get_tree().get_nodes_in_group("bilhetes"):
+		if not _lidos.has(b) and jogador.global_position.distance_to(b.global_position) < 1.6:
+			_lidos[b] = true
+			aviso("BILHETE: " + String(b.get_meta("texto")), UiTema.TEXTO, 9.0)
+			return

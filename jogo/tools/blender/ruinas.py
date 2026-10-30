@@ -790,6 +790,56 @@ def delegacia(nome, w, d, semente):
     exporta(nome)
 
 
+def arame(nome, x0, x1, y, z, raio=0.35):
+    """Rolo de arame farpado (hélice fina) de x0 a x1."""
+    voltas = int(abs(x1 - x0) / 0.25)
+    pts = []
+    for k in range(voltas * 12 + 1):
+        t = k / 12.0
+        a = t * 2 * math.pi
+        pts.append((x0 + (x1 - x0) * t / voltas, y + math.cos(a) * raio, z + raio + math.sin(a) * raio))
+    cu = bpy.data.curves.new(nome, "CURVE")
+    cu.dimensions = "3D"
+    cu.bevel_depth = 0.008
+    sp = cu.splines.new("POLY")
+    sp.points.add(len(pts) - 1)
+    for i, p in enumerate(pts):
+        sp.points[i].co = (*p, 1)
+    o = bpy.data.objects.new(nome, cu)
+    bpy.context.collection.objects.link(o)
+    cu.materials.append(mat("ferrugem"))
+    bpy.context.view_layer.objects.active = o
+    o.select_set(True)
+    bpy.ops.object.convert(target="MESH")
+    return o
+
+
+def barricada_sobr(nome, semente):
+    """Barricada que um sobrevivente montou com o que achou (6 m, frente em +Z no jogo = -Y aqui): sofá em pé, mesa
+    virada, geladeira deitada, tábuas cruzadas, pneus, sacos de areia e arame farpado na frente. Vão de 1 m na ponta."""
+    limpa()
+    rnd.seed(semente)
+    sofa("sofa", -2.0, 0.0, 0.0)
+    bpy.data.objects["sofa-col"].rotation_euler = (1.45, 0, 0.1)
+    bpy.data.objects["sofa-col"].location.z = 0.45
+    mesa("mesa", 0.2, 0.1)
+    for o in bpy.data.objects:
+        if o.name.startswith("mesa"):
+            o.rotation_euler.x = 1.57
+            o.location.z = 0.4
+    geladeira("geladeira", 1.6, 0.2, 1.5708, True)
+    for k in range(5):  # tábuas pregadas em pé
+        caixa("tabua_%d" % k, (-2.6 + k * 1.1, -0.35, 0.9), (0.18, 0.04, 1.8), "tabua", (0, rnd.uniform(-0.5, 0.5), 0))
+    for k in range(3):  # pneus
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.32, minor_radius=0.12, location=(rnd.uniform(-2.5, 2.0), 0.6, 0.12 + k * 0.24))
+        bpy.context.object.data.materials.append(mat("pneu"))
+    for k in range(6):
+        caixa("saco_%d" % k, (-2.4 + k * 0.85, -0.7, 0.15 + (k % 2) * 0.28), (0.75, 0.4, 0.28), "pano", (0, 0, rnd.uniform(-0.2, 0.2)))
+    arame("arame", -2.9, 1.9, -1.4, 0.0)
+    caixa("bloqueio-colonly", (-0.4, 0, 0.9), (5.2, 1.4, 1.8), "madeira")
+    exporta(nome)
+
+
 if __name__ == "__main__":
     import os
     os.makedirs(SAIDA, exist_ok=True)
@@ -811,6 +861,7 @@ if __name__ == "__main__":
         ("van_r1", lambda: van("van_r1", 53)),
         ("onibus_r1", lambda: onibus("onibus_r1", 54)),
         ("caixa_dagua", lambda: caixa_dagua("caixa_dagua")),
+        ("barricada_sobr", lambda: barricada_sobr("barricada_sobr", 71)),
         ("delegacia", lambda: delegacia("delegacia", 18.0, 13.0, 61)),
     ]
     for nome, faz in TODOS:

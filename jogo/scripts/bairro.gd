@@ -95,6 +95,10 @@ func _ready() -> void:
 		_fresta(Vector2(f.a[0], f.a[1]), Vector2(f.b[0], f.b[1]), float(f.larg))
 	_borda()
 	_tabuas_telhado()
+	var sobr := Sobreviventes.new()
+	sobr.name = "Sobreviventes"
+	add_child(sobr)
+	sobr.monta(self)
 	_arvores_mortas()
 	_hidrantes_e_fogo()
 	_classifica()

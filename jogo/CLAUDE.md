@@ -61,6 +61,9 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   Zumbi: `armado` (TIRO_*: para, mira `_mira_e_atira`, rpc `_tiro_fx`, pistola na mão `_poe_arma`, chega devagar),
   `de_raid` (MORTO_RAID 15 min), `tipo_pedido`. HUD `_avisa_raid`. `Bairro._espalhados(n, larg)` espalha zumbis/carros/
   barricadas pelo comprimento das ruas. Teste: test_raid (8).
+- `sobreviventes.gd` (Sobreviventes, filho do Bairro; 31/10): refúgios (N_REFUGIOS casas com `barricada_sobr` do Blender
+  na frente + `Arame` que corta/prende), pichações (Label3D nas fachadas, PICHACOES), bilhetes (grupo "bilhetes", meta
+  texto; controles `_le_bilhete` mostra na faixa). Teste: test_sobreviventes (5).
 - `som_ambiente.gd` (SomAmbiente, filho do main; 31/10): vento (mais forte à noite), sustos ao longe (`_sustos`), passos por
   chão (`_passos`: casa=tábua, rua=concreto, resto=terra), eco no bus 0 só dentro de casa (`_eco`), coração (`_coracao_bate`),
   gemidos/rosnados presos no zumbi (`_gemidos`). Sons CC0 em `assets/sons/amb` (CREDITOS.txt); fogo nos barris (Bairro).
