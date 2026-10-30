@@ -192,7 +192,7 @@ dinheiro embaixo delas, relógio curto ("DIA 4:12"), munição pequena embaixo �
 ícone (ataque/tiro, mira, pular, agachar) e os de contexto (recarregar só com pente incompleto, pegar só perto de
 algo, seletor só com a smg); correr = analógico no fim para a frente; trocar/comer/beber pela barra rápida discreta.
 Prompt das próximas partes: atacar os pontos fracos, um por iteração, com foto antes/depois:
-1. Luz e céu: céu de fim de tarde nublado (ProceduralSky/PhysicalSky com névoa leve de profundidade), sombra macia,
+1. (feito, d363c78+) Luz e céu: céu de fim de tarde nublado (ProceduralSky/PhysicalSky com névoa leve de profundidade), sombra macia,
    cor fria e dessaturada (pós-processo barato no gl_compatibility: só ajustes do Environment), noite azulada.
 2. Pista: trocar blocos cinza por modelos (muro, contêiner, carro velho, barricada) grátis e de licença aberta,
    chão de asfalto/terra com textura; manter colisão e malha de navegação (testes de zumbi passando).

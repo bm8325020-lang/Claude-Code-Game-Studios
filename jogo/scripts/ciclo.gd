@@ -51,7 +51,7 @@ func _process(dt: float) -> void:
 			mat.ground_horizon_color = ceu
 		ambiente.ambient_light_color = Color(0.7, 0.72, 0.75).lerp(Color(0.35, 0.42, 0.6), n)
 		ambiente.ambient_light_energy = lerpf(0.6, 0.12, n)
-		ambiente.fog_density = lerpf(0.012, 0.035, n)
+		ambiente.fog_density = lerpf(0.008, 0.035, n)
 
 
 ## 0 = dia claro, 1 = noite fechada (sobe no anoitecer e desce no amanhecer).

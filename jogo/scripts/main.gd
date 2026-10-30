@@ -351,13 +351,13 @@ func _luz() -> void:
 	env.ambient_light_color = Color(0.7, 0.72, 0.75)
 	env.ambient_light_energy = 0.6
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 1.05
+	env.tonemap_exposure = 0.9
 	env.adjustment_enabled = true
 	env.adjustment_saturation = 0.78  # cor lavada, fria
 	env.adjustment_contrast = 1.08
 	env.fog_enabled = true
 	env.fog_light_color = Ciclo.CEU_HORIZONTE[0]
-	env.fog_density = 0.012
+	env.fog_density = 0.008
 	env.fog_sky_affect = 0.35
 	amb.environment = env
 	add_child(amb)
@@ -414,7 +414,7 @@ func _chao() -> void:
 	var chao := bloco(Vector3(0, -0.5, 0), Vector3(200, 1, 200), Color.WHITE)
 	var m := StandardMaterial3D.new()  # asfalto velho repetindo a cada 4 m
 	m.albedo_texture = load("res://assets/sketchfab/asfalto.jpg")
-	m.albedo_color = Color(0.78, 0.77, 0.74)
+	m.albedo_color = Color(0.42, 0.41, 0.39)
 	m.uv1_triplanar = true
 	m.uv1_world_triplanar = true
 	m.uv1_scale = Vector3(0.25, 0.25, 0.25)
