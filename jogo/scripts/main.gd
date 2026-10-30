@@ -335,14 +335,30 @@ func _luz() -> void:
 	Config.aplica.call_deferred(get_tree())  # sombras, som, resolução e quadros do jogador
 	var amb := WorldEnvironment.new()
 	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.62, 0.66, 0.68)  # céu cinza de apocalipse
+	# céu nublado de fim do mundo: cinza-azulado em cima, horizonte amarelado sujo; névoa leve de profundidade
+	var ceu := ProceduralSkyMaterial.new()
+	ceu.sky_top_color = Ciclo.CEU_TOPO[0]
+	ceu.sky_horizon_color = Ciclo.CEU_HORIZONTE[0]
+	ceu.ground_horizon_color = Ciclo.CEU_HORIZONTE[0]
+	ceu.ground_bottom_color = Color(0.2, 0.2, 0.19)
+	ceu.sky_curve = 0.12
+	ceu.sun_angle_max = 18.0
+	ceu.sun_curve = 0.08
+	env.sky = Sky.new()
+	env.sky.sky_material = ceu
+	env.background_mode = Environment.BG_SKY
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.7, 0.72, 0.75)
 	env.ambient_light_energy = 0.6
+	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_exposure = 1.05
+	env.adjustment_enabled = true
+	env.adjustment_saturation = 0.78  # cor lavada, fria
+	env.adjustment_contrast = 1.08
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.62, 0.66, 0.68)
-	env.fog_density = 0.008
+	env.fog_light_color = Ciclo.CEU_HORIZONTE[0]
+	env.fog_density = 0.012
+	env.fog_sky_affect = 0.35
 	amb.environment = env
 	add_child(amb)
 	ciclo.sol = sol
@@ -395,7 +411,15 @@ func bloco(c: Vector3, tam: Vector3, cor: Color, rot: Vector3 = Vector3.ZERO, xa
 
 
 func _chao() -> void:
-	bloco(Vector3(0, -0.5, 0), Vector3(200, 1, 200), Color(0.42, 0.41, 0.38), Vector3.ZERO, true)
+	var chao := bloco(Vector3(0, -0.5, 0), Vector3(200, 1, 200), Color.WHITE)
+	var m := StandardMaterial3D.new()  # asfalto velho repetindo a cada 4 m
+	m.albedo_texture = load("res://assets/sketchfab/asfalto.jpg")
+	m.albedo_color = Color(0.78, 0.77, 0.74)
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	m.uv1_scale = Vector3(0.25, 0.25, 0.25)
+	m.roughness = 0.95
+	(chao.get_child(0) as MeshInstance3D).material_override = m
 
 
 func _rampa(base: Vector3, graus: float, comprimento: float, largura: float, cor: Color) -> void:

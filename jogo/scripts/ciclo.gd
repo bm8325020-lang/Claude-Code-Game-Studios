@@ -16,8 +16,9 @@ var tempo: float = INICIO
 var sol: DirectionalLight3D
 var ambiente: Environment
 
-const CEU_DIA := Color(0.62, 0.66, 0.68)
-const CEU_NOITE := Color(0.05, 0.06, 0.09)
+## [dia, noite] do céu: topo e horizonte
+const CEU_TOPO: Array[Color] = [Color(0.38, 0.44, 0.5), Color(0.02, 0.03, 0.06)]
+const CEU_HORIZONTE: Array[Color] = [Color(0.7, 0.67, 0.6), Color(0.07, 0.09, 0.14)]
 
 
 func _ready() -> void:
@@ -40,12 +41,17 @@ func _process(dt: float) -> void:
 		sol.light_energy = lerpf(1.2, 0.04, n)
 		sol.light_color = Color(1, 0.96, 0.9).lerp(Color(0.55, 0.65, 1.0), n)
 	if ambiente:
-		var ceu: Color = CEU_DIA.lerp(CEU_NOITE, n)
+		var ceu: Color = CEU_HORIZONTE[0].lerp(CEU_HORIZONTE[1], n)
 		ambiente.background_color = ceu
 		ambiente.fog_light_color = ceu
+		var mat := ambiente.sky.sky_material as ProceduralSkyMaterial if ambiente.sky else null
+		if mat:
+			mat.sky_top_color = CEU_TOPO[0].lerp(CEU_TOPO[1], n)
+			mat.sky_horizon_color = ceu
+			mat.ground_horizon_color = ceu
 		ambiente.ambient_light_color = Color(0.7, 0.72, 0.75).lerp(Color(0.35, 0.42, 0.6), n)
 		ambiente.ambient_light_energy = lerpf(0.6, 0.12, n)
-		ambiente.fog_density = lerpf(0.008, 0.03, n)
+		ambiente.fog_density = lerpf(0.012, 0.035, n)
 
 
 ## 0 = dia claro, 1 = noite fechada (sobe no anoitecer e desce no amanhecer).
