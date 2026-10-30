@@ -66,7 +66,7 @@ func _init() -> void:
 	chefe._sem_gritar = INF
 	j.global_position = Vector3(-20, 0.1, 30)
 	var n0: int = main.soltos.get_child_count()
-	chefe.levar_golpe(1000, Vector3.FORWARD, j)
+	chefe.levar_golpe(Zumbi.VIDA_CHEFE, Vector3.FORWARD, j)
 	await frames(3)
 	var largados: Array = main.soltos.get_children().slice(n0)
 	ok(largados.size() >= Loot.CHEFE_ROLAGENS.x - 1 and largados.size() <= Loot.CHEFE_ROLAGENS.y, "o chefe larga %d coisas no chão" % largados.size())
