@@ -241,7 +241,10 @@ baús fáceis, longe de horda. Quem tem casa de facção renasce nela (prompt 13
 Aceite: teste de distribuição do sorteio.
 
 ## 12. Facção: criar dominando uma casa
-Status: pendente
+Status: feito (APK 0.51). Dono pediu **1 jogador** para criar (não 3). DOMINAR (bandeira; PC H) dentro de uma casa do
+bairro, 6 min; todos saem = falha; anúncio para o servidor; facção "Facção de <nick>" com quem estava dentro; FACÇÃO
+na pausa (membros, ADICIONAR, limite 10); facção existente redomina com 1 membro em 3 min; outro grupo tomar = perde
+a área. Nome escolhido e aumentar o limite pagando: depois. Teste: tests/test_faccoes.gd (11).
 
 Casas completas marcadas como domináveis. Criar facção: **3+ jogadores dentro da casa** apertam "Dominar"
 e seguram **5–7 min** (provisório 6). Ao começar, **anúncio para o servidor**: "Alguém está tentando dominar

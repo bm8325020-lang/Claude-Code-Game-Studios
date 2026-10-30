@@ -68,6 +68,9 @@ var _tela_bancada: TelaBancada
 var _tela_loja: TelaLoja
 var _saldo: Label
 var _btn_modo: Button
+var _btn_dominar: _Icone
+var _dominio: Label  # "DOMINANDO 5:32" enquanto tem domínio na casa em que você está
+var _lista_faccao: VBoxContainer
 var _convite: PanelContainer  # "Fulano te chamou para o grupo" + ACEITAR/RECUSAR
 var _convite_t: float = 0.0
 var _convite_texto: Label
@@ -115,6 +118,9 @@ func _ready() -> void:
 	_relogio = _rotulo(20, 0.0)  # curto, no alto do meio: "DIA 4:12" / "NOITE 2:30"
 	_relogio.offset_top = 14
 	_relogio.visible = true
+	_dominio = _rotulo(24, 0.0)
+	_dominio.offset_top = 44
+	_dominio.add_theme_color_override("font_color", Color(1.0, 0.7, 0.35))
 	# "Pegar munição (24)" embaixo do meio da tela quando tem item perto; aviso "+24 munição" ao pegar
 	_dica_pegar = _rotulo(22, 0.72)
 	_aviso_item = _rotulo(26, 0.62)
@@ -152,7 +158,7 @@ func _ready() -> void:
 func _acoes() -> void:
 	var mapa: Dictionary = {"frente": [KEY_W, KEY_UP], "tras": [KEY_S, KEY_DOWN], "esq": [KEY_A, KEY_LEFT],
 		"dir": [KEY_D, KEY_RIGHT], "pular": [KEY_SPACE], "correr": [KEY_SHIFT], "agachar": [KEY_CTRL, KEY_C],
-		"andar": [KEY_ALT], "pegar": [KEY_E], "comer": [KEY_F], "beber": [KEY_G], "trocar": [KEY_Q], "recarregar": [KEY_R], "mochila": [KEY_TAB], "modo": [KEY_B],
+		"andar": [KEY_ALT], "pegar": [KEY_E], "dominar": [KEY_H], "comer": [KEY_F], "beber": [KEY_G], "trocar": [KEY_Q], "recarregar": [KEY_R], "mochila": [KEY_TAB], "modo": [KEY_B],
 		"espaco_1": [KEY_1], "espaco_2": [KEY_2], "espaco_3": [KEY_3], "espaco_4": [KEY_4], "espaco_5": [KEY_5], "espaco_6": [KEY_6]}
 	for acao: String in mapa:
 		if InputMap.has_action(acao):
@@ -219,6 +225,7 @@ func _process(dt: float) -> void:
 	_convite_t -= dt
 	_convite.visible = _convite_t > 0.0
 	var principal := get_tree().get_first_node_in_group("principal")
+	_atualiza_dominio(principal)
 	_marcas.amigos = principal.amigos() if principal else []
 	_faixa.visible = _faixa_t > 0.0
 	_faixa.modulate.a = clampf(_faixa_t * 2.0, 0.0, 1.0)
@@ -519,11 +526,57 @@ func _monta_pausa() -> void:
 	volta_g.pressed.connect(func() -> void:
 		p_g.visible = false
 		p_menu.visible = true)
+	var fac := UiTema.botao("FACÇÃO")
+	col.add_child(fac)
+	var col_f := UiTema.painel_central(_pausa, 620.0)
+	col_f.add_child(UiTema.titulo("FACÇÃO", 40, UiTema.DESTAQUE))
+	_lista_faccao = VBoxContainer.new()
+	_lista_faccao.add_theme_constant_override("separation", 8)
+	col_f.add_child(_lista_faccao)
+	var volta_f := UiTema.botao("VOLTAR", true)
+	col_f.add_child(volta_f)
+	var p_f: Control = col_f.get_parent().get_parent()
+	p_f.visible = false
+	fac.pressed.connect(func() -> void:
+		_monta_faccao()
+		p_menu.visible = false
+		p_f.visible = true)
+	volta_f.pressed.connect(func() -> void:
+		p_f.visible = false
+		p_menu.visible = true)
 	var sair := UiTema.botao("SAIR DA PARTIDA")
 	sair.pressed.connect(func() -> void:
 		pausa(false)
 		get_tree().get_first_node_in_group("principal")._caiu_conexao(""))
 	col.add_child(sair)
+
+
+# página da facção: nome, membros e adicionar pelo nick (ou como criar, se não tem)
+func _monta_faccao() -> void:
+	for c in _lista_faccao.get_children():
+		c.queue_free()
+	var principal := get_tree().get_first_node_in_group("principal")
+	var f: String = principal.faccao_de(jogador.nick)
+	if f == "":
+		_lista_faccao.add_child(UiTema.rotulo("Você não tem facção. Entre numa casa do bairro e aperte DOMINAR (bandeira). Fique %d min dentro dela." % int(Faccoes.DOMINAR_T / 60.0), 22, UiTema.APAGADO))
+		return
+	var d: Dictionary = principal._faccoes_cli.f[f]
+	_lista_faccao.add_child(UiTema.rotulo(f.to_upper(), 30))
+	_lista_faccao.add_child(UiTema.rotulo(("Casa: %s" % d.casa) if d.casa != "" else "Sem casa agora (domine outra com 1 membro em %d min)" % int(Faccoes.REDOMINAR_T / 60.0), 20, UiTema.APAGADO))
+	_lista_faccao.add_child(UiTema.rotulo("Membros (%d/%d): %s" % [d.membros.size(), Faccoes.LIMITE, ", ".join(d.membros)], 20))
+	for j: Jogador in principal.jogadores.get_children():
+		if j == jogador or principal.faccao_de(j.nick) != "":
+			continue
+		var linha := HBoxContainer.new()
+		var nome := UiTema.rotulo(j.nick, 24)
+		nome.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		linha.add_child(nome)
+		var b := UiTema.botao("ADICIONAR")
+		b.pressed.connect(func() -> void:
+			principal.pede_adicionar.rpc_id(1, j.nick)
+			b.disabled = true)
+		linha.add_child(b)
+		_lista_faccao.add_child(linha)
 
 
 # lista dos outros jogadores da partida: nome + CONVIDAR (ou "no seu grupo")
@@ -621,10 +674,36 @@ func _levou_dano(dano: int) -> void:
 
 func _em_botao(p: Vector2) -> bool:
 	for b: Control in [_btn_agachar, _btn_mira, _btn_atacar, _btn_recarregar, _btn_pegar, get_node_or_null("Pular") as Control,
-			get_node_or_null("Pausa") as Control, get_node_or_null("Mochila") as Control, get_node_or_null("Trocar") as Control, _btn_modo] + _barra:
+			get_node_or_null("Pausa") as Control, get_node_or_null("Mochila") as Control, get_node_or_null("Trocar") as Control, _btn_modo, _btn_dominar] + _barra:
 		if b and b.is_visible_in_tree() and b.get_global_rect().grow(10).has_point(p):
 			return true
 	return false
+
+
+# casa em que você está: botão DOMINAR (se dá) e o relógio do domínio em andamento
+func _atualiza_dominio(principal: Node) -> void:
+	var casa: String = principal.bairro.casa_em(jogador.global_position) if principal and principal.bairro and jogador.vida > 0 else ""
+	var tent: Variant = principal._faccoes_cli.t.get(casa) if casa != "" else null
+	var minha: String = principal.faccao_de(jogador.nick) if principal else ""
+	var dona: String = ""
+	if casa != "":
+		for n: String in principal._faccoes_cli.f:
+			if principal._faccoes_cli.f[n].casa == casa:
+				dona = n
+	var pode: bool = casa != "" and tent == null and (minha == "" or dona != minha)
+	if _btn_dominar:
+		_btn_dominar.visible = pode
+	if pode and not toque and Input.is_action_just_pressed("dominar"):
+		principal.pede_dominar.rpc_id(1)
+	_dominio.visible = tent != null or (casa != "" and dona != "")
+	if tent != null:
+		var f: int = ceili(float(tent.t))
+		_dominio.text = "DOMINANDO  %d:%02d" % [f / 60, f % 60]
+	elif _dominio.visible:
+		_dominio.text = "CASA DA %s" % dona.to_upper()
+	if pode and not toque and not _dica_pegar.visible:
+		_dica_pegar.visible = true
+		_dica_pegar.text = "[H] dominar a casa"
 
 
 func _refaz_toque() -> void:
@@ -668,6 +747,9 @@ func _monta_toque() -> void:
 	var trocar := _botao("trocar", Vector2(-128, -470), 72.0)  # troca entre a arma branca e a de fogo
 	trocar.name = "Trocar"
 	trocar.button_down.connect(func() -> void: jogador.entrada["trocar"] = true)
+	_btn_dominar = _botao("dominar", Vector2(-540, -300), 84.0)
+	_btn_dominar.button_down.connect(func() -> void: get_tree().get_first_node_in_group("principal").pede_dominar.rpc_id(1))
+	_btn_dominar.visible = false
 	_btn_pegar = _botao("pegar", Vector2(-540, -170), 100.0)
 	_btn_pegar.button_down.connect(func() -> void: jogador.entrada["pegar"] = true)
 	_btn_pegar.visible = false
@@ -897,6 +979,9 @@ class _Icone:
 				draw_colored_polygon(PackedVector2Array([c + Vector2(r * 1.25, -r * 0.4), c + Vector2(r * 0.6, -r * 0.85), c + Vector2(r * 0.6, r * 0.05)]), b)
 				draw_line(c + Vector2(r, r * 0.45), c + Vector2(-r, r * 0.45), b, g)
 				draw_colored_polygon(PackedVector2Array([c + Vector2(-r * 1.25, r * 0.45), c + Vector2(-r * 0.6, 0.0), c + Vector2(-r * 0.6, r * 0.9)]), b)
+			"dominar":  # bandeira
+				draw_line(c + Vector2(-r * 0.6, -r * 1.1), c + Vector2(-r * 0.6, r * 1.1), b, g)
+				draw_colored_polygon(PackedVector2Array([c + Vector2(-r * 0.6, -r * 1.1), c + Vector2(r, -r * 0.6), c + Vector2(-r * 0.6, -r * 0.1)]), b)
 			"pausa":
 				draw_rect(Rect2(c.x - r * 0.7, c.y - r * 0.8, r * 0.5, r * 1.6), b)
 				draw_rect(Rect2(c.x + r * 0.2, c.y - r * 0.8, r * 0.5, r * 1.6), b)

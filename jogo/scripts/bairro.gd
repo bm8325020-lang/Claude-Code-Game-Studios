@@ -49,6 +49,16 @@ func _ready() -> void:
 	_classifica()
 
 
+## Nome da casa (Casa_k) em que o ponto está dentro, ou "".
+func casa_em(p: Vector3) -> String:
+	for casa: Node3D in get_tree().get_nodes_in_group("casas"):
+		var l: Vector3 = casa.to_local(p)
+		var tam: Vector2 = casa.get_meta("tam")
+		if absf(l.x) < tam.x * 0.5 and absf(l.z) < tam.y * 0.5 and l.y > -0.5 and l.y < PAREDE:
+			return String(casa.name)
+	return ""
+
+
 func _classifica() -> void:
 	var faceis: Array = find_children("Bau_*", "Bau", true, false).filter(func(b: Bau) -> bool: return b.facil)
 	for p: Vector3 in pontos_nascer:
@@ -85,6 +95,8 @@ func _casa(lote: Vector3, giro: float, larg: float, fundo: float) -> void:
 	casa.name = "Casa_%d" % k
 	casa.position = lote
 	casa.rotation_degrees.y = giro
+	casa.set_meta("tam", Vector2(larg, fundo))
+	casa.add_to_group("casas")
 	add_child(casa)
 	var cor: Color = PAREDES[_rng.randi() % PAREDES.size()]
 	var meio: float = Porta.LARGURA * 0.5

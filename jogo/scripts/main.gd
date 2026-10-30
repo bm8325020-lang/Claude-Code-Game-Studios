@@ -29,6 +29,9 @@ var bairro: Bairro
 ## nasce no bairro (o jogo); os testes que medem a pista desligam
 static var nascer_no_bairro: bool = true
 var grupos := Grupos.new()  # servidor: quem está com quem
+var faccoes := Faccoes.new()  # servidor: facções e domínios em andamento
+var _faccoes_cli: Dictionary = {"f": {}, "t": {}}  # todos: cópia que o servidor manda
+var _faccao_tick: float = 0.0
 var _grupos_cli: Dictionary = {}  # todos: cópia que o servidor manda (peer -> grupo)
 
 
@@ -200,6 +203,7 @@ func _process(dt: float) -> void:
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		grupos.passa(dt)
 		_passa_raids(dt)
+		_passa_dominio(dt)
 
 
 # --- Resgate com raid (prompt 10): o caído pede, o servidor confere o grupo, solta os zumbis e decide o fim ---
@@ -347,6 +351,74 @@ func amigos() -> Array:
 	if g == 0:
 		return []
 	return jogadores.get_children().filter(func(j: Node) -> bool: return j != jogador and grupo_de(int(String(j.name))) == g)
+
+
+# --- Facções (prompt 12): dominar uma casa do bairro. O cliente pede, o servidor conta o tempo e decide ---
+
+func _dentro_das_casas() -> Dictionary:
+	var d: Dictionary = {}
+	for j: Jogador in jogadores.get_children():
+		if j.vida > 0 and bairro:
+			var c: String = bairro.casa_em(j.global_position)
+			if c != "":
+				d[c] = d.get(c, []) + [j.nick]
+	return d
+
+
+@rpc("any_peer", "call_local", "reliable")
+func pede_dominar() -> void:
+	if not multiplayer.is_server():
+		return
+	var j := jogadores.get_node_or_null(str(_quem())) as Jogador
+	if j == null or j.vida <= 0:
+		return
+	var casa: String = bairro.casa_em(j.global_position)
+	var motivo: String = "Entre numa casa para dominar" if casa == "" else faccoes.comecar(casa, j.nick, _dentro_das_casas().get(casa, []))
+	if motivo != "":
+		aviso_todos.rpc_id(_quem(), motivo)
+		return
+	aviso_todos.rpc("Alguém está tentando dominar uma casa do bairro")
+	_manda_faccoes()
+
+
+@rpc("any_peer", "call_local", "reliable")
+func pede_adicionar(nick: String) -> void:
+	if not multiplayer.is_server():
+		return
+	var j := jogadores.get_node_or_null(str(_quem())) as Jogador
+	if j == null or _jogador_nick(nick) == null:
+		aviso_todos.rpc_id(_quem(), "Ninguém com esse nick")
+		return
+	var motivo: String = faccoes.adicionar(j.nick, _jogador_nick(nick).nick)
+	aviso_todos.rpc_id(_quem(), motivo if motivo != "" else "%s entrou na facção" % nick)
+	_manda_faccoes()
+
+
+func _passa_dominio(dt: float) -> void:
+	_faccao_tick -= dt
+	if _faccao_tick > 0.0 or faccoes.tentativas.is_empty():
+		return
+	_faccao_tick = 0.5
+	for ev: Array in faccoes.passa(0.5, _dentro_das_casas()):
+		aviso_todos.rpc(("%s dominou uma casa" % ev[2]) if ev[0] == "sucesso" else "O domínio da casa falhou")
+	_manda_faccoes()
+
+
+func _manda_faccoes() -> void:
+	_recebe_faccoes.rpc({"f": faccoes.faccoes, "t": faccoes.tentativas})
+
+
+@rpc("authority", "call_local", "reliable")
+func _recebe_faccoes(d: Dictionary) -> void:
+	_faccoes_cli = d
+
+
+## Facção de um nick pela cópia do servidor ("" = nenhuma).
+func faccao_de(nick: String) -> String:
+	for n: String in _faccoes_cli.f:
+		if nick in _faccoes_cli.f[n].membros:
+			return n
+	return ""
 
 
 ## Lugar sorteado para nascer/renascer (prompt 11). Quem tem casa de facção renasce nela (prompt 13).

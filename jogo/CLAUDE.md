@@ -77,6 +77,10 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   Resgate: `Jogador._cai` no grupo → `resgate`, `RESGATE_T` 90 s, `main.pede_resgate` (servidor confere
   `Grupos.pode_resgate`, `inicia_raid`, `Zumbi.raid`, `_passa_raids` → `Jogador.levanta`/`sem_resgate`, paga).
   `Lojista.valor(itens)`. Teste: tests/test_resgate.gd (9).
+- `faccoes.gd` (Faccoes: faccoes/tentativas, comecar/passa/adicionar/dona/faccao_de; MIN_CRIAR 1 (pedido do dono),
+  DOMINAR_T 360, REDOMINAR_T 180, LIMITE 10). main: `faccoes`, `pede_dominar`/`pede_adicionar` (rpc), `_passa_dominio`,
+  `_manda_faccoes` → `_faccoes_cli`, `faccao_de`. Bairro: `casa_em(pos)`, grupo "casas", meta "tam". controles:
+  `_btn_dominar` (bandeira, PC H), `_dominio` (relógio), página FACÇÃO na pausa. Teste: test_faccoes (11).
 - `rede.gd` — ENet 7777, broadcast 7778, pergunta direta 7779, `VERSAO`, `LISTA_URL` (servidores.json). Endereço
   "ws://"/"wss://" = WebSocket (servidor online atrás de site; `-- dedicado ws` escuta em `PORTA_WS` 7861).
 - `config.gd` (Config) — `Config.v[...]` salvo em user://config.cfg, `muda()`, `aplica()`, `sensibilidade(arma, mirando)`,
