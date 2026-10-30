@@ -356,6 +356,7 @@ Menu com 3 modos:
 Status: em andamento. Salas feitas (APK 0.58): criar (nome, pública/privada, 1–8 jogadores), buscar pelo nome,
 entrar pelo código, tela de espera até encher ou COMEÇAR SOZINHO/AGORA, entrar no meio do jogo; o celular de quem
 cria hospeda e o carteiro online repassa. Menu agora é só CRIAR SALA / ENTRAR NUMA SALA (APK 0.59; PvP e mundo aberto fora, servidor online só carteiro).
+APK 0.60: céu de fim do mundo, infecção (barra, antibiótico) e mordida no pescoço com briga no tempo certo.
 Falta: dividir o peso do mundo com quem entra (cada celular cuida dos zumbis perto dele), dificuldade, progressão,
 raids (delegacia, bunker).
 

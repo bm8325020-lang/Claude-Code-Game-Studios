@@ -79,6 +79,13 @@ const BOTE_VEL: float = 8.0         # m/s durante o bote
 const BOTE_DUR: float = 0.35
 const BOTE_INTERVALO: float = 6.0
 const AGARRA_T: float = 2.0         # s que o jogador fica lento depois do soco do policial
+## Mordida no pescoço (policial): agarra e tenta morder; o jogador se solta acertando o tempo (Jogador.mordida_t).
+## Não se soltou em MORDIDA_T: morde (MORDIDA_DANO e infecção certa). Cada zumbi tenta de novo só depois de MORDIDA_ESPERA.
+const MORDIDA_CHANCE: float = 0.35
+const MORDIDA_T: float = 4.0
+const MORDIDA_DANO: int = 35
+const MORDIDA_ESPERA: float = 15.0
+static var chance_mordida: float = MORDIDA_CHANCE  # testes que medem outra coisa zeram
 const BLINDAGEM: float = 0.6        # o soldado leva 60% do dano
 const BLINDADO_CAMBALEIA: int = 30  # e só cambaleia com golpe a partir disso
 var tipo: String = "zumbi_policial"
@@ -89,6 +96,8 @@ static var tipo_fixo: String = ""
 var _dano: int = DANO
 var _vel: float = 1.0
 var _skill_t: float = 2.0
+var _mordendo: float = -1.0  # servidor: s até morder (agarrado no jogador)
+var _mordida_cd: float = 0.0
 var _bote: float = 0.0
 ## mais longe que isso de todos os jogadores (e sem alvo) o zumbi dorme no servidor: economiza para caber mais gente
 const DORME_DIST: float = 60.0
@@ -249,6 +258,7 @@ func _manda() -> bool:
 
 func _physics_process(dt: float) -> void:
 	_pancada_t -= dt
+	_mordida_cd -= dt
 	_skill_t -= dt
 	_bote -= dt
 	if _manda():
@@ -304,6 +314,8 @@ func _physics_process(dt: float) -> void:
 			_vira_para(alvo.global_position - global_position, dt)
 	elif _cambaleio > 0.0:
 		_cambaleio -= dt
+	elif _mordendo > 0.0:
+		_segura_mordida(dt)
 	elif _grito_t >= 0.0:
 		_grito_t -= dt
 		if alvo and is_instance_valid(alvo):
@@ -631,6 +643,12 @@ func _atualiza_ataque(dt: float) -> void:
 				alvo.levar_dano(roundi((DANO_CHEFE if chefe else _dano) * Ciclo.forca_noite(get_tree(), NOITE_DANO)), d.normalized() * (2.5 if chefe else 1.0))
 				if not chefe and TIPOS[tipo].skill == "agarrao":
 					alvo.agarrar(AGARRA_T)
+					if _mordida_cd <= 0.0 and randf() < chance_mordida and alvo.vida > 0 and alvo.mordida_t <= 0.0:
+						_mordendo = MORDIDA_T
+						_mordida_cd = MORDIDA_ESPERA
+						_ataque_t = -1.0
+						alvo.comeca_mordida(self)
+						return
 	if _ataque_t >= dur:
 		_ataque_t = -1.0
 
@@ -686,6 +704,46 @@ const DINHEIRO: int = 10
 const DINHEIRO_CHEFE: int = 300
 const DINHEIRO_NOITE: float = 1.5
 var _ultimo: Jogador  # servidor: quem bateu por último (ganha o dinheiro)
+
+
+# agarrado no jogador, puxando o pescoço: parado, de frente para ele; o tempo acabou = mordeu
+func _segura_mordida(dt: float) -> void:
+	_mordendo -= dt
+	if alvo == null or not is_instance_valid(alvo) or alvo.vida <= 0:
+		_mordendo = -1.0
+		return
+	var d: Vector3 = alvo.global_position - global_position
+	_vira_para(d, dt)
+	if _plano(d) > 1.0:  # encosta no jogador
+		velocity.x = d.x * 3.0
+		velocity.z = d.z * 3.0
+	_toca("ataque", 0.15)
+	if _mordendo <= 0.0:
+		_resolve_mordida(false)
+
+
+## Fim da mordida (servidor): se soltou = o zumbi cambaleia para trás; não = morde.
+func _resolve_mordida(escapou: bool) -> void:
+	_mordendo = -1.0
+	if alvo == null or not is_instance_valid(alvo):
+		return
+	if not alvo.local:
+		alvo.mordida_t = 0.0  # a marca do servidor (o dono cuida da dele)
+	if escapou:
+		_cambaleio = CAMBALEIO * 3.0
+		var d: Vector3 = global_position - alvo.global_position
+		d.y = 0.0
+		velocity += d.normalized() * 6.0
+		_toca("dano", 0.08, true)
+	else:
+		alvo.mordido(roundi(MORDIDA_DANO * Ciclo.forca_noite(get_tree(), NOITE_DANO)))
+
+
+## O jogador (no aparelho dele) avisa como foi a briga para se soltar.
+@rpc("any_peer", "call_local", "reliable")
+func resultado_mordida(escapou: bool) -> void:
+	if _manda() and _mordendo > 0.0:
+		_resolve_mordida(escapou)
 
 
 func levar_golpe(dano: int, dir: Vector3, quem: Node) -> void:

@@ -5,7 +5,7 @@ extends Node3D
 
 const ALCANCE: float = 2.4
 ## o que ele vende: tipo -> [quantidade por compra, preço]
-const VENDE: Dictionary = {"municao": [12, 30], "comida": [1, 15], "agua": [1, 10]}
+const VENDE: Dictionary = {"municao": [12, 30], "comida": [1, 15], "agua": [1, 10], "antibiotico": [1, 400]}
 ## quanto ele paga por unidade
 const PAGA: Dictionary = {"municao": 1, "comida": 5, "agua": 3, "lanterna": 25, "faca": 20, "taco": 30, "machado": 60,
 	"pistola": 120, "smg": 400, "mola": 4, "gatilho": 6, "cano": 12, "cabo": 12, "ferrolho": 40, "carregador": 40,

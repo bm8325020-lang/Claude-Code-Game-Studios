@@ -25,6 +25,7 @@ var jogador: Jogador:
 			v.dano_levado.connect(_levou_dano)
 			v.item_pego.connect(_pegou)
 			v.acertou_alvo.connect(_acertou)
+			v.infectou.connect(func() -> void: aviso("VOCÊ FOI INFECTADO — ache um antibiótico", UiTema.PERIGO))
 			v.bau_aberto.connect(func(b: Bau) -> void: _tela_bau.abre(v, b))
 			v.bancada_aberta.connect(func() -> void: _tela_bancada.abre(v))
 			v.loja_aberta.connect(func() -> void: _tela_loja.abre(v))
@@ -60,11 +61,13 @@ var _faixa_texto: Label
 var _pvp_hud: Label  # relógio e placar da partida de PvP (no alto)
 var tela_salas: TelaSalas
 var _espera: PanelContainer  # tela de espera da sala de sobrevivência
+var _qte: _Qte  # briga com o zumbi mordendo (barra + EMPURRAR)
+var _clique_qte: bool = false
 var _espera_texto: Label
 var _espera_botao: Button
 var abre_pvp: Callable  # abre a pausa direto na página do PvP (menu: botão PVP)
 var _faixa_estilo: StyleBoxFlat
-var _barras: Array[_Barra] = []  # vida, fome, sede
+var _barras: Array[_Barra] = []  # vida, fome, sede, infecção
 var _faixa_t: float = 0.0
 var _pausa: Control
 var _barra: Array = []  # espaços 1–6 da barra rápida (TelaMochila.Espaco)
@@ -102,12 +105,12 @@ func _ready() -> void:
 	_vermelho.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_vermelho.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_vermelho)
-	# vida, fome e sede: três barras finas no canto de cima à esquerda, e o dinheiro embaixo delas
-	for i in 3:
+	# vida, fome, sede e infecção (só aparece infectado): barras finas com a porcentagem, no canto de cima à esquerda
+	for i in 4:
 		var barra := _Barra.new()
 		barra.tipo = i
 		barra.position = Vector2(24, 20 + i * 24)
-		barra.size = Vector2(210, 16)
+		barra.size = Vector2(250, 16)
 		barra.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(barra)
 		_barras.append(barra)
@@ -146,6 +149,13 @@ func _ready() -> void:
 	add_child(_municao)
 	_monta_aviso()
 	_monta_espera()
+	_qte = _Qte.new()
+	_qte.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_qte.visible = false
+	add_child(_qte)
+	_qte.botao.pressed.connect(func() -> void:
+		if jogador:
+			jogador.entrada["soltar"] = true)
 	_marcas = _Marcas.new()
 	_marcas.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_marcas.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -182,6 +192,16 @@ func _process(dt: float) -> void:
 	if jogador == null:
 		return
 	var e: Dictionary = jogador.entrada
+	_atualiza_barras()
+	_qte.jogador = jogador
+	_qte.visible = jogador.mordida_t > 0.0 and jogador.mordida_zumbi != null
+	if _qte.visible:
+		_qte.queue_redraw()
+		if Input.is_action_just_pressed("pular") or Input.is_action_just_pressed("pegar") or (not toque and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not _clique_qte):
+			e["soltar"] = true
+		_clique_qte = Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+		e["move"] = Vector2.ZERO
+		return
 	_atualiza_espera()
 	if _espera.visible:
 		e["move"] = Vector2.ZERO  # tela de espera da sala: ninguém anda
@@ -224,9 +244,6 @@ func _process(dt: float) -> void:
 		_btn_agachar.ligado = jogador.agachado
 	if _btn_mira:
 		_btn_mira.ligado = jogador.mira_travada
-	_barras[0].valor = clampf(float(jogador.vida) / Jogador.VIDA_MAX * 100.0, 0.0, 100.0)
-	_barras[1].valor = jogador.fome
-	_barras[2].valor = jogador.sede
 	_caiu.visible = jogador.vida <= 0
 	if _caiu.visible:
 		if jogador.resgate:
@@ -484,6 +501,15 @@ func _monta_aviso() -> void:
 	_faixa_texto = UiTema.titulo("", 28)
 	_faixa_texto.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_faixa.add_child(_faixa_texto)
+
+
+func _atualiza_barras() -> void:
+	_barras[0].valor = clampf(float(jogador.vida) / Jogador.VIDA_MAX * 100.0, 0.0, 100.0)
+	_barras[1].valor = jogador.fome
+	_barras[2].valor = jogador.sede
+	_barras[3].valor = jogador.infeccao
+	_barras[3].visible = jogador.infeccao > 0.0
+	_saldo.position.y = 116.0 if _barras[3].visible else 92.0
 
 
 func _monta_espera() -> void:
@@ -761,6 +787,9 @@ func _acertou(forte: bool) -> void:
 
 
 func _pegou(tipo: String, qtd: int) -> void:
+	if tipo == "antibiotico" and jogador and not jogador.infectado:
+		aviso("Antibiótico tomado: a infecção parou", Color(0.45, 0.75, 0.4))
+		return
 	if tipo == "aprendeu":
 		aviso("Receita aprendida", Color(0.35, 0.6, 0.9))
 		return
@@ -986,35 +1015,43 @@ class _Marcas:
 class _Barra:
 	extends Control
 
-	const CORES: Array[Color] = [Color(0.82, 0.84, 0.8), Color(0.85, 0.6, 0.3), Color(0.4, 0.62, 0.85)]
-	## 0 vida, 1 fome, 2 sede
+	const CORES: Array[Color] = [Color(0.82, 0.84, 0.8), Color(0.85, 0.6, 0.3), Color(0.4, 0.62, 0.85), Color(0.55, 0.75, 0.25)]
+	## 0 vida, 1 fome, 2 sede, 3 infecção (pisca quando está ALTA)
 	var tipo: int = 0
 	var valor: float = 100.0:
 		set(v):
-			if absf(v - valor) > 0.2 or (v < 20.0) != (valor < 20.0):
+			if absf(v - valor) > 0.2 or int(v) != int(valor) or _perigo(v) != _perigo(valor):
 				queue_redraw()
 			valor = v
 
+	func _perigo(v: float) -> bool:
+		return v > 70.0 if tipo == 3 else v < 20.0
+
 	func _process(_dt: float) -> void:
-		if valor < 20.0:
+		if _perigo(valor):
 			queue_redraw()  # piscando
 
 	func _draw() -> void:
 		var h: float = size.y
 		var x0: float = h + 8.0
-		var w: float = size.x - x0
+		var w: float = size.x - x0 - 46.0  # o resto é a porcentagem
 		var y: float = h * 0.5 - 3.0
 		draw_rect(Rect2(x0, y, w, 6), Color(0, 0, 0, 0.45))
 		var cor: Color = CORES[tipo]
-		if valor < 20.0:
+		draw_string(UiTema.tema().default_font, Vector2(x0 + w + 8.0, h - 1.0), "%d%%" % roundi(valor), HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(cor, 0.9))
+		if _perigo(valor):
 			cor = Color(0.85, 0.2, 0.15)
 			cor.a = 0.55 + 0.45 * absf(sin(Time.get_ticks_msec() * 0.006))
 		draw_rect(Rect2(x0, y, w * clampf(valor / 100.0, 0.0, 1.0), 6), cor)
 		_icone(Vector2(h * 0.5, h * 0.5), h * 0.45, Color(cor, 0.95))
 
-	# cruz, garfo e gota em traços simples (sem imagem)
+	# cruz, garfo, gota e risco biológico (três círculos) em traços simples (sem imagem)
 	func _icone(c: Vector2, r: float, b: Color) -> void:
 		match tipo:
+			3:
+				for k in 3:
+					draw_arc(c + Vector2(0, -r * 0.45).rotated(TAU * k / 3.0), r * 0.5, 0, TAU, 12, b, 1.6)
+				draw_circle(c, r * 0.2, b)
 			0:
 				draw_rect(Rect2(c.x - r * 0.3, c.y - r, r * 0.6, r * 2), b)
 				draw_rect(Rect2(c.x - r, c.y - r * 0.3, r * 2, r * 0.6), b)
@@ -1111,3 +1148,50 @@ class _Icone:
 			"pausa":
 				draw_rect(Rect2(c.x - r * 0.7, c.y - r * 0.8, r * 0.5, r * 1.6), b)
 				draw_rect(Rect2(c.x + r * 0.2, c.y - r * 0.8, r * 0.5, r * 1.6), b)
+
+
+# briga com o zumbi no pescoço: tela avermelhada pulsando, "SE SOLTA!", barra com a faixa verde e o marcador indo e
+# voltando, bolinhas dos acertos e o botão EMPURRAR (PC: espaço, E ou clique) — toque quando o marcador estiver no verde
+class _Qte:
+	extends Control
+
+	var jogador: Jogador
+	var botao: Button
+
+	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		botao = UiTema.botao("EMPURRAR!", true)
+		botao.theme = UiTema.tema()
+		botao.add_theme_font_size_override("font_size", 34)
+		botao.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+		botao.custom_minimum_size = Vector2(380, 110)
+		botao.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		botao.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		botao.position.y -= 60
+		add_child(botao)
+
+	func _draw() -> void:
+		if jogador == null:
+			return
+		var t: float = Time.get_ticks_msec() * 0.001
+		var pulso: float = 0.25 + 0.12 * sin(t * 9.0)
+		var w: float = size.x
+		var h: float = size.y
+		for k in 6:  # bordas vermelhas (mais forte na beirada)
+			var a: float = pulso * (1.0 - k / 6.0)
+			var m: float = 26.0 * k
+			draw_rect(Rect2(m, m, w - 2 * m, h - 2 * m), Color(0.55, 0.0, 0.0, a * 0.5), false, 26.0)
+		var fonte: Font = UiTema.fonte_titulo()
+		draw_string(fonte, Vector2(0, h * 0.24), "SE SOLTA!", HORIZONTAL_ALIGNMENT_CENTER, w, 64, Color(1, 0.85, 0.8))
+		var bw: float = minf(620.0, w * 0.6)
+		var bx: float = (w - bw) * 0.5
+		var by: float = h * 0.36
+		draw_rect(Rect2(bx - 4, by - 4, bw + 8, 36), Color(0, 0, 0, 0.7))
+		draw_rect(Rect2(bx + bw * jogador.qte_faixa.x, by, bw * jogador.qte_faixa.y, 28), Color(0.35, 0.8, 0.3, 0.9))
+		var mx: float = bx + bw * jogador.qte_pos
+		draw_rect(Rect2(mx - 4, by - 10, 8, 48), Color.WHITE)
+		for k in Jogador.ACERTOS_SOLTAR:
+			var c := Vector2(w * 0.5 + (k - 1) * 40.0, by + 62.0)
+			draw_circle(c, 11.0, Color(0.35, 0.8, 0.3) if k < jogador.qte_acertos else Color(1, 1, 1, 0.25))
+		var resta: float = clampf(jogador.mordida_t / Zumbi.MORDIDA_T, 0.0, 1.0)
+		draw_rect(Rect2(bx, by + 86, bw * resta, 6), Color(0.85, 0.2, 0.15))

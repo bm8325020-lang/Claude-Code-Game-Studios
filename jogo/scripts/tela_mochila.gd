@@ -150,7 +150,7 @@ func _atualiza() -> void:
 	_qtd.text = "X%d" % e.qtd if e else ""
 	_icone.texture = Icones.de(e.tipo) if e else null
 	_texto.text = String(Mochila.TEXTOS.get(e.tipo, "")) if e else "Toque num item para ver. Com um item escolhido, toque em outro espaço para mover."
-	_usar.disabled = e == null or not (Armas.e_branca(e.tipo) or Jogador.e_fogo(e.tipo) or e.tipo in ["comida", "agua"] or e.tipo.begins_with("receita_"))
+	_usar.disabled = e == null or not (Armas.e_branca(e.tipo) or Jogador.e_fogo(e.tipo) or e.tipo in ["comida", "agua", "antibiotico"] or e.tipo.begins_with("receita_"))
 	_largar.disabled = e == null or e.tipo in Mochila.PRESOS
 	_dividir.disabled = e == null or int(e.qtd) < 2
 

@@ -111,6 +111,12 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   `sala_sobrev` {codigo, nome, max, n}, `esperando`/`muda_espera` (zumbis e relógio parados até encher ou COMEÇAR),
   `comecar_sala_sobrev`. controles: tela de espera (`_espera`). menu: página "sobrev" (SOBREVIVÊNCIA); o mundo de
   40 virou MUNDO ABERTO. Teste: test_sala_sobrev (3 processos: relay `-- porta=7899`, host, cliente).
+- Infecção e mordida (30/10): `Jogador.infeccao`/`infectado`/`infecta(mais)`, CHANCE_INFECTAR por golpe de zumbi,
+  INFECCAO_TEMPO até 100 (mata), `toma_antibiotico` (item "antibiotico", loot raro, loja 400). Mordida no pescoço
+  (policial, `Zumbi.chance_mordida`, MORDIDA_T/DANO/ESPERA): `Zumbi._segura_mordida/_resolve_mordida/resultado_mordida`,
+  `Jogador.comeca_mordida/_passa_mordida` (marcador `qte_pos`, faixa `qte_faixa`, ACERTOS_SOLTAR, entrada "soltar"),
+  `mordido`; câmera `foco`; HUD `_Qte` (EMPURRAR!; PC espaço/E/clique) e barras com %. Céu: shader CEU (sol abafado,
+  colunas de fumaça), cores em Ciclo. Teste: test_mordida (8).
 - `config.gd` (Config) — `Config.v[...]` salvo em user://config.cfg, `muda()`, `aplica()`, `sensibilidade(arma, mirando)`,
   `cor_mira()`, `qualidade()` (QUALIDADE: Batata/Média/Alta/Ultra -> sombra, resolução, MSAA, distância de visão,
   detalhe). `tela_config.gd` (TelaConfig) — a tela (menu e pausa). Teste: tests/test_config.gd (10).

@@ -17,8 +17,10 @@ var sol: DirectionalLight3D
 var ambiente: Environment
 
 ## [dia, noite] do céu: topo e horizonte
-const CEU_TOPO: Array[Color] = [Color(0.38, 0.44, 0.5), Color(0.02, 0.03, 0.06)]
-const CEU_HORIZONTE: Array[Color] = [Color(0.7, 0.67, 0.6), Color(0.07, 0.09, 0.14)]
+## Fim do mundo: de dia nuvem cinza-marrom e poeira alaranjada no horizonte; de noite quase preto com o horizonte
+## avermelhado dos incêndios.
+const CEU_TOPO: Array[Color] = [Color(0.27, 0.26, 0.26), Color(0.02, 0.02, 0.03)]
+const CEU_HORIZONTE: Array[Color] = [Color(0.62, 0.47, 0.34), Color(0.1, 0.05, 0.04)]
 
 
 func _ready() -> void:
@@ -38,8 +40,8 @@ func _process(dt: float) -> void:
 	tempo = fmod(tempo + dt, DIA + NOITE)
 	var n: float = noite()
 	if sol:
-		sol.light_energy = lerpf(1.2, 0.04, n)
-		sol.light_color = Color(1, 0.96, 0.9).lerp(Color(0.55, 0.65, 1.0), n)
+		sol.light_energy = lerpf(0.95, 0.04, n)
+		sol.light_color = Color(1, 0.8, 0.6).lerp(Color(0.55, 0.6, 0.85), n)  # sol abafado pela fumaça
 	if ambiente:
 		var ceu: Color = CEU_HORIZONTE[0].lerp(CEU_HORIZONTE[1], n)
 		ambiente.background_color = ceu
@@ -48,9 +50,9 @@ func _process(dt: float) -> void:
 		if mat:
 			mat.set_shader_parameter("topo", CEU_TOPO[0].lerp(CEU_TOPO[1], n))
 			mat.set_shader_parameter("horizonte", ceu)
-		ambiente.ambient_light_color = Color(0.7, 0.72, 0.75).lerp(Color(0.35, 0.42, 0.6), n)
+		ambiente.ambient_light_color = Color(0.72, 0.66, 0.6).lerp(Color(0.35, 0.33, 0.4), n)
 		ambiente.ambient_light_energy = lerpf(0.6, 0.12, n)
-		ambiente.fog_density = lerpf(0.008, 0.035, n)
+		ambiente.fog_density = lerpf(0.012, 0.035, n)
 
 
 ## 0 = dia claro, 1 = noite fechada (sobe no anoitecer e desce no amanhecer).

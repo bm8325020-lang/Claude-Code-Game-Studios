@@ -29,6 +29,8 @@ var _y_suave: float = 0.0
 var _tremor: float = 0.0
 var _recuo: float = 0.0  # coice do tiro (radianos para cima), volta sozinho
 var _yaw_alvo: float = 0.0
+## Zumbi mordendo: a câmera trava na cara dele e fecha o quadro (cena de briga); null = olhar livre.
+var foco: Node3D
 var _pitch_alvo: float = 0.0
 var _passo: float = 0.0
 
@@ -59,6 +61,11 @@ func _process(dt: float) -> void:
 	var y: float = -olhar.y if Config.v.inverter_y else olhar.y
 	_yaw_alvo -= deg_to_rad(olhar.x * sens)
 	_pitch_alvo = clampf(_pitch_alvo + deg_to_rad(y * sens), deg_to_rad(PITCH_MIN), deg_to_rad(PITCH_MAX))
+	if foco and is_instance_valid(foco):
+		var d: Vector3 = foco.global_position + Vector3(0, 1.55, 0) - global_position
+		_yaw_alvo = atan2(-d.x, -d.z)
+		_pitch_alvo = atan2(d.y, Vector2(d.x, d.z).length())
+		_tremor = maxf(_tremor, 0.12)
 	var k: float = 1.0 - exp(-SUAVE_OLHAR * dt)
 	yaw = lerp_angle(yaw, _yaw_alvo, k)
 	pitch = lerpf(pitch, _pitch_alvo, k)
@@ -74,6 +81,8 @@ func _process(dt: float) -> void:
 	rotation = Vector3(-(pitch - _recuo), yaw, 0)
 	var base: float = float(Config.v.fov)
 	var fov_alvo: float = base * (FOV_MIRA if alvo.mira_travada else (FOV_CORRENDO if alvo.correndo else FOV)) / FOV
+	if foco:
+		fov_alvo = base * 0.72
 	cam.fov = lerpf(cam.fov, fov_alvo, 1.0 - exp(-10.0 * dt))
 	_tremor = maxf(0.0, _tremor - dt * 1.6)
 	cam.h_offset = randf_range(-1.0, 1.0) * _tremor * 0.12 + sin(_passo * 0.5) * BALANCO * 0.6 * forca

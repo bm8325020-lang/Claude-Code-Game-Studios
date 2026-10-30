@@ -49,6 +49,8 @@ func nome() -> String:
 			return "munição (%d)" % quantidade
 		"comida":
 			return "lata de comida"
+		"antibiotico":
+			return "antibiótico" + (" (%d)" % quantidade if quantidade > 1 else "")
 		"agua":
 			return "garrafa de água"
 		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador", "receita_pistola", "smg", "receita_smg":
@@ -137,8 +139,30 @@ func _monta_modelo() -> void:
 		_modelo("res://assets/sketchfab/lata_comida.glb", 0.12, Vector3.ZERO, "alta")  # o arquivo tem 4 latas
 	elif tipo == "agua":
 		_modelo("res://assets/sketchfab/garrafa_agua.glb", 0.24, Vector3(0, 0, 90))  # deitada
+	elif tipo == "antibiotico":
+		_monta_remedio()
 	else:
 		_modelo("res://assets/sketchfab/lanterna.glb", 0.2, Vector3.ZERO)
+
+
+# frasco de remédio laranja meio transparente com tampa branca e rótulo
+func _monta_remedio() -> void:
+	var frasco := StandardMaterial3D.new()
+	frasco.albedo_color = Color(0.85, 0.45, 0.1, 0.8)
+	frasco.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	frasco.roughness = 0.25
+	var branco := StandardMaterial3D.new()
+	branco.albedo_color = Color(0.93, 0.93, 0.9)
+	for parte: Array in [[0.03, 0.09, 0.045, frasco], [0.032, 0.025, 0.1, branco], [0.0305, 0.04, 0.04, branco]]:
+		var mi := MeshInstance3D.new()
+		var c := CylinderMesh.new()
+		c.top_radius = parte[0]
+		c.bottom_radius = parte[0]
+		c.height = parte[1]
+		mi.mesh = c
+		mi.material_override = parte[3]
+		mi.position.y = parte[2]
+		add_child(mi)
 
 
 ## Põe um modelo do Sketchfab com o lado maior medindo `tam` m, apoiado no chão e centrado.

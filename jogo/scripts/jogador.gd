@@ -117,6 +117,14 @@ const INTERVALO_FOME: float = 3.0
 const COMIDA_MAX: int = 5
 const ENCHE: float = 45.0           # quanto uma lata/garrafa enche
 var fome: float = 100.0
+## Infecção (0–100): cada golpe de zumbi tem CHANCE_INFECTAR; a mordida no pescoço infecta sempre. Infectado, sobe
+## até 100 em INFECCAO_TEMPO s e mata; o antibiótico tira CURA_ANTIBIOTICO e para de subir.
+const CHANCE_INFECTAR: float = 0.12
+const INFECCAO_TEMPO: float = 720.0
+const CURA_ANTIBIOTICO: int = 60
+var infeccao: float = 0.0
+var infectado: bool = false
+signal infectou
 var sede: float = 100.0
 var comida: int:
 	get:
@@ -330,6 +338,15 @@ func _physics_process(dt: float) -> void:
 	if deitado:
 		_cama(dt)
 		_passa_fome(dt)
+		pos_rede = global_position
+		clipe_rede = _clipe
+		return
+	if mordida_t > 0.0 and mordida_zumbi:  # zumbi no pescoço: não anda, só briga para se soltar
+		_passa_mordida(dt)
+		_passa_fome(dt)
+		if not is_on_floor():
+			velocity.y -= GRAVIDADE * dt
+		move_and_slide()
 		pos_rede = global_position
 		clipe_rede = _clipe
 		return
@@ -770,6 +787,8 @@ func usar_espaco(i: int) -> void:
 			entrada["comer"] = true
 		"agua":
 			entrada["beber"] = true
+		"antibiotico":
+			toma_antibiotico()
 
 
 func _larga_no_chao(tipo: String, qtd: int) -> void:
@@ -796,6 +815,115 @@ signal item_pego(tipo: String, qtd: int)
 
 ## Dano de zumbi (ou, depois, de outro jogador). Quem bate pode estar em outro aparelho: o dano vai para o dono.
 ## Agarrado (soco do zumbi policial): anda bem mais devagar por `t` s. Quem manda no movimento é o dono do jogador.
+## Mordida no pescoço (Zumbi._segura_mordida): parado, câmera presa no zumbi; ACERTOS_SOLTAR toques com o marcador
+## na faixa certa soltam. `qte_pos` 0..1 vai e volta; `qte_faixa` = [início, tamanho].
+const ACERTOS_SOLTAR: int = 3
+const MORDIDA_INFECCAO: float = 25.0
+var mordida_t: float = 0.0
+var mordida_zumbi: Node3D
+var qte_pos: float = 0.0
+var qte_faixa: Vector2 = Vector2(0.4, 0.2)
+var qte_acertos: int = 0
+var _qte_fase: float = 0.0
+signal mordida_fim(escapou: bool)
+
+
+## Servidor: o zumbi agarrou para morder (avisa o dono do jogador).
+func comeca_mordida(z: Node3D) -> void:
+	mordida_t = 0.1  # o servidor já sabe (não deixa outro zumbi começar junto)
+	if is_multiplayer_authority():
+		_inicia_mordida(z)
+	else:
+		_rede_mordida.rpc_id(get_multiplayer_authority(), get_tree().get_first_node_in_group("principal").get_path_to(z))
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rede_mordida(caminho: NodePath) -> void:
+	if multiplayer.get_remote_sender_id() == 1:
+		var z := get_tree().get_first_node_in_group("principal").get_node_or_null(caminho) as Node3D
+		if z:
+			_inicia_mordida(z)
+
+
+func _inicia_mordida(z: Node3D) -> void:
+	mordida_zumbi = z
+	mordida_t = Zumbi.MORDIDA_T - 0.3  # um pouco antes do servidor: o resultado chega a tempo
+	qte_acertos = 0
+	_qte_fase = randf() * TAU
+	_nova_faixa()
+	mira_travada = false
+	if camera:
+		camera.foco = z
+		camera.tremer(0.5)
+	_toca_som("impactPunch_heavy_000", 0.0)
+
+
+func _nova_faixa() -> void:
+	var tam: float = 0.22 - qte_acertos * 0.04  # cada acerto a faixa fica menor
+	qte_faixa = Vector2(randf_range(0.05, 0.95 - tam), tam)
+
+
+# roda no dono: marcador indo e voltando cada vez mais rápido; toque (entrada "soltar") dentro da faixa conta
+func _passa_mordida(dt: float) -> void:
+	mordida_t -= dt
+	_qte_fase += dt * (3.2 + qte_acertos * 1.1)
+	qte_pos = 0.5 + 0.5 * sin(_qte_fase)
+	velocity.x = 0.0
+	velocity.z = 0.0
+	if entrada.get("soltar", false):
+		entrada["soltar"] = false
+		if qte_pos >= qte_faixa.x and qte_pos <= qte_faixa.x + qte_faixa.y:
+			qte_acertos += 1
+			if camera:
+				camera.tremer(0.35)
+			_toca_som("impactPunch_heavy_001", -4.0)
+			if qte_acertos >= ACERTOS_SOLTAR:
+				_fim_mordida(true)
+				return
+			_nova_faixa()
+		else:
+			mordida_t -= 0.5  # errou o tempo: o zumbi chega mais perto do pescoço
+	if mordida_t <= 0.0:
+		_fim_mordida(false)
+
+
+func _fim_mordida(escapou: bool) -> void:
+	mordida_t = 0.0
+	if camera:
+		camera.foco = null
+	if mordida_zumbi and is_instance_valid(mordida_zumbi):
+		mordida_zumbi.resultado_mordida.rpc_id(1, escapou)
+		if escapou:
+			var d: Vector3 = global_position - mordida_zumbi.global_position
+			velocity += Vector3(d.x, 0, d.z).normalized() * 4.0  # empurrou e se afastou
+	mordida_zumbi = null
+	mordida_fim.emit(escapou)
+
+
+## Servidor: o zumbi mordeu (dano e infecção certa, no dono).
+func mordido(dano: int) -> void:
+	mordida_t = 0.0
+	if is_multiplayer_authority():
+		_recebe_mordida(dano)
+	else:
+		_rede_mordido.rpc_id(get_multiplayer_authority(), dano)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rede_mordido(dano: int) -> void:
+	if multiplayer.get_remote_sender_id() == 1:
+		_recebe_mordida(dano)
+
+
+func _recebe_mordida(dano: int) -> void:
+	if mordida_t > 0.0:
+		_fim_mordida(false)
+	infecta(MORDIDA_INFECCAO)
+	_recebe_dano(dano, Vector3.ZERO)
+	if camera:
+		camera.tremer(1.0)
+
+
 var agarrado_t: float = 0.0
 func agarrar(t: float) -> void:
 	if is_multiplayer_authority():
@@ -829,6 +957,23 @@ func renasce_pvp(pos: Vector3) -> void:
 	pos_rede = global_position
 
 
+## Pegou a infecção (golpe de zumbi com azar, ou mordida: `mais` já soma na barra).
+func infecta(mais: float) -> void:
+	if not infectado:
+		infectado = true
+		infectou.emit()
+	infeccao = minf(100.0, infeccao + mais)
+
+
+func toma_antibiotico() -> void:
+	if infeccao <= 0.0 or not mochila.tem("antibiotico"):
+		return
+	mochila.tirar("antibiotico", 1)
+	infeccao = maxf(0.0, infeccao - CURA_ANTIBIOTICO)
+	infectado = false  # parou de subir; outro golpe com azar infecta de novo
+	item_pego.emit("antibiotico", 1)
+
+
 func levar_dano(dano: int, dir: Vector3) -> void:
 	dano_srv_t = Time.get_ticks_msec() / 1000.0
 	if is_multiplayer_authority():
@@ -847,6 +992,8 @@ func _recebe_dano(dano: int, dir: Vector3) -> void:
 	if vida <= 0:
 		return
 	vida = maxi(0, vida - dano)
+	if randf() < CHANCE_INFECTAR:
+		infecta(0.0)
 	velocity += Vector3(dir.x, 0, dir.z) * 3.0  # empurrão
 	_toca_som("impactPunch_heavy_00%d" % (randi() % 2), -2.0)
 	if camera:
@@ -857,6 +1004,12 @@ func _recebe_dano(dano: int, dir: Vector3) -> void:
 
 
 func _passa_fome(dt: float) -> void:
+	if infectado and vida > 0:
+		infeccao = minf(100.0, infeccao + 100.0 / INFECCAO_TEMPO * dt)
+		if infeccao >= 100.0:
+			vida = 0  # a infecção venceu
+			_cai()
+			return
 	fome = maxf(0.0, fome - 100.0 / FOME_TEMPO * dt)
 	sede = maxf(0.0, sede - 100.0 / SEDE_TEMPO * dt)
 	if fome > 0.0 and sede > 0.0:
@@ -1111,6 +1264,8 @@ func _caido(dt: float) -> void:
 		global_position = inicio
 		velocity = Vector3.ZERO
 		vida = VIDA_MAX
+		infeccao = 0.0
+		infectado = false
 		fome = 100.0
 		sede = 100.0
 		reset_physics_interpolation()

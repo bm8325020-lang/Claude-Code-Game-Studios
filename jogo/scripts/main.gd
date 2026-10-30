@@ -754,24 +754,42 @@ func _jogador_entrou(n: Node) -> void:
 
 # céu: degradê do horizonte ao topo e nuvens de ruído que andam devagar (cobrindo mais perto do horizonte)
 const CEU: String = """shader_type sky;
+// céu de fim do mundo: nuvem grossa e baixa, poeira alaranjada no horizonte, sol abafado atrás da fumaça e colunas de
+// fumaça de incêndios longe (três, em direções fixas). Ciclo troca as cores do dia/noite.
 uniform vec3 topo;
 uniform vec3 horizonte;
-uniform float cobertura = 0.55;
+uniform vec3 fogo = vec3(0.9, 0.35, 0.1);
+uniform float cobertura = 0.72;
 float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float r(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
 	return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
-float fbm(vec2 p) { float v = 0.0; float a = 0.5; for (int k = 0; k < 4; k++) { v += r(p) * a; p *= 2.03; a *= 0.5; } return v; }
+float fbm(vec2 p) { float v = 0.0; float a = 0.5; for (int k = 0; k < 5; k++) { v += r(p) * a; p *= 2.03; a *= 0.5; } return v; }
 void sky() {
 	float y = EYEDIR.y;
-	vec3 c = mix(horizonte, topo, clamp(pow(max(y, 0.0), 0.6), 0.0, 1.0));
+	vec3 c = mix(horizonte, topo, clamp(pow(max(y, 0.0), 0.5), 0.0, 1.0));
 	if (y < 0.0) {
-		c = mix(horizonte, horizonte * 0.55, clamp(-y * 5.0, 0.0, 1.0));
+		c = mix(horizonte, horizonte * 0.5, clamp(-y * 5.0, 0.0, 1.0));
 	} else {
-		vec2 p = EYEDIR.xz / (y + 0.15) * 1.4 + vec2(TIME * 0.006, TIME * 0.003);
+		// sol abafado: só um brilho largo e fraco, cor de ferrugem
+		if (LIGHT0_ENABLED) {
+			float s = max(dot(EYEDIR, LIGHT0_DIRECTION), 0.0);
+			c += LIGHT0_COLOR * (pow(s, 40.0) * 0.55 + pow(s, 6.0) * 0.18);
+		}
+		vec2 p = EYEDIR.xz / (y + 0.12) * 1.2 + vec2(TIME * 0.01, TIME * 0.004);
 		float n = fbm(p);
-		float nuvem = smoothstep(1.0 - cobertura, 1.0 - cobertura + 0.35, n);
-		vec3 cn = mix(horizonte * 1.08, topo * 0.75 + vec3(0.06), smoothstep(0.4, 0.9, n));
-		c = mix(c, cn, nuvem * smoothstep(0.0, 0.12, y) * 0.9);
+		float nuvem = smoothstep(1.0 - cobertura, 1.0 - cobertura + 0.45, n);
+		vec3 cn = mix(horizonte * 0.9, topo * 0.6, smoothstep(0.35, 0.95, n));
+		c = mix(c, cn, nuvem * smoothstep(0.0, 0.1, y) * 0.95);
+		// colunas de fumaça subindo no horizonte, tortas pelo vento, com o pé avermelhado do fogo
+		float az = atan(EYEDIR.x, EYEDIR.z);
+		for (int k = 0; k < 3; k++) {
+			float centro = -2.2 + float(k) * 2.1 + y * (0.9 + float(k) * 0.3);
+			float largura = 0.05 + y * 0.35;
+			float d = abs(az - centro) / largura;
+			float massa = exp(-d * d) * smoothstep(0.55, 0.0, y) * (0.55 + 0.6 * fbm(vec2(az * 6.0, y * 9.0 - TIME * 0.08 * (1.0 + float(k)))));
+			c = mix(c, vec3(0.08, 0.075, 0.07), clamp(massa, 0.0, 0.85));
+			c += fogo * exp(-d * d * 2.0) * smoothstep(0.06, 0.0, y) * 0.35;
+		}
 	}
 	COLOR = c;
 }"""
@@ -806,11 +824,11 @@ func _luz() -> void:
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.tonemap_exposure = 0.9
 	env.adjustment_enabled = true
-	env.adjustment_saturation = 0.78  # cor lavada, fria
-	env.adjustment_contrast = 1.08
+	env.adjustment_saturation = 0.72  # cor lavada, suja
+	env.adjustment_contrast = 1.12
 	env.fog_enabled = true
 	env.fog_light_color = Ciclo.CEU_HORIZONTE[0]
-	env.fog_density = 0.008
+	env.fog_density = 0.012
 	env.fog_sky_affect = 0.35
 	amb.environment = env
 	add_child(amb)
