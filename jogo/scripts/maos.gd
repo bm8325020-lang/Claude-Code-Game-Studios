@@ -130,6 +130,8 @@ func _process(dt: float) -> void:
 	var baixa: float = (0.06 if alvo.correndo else 0.0) + (1.0 - _saca) * 0.35
 	if alvo._pegando > Jogador.PEGAR_DUR * 0.4:
 		baixa += 0.3  # pegando do chão: a arma sai da frente
+	if alvo._subindo >= 0.0:
+		baixa += 0.45  # escalando: as mãos estão na beirada
 	_parede = move_toward(_parede, _perto_parede(cam), dt * 5.0)
 	baixa += _parede * 0.22
 	position = position.lerp(Vector3(_balanco.x * 0.25, -_balanco.y * 0.25 - baixa, _parede * 0.18) + MIRA_PISTOLA * _mira, 1.0 - exp(-14.0 * dt))

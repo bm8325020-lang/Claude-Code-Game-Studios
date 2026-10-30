@@ -272,16 +272,21 @@ func _monta_modelo() -> void:
 	anim = AnimationPlayer.new()
 	anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL  # avançado em _process
 	modelo.add_child(anim)
-	anim.add_animation_library("", Anims.biblioteca())
+	anim.add_animation_library("", Anims.adaptada(Anims.biblioteca(), Anims.JOGADOR))
 	_toca("parado", 0.0)
 
 
 # facão provisório (espada curta do pacote de props) na mão direita
 func _monta_arma() -> void:
 	_esq = modelo.find_children("*", "Skeleton3D", true, false)[0]
-	var mao := BoneAttachment3D.new()
-	mao.bone_name = MAO
-	_esq.add_child(mao)
+	var osso := BoneAttachment3D.new()
+	osso.bone_name = MAO
+	_esq.add_child(osso)
+	# as posições das armas foram medidas na mão do X Bot: no personagem novo a mão tem outros eixos, então
+	# um nó de ajuste gira o espaço da mão dele para o do X Bot
+	var mao := Node3D.new()
+	mao.basis = Anims.ajuste_osso(_esq, MAO)
+	osso.add_child(mao)
 	_facao = Node3D.new()  # suporte da arma branca na mão (o modelo vem de Armas)
 	# a ponta (+Z do modelo pronto) aponta para a frente da mão (medido na pose parada do X Bot)
 	_facao.quaternion = Quaternion(Vector3.BACK, Vector3(0.975, 0.126, 0.185).normalized())
@@ -311,6 +316,9 @@ func _physics_process(dt: float) -> void:
 		return
 	if vida <= 0:
 		_caido(dt)
+		return
+	if _subindo >= 0.0:
+		_escala(dt)
 		return
 	var mov: Vector2 = entrada.get("move", Vector2.ZERO)
 	if mov.length() > 1.0:
@@ -436,6 +444,10 @@ func _physics_process(dt: float) -> void:
 		_pousando = 0.22
 	if is_on_floor():
 		_no_ar_desde = 0.0
+	elif _subindo < 0.0 and _beirada(mov):
+		_subindo = 0.0  # pulou e quase alcançou: agarra a beirada e sobe com os braços
+		_golpe = -1
+		mira_travada = false
 
 	# mirando ou com a pistola: o corpo olha para a frente da câmera; senão vira para onde está andando
 	if olha_camera():
@@ -900,6 +912,68 @@ var _copia_t: float = 0.0
 func _copia(tudo: Array) -> void:
 	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority() and tudo.size() <= Mochila.ESPACOS:
 		copia_mochila = tudo
+
+
+## Escalar (sugestão do dono): no ar, empurrando para a frente, com parede na frente e o alto dela entre
+## BEIRADA_MIN e BEIRADA_MAX acima dos pés e lugar em pé lá em cima → agarra e sobe em ESCALAR_T.
+const ESCALAR_T: float = 1.1
+const BEIRADA_MIN: float = 0.6
+const BEIRADA_MAX: float = 2.0
+var _subindo: float = -1.0
+var _sobe_de: Vector3
+var _sobe_ate: Vector3
+
+
+func _beirada(mov: Vector2) -> bool:
+	if mov.y < 0.3 or velocity.y > 2.5 or agachado:
+		return false
+	var fr: Vector3 = -camera.cam.global_basis.z if camera else modelo.global_basis.z
+	fr.y = 0.0
+	if fr.length() < 0.1:
+		return false
+	fr = fr.normalized()
+	var esp := get_world_3d().direct_space_state
+	var pe: Vector3 = global_position
+	var q := PhysicsRayQueryParameters3D.create(pe + Vector3(0, 0.9, 0), pe + Vector3(0, 0.9, 0) + fr * (RAIO + 0.45), 1)
+	q.exclude = [get_rid()]
+	var parede: Dictionary = esp.intersect_ray(q)
+	if parede.is_empty():
+		return false
+	var cima: Vector3 = parede.position + fr * 0.35
+	var q2 := PhysicsRayQueryParameters3D.create(Vector3(cima.x, pe.y + BEIRADA_MAX + 0.3, cima.z), Vector3(cima.x, pe.y + BEIRADA_MIN, cima.z), 1)
+	q2.exclude = [get_rid()]
+	var topo: Dictionary = esp.intersect_ray(q2)
+	if topo.is_empty() or (topo.normal as Vector3).y < 0.7:
+		return false
+	var h: float = (topo.position as Vector3).y - pe.y
+	if h < BEIRADA_MIN or h > BEIRADA_MAX:
+		return false
+	var q3 := PhysicsRayQueryParameters3D.create(topo.position + Vector3(0, 0.05, 0), topo.position + Vector3(0, ALTURA_EM_PE, 0), 1)
+	q3.exclude = [get_rid()]
+	if not esp.intersect_ray(q3).is_empty():
+		return false  # sem lugar para ficar em pé lá em cima
+	_sobe_de = pe
+	_sobe_ate = topo.position + Vector3(0, 0.03, 0) + fr * 0.15
+	return true
+
+
+# sobe primeiro (braços puxando) e só no fim vai para a frente, por cima da beirada
+func _escala(dt: float) -> void:
+	_subindo += dt
+	var t: float = clampf(_subindo / ESCALAR_T, 0.0, 1.0)
+	var sobe: float = smoothstep(0.0, 0.7, t)
+	var vai: float = smoothstep(0.55, 1.0, t)
+	global_position = Vector3(lerpf(_sobe_de.x, _sobe_ate.x, vai), lerpf(_sobe_de.y, _sobe_ate.y, sobe), lerpf(_sobe_de.z, _sobe_ate.z, vai))
+	velocity = Vector3.ZERO
+	if anim.has_animation("escalar"):
+		_toca("escalar", 0.1)
+		anim.speed_scale = anim.get_animation("escalar").length / ESCALAR_T
+	if t >= 1.0:
+		_subindo = -1.0
+		anim.speed_scale = 1.0
+	pos_rede = global_position
+	clipe_rede = _clipe
+	cima_rede = ""
 
 
 func _caido(dt: float) -> void:

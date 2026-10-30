@@ -48,12 +48,17 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `anims.gd` — `CLIPES` (jogador) e `CLIPES_ZUMBI`: nome lógico → [arquivo, ini, fim]; "kaykit:" (retarget),
   "proprio:" (golpes.gd). `VELOCIDADE*` p/ pés.
 - Personagens (Mixamo, mesmo esqueleto do X Bot, fora do git e do Drive: rebaixar pela API, type "Character",
-  `assets/mixamo/personagens/`): `Anims.boneco(nome)` (altura igualada ao X Bot), `Anims.JOGADOR` sobrevivente,
+  `assets/mixamo/personagens/`): `Anims.boneco(nome)` (altura igualada ao X Bot; escala *= p/ arquivos em cm),
+  `Anims.adaptada(lib, nome)` (animações do X Bot convertidas pro descanso do personagem + quadril na escala dele),
+  `Anims.ajuste_osso`, `Anims.JOGADOR` remy (humano; sobrevivente tinha cara de caveira),
   `Anims.ZUMBIS` (policial/mulher/soldado, escolhido pelo nome do nó), `Anims.CHEFE` parasita. Chefe: pancada no
   chão (`_pancada_no_chao`, PANCADA_RAIO/DANO/INTERVALO, rpc `_poeira`). Teste: tests/test_chefe.gd (7).
   Tipos (`Zumbi.TIPOS`, `aplica_tipo`, `tipo_fixo` p/ testes): corredora (rápida, frágil, `bote`), policial (médio,
   `agarrao` → `Jogador.agarrar`/`agarrado_t`), soldado (lento, duro, `blindado`); andar/correr próprios (Anims
   andar_rapido/correr_rapido/andar_lento/correr_lento). Teste: tests/test_tipos.gd (5).
+- Escalar: `Jogador._beirada/_escala` (ESCALAR_T, BEIRADA_MIN/MAX), clipe "escalar" (soltas/escalar.fbx, Mixamo
+  "Pulling Up To A Ledge", subida tirada do quadril em `Anims._tira_subida`). Teste: test_escalar (3).
+  Foto do jogador visto de fora: tools/foto_terceira.gd. Botões: tamanho muda na hora (`_refaz_toque`), TROCAR voltou.
 - `retarget.gd` — KayKit→X Bot. `golpes.gd` — golpes do facão feitos à mão (poses-chave).
 - `pistola.gd` — arma de fogo: `tipo` (FOGO: pistola/smg) define pente/dano/cadência/dispersão/coice/recarga/automática;
   `modo_auto`, tiro (máscara 1|8), `efeito`, `Pistola.sangue`, `BARULHO`. Jogador: `pistola`, `smg`, `fogo()`, `e_fogo(tipo)`,

@@ -73,7 +73,9 @@ var _convite_t: float = 0.0
 var _convite_texto: Label
 var _lista_grupo: VBoxContainer
 var _marcas: _Marcas
-var _estilos_toque: Array[StyleBoxFlat] = []  # fundo dos botões de toque (transparência das configurações)
+var _estilos_toque: Array[StyleBoxFlat] = []
+var _toque_nos: Array[Control] = []  # tudo que _monta_toque cria (refaz ao mudar o tamanho dos botões)
+var _tam_botoes: float = -1.0  # fundo dos botões de toque (transparência das configurações)
 
 
 func _ready() -> void:
@@ -196,6 +198,8 @@ func _process(dt: float) -> void:
 		var it: Variant = jogador.mochila.espacos[i]
 		_barra[i].destaque = it != null and it.tipo == jogador.arma
 		_barra[i].mostra(it, false)
+	if toque and float(Config.v.botoes_tamanho) != _tam_botoes:
+		_refaz_toque()  # tamanho mudou nas configurações: vale na hora
 	for est in _estilos_toque:
 		est.bg_color.a = float(Config.v.botoes_opacidade)
 	if _btn_agachar:
@@ -617,17 +621,29 @@ func _levou_dano(dano: int) -> void:
 
 func _em_botao(p: Vector2) -> bool:
 	for b: Control in [_btn_agachar, _btn_mira, _btn_atacar, _btn_recarregar, _btn_pegar, get_node_or_null("Pular") as Control,
-			get_node_or_null("Pausa") as Control, get_node_or_null("Mochila") as Control, _btn_modo] + _barra:
+			get_node_or_null("Pausa") as Control, get_node_or_null("Mochila") as Control, get_node_or_null("Trocar") as Control, _btn_modo] + _barra:
 		if b and b.is_visible_in_tree() and b.get_global_rect().grow(10).has_point(p):
 			return true
 	return false
 
 
+func _refaz_toque() -> void:
+	for n in _toque_nos:
+		if is_instance_valid(n):
+			n.queue_free()
+	_toque_nos.clear()
+	_estilos_toque.clear()
+	_monta_toque()
+	_pausa.move_to_front()  # a pausa (com as configurações abertas) continua por cima
+
+
 # botões de toque em arco em volta do de ataque, no canto de baixo à direita; só ícone, sem texto
 func _monta_toque() -> void:
+	_tam_botoes = float(Config.v.botoes_tamanho)
 	_base = _circulo(RAIO_STICK * 2.0, Color(1, 1, 1, 0.12))
 	_base.visible = false
 	add_child(_base)
+	_toque_nos.append(_base)
 	_pino = _circulo(80.0, Color(1, 1, 1, 0.35))
 	_base.add_child(_pino)
 	_pino.position = _base.size * 0.5 - _pino.size * 0.5
@@ -649,6 +665,9 @@ func _monta_toque() -> void:
 	_btn_modo.name = "Modo"
 	_btn_modo.button_down.connect(func() -> void: jogador.entrada["modo"] = true)
 	_btn_modo.visible = false
+	var trocar := _botao("trocar", Vector2(-128, -470), 72.0)  # troca entre a arma branca e a de fogo
+	trocar.name = "Trocar"
+	trocar.button_down.connect(func() -> void: jogador.entrada["trocar"] = true)
 	_btn_pegar = _botao("pegar", Vector2(-540, -170), 100.0)
 	_btn_pegar.button_down.connect(func() -> void: jogador.entrada["pegar"] = true)
 	_btn_pegar.visible = false
@@ -672,6 +691,7 @@ func _botao(icone: String, desloc: Vector2, tam: float = BOTAO) -> _Icone:
 	b.offset_right = desloc.x + tam
 	b.offset_bottom = desloc.y + tam
 	add_child(b)
+	_toque_nos.append(b)
 	return b
 
 
@@ -872,6 +892,11 @@ class _Icone:
 				draw_rect(Rect2(c.x - r, c.y - r * 0.6, r * 2, r * 1.7), b, false, g)
 				draw_arc(c + Vector2(0, -r * 0.6), r * 0.5, PI, TAU, 12, b, g)
 				draw_line(c + Vector2(-r, r * 0.1), c + Vector2(r, r * 0.1), b, g)
+			"trocar":  # duas setas em sentidos opostos
+				draw_line(c + Vector2(-r, -r * 0.4), c + Vector2(r, -r * 0.4), b, g)
+				draw_colored_polygon(PackedVector2Array([c + Vector2(r * 1.25, -r * 0.4), c + Vector2(r * 0.6, -r * 0.85), c + Vector2(r * 0.6, r * 0.05)]), b)
+				draw_line(c + Vector2(r, r * 0.45), c + Vector2(-r, r * 0.45), b, g)
+				draw_colored_polygon(PackedVector2Array([c + Vector2(-r * 1.25, r * 0.45), c + Vector2(-r * 0.6, 0.0), c + Vector2(-r * 0.6, r * 0.9)]), b)
 			"pausa":
 				draw_rect(Rect2(c.x - r * 0.7, c.y - r * 0.8, r * 0.5, r * 1.6), b)
 				draw_rect(Rect2(c.x + r * 0.2, c.y - r * 0.8, r * 0.5, r * 1.6), b)

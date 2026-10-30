@@ -11,10 +11,27 @@ const PASTA: String = "res://assets/mixamo/"
 const MODELO: String = "res://assets/mixamo/xbot.fbx"
 ## Personagens com roupa e textura (Mixamo, mesmo esqueleto do X Bot): o jogador é fixo por enquanto (editor de
 ## personagem fica para depois); os zumbis variam entre os três; o chefe é o parasita.
-const JOGADOR: String = "sobrevivente"
+const JOGADOR: String = "remy"
 const ZUMBIS: Array[String] = ["zumbi_policial", "zumbi_mulher", "zumbi_soldado"]
 const CHEFE: String = "chefe_parasita"
 const ALTURA_XBOT: float = 1.81  # as animações foram feitas para essa altura (posição do quadril)
+
+
+static var _rest_xbot: Dictionary = {}
+
+
+## Giro que leva o espaço do osso `osso` do esqueleto `esq` para o mesmo osso do X Bot (na pose de descanso):
+## o que foi medido na mão do X Bot fica certo em qualquer personagem do Mixamo.
+static func ajuste_osso(esq: Skeleton3D, osso: String) -> Basis:
+	if not _rest_xbot.has(osso):
+		var x: Node = (load(MODELO) as PackedScene).instantiate()
+		var ex: Skeleton3D = x.find_children("*", "Skeleton3D", true, false)[0]
+		_rest_xbot[osso] = ex.get_bone_global_rest(ex.find_bone(osso)).basis.orthonormalized()
+		x.free()
+	var i: int = esq.find_bone(osso)
+	if i < 0:
+		return Basis.IDENTITY
+	return esq.get_bone_global_rest(i).basis.orthonormalized().inverse() * (_rest_xbot[osso] as Basis)
 
 
 ## Instancia um personagem de assets/mixamo/personagens/ com a altura do X Bot (assim o quadril das
@@ -28,7 +45,7 @@ static func boneco(nome: String) -> Node3D:
 	for mi: MeshInstance3D in r.find_children("*", "MeshInstance3D", true, false):
 		h = maxf(h, (mi.transform * mi.get_aabb()).end.y)
 	var esq: Skeleton3D = r.find_children("*", "Skeleton3D", true, false)[0]
-	esq.scale = Vector3.ONE * (ALTURA_XBOT / h if h > 0.1 else 1.0)
+	esq.scale *= ALTURA_XBOT / h if h > 0.1 else 1.0  # *= : alguns arquivos já vêm com escala (centímetros)
 	return r
 
 ## nome lógico -> [arquivo, início (s), fim (s, -1 = até o fim)]. Os golpes e a pistola são cortados no
@@ -45,6 +62,7 @@ const CLIPES: Dictionary = {
 	"morte": ["kaykit:Death_A", 0.0, -1.0], "pegar": ["soltas/pegar_chao", 0.7, 2.8],
 	"golpe1": ["proprio:golpe1", 0.0, -1.0], "golpe2": ["proprio:golpe2", 0.0, -1.0],
 	"golpe3": ["proprio:golpe3", 0.0, -1.0],
+	"escalar": ["soltas/escalar", 0.0, -1.0],  # agarra a beirada e sobe (a subida fica no corpo, não no clipe)
 	"pistola_mira": ["soltas/shooting", 0.0, 0.1], "pistola_tiro": ["soltas/shooting", 0.13, 0.6],
 	"pistola_recarga": ["soltas/reloading", 0.0, 2.75],
 	"agachado_p": ["pistola/pistol_kneeling_idle", 0.0, -1.0],
@@ -53,7 +71,7 @@ const CLIPES: Dictionary = {
 	"lado_esq_p": ["pistola/pistol_strafe", 0.0, -1.0], "lado_dir_p": ["pistola/pistol_strafe_2", 0.0, -1.0],
 	"tras_p": ["pistola/pistol_run_backward", 0.0, -1.0],
 }
-const NAO_REPETE: Array[String] = ["morte", "pegar", "pulo_inicio", "pouso", "golpe1", "golpe2", "golpe3", "pistola_tiro", "pistola_recarga"]
+const NAO_REPETE: Array[String] = ["escalar", "morte", "pegar", "pulo_inicio", "pouso", "golpe1", "golpe2", "golpe3", "pistola_tiro", "pistola_recarga"]
 const QUADRIL: String = "Skeleton3D:mixamorig_Hips"
 ## Clipes do KayKit cujos braços abrem demais (em T no começo do pulo, de avião agachado): os braços são
 ## puxados para os do "parado" nesse tanto (0 = original, 1 = braços do parado). Pernas e tronco não mudam.
@@ -96,6 +114,48 @@ static func biblioteca() -> AnimationLibrary:
 
 
 ## Biblioteca do zumbi (mesmo formato de trilhas).
+static var _adaptadas: Dictionary = {}
+
+
+## As animações (feitas no X Bot) adaptadas a um personagem: cada osso gira o mesmo tanto a partir da pose de
+## descanso DELE (q = descanso_dele * descanso_xbot⁻¹ * q_xbot). Sem isso, ossos com descanso diferente (pescoço,
+## ombros) ficam tortos — a cabeça olhava para o céu. Uma cópia por personagem, feita uma vez.
+static func adaptada(base: AnimationLibrary, nome: String) -> AnimationLibrary:
+	var chave: String = nome + ("#z" if base == _lib_zumbi else "")
+	if _adaptadas.has(chave):
+		return _adaptadas[chave]
+	var x: Node = (load(MODELO) as PackedScene).instantiate()
+	var ex: Skeleton3D = x.find_children("*", "Skeleton3D", true, false)[0]
+	var b: Node = boneco(nome)
+	var eb: Skeleton3D = b.find_children("*", "Skeleton3D", true, false)[0]
+	var troca: Dictionary = {}  # caminho do osso -> giro de correção
+	for i in ex.get_bone_count():
+		var j: int = eb.find_bone(ex.get_bone_name(i))
+		if j >= 0:
+			var c: Quaternion = eb.get_bone_rest(j).basis.get_rotation_quaternion() * ex.get_bone_rest(i).basis.get_rotation_quaternion().inverse()
+			if c.angle_to(Quaternion.IDENTITY) > 0.02:
+				troca[NodePath("Skeleton3D:" + ex.get_bone_name(i))] = c
+	# o quadril é posição (não giro): na escala do esqueleto dele
+	var i_q: int = eb.find_bone("mixamorig_Hips")
+	var razao: float = eb.get_bone_rest(i_q).origin.length() / maxf(ex.get_bone_rest(ex.find_bone("mixamorig_Hips")).origin.length(), 0.001)
+	x.free()
+	b.free()
+	var lib := AnimationLibrary.new()
+	for n: StringName in base.get_animation_list():
+		var a: Animation = base.get_animation(n).duplicate(true)
+		for t in a.get_track_count():
+			if a.track_get_type(t) == Animation.TYPE_ROTATION_3D and troca.has(a.track_get_path(t)):
+				var c: Quaternion = troca[a.track_get_path(t)]
+				for k in a.track_get_key_count(t):
+					a.track_set_key_value(t, k, (c * (a.track_get_key_value(t, k) as Quaternion)).normalized())
+			elif a.track_get_type(t) == Animation.TYPE_POSITION_3D and absf(razao - 1.0) > 0.01:
+				for k in a.track_get_key_count(t):
+					a.track_set_key_value(t, k, (a.track_get_key_value(t, k) as Vector3) * razao)
+		lib.add_animation(n, a)
+	_adaptadas[chave] = lib
+	return lib
+
+
 static func biblioteca_zumbi() -> AnimationLibrary:
 	if _lib_zumbi == null:
 		_lib_zumbi = _monta(CLIPES_ZUMBI, NAO_REPETE_ZUMBI)
@@ -118,6 +178,8 @@ static func _monta(clipes: Dictionary, nao_repete: Array[String]) -> AnimationLi
 				cena.free()
 		var a: Animation = _corta(cache[c[0]], c[1], c[2])
 		_no_lugar(a)
+		if logico == "escalar":
+			_tira_subida(a)
 		if ACELERA.has(logico):
 			for t in a.get_track_count():
 				for k in a.track_get_key_count(t):
@@ -176,6 +238,21 @@ static func _amostra(a: Animation, t: int, tempo: float) -> Variant:
 
 
 # tira o deslocamento do quadril no chão (o clipe anda no lugar; quem move é o CharacterBody3D)
+# o quadril sobe ao longo do clipe (pendurado → em pé em cima): o corpo do jogador já sobe junto, então tira a
+# subida em linha reta (fica só o balanço do quadril), começando na altura em pé
+static func _tira_subida(a: Animation) -> void:
+	var tp: int = a.find_track(NodePath(QUADRIL), Animation.TYPE_POSITION_3D)
+	var n: int = a.track_get_key_count(tp) if tp >= 0 else 0
+	if n < 2:
+		return
+	var y0: float = (a.track_get_key_value(tp, 0) as Vector3).y
+	var y1: float = (a.track_get_key_value(tp, n - 1) as Vector3).y
+	for k in n:
+		var p: Vector3 = a.track_get_key_value(tp, k)
+		var t: float = a.track_get_key_time(tp, k) / a.length
+		a.track_set_key_value(tp, k, Vector3(p.x, p.y - (y1 - y0) * t + (y1 - y0), p.z))
+
+
 static func _no_lugar(a: Animation) -> void:
 	var tp: int = a.find_track(NodePath(QUADRIL), Animation.TYPE_POSITION_3D)
 	if tp >= 0 and a.track_get_key_count(tp) > 0:

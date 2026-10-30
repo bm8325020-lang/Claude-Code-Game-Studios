@@ -18,7 +18,7 @@ func _init() -> void:
 		b.global_position = Vector3(60 + (k - 2) * 1.6, 0, 60)
 		var ap := AnimationPlayer.new()
 		b.add_child(ap)
-		ap.add_animation_library("", Anims.biblioteca() if k == 0 else Anims.biblioteca_zumbi())
+		ap.add_animation_library("", Anims.adaptada(Anims.biblioteca() if k == 0 else Anims.biblioteca_zumbi(), nomes[k]))
 		ap.play("andar")
 		ap.seek(0.4, true)
 	var c := Camera3D.new()

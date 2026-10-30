@@ -72,7 +72,7 @@ func _monta() -> void:
 		_anim = AnimationPlayer.new()
 		vendedor.add_child(_anim)
 		_anim.root_node = NodePath("..")
-		_anim.add_animation_library("", Anims.biblioteca())
+		_anim.add_animation_library("", Anims.adaptada(Anims.biblioteca(), Anims.JOGADOR))
 		_anim.play("parado")
 
 

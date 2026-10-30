@@ -14,7 +14,7 @@ const PADRAO: Dictionary = {
 	"sombras": true,
 	"resolucao": 1.0,           # escala da imagem 3D (abaixar alivia celular fraco)
 	"fps": 60,
-	"botoes_tamanho": 1.0,      # vale na próxima partida
+	"botoes_tamanho": 1.0,
 	"botoes_opacidade": 0.35,
 	"mira_cor": 0,              # índice em CORES_MIRA
 }

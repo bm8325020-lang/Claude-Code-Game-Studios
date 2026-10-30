@@ -184,7 +184,7 @@ func _ready() -> void:
 		m.material_overlay = _mat_pele
 	anim = AnimationPlayer.new()
 	modelo.add_child(anim)
-	anim.add_animation_library("", Anims.biblioteca_zumbi())
+	anim.add_animation_library("", Anims.adaptada(Anims.biblioteca_zumbi(), Anims.CHEFE if chefe else tipo))
 	_agente = NavigationAgent3D.new()
 	_agente.radius = RAIO + 0.05
 	_agente.height = ALTURA

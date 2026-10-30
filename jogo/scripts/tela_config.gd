@@ -23,7 +23,7 @@ func _ready() -> void:
 	_desliza(col, "Resolução 3D", "resolucao", 0.5, 1.0, 0.05, true)
 	_escolhe(col, "Quadros por segundo", "fps", ["30", "60"], [30, 60])
 	_secao(col, "TELA DE TOQUE")
-	_desliza(col, "Tamanho dos botões (próxima partida)", "botoes_tamanho", 0.7, 1.4, 0.05, true)
+	_desliza(col, "Tamanho dos botões", "botoes_tamanho", 0.7, 1.4, 0.05, true)
 	_desliza(col, "Transparência dos botões", "botoes_opacidade", 0.1, 0.8, 0.05, true)
 	_escolhe(col, "Cor da mira", "mira_cor", Config.NOMES_MIRA, [0, 1, 2, 3])
 	var b := UiTema.botao("VOLTAR AO PADRÃO")
