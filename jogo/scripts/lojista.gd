@@ -12,6 +12,8 @@ const PAGA: Dictionary = {"municao": 1, "comida": 5, "agua": 3, "lanterna": 25, 
 	"receita_pistola": 50, "receita_smg": 200}
 
 var _anim: AnimationPlayer
+## loja da facção (dentro da mansão): só o balcão com as caixas, sem vendedor; só membros da dona compram
+var so_balcao: bool = false
 
 
 func _ready() -> void:
@@ -65,6 +67,8 @@ func _monta() -> void:
 	corpo.add_child(cs)
 	add_child(corpo)
 	# o vendedor: o mesmo boneco dos jogadores, parado atrás do balcão
+	if so_balcao:
+		return
 	var vendedor := Anims.boneco(Anims.JOGADOR)
 	vendedor.position = Vector3(0, 0, -0.75)
 	add_child(vendedor)

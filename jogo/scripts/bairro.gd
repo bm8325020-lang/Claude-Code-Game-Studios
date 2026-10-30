@@ -15,6 +15,10 @@ const CALCADA: float = 1.6
 const PAREDE: float = 2.8
 const TAMANHO: float = QUADRA * 3.0 + RUA * 4.0  # lado da cidade inteira
 const LONGE_DETALHE: float = 45.0    # detalhe pequeno some depois disso
+## modelos do Kenney (CC0, OpenGameArt): casas, prédios, cercas, árvores; ×7 = tamanho real; tinta suja por cima
+const ESCALA_KENNEY: float = 7.0
+const CASAS_KENNEY: Array[String] = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u"]
+const SUJA_KENNEY := Color(0.74, 0.7, 0.64)  # escurece e tira o brilho (cidade abandonada)
 ## cores sujas de cidade abandonada (parede, telhado)
 const PAREDES: Array[Color] = [Color(0.78, 0.74, 0.66), Color(0.7, 0.72, 0.7), Color(0.74, 0.66, 0.58), Color(0.62, 0.66, 0.7), Color(0.8, 0.78, 0.72)]
 const TELHADOS: Array[Color] = [Color(0.5, 0.2, 0.14), Color(0.32, 0.22, 0.17), Color(0.26, 0.28, 0.32), Color(0.45, 0.26, 0.17)]
@@ -84,14 +88,19 @@ func _ready() -> void:
 
 # --- quarteirões ---
 
-# 4 casas comuns, cada uma de frente para a rua mais perto; estado sorteado
+# 4 lotes: de um lado casas do Kenney (fechadas, só para ver), do outro casas que dá para entrar (com loot);
+# cada uma de frente para a rua mais perto
 func _quadra_casas(c: Vector3) -> void:
 	for lx in [-1, 1]:
 		for lz in [-1, 1]:
 			var lote := c + Vector3(lx, 0, lz) * QUADRA * 0.25
-			_casa(lote, 0.0 if lz == 1 else 180.0)
-			_arvore(lote + Vector3(-lx * 5.5, 0, lz * 5.0))
-			_cerca(lote + Vector3(lx * 6.8, 0, 0), 90.0, 12.0)
+			var giro: float = 0.0 if lz == 1 else 180.0
+			if lx == -1:
+				_kenney(self, "suburbio/building-type-%s" % CASAS_KENNEY[_rng.randi() % CASAS_KENNEY.size()], lote, giro, ESCALA_KENNEY, true)
+			else:
+				_casa(lote, giro)
+			_kenney(self, "suburbio/tree-%s" % ("large" if _rng.randf() < 0.6 else "small"), lote + Vector3(-lx * 5.8, 0, lz * 5.5), _rng.randf() * 360.0, ESCALA_KENNEY * 0.9, false)
+			_kenney(self, "suburbio/fence-1x3", lote + Vector3(lx * 6.9, 0, 0), 90.0, ESCALA_KENNEY * 0.85, true)
 
 
 # praça: piso de pedra, chafariz seco com estátua, bancos, canteiros com árvores
@@ -112,18 +121,15 @@ func _praca(c: Vector3) -> void:
 	for k in 4:
 		var ang: float = PI * 0.5 * k
 		_canteiro(fonte + Vector3(sin(ang), 0, cos(ang)) * 11.5)
+		_kenney(self, "suburbio/planter", fonte + Vector3(sin(ang + 0.4), 0, cos(ang + 0.4)) * 6.0, rad_to_deg(ang), ESCALA_KENNEY * 0.8, false)
 
 
 # prédio alto (fechado) e o mercado/galpão aberto, com prateleiras
 func _quadra_predio(c: Vector3) -> void:
 	_chapa(c, Vector2(QUADRA, QUADRA), Color(0.42, 0.42, 0.4), 0.14)  # estacionamento
-	var p := c + Vector3(-6, 0, -6)
-	_bloco(self, p + Vector3(0, 9, 0), Vector3(10, 18, 10), Color(0.66, 0.7, 0.74))
-	for andar in 6:
-		for s in [-1, 1]:
-			_janela_grande(p + Vector3(s * 5.06, 2.5 + andar * 2.8, 0), Vector2(9.0, 1.3), 90.0)
-			_janela_grande(p + Vector3(0, 2.5 + andar * 2.8, s * 5.06), Vector2(9.0, 1.3), 0.0)
-	_peca(self, p + Vector3(0, 18.6, 0), Vector3(3, 1.2, 3), Color(0.5, 0.52, 0.54))  # casa de máquinas
+	_kenney(self, "comercio/building-skyscraper-a", c + Vector3(-7, 0, -7), 0.0, ESCALA_KENNEY, true)
+	_kenney(self, "comercio/building-c", c + Vector3(-9, 0, 7), 90.0, ESCALA_KENNEY, true)
+	_kenney(self, "comercio/building-skyscraper-c", c + Vector3(7.5, 0, -8), 180.0, ESCALA_KENNEY * 0.9, true)
 	var g := c + Vector3(5, 0, 7)
 	var cor := Color(0.6, 0.6, 0.58)
 	_bloco(self, g + Vector3(0, 2.5, -5), Vector3(12, 5, 0.3), cor)
@@ -324,6 +330,18 @@ func _mansao(lote: Vector3, giro: float) -> void:
 	bf.de_faccao = true
 	bf.position = corpo + Vector3(larg * 0.5 - 0.9, 0, -fundo * 0.5 + 0.8)
 	m.add_child(bf)
+	# só para a facção dona: bancada (fabricar) e balcão de munição/comida/água
+	var banc := Bancada.new()
+	banc.name = "BancadaFac"
+	banc.position = corpo + Vector3(-larg * 0.5 + 0.8, 0, fundo * 0.5 - 1.6)
+	banc.rotation_degrees.y = 90.0
+	m.add_child(banc)
+	var loja := Lojista.new()
+	loja.name = "LojaFac"
+	loja.so_balcao = true
+	loja.position = corpo + Vector3(larg * 0.5 - 1.2, 0, 0.4)
+	loja.rotation_degrees.y = -90.0
+	m.add_child(loja)
 	var cama := StaticBody3D.new()
 	cama.name = "Cama"
 	cama.position = corpo + Vector3(-larg * 0.5 + 1.2, 0, -fundo * 0.5 + 1.6)
@@ -617,6 +635,49 @@ func _janela_grande_em(pai: Node3D, p: Vector3, tam: Vector2, giro: float) -> vo
 	mi.position = p
 	mi.rotation_degrees.y = giro
 	pai.add_child(mi)
+
+
+# modelo do Kenney: escala, tinta suja e (se `solido`) uma caixa de colisão do tamanho dele
+func _kenney(pai: Node3D, arquivo: String, p: Vector3, giro: float, escala: float, solido: bool) -> Node3D:
+	var cena := load("res://assets/kenney_cidade/%s.glb" % arquivo) as PackedScene
+	if cena == null:
+		return null
+	var n: Node3D = cena.instantiate()
+	n.scale = Vector3.ONE * escala
+	var ab := AABB()
+	var primeiro: bool = true
+	for mi: MeshInstance3D in n.find_children("*", "MeshInstance3D", true, false):
+		for i in mi.mesh.get_surface_count():
+			var orig := mi.mesh.surface_get_material(i) as StandardMaterial3D
+			if orig:
+				var chave: String = "k_" + str(orig.get_instance_id())
+				if not _mats.has(chave):
+					var m := orig.duplicate() as StandardMaterial3D
+					m.albedo_color = orig.albedo_color * SUJA_KENNEY
+					m.roughness = 0.95
+					m.metallic = 0.0
+					_mats[chave] = m
+				mi.set_surface_override_material(i, _mats[chave])
+		var a: AABB = mi.transform * mi.get_aabb()
+		ab = a if primeiro else ab.merge(a)
+		primeiro = false
+	if not solido:
+		n.position = p
+		n.rotation_degrees.y = giro
+		pai.add_child(n)
+		return n
+	var corpo := StaticBody3D.new()
+	corpo.position = p
+	corpo.rotation_degrees.y = giro
+	pai.add_child(corpo)
+	corpo.add_child(n)
+	var cs := CollisionShape3D.new()
+	var bs := BoxShape3D.new()
+	bs.size = ab.size * escala
+	cs.shape = bs
+	cs.position = ab.get_center() * escala
+	corpo.add_child(cs)
+	return n
 
 
 # --- API usada pelo jogo ---

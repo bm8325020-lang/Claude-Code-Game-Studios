@@ -5,8 +5,8 @@ class_name Faccoes
 extends RefCounted
 
 const MIN_CRIAR: int = 1  # pedido do dono: 1 jogador já cria (plano era 3)
-const DOMINAR_T: float = 360.0
-const REDOMINAR_T: float = 180.0
+const DOMINAR_T: float = 60.0  # dono: diminuir por enquanto (plano: 5–7 min)
+const REDOMINAR_T: float = 30.0
 const LIMITE: int = 10
 ## Manutenção (prompt 13): a cada MANUT_DIAS dias do jogo a casa cobra MANUT_CUSTO do fundo da facção (só conta com
 ## casa); sem dinheiro no fundo perde a casa e o que tinha no baú. Avisa nos últimos AVISO_DIAS dias. Provisório.

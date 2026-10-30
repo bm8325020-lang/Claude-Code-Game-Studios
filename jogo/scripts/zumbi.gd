@@ -21,7 +21,7 @@
 class_name Zumbi
 extends CharacterBody3D
 
-const VIDA_MAX: int = 100
+const VIDA_MAX: int = 150  # dono: zumbis estavam fracos (era 100)
 const VISAO: float = 18.0          # m: vê o jogador a essa distância (se nada tapa)
 const OUVE: float = 5.0            # m: percebe mesmo sem ver (passos, barulho)
 const DESISTE: float = 28.0        # m: perde o alvo
@@ -30,7 +30,7 @@ const CORRER: float = 2.6          # m/s: alvo a menos de PERTO
 const PERTO: float = 10.0
 const ALCANCE: float = 1.35        # m: começa o ataque
 const ALCANCE_ACERTO: float = 1.8  # m: o soco ainda pega se o alvo estiver até aqui na hora
-const DANO: int = 15
+const DANO: int = 22  # era 15
 const ACERTO: float = 0.45         # fração do clipe de ataque em que o soco pega
 const CAMBALEIO: float = 0.45      # s parado depois de levar golpe
 const MORTO_POR: float = 8.0       # s até levantar de novo
@@ -63,15 +63,15 @@ var altura_cabeca: float = 1.4
 ## zumbi chefe (vem nos dados do spawner)
 var chefe: bool = false
 const ESCALA_CHEFE: float = 1.35
-const VIDA_CHEFE: int = 400
-const DANO_CHEFE: int = 35
+const VIDA_CHEFE: int = 1500  # dono: chefe muito fraco (era 400)
+const DANO_CHEFE: int = 55  # era 35
 ## Tipos de zumbi (vem do modelo): vida, dano, velocidade (× ANDAR/CORRER), animações de andar/correr e habilidade.
 ## Corredora: rápida e frágil, dá um BOTE de longe. Policial: médio, o soco AGARRA (deixa o jogador lento).
 ## Soldado: lento e duro, BLINDADO (leva menos dano e não cambaleia com golpe fraco).
 const TIPOS: Dictionary = {
-	"zumbi_mulher": {"nome": "Corredora", "vida": 70, "dano": 10, "vel": 1.3, "andar": "andar_rapido", "correr": "correr_rapido", "skill": "bote"},
-	"zumbi_policial": {"nome": "Policial", "vida": 100, "dano": 15, "vel": 1.0, "andar": "andar", "correr": "correr", "skill": "agarrao"},
-	"zumbi_soldado": {"nome": "Soldado", "vida": 180, "dano": 20, "vel": 0.65, "andar": "andar_lento", "correr": "correr_lento", "skill": "blindado"},
+	"zumbi_mulher": {"nome": "Corredora", "vida": 100, "dano": 16, "vel": 1.3, "andar": "andar_rapido", "correr": "correr_rapido", "skill": "bote"},
+	"zumbi_policial": {"nome": "Policial", "vida": VIDA_MAX, "dano": DANO, "vel": 1.0, "andar": "andar", "correr": "correr", "skill": "agarrao"},
+	"zumbi_soldado": {"nome": "Soldado", "vida": 260, "dano": 30, "vel": 0.65, "andar": "andar_lento", "correr": "correr_lento", "skill": "blindado"},
 }
 const BOTE_DE: float = 3.0          # m: distância mínima e máxima para o bote
 const BOTE_ATE: float = 6.5
@@ -109,7 +109,7 @@ func _alguem_perto(dist: float) -> bool:
 	return false
 ## Habilidade do chefe: pancada no chão (em vez do soco, de tempos em tempos): acerta todos em volta, até de costas
 const PANCADA_RAIO: float = 4.0
-const PANCADA_DANO: int = 25
+const PANCADA_DANO: int = 40  # era 25
 const PANCADA_INTERVALO: float = 7.0
 var _pancada: bool = false
 var _pancada_t: float = 3.0  # servidor: tempo até poder dar a próxima

@@ -464,6 +464,17 @@ func _recebe_faccoes(d: Dictionary) -> void:
 	_faccoes_cli = d
 
 
+## Coisa dentro de uma mansão (bancada, loja): só membros da facção dona usam; fora de mansão, todos.
+func pode_usar(no: Node, nick: String) -> bool:
+	var n: Node = no
+	while n and not String(n.name).begins_with("Mansao_"):
+		n = n.get_parent()
+	if n == null:
+		return true
+	var f: String = faccao_de(nick)
+	return f != "" and String(_faccoes_cli.f[f].casa) == String(n.name)
+
+
 ## Facção de um nick pela cópia do servidor ("" = nenhuma).
 func faccao_de(nick: String) -> String:
 	for n: String in _faccoes_cli.f:

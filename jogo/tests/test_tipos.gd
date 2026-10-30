@@ -49,7 +49,7 @@ func _init() -> void:
 	# soldado blindado: leva 60% e não cambaleia com golpe fraco
 	z.aplica_tipo("zumbi_soldado")
 	z.levar_golpe(20, Vector3.FORWARD, j)
-	ok(z.vida == 180 - 12 and z._cambaleio <= 0.0, "soldado leva 12 de um golpe de 20 e não cambaleia (vida %d)" % z.vida)
+	ok(z.vida == int(Zumbi.TIPOS.zumbi_soldado.vida) - 12 and z._cambaleio <= 0.0, "soldado leva 12 de um golpe de 20 e não cambaleia (vida %d)" % z.vida)
 	# corredora: bote de 5 m
 	z.aplica_tipo("zumbi_mulher")
 	z.global_position = Vector3(40, 0.05, 40)

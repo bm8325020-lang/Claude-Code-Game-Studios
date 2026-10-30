@@ -61,11 +61,19 @@ func _init() -> void:
 	j.guarda_no_bau(bf, j.mochila.espacos.find_custom(func(e: Variant) -> bool: return e != null and e.tipo == "mola"))
 	await frames(3)
 	ok(bf.conteudo.size() == 2 and j.mochila.conta("mola") == 0, "guarda da mochila no baú da facção")
+	ok(main.pode_usar(casa.get_node("BancadaFac"), "Dono") and not main.pode_usar(casa.get_node("LojaFac"), "Outro") and main.pode_usar(main.get_node("Lojista"), "Outro"), "bancada e loja da mansão: só a facção dona usa")
 	j.vida = 50
 	j.velocity = Vector3.ZERO
 	j.global_position = casa.get_node("Cama").global_position + casa.global_basis.x * 1.3 + Vector3(0, 0.1, 0)
+	await frames(5)
+	ok(j.cama_perto() != Vector3.INF, "perto da cama aparece DEITAR")
+	j.deitar()
 	await frames(120)
-	ok(j.vida > 52, "do lado da cama cura (vida %d)" % j.vida)
+	ok(j.deitado and j.vida > 55, "deitado na cama cura (vida %d)" % j.vida)
+	j.entrada["move"] = Vector2(0, 1)
+	await frames(3)
+	j.entrada["move"] = Vector2.ZERO
+	ok(not j.deitado, "mexeu: levanta")
 	j.levar_dano(1000, Vector3.FORWARD)
 	j._morto_t = 0.02
 	await frames(10)

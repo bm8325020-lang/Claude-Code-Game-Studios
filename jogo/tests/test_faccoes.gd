@@ -22,8 +22,8 @@ func _init() -> void:
 	var ev: Array = f.passa(1.0, {})
 	ok(ev == [["falha", "Casa_1"]] and f.tentativas.is_empty(), "saiu todo mundo: falha")
 	f.comecar("Casa_1", "ana", ["ana"])
-	f.passa(100.0, {"Casa_1": ["ana", "bia"]})
-	ev = f.passa(Faccoes.DOMINAR_T, {"Casa_1": ["ana", "bia"]})
+	f.passa(Faccoes.DOMINAR_T * 0.5, {"Casa_1": ["ana", "bia"]})
+	ev = f.passa(Faccoes.DOMINAR_T * 0.6, {"Casa_1": ["ana", "bia"]})
 	ok(ev.size() == 1 and ev[0][0] == "sucesso" and f.faccao_de("bia") == ev[0][2] and f.dona("Casa_1") == ev[0][2], "tempo acabou: facção criada com quem estava dentro, dona da casa")
 	var nome: String = ev[0][2]
 	ok(f.comecar("Casa_2", "ana", ["ana"]) != "", "uma facção = uma casa")

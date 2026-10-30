@@ -116,7 +116,7 @@ func _tiro_e_morte() -> void:
 	ok(sangue, "espirra sangue no lugar do tiro")
 	ok(z.clipe_atual() == "dano", "cambaleia com o tiro (%s)" % z.clipe_atual())
 	z.set_physics_process(true)
-	z.levar_golpe(100, Vector3.FORWARD, j)
+	z.levar_golpe(Zumbi.VIDA_MAX, Vector3.FORWARD, j)
 	await frames(5)
 	ok(z.vida == 0 and z.clipe_atual() == "morte", "morre com a vida zerada (%s)" % z.clipe_atual())
 	ok(z.collision_layer == 0 and not z.is_in_group("golpeavel"), "morto não bloqueia nem leva golpe")

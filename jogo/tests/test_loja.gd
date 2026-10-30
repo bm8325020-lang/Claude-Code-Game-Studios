@@ -42,7 +42,7 @@ func _init() -> void:
 	await frames(3)
 	ok(j.dinheiro == Zumbi.DINHEIRO and j.abates == 1, "matar zumbi dá $%d e conta 1 abate (tem $%d, %d)" % [Zumbi.DINHEIRO, j.dinheiro, j.abates])
 	ok(not j.comprar("comida"), "longe do lojista não compra")
-	var l: Lojista = main.get_tree().get_first_node_in_group("lojista")
+	var l: Lojista = main.get_node("Lojista")  # a da pista (as das mansões são só da facção)
 	j.global_position = l.global_position + Vector3(0, 0.1, 1.2)
 	await frames(3)
 	ok(j.lojista_perto() == l, "perto do lojista")

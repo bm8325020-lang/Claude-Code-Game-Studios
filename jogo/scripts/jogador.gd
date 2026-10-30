@@ -320,6 +320,12 @@ func _physics_process(dt: float) -> void:
 	if _subindo >= 0.0:
 		_escala(dt)
 		return
+	if deitado:
+		_cama(dt)
+		_passa_fome(dt)
+		pos_rede = global_position
+		clipe_rede = _clipe
+		return
 	var mov: Vector2 = entrada.get("move", Vector2.ZERO)
 	if mov.length() > 1.0:
 		mov = mov.normalized()
@@ -337,7 +343,6 @@ func _physics_process(dt: float) -> void:
 			agua -= 1
 			sede = minf(100.0, sede + ENCHE)
 	_passa_fome(dt)
-	_cama(dt)
 	_abre_bau(dt, mov)
 	_fabrica(dt)
 	_copia_t -= dt
@@ -501,8 +506,13 @@ func porta_perto() -> Porta:
 var dinheiro: int = 0
 var abates: int = 0
 func lojista_perto() -> Lojista:
-	var l := get_tree().get_first_node_in_group("lojista") as Lojista
-	return l if l and vida > 0 and l.perto(global_position) else null
+	if vida <= 0:
+		return null
+	var principal := get_tree().get_first_node_in_group("principal")
+	for l: Lojista in get_tree().get_nodes_in_group("lojista"):
+		if l.perto(global_position) and (principal == null or principal.pode_usar(l, nick)):
+			return l
+	return null
 
 
 ## Compra `lotes` do que o lojista vende. Falha sem dinheiro, longe dele ou sem espaço na mochila.
@@ -551,8 +561,13 @@ signal fabricou(arma: String, n: int)
 
 
 func bancada_perto() -> Bancada:
-	var b := get_tree().get_first_node_in_group("bancada") as Bancada
-	return b if b and vida > 0 and b.perto(global_position) else null
+	if vida <= 0:
+		return null
+	var principal := get_tree().get_first_node_in_group("principal")
+	for b: Bancada in get_tree().get_nodes_in_group("bancada"):
+		if b.perto(global_position) and (principal == null or principal.pode_usar(b, nick)):
+			return b
+	return null
 
 
 ## Começa a fabricar `n` da arma (precisa saber a receita, estar na bancada e ter as peças).
@@ -860,23 +875,53 @@ func _copia_agora() -> void:
 		_copia.rpc_id(1, tudo)
 
 
-## Cama da casa da facção (prompt 13): parado do lado dela, cura CURA_CAMA de vida por segundo.
-const CURA_CAMA: float = 4.0
+## Cama da casa da facção (prompt 13): perto dela aparece DEITAR (PC J); deitado cura CURA_CAMA por segundo,
+## qualquer movimento levanta.
+const CURA_CAMA: float = 8.0
+var deitado: bool = false
 var _cura_acum: float = 0.0
-func _cama(dt: float) -> void:
-	if vida >= VIDA_MAX or Vector2(velocity.x, velocity.z).length() > 0.3:
-		return
+var _cama_de: Vector3
+
+
+## A cama da casa da minha facção a menos de 1,8 m (posição dela), ou Vector3.INF.
+func cama_perto() -> Vector3:
 	var principal := get_tree().get_first_node_in_group("principal")
 	var f: String = principal.faccao_de(nick) if principal else ""
-	if f == "":
-		return
+	if f == "" or vida <= 0:
+		return Vector3.INF
 	for c: Node3D in get_tree().get_nodes_in_group("camas"):
-		if String(c.get_parent().name) == String(principal._faccoes_cli.f[f].casa) and c.global_position.distance_to(global_position) < 1.6:
-			_cura_acum += CURA_CAMA * dt
-			if _cura_acum >= 1.0:
-				vida = mini(VIDA_MAX, vida + int(_cura_acum))
-				_cura_acum -= int(_cura_acum)
-			return
+		if String(c.get_parent().name) == String(principal._faccoes_cli.f[f].casa) and c.global_position.distance_to(global_position) < 1.8:
+			return c.global_position
+	return Vector3.INF
+
+
+## Deita na cama (ou levanta, se já está deitado).
+func deitar() -> void:
+	if deitado:
+		deitado = false
+		global_position = _cama_de
+		return
+	var c: Vector3 = cama_perto()
+	if c == Vector3.INF:
+		return
+	_cama_de = global_position
+	deitado = true
+	if not agachado:
+		_alterna_agachar()  # olhos baixos, como deitado
+	global_position = c + Vector3(0, 0.62, 0)
+
+
+func _cama(dt: float) -> void:
+	if not deitado:
+		return
+	velocity = Vector3.ZERO
+	if (entrada.get("move", Vector2.ZERO) as Vector2).length() > 0.3 or vida <= 0:
+		deitar()  # mexeu: levanta
+		return
+	_cura_acum += CURA_CAMA * dt
+	if _cura_acum >= 1.0:
+		vida = mini(VIDA_MAX, vida + int(_cura_acum))
+		_cura_acum -= int(_cura_acum)
 
 
 ## Caído esperando o grupo (prompt 10): não larga nada até o tempo acabar.
