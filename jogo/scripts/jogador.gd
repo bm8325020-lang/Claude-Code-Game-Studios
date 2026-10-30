@@ -189,6 +189,7 @@ func _ready() -> void:
 	collision_layer = 2
 	collision_mask = 1 | 8 | Porta.CAMADA  # mundo, zumbis e portas
 	add_to_group("jogadores")
+	add_to_group("golpeavel")  # só vale no PvP (levar_golpe confere)
 	_forma = CapsuleShape3D.new()
 	_forma.radius = RAIO
 	_forma.height = ALTURA_EM_PE
@@ -263,7 +264,13 @@ func _monta_sincronia() -> void:
 	sync.replication_interval = 1.0 / 20.0  # quem recebe suaviza (_segue_rede); 30/s pesava no servidor grátis
 	sync.replication_config = cfg
 	sync.set_multiplayer_authority(get_multiplayer_authority())  # criado depois: herda o dono à mão
+	sync.add_visibility_filter(_visivel_para)  # PvP: só quem está na mesma sala vê (o spawner segue isso)
 	add_child(sync)
+
+
+func _visivel_para(peer: int) -> bool:
+	var principal := get_tree().get_first_node_in_group("principal") if is_inside_tree() else null
+	return peer == 1 or principal == null or principal.mesma_sala(peer, get_multiplayer_authority())
 
 
 func _monta_modelo() -> void:
@@ -803,6 +810,25 @@ func _rede_agarra(t: float) -> void:
 		agarrado_t = maxf(agarrado_t, minf(t, 5.0))
 
 
+## Tiro/golpe de outro jogador (no aparelho de quem acertou): no PvP pede o dano ao servidor, que confere a sala.
+func levar_golpe(dano: int, dir: Vector3, quem: Node) -> void:
+	var principal := get_tree().get_first_node_in_group("principal")
+	if quem is Jogador and quem != self and principal and principal.em_pvp():
+		principal.pede_dano_pvp.rpc_id(1, int(String(name)), dano, dir)
+
+
+## Servidor → dono: (re)nasce no PvP em `pos`, com a vida cheia (sem largar nada).
+func renasce_pvp(pos: Vector3) -> void:
+	_morto_t = 0.0
+	resgate = false
+	global_position = pos
+	velocity = Vector3.ZERO
+	vida = VIDA_MAX
+	reset_physics_interpolation()
+	_toca("parado", 0.0)
+	pos_rede = global_position
+
+
 func levar_dano(dano: int, dir: Vector3) -> void:
 	dano_srv_t = Time.get_ticks_msec() / 1000.0
 	if is_multiplayer_authority():
@@ -856,6 +882,9 @@ func _cai() -> void:
 	if not is_multiplayer_authority():
 		return
 	var principal := get_tree().get_first_node_in_group("principal")
+	if principal and principal.em_pvp():
+		_morto_t = Salas.RENASCE_T + 1.5  # o servidor manda renascer antes; isto é só se a mensagem não vier
+		return  # no PvP não larga nada
 	if principal and principal.grupo_de(int(String(name))) != 0:
 		# no grupo: espera o resgate (o servidor confere e solta a raid); só larga tudo se não der
 		resgate = true
@@ -1075,7 +1104,9 @@ func _caido(dt: float) -> void:
 		_larga_tudo()
 	if _morto_t <= 0.0:
 		var principal := get_tree().get_first_node_in_group("principal")
-		if principal and principal.nascer_no_bairro and principal.bairro:
+		if principal and principal.em_pvp():
+			inicio = principal.ponto_pvp()
+		elif principal and principal.nascer_no_bairro and principal.bairro:
 			inicio = principal.ponto_nascer(nick)  # casa da facção, ou um lugar sorteado (75% bom)
 		global_position = inicio
 		velocity = Vector3.ZERO
@@ -1196,8 +1227,12 @@ func _atira() -> void:
 		# no servidor a vida já caiu; no cliente o dano ainda vai chegar: prevê se matou
 		var morreu: bool = z.vida <= 0 if multiplayer.is_server() else z.vida - f.dano * (2 if res.cabeca else 1) <= 0
 		_confirma_acerto(res.cabeca or morreu, res.cabeca)
+	elif res.acertou is Jogador:
+		_confirma_acerto(res.cabeca, res.cabeca)
 	if multiplayer.has_multiplayer_peer() and multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
-		_rede_tiro.rpc(res.ponto, res.acertou != null, res.carne)
+		for peer: int in multiplayer.get_peers():  # só quem vê este jogador (sala de PvP)
+			if _visivel_para(peer):
+				_rede_tiro.rpc_id(peer, res.ponto, res.acertou != null, res.carne)
 
 
 @rpc("authority", "call_remote", "unreliable")

@@ -33,6 +33,13 @@ var faccoes := Faccoes.new()  # servidor: facções e domínios em andamento
 var _faccoes_cli: Dictionary = {"f": {}, "t": {}}  # todos: cópia que o servidor manda
 var _faccao_tick: float = 0.0
 var _grupos_cli: Dictionary = {}  # todos: cópia que o servidor manda (peer -> grupo)
+var salas := Salas.new()  # servidor: salas de PvP (prompt 23)
+var _salas_cli: Dictionary = {"de": {}, "salas": {}}  # todos: cópia que o servidor manda
+var lista_salas: Array = []  # cliente: últimas salas públicas pedidas
+var abrir_pvp: bool = false  # entrou pelo botão PVP do menu: abre a página das salas assim que nascer
+var _salas_tick: float = 0.0
+var _pvp_caido: Dictionary = {}  # servidor: peer derrubado no PvP esperando renascer (não conta duas vezes)
+signal salas_mudou(erro: String)
 
 
 func _ready() -> void:
@@ -181,6 +188,7 @@ func _peer_conectou(id: int) -> void:
 					multiplayer.multiplayer_peer.disconnect_peer(id))
 			return
 		spawner.spawn({"id": id, "pos": _ponto_inicial(jogadores.get_child_count())})
+		_recebe_salas.rpc_id(id, {"de": salas.de, "salas": salas.salas})  # quem chega já sabe das salas (e quem não vê)
 
 
 # servidor: a cada 5 s escreve como está (para a página do site e para medir até onde aguenta)
@@ -204,6 +212,10 @@ func _process(dt: float) -> void:
 		grupos.passa(dt)
 		_passa_raids(dt)
 		_passa_dominio(dt)
+		_passa_salas(dt)
+
+
+const RAIO_PVP: float = 110.0  # o PvP fica no centro da cidade (a cidade toda é grande demais para poucos)
 
 
 # --- Resgate com raid (prompt 10): o caído pede, o servidor confere o grupo, solta os zumbis e decide o fim ---
@@ -537,6 +549,9 @@ func _cheio() -> void:
 
 
 func _peer_saiu(id: int) -> void:
+	if multiplayer.is_server() and salas.sala_de(id) != "":
+		salas.sair(id)
+		_manda_salas()
 	if multiplayer.is_server() and grupos.de.has(id):
 		grupos.sair(id)
 		_manda_grupos()
@@ -645,6 +660,9 @@ func _jogador_entrou(n: Node) -> void:
 		jogador = j
 		j.nick = nick_local
 		controles.jogador = j
+		if abrir_pvp:
+			abrir_pvp = false
+			controles.abre_pvp.call_deferred()
 
 
 # céu: degradê do horizonte ao topo e nuvens de ruído que andam devagar (cobrindo mais perto do horizonte)
@@ -907,3 +925,168 @@ func _obstaculos() -> void:
 	# "carro" abandonado
 	bloco(Vector3(5, 0.7, 6), Vector3(1.9, 1.0, 4.2), Color(0.3, 0.35, 0.4), Vector3(0, 20, 0))
 	bloco(Vector3(5, 1.45, 6), Vector3(1.7, 0.6, 2.2), Color(0.25, 0.3, 0.35), Vector3(0, 20, 0))
+
+
+# --- PvP em salas (prompt 23): o servidor guarda as salas; cada sala só vê e só acerta quem está nela ---
+
+@rpc("any_peer", "call_local", "reliable")
+func pede_lista_salas() -> void:
+	if multiplayer.is_server():
+		_recebe_lista.rpc_id(_quem(), salas.lista_publica())
+
+
+@rpc("authority", "call_local", "reliable")
+func _recebe_lista(l: Array) -> void:
+	lista_salas = l
+	salas_mudou.emit("")
+
+
+@rpc("any_peer", "call_local", "reliable")
+func pede_criar_sala(nome: String, publica: bool, limite: int, minutos: int) -> void:
+	if multiplayer.is_server():
+		salas.criar(_quem(), nome, publica, limite, minutos)
+		_manda_salas()
+
+
+@rpc("any_peer", "call_local", "reliable")
+func pede_entrar_sala(cod: String) -> void:
+	if not multiplayer.is_server():
+		return
+	var erro: String = salas.entrar(_quem(), cod)
+	if erro != "":
+		_erro_sala.rpc_id(_quem(), erro)
+	else:
+		_manda_salas()
+
+
+@rpc("any_peer", "call_local", "reliable")
+func pede_sair_sala() -> void:
+	if multiplayer.is_server():
+		salas.sair(_quem())
+		_manda_salas()
+
+
+@rpc("any_peer", "call_local", "reliable")
+func pede_comecar_sala() -> void:
+	if not multiplayer.is_server():
+		return
+	var erro: String = salas.comecar(_quem())
+	if erro != "":
+		_erro_sala.rpc_id(_quem(), erro)
+		return
+	var cod: String = salas.sala_de(_quem())
+	for p: int in salas.salas[cod].jogadores:
+		_pvp_caido.erase(p)
+		_pvp_vai.rpc_id(p, ponto_pvp())
+	_manda_salas()
+	_aviso_sala(cod, "VALENDO! %d MINUTOS" % int(salas.salas[cod].tempo / 60.0))
+
+
+@rpc("authority", "call_local", "reliable")
+func _erro_sala(erro: String) -> void:
+	salas_mudou.emit(erro)
+
+
+## Servidor → jogador da sala: começou (ou renasce) no PvP: vai para `pos` com a vida cheia.
+@rpc("authority", "call_local", "reliable")
+func _pvp_vai(pos: Vector3) -> void:
+	if jogador:
+		jogador.renasce_pvp(pos)
+
+
+## Quem atirou/bateu (no aparelho dele) pede o dano no jogador `alvo`; o servidor confere a sala.
+@rpc("any_peer", "call_local", "reliable")
+func pede_dano_pvp(alvo: int, dano: int, dir: Vector3) -> void:
+	if not multiplayer.is_server():
+		return
+	var q: int = _quem()
+	var j := jogadores.get_node_or_null(str(alvo)) as Jogador
+	var atirador := jogadores.get_node_or_null(str(q)) as Jogador
+	if j == null or atirador == null or not salas.vale(q, alvo) or _pvp_caido.has(alvo) or j.vida <= 0:
+		return
+	var morreu: bool = j.vida - dano <= 0
+	j.levar_dano(dano, dir)
+	if not morreu:
+		return
+	_pvp_caido[alvo] = true
+	var cod: String = salas.sala_de(q)
+	salas.abate(cod, atirador.nick, j.nick)
+	_aviso_sala(cod, "%s DERRUBOU %s" % [atirador.nick.to_upper(), j.nick.to_upper()])
+	_manda_salas()
+	get_tree().create_timer(Salas.RENASCE_T).timeout.connect(func() -> void:
+		_pvp_caido.erase(alvo)
+		if salas.sala_de(alvo) == cod and jogadores.has_node(str(alvo)):
+			_pvp_vai.rpc_id(alvo, ponto_pvp()))
+
+
+func _aviso_sala(cod: String, texto: String) -> void:
+	for p: int in salas.salas[cod].jogadores:
+		aviso_todos.rpc_id(p, texto)
+
+
+func _passa_salas(dt: float) -> void:
+	_salas_tick += dt
+	if _salas_tick < 1.0:
+		return
+	_salas_tick = 0.0
+	var rolando: bool = false
+	for cod: String in salas.salas:
+		rolando = rolando or salas.salas[cod].estado != "espera"
+	for ev: Array in salas.passa(1.0):
+		if ev[0] == "fim":
+			var top: Array = salas.placar(ev[1])
+			_aviso_sala(ev[1], "FIM! %s VENCEU" % String(top[0][0]).to_upper() if not top.is_empty() else "FIM!")
+	if rolando:
+		_manda_salas()  # relógio da partida
+
+
+func _manda_salas() -> void:
+	_recebe_salas.rpc({"de": salas.de, "salas": salas.salas})
+
+
+@rpc("authority", "call_local", "reliable")
+func _recebe_salas(d: Dictionary) -> void:
+	_salas_cli = d
+	for j: Node in jogadores.get_children():
+		var sinc: MultiplayerSynchronizer = j.get_node_or_null("Sincronia")
+		if sinc:
+			sinc.update_visibility()
+	salas_mudou.emit("")
+
+
+## Minha sala (cópia do servidor), ou {} fora de sala. Tem "codigo".
+func minha_sala() -> Dictionary:
+	var cod: String = _salas_cli.de.get(multiplayer.get_unique_id(), "") if multiplayer.has_multiplayer_peer() else ""
+	if cod == "" or not _salas_cli.salas.has(cod):
+		return {}
+	var s: Dictionary = _salas_cli.salas[cod].duplicate()
+	s.codigo = cod
+	return s
+
+
+## Partida de PvP rolando para este aparelho?
+func em_pvp() -> bool:
+	return minha_sala().get("estado", "") == "jogando"
+
+
+## Os dois se veem? (mesma sala, ou os dois fora de sala)
+func mesma_sala(a: int, b: int) -> bool:
+	return _salas_cli.de.get(a, "") == _salas_cli.de.get(b, "")
+
+
+## Placar da minha sala: [[nick, abates, mortes], ...] por abates.
+func placar_sala() -> Array:
+	var s: Dictionary = minha_sala()
+	var r: Array = []
+	for n: String in s.get("placar", {}):
+		r.append([n, s.placar[n][0], s.placar[n][1]])
+	r.sort_custom(func(a: Array, b: Array) -> bool: return a[1] > b[1] or (a[1] == b[1] and a[2] < b[2]))
+	return r
+
+
+## Onde nasce no PvP: na frente de uma construção do centro da cidade (sorteado).
+func ponto_pvp() -> Vector3:
+	var perto: Array = bairro.pontos_nascer.filter(func(p: Vector3) -> bool: return p.distance_to(Bairro.ORIGEM) < RAIO_PVP)
+	if perto.is_empty():
+		perto = bairro.pontos_nascer
+	return perto[_rng_nascer.randi() % perto.size()]

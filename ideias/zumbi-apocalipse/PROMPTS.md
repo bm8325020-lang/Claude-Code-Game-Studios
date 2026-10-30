@@ -340,7 +340,9 @@ domináveis. Usar os modelos já baixados (Sketchfab) e pacotes grátis; dividir
 proximidade.
 
 ## 23. Modos de jogo: Sobrevivência (mundo aberto), PvP em salas e História cooperativa
-Status: pendente (ideia do dono, 30/10)
+Status: em andamento. PvP v1 feito (APK 0.57): salas públicas/privadas com código no servidor online, limite,
+tempo, dono começa, só se vê e só se acerta na mesma sala, placar, renasce em 4 s sem perder nada, botão PVP no menu.
+Falta: mapa de PvP próprio (cobertura), modo História cooperativa.
 
 Menu com 3 modos:
 - **Sobrevivência**: o que existe hoje (mundo aberto, facções, 40 por servidor).

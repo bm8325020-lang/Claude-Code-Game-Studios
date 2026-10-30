@@ -57,6 +57,9 @@ var _aviso_item: Label
 var _aviso_t: float = 0.0
 var _faixa: PanelContainer
 var _faixa_texto: Label
+var _pvp_hud: Label  # relógio e placar da partida de PvP (no alto)
+var tela_salas: TelaSalas
+var abre_pvp: Callable  # abre a pausa direto na página do PvP (menu: botão PVP)
 var _faixa_estilo: StyleBoxFlat
 var _barras: Array[_Barra] = []  # vida, fome, sede
 var _faixa_t: float = 0.0
@@ -230,6 +233,7 @@ func _process(dt: float) -> void:
 	_marcas.amigos = principal.amigos() if principal else []
 	_faixa.visible = _faixa_t > 0.0
 	_faixa.modulate.a = clampf(_faixa_t * 2.0, 0.0, 1.0)
+	_atualiza_pvp(principal)
 	var ciclo := get_tree().get_first_node_in_group("ciclo") as Ciclo
 	if ciclo:
 		var f: int = int(ciclo.falta())
@@ -457,9 +461,33 @@ func _monta_aviso() -> void:
 	_faixa.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_faixa.visible = false
 	add_child(_faixa)
+	_pvp_hud = UiTema.titulo("", 26)
+	_pvp_hud.anchor_left = 0.5
+	_pvp_hud.anchor_right = 0.5
+	_pvp_hud.offset_left = -330
+	_pvp_hud.offset_right = 330
+	_pvp_hud.offset_top = 52
+	_pvp_hud.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_pvp_hud.add_theme_color_override("font_outline_color", Color.BLACK)
+	_pvp_hud.add_theme_constant_override("outline_size", 6)
+	_pvp_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_pvp_hud.visible = false
+	add_child(_pvp_hud)
 	_faixa_texto = UiTema.titulo("", 28)
 	_faixa_texto.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_faixa.add_child(_faixa_texto)
+
+
+func _atualiza_pvp(principal: Node) -> void:
+	var s: Dictionary = principal.minha_sala() if principal else {}
+	_pvp_hud.visible = s.get("estado", "espera") != "espera"
+	if not _pvp_hud.visible:
+		return
+	var eu: Array = [0, 0]
+	for l: Array in principal.placar_sala():
+		if l[0] == jogador.nick:
+			eu = [l[1], l[2]]
+	_pvp_hud.text = ("%s   ·   %d abates  %d mortes" % [TelaSalas._relogio(s.t), eu[0], eu[1]]) if s.estado == "jogando" else "FIM DA PARTIDA (placar na pausa: PVP)"
 
 
 func _monta_pausa() -> void:
@@ -545,6 +573,25 @@ func _monta_pausa() -> void:
 	volta_f.pressed.connect(func() -> void:
 		p_f.visible = false
 		p_menu.visible = true)
+	var pvp := UiTema.botao("PVP")
+	col.add_child(pvp)
+	var col_p := UiTema.painel_central(_pausa, 660.0)
+	tela_salas = TelaSalas.new()
+	col_p.add_child(tela_salas)
+	var volta_p := UiTema.botao("VOLTAR", true)
+	col_p.add_child(volta_p)
+	var p_p: Control = col_p.get_parent().get_parent()
+	p_p.visible = false
+	pvp.pressed.connect(func() -> void:
+		p_menu.visible = false
+		p_p.visible = true
+		tela_salas.monta())
+	volta_p.pressed.connect(func() -> void:
+		p_p.visible = false
+		p_menu.visible = true)
+	abre_pvp = func() -> void:
+		pausa(true)
+		pvp.pressed.emit()
 	var sair := UiTema.botao("SAIR DA PARTIDA")
 	sair.pressed.connect(func() -> void:
 		pausa(false)

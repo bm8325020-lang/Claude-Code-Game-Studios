@@ -145,7 +145,9 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 	_abertura = minf(_abertura + disp_tiro, 4.0 if not automatica else 6.0)
 	var desvio := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)).normalized()
 	dir = dir.rotated(dir.cross(desvio).normalized(), deg_to_rad(randf() * graus)) if dir.cross(desvio).length() > 0.01 else dir
-	var q := PhysicsRayQueryParameters3D.create(origem, origem + dir * ALCANCE, 1 | 8)  # mundo e zumbis
+	var pvp: bool = dono != null and dono.is_inside_tree() and dono.get_tree().get_first_node_in_group("principal") != null \
+		and dono.get_tree().get_first_node_in_group("principal").em_pvp()
+	var q := PhysicsRayQueryParameters3D.create(origem, origem + dir * ALCANCE, 1 | 8 | (4 if pvp else 0))  # mundo, zumbis (e jogadores no PvP)
 	q.exclude = [dono.get_rid()] if dono else []
 	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
 	var ponto: Vector3 = hit.position if not hit.is_empty() else origem + dir * ALCANCE
@@ -158,7 +160,7 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 		alvo.call("levar_golpe", dano * (2 if cabeca else 1), dir, dono)
 		res.acertou = alvo
 		res.cabeca = cabeca
-	res.carne = res.acertou is Zumbi
+	res.carne = res.acertou is Zumbi or res.acertou is Jogador
 	efeito(ponto, not hit.is_empty(), res.carne)
 	return res
 

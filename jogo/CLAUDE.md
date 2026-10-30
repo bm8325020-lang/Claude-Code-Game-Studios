@@ -97,6 +97,14 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   `bairro.frente_da(casa)` (`main.ponto_nascer(nick)`). Teste: test_casa_faccao (11).
 - `rede.gd` — ENet 7777, broadcast 7778, pergunta direta 7779, `VERSAO`, `LISTA_URL` (servidores.json). Endereço
   "ws://"/"wss://" = WebSocket (servidor online atrás de site; `-- dedicado ws` escuta em `PORTA_WS` 7861).
+- `salas.gd` (Salas) — PvP em salas (prompt 23), só dados: criar (código de 4 letras, pública/privada, limite, minutos),
+  entrar, sair, comecar (dono, MIN_JOGADORES), vale(a, b), abate, passa (fim -> placar FIM_T -> espera), lista_publica.
+  main.gd: `pede_*_sala` (RPC), `pede_dano_pvp` (confere a sala, conta abate, renasce em RENASCE_T por `_pvp_vai`),
+  `_recebe_salas` (cópia em todos + `update_visibility`), `minha_sala`, `em_pvp`, `mesma_sala`, `ponto_pvp` (centro,
+  RAIO_PVP). Jogador: grupo "golpeavel", `levar_golpe` (só no PvP), `renasce_pvp`, filtro de visibilidade da Sincronia
+  (`_visivel_para`: só a mesma sala), tiro só para quem vê. Pistola mira jogadores (camada 4) no PvP. Tela:
+  `tela_salas.gd` (pausa: PVP; menu: botão PVP abre direto). HUD: relógio e placar. Testes: test_salas (15),
+  test_pvp (2 processos, como test_rede).
 - `config.gd` (Config) — `Config.v[...]` salvo em user://config.cfg, `muda()`, `aplica()`, `sensibilidade(arma, mirando)`,
   `cor_mira()`, `qualidade()` (QUALIDADE: Batata/Média/Alta/Ultra -> sombra, resolução, MSAA, distância de visão,
   detalhe). `tela_config.gd` (TelaConfig) — a tela (menu e pausa). Teste: tests/test_config.gd (10).
