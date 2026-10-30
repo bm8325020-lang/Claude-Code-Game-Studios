@@ -634,6 +634,31 @@ func _jogador_entrou(n: Node) -> void:
 		controles.jogador = j
 
 
+# céu: degradê do horizonte ao topo e nuvens de ruído que andam devagar (cobrindo mais perto do horizonte)
+const CEU: String = """shader_type sky;
+uniform vec3 topo;
+uniform vec3 horizonte;
+uniform float cobertura = 0.55;
+float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float r(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+float fbm(vec2 p) { float v = 0.0; float a = 0.5; for (int k = 0; k < 4; k++) { v += r(p) * a; p *= 2.03; a *= 0.5; } return v; }
+void sky() {
+	float y = EYEDIR.y;
+	vec3 c = mix(horizonte, topo, clamp(pow(max(y, 0.0), 0.6), 0.0, 1.0));
+	if (y < 0.0) {
+		c = mix(horizonte, horizonte * 0.55, clamp(-y * 5.0, 0.0, 1.0));
+	} else {
+		vec2 p = EYEDIR.xz / (y + 0.15) * 1.4 + vec2(TIME * 0.006, TIME * 0.003);
+		float n = fbm(p);
+		float nuvem = smoothstep(1.0 - cobertura, 1.0 - cobertura + 0.35, n);
+		vec3 cn = mix(horizonte * 1.08, topo * 0.75 + vec3(0.06), smoothstep(0.4, 0.9, n));
+		c = mix(c, cn, nuvem * smoothstep(0.0, 0.12, y) * 0.9);
+	}
+	COLOR = c;
+}"""
+
+
 func _luz() -> void:
 	ciclo = Ciclo.new()
 	ciclo.name = "Ciclo"
@@ -649,14 +674,11 @@ func _luz() -> void:
 	var amb := WorldEnvironment.new()
 	var env := Environment.new()
 	# céu nublado de fim do mundo: cinza-azulado em cima, horizonte amarelado sujo; névoa leve de profundidade
-	var ceu := ProceduralSkyMaterial.new()
-	ceu.sky_top_color = Ciclo.CEU_TOPO[0]
-	ceu.sky_horizon_color = Ciclo.CEU_HORIZONTE[0]
-	ceu.ground_horizon_color = Ciclo.CEU_HORIZONTE[0]
-	ceu.ground_bottom_color = Color(0.2, 0.2, 0.19)
-	ceu.sky_curve = 0.12
-	ceu.sun_angle_max = 18.0
-	ceu.sun_curve = 0.08
+	var ceu := ShaderMaterial.new()  # céu com nuvens andando (Ciclo troca as cores)
+	ceu.shader = Shader.new()
+	ceu.shader.code = CEU
+	ceu.set_shader_parameter("topo", Ciclo.CEU_TOPO[0])
+	ceu.set_shader_parameter("horizonte", Ciclo.CEU_HORIZONTE[0])
 	env.sky = Sky.new()
 	env.sky.sky_material = ceu
 	env.background_mode = Environment.BG_SKY

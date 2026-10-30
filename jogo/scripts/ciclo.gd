@@ -44,11 +44,10 @@ func _process(dt: float) -> void:
 		var ceu: Color = CEU_HORIZONTE[0].lerp(CEU_HORIZONTE[1], n)
 		ambiente.background_color = ceu
 		ambiente.fog_light_color = ceu
-		var mat := ambiente.sky.sky_material as ProceduralSkyMaterial if ambiente.sky else null
+		var mat := ambiente.sky.sky_material as ShaderMaterial if ambiente.sky else null
 		if mat:
-			mat.sky_top_color = CEU_TOPO[0].lerp(CEU_TOPO[1], n)
-			mat.sky_horizon_color = ceu
-			mat.ground_horizon_color = ceu
+			mat.set_shader_parameter("topo", CEU_TOPO[0].lerp(CEU_TOPO[1], n))
+			mat.set_shader_parameter("horizonte", ceu)
 		ambiente.ambient_light_color = Color(0.7, 0.72, 0.75).lerp(Color(0.35, 0.42, 0.6), n)
 		ambiente.ambient_light_energy = lerpf(0.6, 0.12, n)
 		ambiente.fog_density = lerpf(0.008, 0.035, n)

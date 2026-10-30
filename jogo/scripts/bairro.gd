@@ -34,6 +34,12 @@ const BOM_ZUMBI: float = 14.0
 const CHANCE_BOM: float = 0.75
 var _rng := RandomNumberGenerator.new()
 var _mats: Dictionary = {}
+## material "sujo" (um shader para a cidade inteira): o tipo muda o desenho
+const PAREDE_T: int = 0   # manchas, escorrido, sujeira subindo do chão, rachadura, pichação
+const GRAMA_T: int = 1    # falhada, seca e com terra
+const TELHADO_T: int = 2  # fileiras de telha e musgo
+const ASFALTO_T: int = 3  # rachaduras e manchas de óleo
+static var _sujo: Shader
 var _n_casa: int = 0
 var _n_mansao: int = 0
 var _n_item: int = 0
@@ -219,7 +225,7 @@ func _casa(lote: Vector3, giro: float) -> void:
 		var pm := PrismMesh.new()
 		pm.size = Vector3(fundo + 0.8, 1.7, larg + 0.6)  # cumeeira de um lado ao outro
 		tel.mesh = pm
-		tel.material_override = _mat(telha)
+		tel.material_override = _mat(telha, TELHADO_T)
 		tel.position = Vector3(0, PAREDE + 0.95, 0)
 		tel.rotation_degrees.y = 90.0
 		casa.add_child(tel)
@@ -293,7 +299,7 @@ func _mansao(lote: Vector3, giro: float) -> void:
 	var pm := PrismMesh.new()
 	pm.size = Vector3(larg - 0.8, 1.6, fundo - 1.4)
 	tel.mesh = pm
-	tel.material_override = _mat(escuro)
+	tel.material_override = _mat(escuro, TELHADO_T)
 	tel.position = corpo + Vector3(0, alt + 4.0, -0.6)
 	m.add_child(tel)
 	# varanda: laje na frente sobre 4 colunas brancas
@@ -702,7 +708,8 @@ func _chapa_em(pai: Node3D, c: Vector3, tam: Vector2, cor: Color) -> void:
 	var pl := PlaneMesh.new()
 	pl.size = tam
 	mi.mesh = pl
-	mi.material_override = _mat(cor)
+	var tipo: int = GRAMA_T if cor.g > cor.r * 1.1 and cor.g > cor.b * 1.3 else (ASFALTO_T if cor.v < 0.16 else PAREDE_T)
+	mi.material_override = _mat(cor, tipo)
 	mi.position = c
 	pai.add_child(mi)
 
@@ -740,10 +747,68 @@ func _detalhe_em(pai: Node3D, p: Vector3, tam: Vector3, cor: Color) -> void:
 	_peca(pai, p, tam, cor).visibility_range_end = LONGE_DETALHE
 
 
-func _mat(cor: Color) -> StandardMaterial3D:
-	if not _mats.has(cor):
-		var m := StandardMaterial3D.new()
-		m.albedo_color = cor
-		m.roughness = 0.9
-		_mats[cor] = m
-	return _mats[cor]
+func _mat(cor: Color, tipo: int = PAREDE_T) -> Material:
+	var chave: String = "%s_%d" % [cor, tipo]
+	if not _mats.has(chave):
+		if _sujo == null:
+			_sujo = Shader.new()
+			_sujo.code = SUJO
+		var m := ShaderMaterial.new()
+		m.shader = _sujo
+		m.set_shader_parameter("cor", Vector3(cor.r, cor.g, cor.b))
+		m.set_shader_parameter("tipo", tipo)
+		_mats[chave] = m
+	return _mats[chave]
+
+
+# desenho feito no shader (nada baixado), em coordenadas do mundo: emenda sozinho entre peças
+const SUJO: String = """shader_type spatial;
+uniform vec3 cor;
+uniform int tipo;
+varying vec3 wp;
+varying vec3 wn;
+float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float r(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+float fbm(vec2 p) { return r(p) * 0.5 + r(p * 2.1) * 0.3 + r(p * 4.3) * 0.2; }
+void vertex() { wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; wn = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz); }
+void fragment() {
+	bool chao = abs(wn.y) > 0.5;
+	vec2 uv = chao ? wp.xz : (abs(wn.x) > 0.5 ? wp.zy : wp.xy);
+	vec3 c = cor;
+	float n = fbm(uv * 0.8);
+	if (tipo == 1) {
+		float seco = smoothstep(0.45, 0.7, fbm(uv * 0.35 + 7.0));
+		float terra = smoothstep(0.64, 0.8, fbm(uv * 0.6 + 3.0));
+		c = mix(c, vec3(0.45, 0.4, 0.24), seco * 0.7);
+		c = mix(c, vec3(0.28, 0.22, 0.16), terra);
+		c *= 0.8 + h(floor(uv * 22.0)) * 0.35;
+	} else if (tipo == 2) {
+		float fileira = fract(wp.y * 3.2);
+		c *= 0.82 + 0.18 * step(0.18, fileira);
+		c *= 0.82 + h(floor(vec2(uv.x * 2.5, wp.y * 3.2))) * 0.3;
+		c = mix(c, vec3(0.2, 0.26, 0.14), smoothstep(0.62, 0.8, fbm(uv * 0.5 + 11.0)) * 0.55);
+	} else if (tipo == 3) {
+		c *= 0.8 + n * 0.4;
+		float rach = 1.0 - smoothstep(0.0, 0.008, abs(fbm(uv * 0.3) - 0.5));
+		c *= 1.0 - rach * 0.5 * step(0.55, r(uv * 0.05 + 3.0));
+		c = mix(c, c * 0.55, smoothstep(0.66, 0.8, fbm(uv * 0.15 + 5.0)));
+	} else {
+		c *= 0.8 + n * 0.32;
+		if (!chao) {
+			float baixo = 1.0 - smoothstep(0.0, 1.1, wp.y);
+			c = mix(c, c * vec3(0.5, 0.46, 0.38), baixo * 0.7);
+			float escorre = smoothstep(0.6, 0.8, r(vec2(uv.x * 3.0, uv.y * 0.12) + 9.0));
+			c *= 1.0 - escorre * 0.25;
+			float rach = 1.0 - smoothstep(0.0, 0.007, abs(fbm(uv * 0.9 + 2.0) - 0.5));
+			c *= 1.0 - rach * 0.4 * step(0.72, r(uv * 0.2 + 4.0));
+			float pinta = step(0.9, h(floor(uv / 2.5) + 31.0)) * step(0.45, fbm(uv * 1.8)) * (1.0 - smoothstep(1.4, 2.0, wp.y));
+			vec3 tinta = vec3(h(floor(uv / 2.5)), h(floor(uv / 2.5) + 5.0), h(floor(uv / 2.5) + 9.0)) * 0.7 + 0.1;
+			c = mix(c, tinta, pinta * 0.8);
+		} else {
+			c = mix(c, c * 0.7, smoothstep(0.6, 0.78, fbm(uv * 0.4 + 1.0)));
+		}
+	}
+	ALBEDO = c;
+	ROUGHNESS = 0.92;
+}"""

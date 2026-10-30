@@ -22,6 +22,9 @@ func _init() -> void:
 			var m: Node3D = main.bairro.get_node("Mansao_1")
 			c.global_position = main.bairro.frente_da("Mansao_1") + m.global_basis.z * 6.0 + m.global_basis.x * 4.0 + Vector3(0, 1.7, 0)
 			c.look_at(m.to_global(Vector3(0, 2.5, 1.0)))
+			if OS.get_cmdline_user_args().size() > 1:  # 2º argumento: rua de casas comuns
+				c.global_position = Bairro.ORIGEM + Vector3(-20, 1.7, -30)
+				c.look_at(Bairro.ORIGEM + Vector3(-40, 1.5, -40))
 		else:
 			c.look_at(vistas[k][1])
 		for i in 6: await process_frame
