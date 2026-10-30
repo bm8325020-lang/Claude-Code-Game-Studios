@@ -853,11 +853,8 @@ func _luz() -> void:
 	env.ambient_light_energy = 0.6
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.tonemap_exposure = 0.9
-	env.adjustment_enabled = true
-	env.adjustment_saturation = 0.78  # cor lavada, suja
-	env.adjustment_contrast = 1.1
-	# filtro de cor de fim do mundo (curva por canal): sombra puxada para o verde-azulado, claro amarelado e sem azul
-	# 31/10: filtro de cor (LUT) e brilho (glow) deixavam a tela toda rosa no celular: saíram
+	# 31/10: filtro de cor (LUT), brilho (glow) e ajuste de saturação/contraste deixavam a tela toda rosa no celular
+	# (pós-processamento do renderizador de compatibilidade): saíram
 	env.fog_enabled = true
 	env.fog_light_color = Ciclo.CEU_HORIZONTE[0]
 	env.fog_density = 0.012
