@@ -826,8 +826,20 @@ func _luz() -> void:
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.tonemap_exposure = 0.9
 	env.adjustment_enabled = true
-	env.adjustment_saturation = 0.72  # cor lavada, suja
-	env.adjustment_contrast = 1.12
+	env.adjustment_saturation = 0.78  # cor lavada, suja
+	env.adjustment_contrast = 1.1
+	# filtro de cor de fim do mundo (curva por canal): sombra puxada para o verde-azulado, claro amarelado e sem azul
+	var curva := Gradient.new()
+	curva.set_color(0, Color(0.0, 0.025, 0.04))
+	curva.set_color(1, Color(0.97, 0.94, 0.84))
+	curva.add_point(0.5, Color(0.47, 0.5, 0.49))
+	var lut := GradientTexture1D.new()
+	lut.gradient = curva
+	env.adjustment_color_correction = lut
+	env.glow_enabled = true  # fogo, lanterna e clarão do tiro brilham
+	env.glow_intensity = 0.6
+	env.glow_bloom = 0.04
+	env.glow_hdr_threshold = 1.1
 	env.fog_enabled = true
 	env.fog_light_color = Ciclo.CEU_HORIZONTE[0]
 	env.fog_density = 0.012

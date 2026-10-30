@@ -355,9 +355,65 @@ def limpa():
     _mats.clear()
 
 
+def _adensa(o, passo=0.7):
+    """Corta as faces grandes em pedaços de ~passo m (a sombra dos cantos fica nos vértices)."""
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    for _ in range(5):
+        longas = [e for e in bm.edges if e.calc_length() > passo]
+        if not longas:
+            break
+        bmesh.ops.subdivide_edges(bm, edges=longas, cuts=1, use_grid_fill=True)
+    bm.to_mesh(o.data)
+    bm.free()
+
+
+def assa_sombra():
+    """Sombra de canto (oclusão de ambiente) assada nas cores dos vértices: escurece pé de parede, cantos, debaixo de
+    móvel e dentro dos cômodos. Custa zero no celular (o modo de compatibilidade não tem isso em tempo real).
+    A colisão continua com a malha simples: cada "-col" vira uma cópia "-colonly" antes de adensar."""
+    vis = []
+    for o in list(bpy.data.objects):
+        if o.type != "MESH" or o.name.endswith("-colonly"):
+            continue
+        if o.name.endswith("-col"):
+            c = o.copy()
+            c.data = o.data.copy()
+            bpy.context.collection.objects.link(c)
+            c.name = o.name[:-4] + "_c-colonly"
+            o.name = o.name[:-4]
+        _adensa(o)
+        if not o.data.color_attributes:
+            o.data.color_attributes.new("Col", "BYTE_COLOR", "CORNER")
+        vis.append(o)
+    if not vis:
+        return
+    for o in bpy.data.objects:  # a colisão (cópia por cima da malha) não pode tapar a luz
+        if o.name.endswith("-colonly"):
+            o.hide_render = True
+    if bpy.context.scene.world is None:
+        bpy.context.scene.world = bpy.data.worlds.new("w")
+    bpy.context.scene.world.light_settings.distance = 1.6
+    sc = bpy.context.scene
+    sc.render.engine = "CYCLES"
+    sc.cycles.samples = 24
+    sc.cycles.device = "CPU"
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in vis:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = vis[0]
+    bpy.ops.object.bake(type="AO", target="VERTEX_COLORS")
+    for o in vis:  # canto escuro, mas nunca preto chapado (a luz do jogo ainda soma por cima)
+        for c in o.data.color_attributes[0].data:
+            v = 0.32 + 0.68 * (c.color[0] ** 0.75)
+            c.color = (v, v, v, 1.0)
+
+
 def exporta(nome):
+    assa_sombra()
     bpy.ops.export_scene.gltf(filepath="%s/%s.glb" % (SAIDA, nome), export_format="GLB", export_apply=True,
-                              export_materials="EXPORT", export_extras=False, export_yup=True)
+                              export_materials="EXPORT", export_extras=False, export_yup=True,
+                              export_vertex_color="ACTIVE")
 
 
 # ----- os modelos -----

@@ -51,6 +51,11 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   API: `pontos_zumbi`, `pontos_nascer`, `casa_em`, `dominavel`, `bau_da`, `frente_da`, `dentro_da`; malha própria em
   `_poe_zumbis` (célula 0.25, raio 0.25 para passar na porta). Nascer (11): `pontos_bons/ruins`, `Bairro.sorteia`,
   `main.ponto_nascer(nick)`. Testes: test_bairro (4), test_nascer (5). Fotos: tools/foto_bairro.gd.
+- `enfeites.gd` (Enfeites, filho do Bairro) — cara do jogo (30/10): chão `Enfeites.chao()` (shader grama/terra/cascalho),
+  lixo/mato/manchas/sacos de corpo em MultiMesh por pedaço de 64 m (DENSIDADE pela qualidade, some de longe), postes
+  com fio (`_postes`/`_fio`, colisão) e caçambas. Ruínas com sombra de canto assada no Blender (`assa_sombra`: cores dos
+  vértices; `_mat(..., sombra=true)`). main: filtro de cor (`adjustment_color_correction`) e glow; controles: `FILME`
+  (bordas escuras, granulado, vermelho pulsando com pouca vida).
 - `jogador.gd` (Jogador) — `entrada` dict (move, olhar, pular, correr, agachar, andar, mirar, mira_segurando, atacar,
   trocar, arma, recarregar, pegar, comer, beber). Vida/`levar_dano`/`_cai`/`_caido`, fome/sede (`_passa_fome`),
   itens (`_tenta_pegar`, `ganhar`→`_recebe`), portas (`porta_perto`), pistola (`_atira`, `raio_mira`, `_rede_tiro`),

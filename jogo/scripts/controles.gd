@@ -10,6 +10,19 @@ class_name Controles
 extends CanvasLayer
 
 const RAIO_STICK: float = 110.0
+## Cara de filme por cima do 3D (barato: um retângulo): bordas escuras, granulado leve e, abaixo de 40% de vida,
+## bordas vermelhas pulsando como coração.
+const FILME := """shader_type canvas_item;
+uniform float vida = 1.0;
+void fragment() {
+	vec2 c = (UV - 0.5) * vec2(1.0, 0.7);
+	float borda = smoothstep(0.3, 0.75, length(c));
+	float grao = fract(sin(dot(floor(FRAGCOORD.xy * 0.5) + floor(TIME * 24.0) * 7.13, vec2(12.9898, 78.233))) * 43758.5453);
+	float perigo = clamp(1.0 - vida * 2.5, 0.0, 1.0);
+	float pulso = 0.7 + 0.3 * sin(TIME * 7.0);
+	vec3 cor = mix(vec3(0.0), vec3(0.5, 0.0, 0.0), perigo);
+	COLOR = vec4(cor + vec3(grao) * 0.5, borda * (0.5 + perigo * 0.45 * pulso) + (grao - 0.5) * 0.035);
+}"""
 const BOTAO: float = 120.0
 
 ## O jogador controlado; os controles só aparecem (e o mouse só é capturado) quando a partida começa.
@@ -50,6 +63,7 @@ var _btn_atacar: _Icone
 var _btn_recarregar: _Icone
 var _municao: Label
 var _vermelho: ColorRect
+var _filme: ColorRect  # bordas escuras, granulado e bordas vermelhas pulsando com pouca vida
 var _caiu: Label
 var _relogio: Label
 var _btn_pegar: Button
@@ -96,6 +110,13 @@ func _ready() -> void:
 	toque = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
 	if toque:
 		_monta_toque()
+	_filme = ColorRect.new()
+	_filme.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_filme.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_filme.material = ShaderMaterial.new()
+	(_filme.material as ShaderMaterial).shader = Shader.new()
+	(_filme.material as ShaderMaterial).shader.code = FILME
+	add_child(_filme)
 	_mira = _Mira.new()
 	_mira.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_mira.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -193,6 +214,7 @@ func _process(dt: float) -> void:
 		return
 	var e: Dictionary = jogador.entrada
 	_atualiza_barras()
+	(_filme.material as ShaderMaterial).set_shader_parameter("vida", float(jogador.vida) / Jogador.VIDA_MAX)
 	_qte.jogador = jogador
 	_qte.visible = jogador.mordida_t > 0.0 and jogador.mordida_zumbi != null
 	if _qte.visible:

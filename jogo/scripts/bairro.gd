@@ -79,6 +79,10 @@ func _ready() -> void:
 	_arvores_mortas()
 	_hidrantes_e_fogo()
 	_classifica()
+	var enfeites := Enfeites.new()
+	enfeites.name = "Enfeites"
+	add_child(enfeites)
+	enfeites.monta(self, _ruas, _poligonos)
 
 
 # --- chão e ruas ---
@@ -92,7 +96,7 @@ func _chao() -> void:
 	bs.size = Vector3(TAMANHO + 40, 1, TAMANHO + 40)
 	cs.shape = bs
 	corpo.add_child(cs)
-	_plano(self, Vector3(0, 0.01, 0), Vector2(TAMANHO + 40, TAMANHO + 40), _mat("grama", 0.2, Color(0.72, 0.68, 0.55)))
+	_plano(self, Vector3(0, 0.01, 0), Vector2(TAMANHO + 40, TAMANHO + 40), Enfeites.chao())
 
 
 # rua: faixa de asfalto pelo traçado; com calçada dos lados nas ruas de carro; trilha de pedestre só calçada
@@ -302,20 +306,20 @@ func _pinta(m: Node3D, tinta: Color, lataria: Color = Color(0.4, 0.15, 0.12)) ->
 ## Textura do jogo para o material do Blender (só o nome vem do modelo).
 func _mat_ruina(n: String, tinta: Color) -> Material:
 	match n:
-		"parede": return _mat("reboco", 0.3, tinta)
-		"tijolo": return _mat("tijolo", 0.4, Color(0.8, 0.74, 0.7))
-		"madeira": return _mat("madeira", 0.35, tinta * 0.9)
-		"tabua": return _mat("madeira", 0.5, Color(0.6, 0.5, 0.4))
-		"telhado": return _mat("telhado", 0.5, Color(0.7, 0.68, 0.66))
-		"queimado": return _mat("concreto", 0.4, Color(0.14, 0.12, 0.11))
+		"parede": return _mat("reboco", 0.3, tinta, true)
+		"tijolo": return _mat("tijolo", 0.4, Color(0.8, 0.74, 0.7), true)
+		"madeira": return _mat("madeira", 0.35, tinta * 0.9, true)
+		"tabua": return _mat("madeira", 0.5, Color(0.6, 0.5, 0.4), true)
+		"telhado": return _mat("telhado", 0.5, Color(0.7, 0.68, 0.66), true)
+		"queimado": return _mat("concreto", 0.4, Color(0.14, 0.12, 0.11), true)
 		"metal": return _cor(Color(0.3, 0.29, 0.27), 0.6)
-		"pano": return _mat("reboco", 0.8, Color(0.4, 0.36, 0.33))  # estofado sujo
+		"pano": return _mat("reboco", 0.8, Color(0.4, 0.36, 0.33), true)  # estofado sujo
 		"branco": return _cor(Color(0.7, 0.69, 0.64), 0.5)
 		"papelao": return _cor(Color(0.5, 0.4, 0.28))
 		"vidro": return _cor(Color(0.05, 0.06, 0.07), 0.15)
 		"pneu": return _cor(Color(0.04, 0.04, 0.04))
-		"ferrugem": return _mat("concreto", 0.6, Color(0.5, 0.28, 0.14))
-	return _mat("concreto", 0.4, Color(0.7, 0.68, 0.64))
+		"ferrugem": return _mat("concreto", 0.6, Color(0.5, 0.28, 0.14), true)
+	return _mat("concreto", 0.4, Color(0.7, 0.68, 0.64), true)
 
 func _coisas_da_faccao(no: Node3D, cantos: Array, c: Vector2) -> void:
 	var pega := func(k: int) -> Vector3: return _v3(cantos[k % cantos.size()].lerp(c, 0.15 * (k / cantos.size())))
@@ -943,8 +947,9 @@ func _plano(pai: Node3D, p: Vector3, tam: Vector2, m: Material) -> void:
 
 
 # material com textura realista (cor + relevo) projetada pelo mundo: emenda sozinha entre peças
-func _mat(nome: String, escala: float, tinta: Color = Color(0.82, 0.8, 0.76)) -> Material:
-	var chave: String = "%s_%s_%s" % [nome, escala, tinta]
+## sombra = usa a sombra de canto assada nas cores dos vértices (ruínas do Blender)
+func _mat(nome: String, escala: float, tinta: Color = Color(0.82, 0.8, 0.76), sombra: bool = false) -> Material:
+	var chave: String = "%s_%s_%s_%s" % [nome, escala, tinta, sombra]
 	if not _mats.has(chave):
 		var m := StandardMaterial3D.new()
 		m.albedo_texture = load(TEX % [nome, "cor"])
@@ -955,6 +960,7 @@ func _mat(nome: String, escala: float, tinta: Color = Color(0.82, 0.8, 0.76)) ->
 		m.uv1_world_triplanar = true
 		m.uv1_scale = Vector3.ONE * escala
 		m.roughness = 0.95
+		m.vertex_color_use_as_albedo = sombra
 		_mats[chave] = m
 	return _mats[chave]
 
