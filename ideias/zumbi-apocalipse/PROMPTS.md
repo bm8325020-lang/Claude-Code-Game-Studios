@@ -374,6 +374,8 @@ APK 0.69 (31/10): telhados ligados — escada de incêndio no fundo das lojas e 
 (zumbi não passa na tábua). Item cidade do plano concluído.
 APK 0.70 (31/10): rastros de sobreviventes — 6 refúgios com barricada de entulho e arame farpado (corta e prende),
 pichações nas fachadas, 12 bilhetes no chão (alguns com dica).
+APK 0.71 (31/10): fogo de verdade (chama animada, luz tremendo, fumaça, faíscas, queima quem entra); casas queimadas
+ainda ardendo com coluna de fumaça que se vê de longe.
 Falta: dividir o peso do mundo com quem entra (cada celular cuida dos zumbis perto dele), dificuldade, progressão,
 raids (delegacia, bunker).
 

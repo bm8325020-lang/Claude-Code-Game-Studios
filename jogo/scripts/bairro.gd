@@ -95,6 +95,14 @@ func _ready() -> void:
 		_fresta(Vector2(f.a[0], f.a[1]), Vector2(f.b[0], f.b[1]), float(f.larg))
 	_borda()
 	_tabuas_telhado()
+	for casa: Node in get_children():  # casa queimada ainda arde por dentro: coluna de fumaça que se vê de longe
+		if casa.get_meta("modelo", "") in ["casa_r4", "casa_r6"] and hash(String(casa.name)) % 2 == 0:
+			var f := Fogo.new()
+			f.tamanho = 1.2
+			f.coluna = true
+			var c2: Vector2 = _centro(casa.get_meta("poly"))
+			f.position = Vector3(c2.x + 1.0, 0.06, c2.y)
+			add_child(f)
 	var sobr := Sobreviventes.new()
 	sobr.name = "Sobreviventes"
 	add_child(sobr)
@@ -957,35 +965,10 @@ func _hidrantes_e_fogo() -> void:
 		if feitos % 3 == 0:  # barril com fogo
 			var q: Vector2 = p + d * 3.0
 			_cilindro(self, Vector3(q.x, 0.45, q.y), 0.3, 0.9, _cor(Color(0.25, 0.18, 0.12), 0.5))
-			var luz := OmniLight3D.new()
-			luz.light_color = Color(1.0, 0.55, 0.25)
-			luz.light_energy = 1.6
-			luz.omni_range = 7.0
-			luz.position = Vector3(q.x, 1.3, q.y)
-			add_child(luz)
-			var chama := MeshInstance3D.new()
-			var cm := SphereMesh.new()
-			cm.radius = 0.25
-			cm.height = 0.6
-			chama.mesh = cm
-			var mf := StandardMaterial3D.new()
-			mf.emission_enabled = true
-			mf.emission = Color(1.0, 0.45, 0.1)
-			mf.emission_energy_multiplier = 3.0
-			mf.albedo_color = Color(1.0, 0.5, 0.1)
-			chama.material_override = mf
-			chama.position = Vector3(q.x, 1.05, q.y)
-			add_child(chama)
-			if not Rede.servidor_sem_tela:  # crepitar do fogo
-				var crepita := AudioStreamPlayer3D.new()
-				var fogo: AudioStreamOggVorbis = (load("res://assets/sons/amb/fogo.ogg") as AudioStreamOggVorbis).duplicate()
-				fogo.loop = true
-				crepita.stream = fogo
-				crepita.unit_size = 3.0
-				crepita.max_distance = 18.0
-				crepita.autoplay = true
-				crepita.position = Vector3(q.x, 0.9, q.y)
-				add_child(crepita)
+			var fogo := Fogo.new()  # chama, luz tremendo, fumaça, faíscas e crepitar
+			fogo.tamanho = 0.3
+			fogo.position = Vector3(q.x, 0.9, q.y)
+			add_child(fogo)
 
 
 func _mancha(no: Node3D, p: Vector3) -> void:

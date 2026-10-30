@@ -61,6 +61,9 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   Zumbi: `armado` (TIRO_*: para, mira `_mira_e_atira`, rpc `_tiro_fx`, pistola na mão `_poe_arma`, chega devagar),
   `de_raid` (MORTO_RAID 15 min), `tipo_pedido`. HUD `_avisa_raid`. `Bairro._espalhados(n, larg)` espalha zumbis/carros/
   barricadas pelo comprimento das ruas. Teste: test_raid (8).
+- `fogo.gd` (Fogo; 31/10): `tamanho`, `coluna` (fumaça alta, de longe); chama em shader (CHAMA: ruído subindo), luz que
+  treme, fumaça/faíscas CPUParticles, crepitar, Area de dano (DANO a cada DANO_A_CADA). Nos barris e em casas queimadas
+  (Bairro). Teste: test_fogo (3). Foto: tools/foto_fogo.gd.
 - `sobreviventes.gd` (Sobreviventes, filho do Bairro; 31/10): refúgios (N_REFUGIOS casas com `barricada_sobr` do Blender
   na frente + `Arame` que corta/prende), pichações (Label3D nas fachadas, PICHACOES), bilhetes (grupo "bilhetes", meta
   texto; controles `_le_bilhete` mostra na faixa). Teste: test_sobreviventes (5).
