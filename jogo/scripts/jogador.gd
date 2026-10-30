@@ -1135,9 +1135,15 @@ func _escolhe_cima() -> String:
 		return "pistola_recarga"
 	if _tiro_t < maxf(0.18, COICE_DURA):
 		return "pistola_tiro"
-	if olha_camera():
+	# como na maioria dos jogos: arma baixa e relaxada andando/parado (o clipe "_p" da locomoção); braços
+	# esticados apontando só mirando ou logo depois de atirar
+	if mira_travada or entrada.get("mira_segurando", false) or _tiro_t < MIRA_DEPOIS_TIRO:
 		return "pistola_mira"
 	return ""
+
+
+## Segundos com a arma apontada depois do último tiro (depois volta para a guarda baixa).
+const MIRA_DEPOIS_TIRO: float = 1.2
 
 
 func _process(dt: float) -> void:
