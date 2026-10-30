@@ -10,7 +10,7 @@ const PORTA: int = 7777
 const PORTA_ANUNCIO: int = 7778
 const PORTA_PERGUNTA: int = 7779
 const PORTA_WS: int = 7861  # servidor online: o site (porta 7860) repassa /jogo para cá
-const MAX_JOGADORES: int = 30
+const MAX_JOGADORES: int = 40
 ## Sobe quando o que vai pela rede muda: jogo e servidor precisam ter o mesmo número para jogar juntos.
 const VERSAO: int = 23
 ## Lista de servidores online (o servidor na nuvem se atualiza pela mesma branch).
