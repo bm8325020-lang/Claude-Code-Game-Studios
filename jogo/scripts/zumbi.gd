@@ -22,17 +22,17 @@ class_name Zumbi
 extends CharacterBody3D
 
 const VIDA_MAX: int = 150  # dono: zumbis estavam fracos (era 100)
-const VISAO: float = 18.0          # m: vê o jogador a essa distância (se nada tapa)
-const OUVE: float = 5.0            # m: percebe mesmo sem ver (passos, barulho)
-const DESISTE: float = 28.0        # m: perde o alvo
-const ANDAR: float = 1.0           # m/s: alvo longe
-const CORRER: float = 2.6          # m/s: alvo a menos de PERTO
-const PERTO: float = 10.0
+const VISAO: float = 30.0          # m: vê o jogador a essa distância (se nada tapa)
+const OUVE: float = 9.0            # m: percebe mesmo sem ver (passos, barulho)
+const DESISTE: float = 50.0        # m: perde o alvo
+const ANDAR: float = 1.4           # m/s: alvo longe
+const CORRER: float = 4.6          # m/s: alvo a menos de PERTO
+const PERTO: float = 22.0
 const ALCANCE: float = 1.35        # m: começa o ataque
 const ALCANCE_ACERTO: float = 1.8  # m: o soco ainda pega se o alvo estiver até aqui na hora
-const DANO: int = 22  # era 15
+const DANO: int = 28  # era 22 (dono 30/10: muito fácil)
 const ACERTO: float = 0.45         # fração do clipe de ataque em que o soco pega
-const CAMBALEIO: float = 0.45      # s parado depois de levar golpe
+const CAMBALEIO: float = 0.25      # s parado depois de levar golpe
 const MORTO_POR: float = 8.0       # s até levantar de novo
 const GIRO: float = 7.0
 const GRAVIDADE: float = 24.0
@@ -49,9 +49,9 @@ const NOITE_OUVE: float = 2.0        # e ouve mais longe (as notas: "à noite fi
 const EMBOSCA: float = 4.0          # m: alguém passando assim perto acorda o zumbi deitado
 const ACORDA_BARULHO: float = 10.0  # m: tiro até essa distância acorda o deitado
 const VEL_LEVANTAR: float = 1.3
-const ZIGUE: float = 2.2          # m/s de desvio para o lado quando alguém mira nele
+const ZIGUE: float = 0.0  # m/s de desvio quando alguém mira nele; dono 30/10: desviar era "criança" (era 2.2)
 const ZIGUE_LONGE: float = 4.0     # m: mais perto que isso não desvia, ataca
-const FOGE_VIDA: int = 25
+const FOGE_VIDA: int = 0  # dono 30/10: zumbi fugindo/escondendo era "criança"; 0 = nunca foge
 const FOGE_POR: float = 4.0
 const ESCONDE_POR: float = 8.0     # com cobertura: fica escondido esse tempo (espiando) antes de voltar
 const ABRIGO_RAIOS: Array[float] = [3.0, 5.0, 7.0, 9.0]
@@ -69,9 +69,9 @@ const DANO_CHEFE: int = 55  # era 35
 ## Corredora: rápida e frágil, dá um BOTE de longe. Policial: médio, o soco AGARRA (deixa o jogador lento).
 ## Soldado: lento e duro, BLINDADO (leva menos dano e não cambaleia com golpe fraco).
 const TIPOS: Dictionary = {
-	"zumbi_mulher": {"nome": "Corredora", "vida": 100, "dano": 16, "vel": 1.3, "andar": "andar_rapido", "correr": "correr_rapido", "skill": "bote"},
+	"zumbi_mulher": {"nome": "Corredora", "vida": 110, "dano": 20, "vel": 1.45, "andar": "andar_rapido", "correr": "correr_rapido", "skill": "bote"},
 	"zumbi_policial": {"nome": "Policial", "vida": VIDA_MAX, "dano": DANO, "vel": 1.0, "andar": "andar", "correr": "correr", "skill": "agarrao"},
-	"zumbi_soldado": {"nome": "Soldado", "vida": 260, "dano": 30, "vel": 0.65, "andar": "andar_lento", "correr": "correr_lento", "skill": "blindado"},
+	"zumbi_soldado": {"nome": "Soldado", "vida": 300, "dano": 38, "vel": 0.75, "andar": "andar_lento", "correr": "correr_lento", "skill": "blindado"},
 }
 const BOTE_DE: float = 3.0          # m: distância mínima e máxima para o bote
 const BOTE_ATE: float = 6.5
@@ -366,7 +366,7 @@ func _physics_process(dt: float) -> void:
 					destino = lado
 			desejada = _caminho(destino, (CORRER if d.length() < PERTO else ANDAR) * (0.8 if chefe else _vel) * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
 			# mirando nele de longe: desvia para os lados (troca de lado a cada ~0,7 s, sem ritmo fixo)
-			if d.length() > ZIGUE_LONGE and alvo.mirando_em(global_position, 12.0):
+			if ZIGUE > 0.0 and d.length() > ZIGUE_LONGE and alvo.mirando_em(global_position, 12.0):
 				_zigue_t += dt * randf_range(0.8, 1.2)
 				var lado := Vector3(d.z, 0, -d.x).normalized()
 				desejada += lado * ZIGUE * signf(sin(_zigue_t * 4.5))
@@ -403,7 +403,7 @@ func _physics_process(dt: float) -> void:
 		_vira_para(porta.centro() - global_position, dt * 2.0)
 		_porta_alvo = porta
 		_ataca()
-	var plano := Vector3(velocity.x, 0, velocity.z).move_toward(desejada, 12.0 * dt)
+	var plano := Vector3(velocity.x, 0, velocity.z).move_toward(desejada, 18.0 * dt)
 	velocity.x = plano.x
 	velocity.z = plano.z
 	move_and_slide()

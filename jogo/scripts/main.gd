@@ -17,6 +17,7 @@ var spawner_zumbis: MultiplayerSpawner
 var navegacao: NavigationRegion3D
 var ciclo: Ciclo
 ## Onde os zumbis nascem (e levantam depois de mortos).
+const BANDO: int = 2  # zumbis por ponto de zumbi do bairro (provisório)
 const PONTOS_ZUMBI: Array[Vector3] = [Vector3(-6, 0, 22), Vector3(0, 0, 26), Vector3(6, 0, 22), Vector3(24, 0, 0)]
 ## zumbis de tocaia: deitados ao lado do carro e no corredor entre os muros
 const PONTOS_TOCAIA: Array[Vector3] = [Vector3(3.2, 0, 9.5), Vector3(13.5, 0, 9)]
@@ -698,8 +699,9 @@ func _poe_zumbis() -> void:
 	nav_b.navigation_mesh = mb
 	add_child(nav_b)
 	nav_b.bake_navigation_mesh(false)
-	for p: Vector3 in bairro.pontos_zumbi:
-		spawner_zumbis.spawn({"pos": p + Vector3(0, 0.1, 0)})
+	for p: Vector3 in bairro.pontos_zumbi:  # em bando de BANDO (dono 30/10: muito fácil)
+		for k: int in BANDO:
+			spawner_zumbis.spawn({"pos": p + Vector3(k * 1.3, 0.1, k * 0.7)})
 	for p: Vector3 in PONTOS_ZUMBI:
 		spawner_zumbis.spawn({"pos": p})
 	for p: Vector3 in PONTOS_TOCAIA:

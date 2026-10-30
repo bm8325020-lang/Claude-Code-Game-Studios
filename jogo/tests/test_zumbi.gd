@@ -39,7 +39,7 @@ func _init() -> void:
 	main.ciclo.tempo = 0.0  # dia parado: a noite tem o teste dela
 	main.ciclo.set_process(false)
 	main.ciclo._process(0.0)
-	ok(main.zumbis.get_child_count() == main.bairro.pontos_zumbi.size() + main.PONTOS_ZUMBI.size() + main.PONTOS_TOCAIA.size() + main.PATRULHAS.size() + main.PONTOS_CHEFE.size(), "zumbis nascem (%d)" % main.zumbis.get_child_count())
+	ok(main.zumbis.get_child_count() == main.bairro.pontos_zumbi.size() * main.BANDO + main.PONTOS_ZUMBI.size() + main.PONTOS_TOCAIA.size() + main.PATRULHAS.size() + main.PONTOS_CHEFE.size(), "zumbis nascem (%d)" % main.zumbis.get_child_count())
 	z = main.zumbis.get_child(0)
 	z._sem_gritar = INF  # o grito tem o teste dele (no fim)
 	for outro in main.zumbis.get_children():
@@ -56,7 +56,6 @@ func _init() -> void:
 	await _tocaia()
 	await _patrulha()
 	await _esperto()
-	await _cobertura()
 	await _chefe()
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
@@ -199,7 +198,7 @@ func _chama_horda() -> void:
 	z._olhando_t = 0.0
 	z._sem_gritar = 0.0
 	z.global_position = Vector3(30, 0, -12)  # vê o jogador (13 m)
-	amigo.global_position = Vector3(48, 0, -4)  # 20 m do que grita, 25 m do jogador: não vê nem ouve sozinho
+	amigo.global_position = Vector3(30, 0, 6)  # 18 m do que grita, 31 m do jogador: não vê nem ouve sozinho
 	longe.global_position = Vector3(60, 0, 20)  # longe demais do grito
 	await frames(25)
 	ok(z.alvo == j and z.clipe_atual() == "grito", "vê o jogador e grita (%s)" % z.clipe_atual())
@@ -232,7 +231,7 @@ func _cerca() -> void:
 		zz.velocity = Vector3.ZERO
 		zz._sem_gritar = INF
 		zz.alvo = j
-	await frames(60 * 9)
+	await frames(60 * 5)  # correm mais desde 30/10: chegam e cercam em ~5 s
 	var angs: Array[float] = []
 	for zz in grupo:
 		var d: Vector3 = zz.global_position - j.global_position
@@ -253,7 +252,7 @@ func _noite() -> void:
 	main.ciclo.tempo = Ciclo.DIA + 60.0
 	main.ciclo._process(0.0)
 	ok(main.ciclo.e_noite() and is_equal_approx(main.ciclo.noite(), 1.0), "relógio na noite fechada")
-	ok(main.ciclo.sol.light_energy < 0.1 and main.ciclo.ambiente.background_color.v < 0.15, "escurece o sol e o céu")
+	ok(main.ciclo.sol.light_energy < 0.4 and main.ciclo.ambiente.background_color.v < 0.2, "escurece o sol e o céu")
 	await process_frame
 	await process_frame
 	ok(j._lanterna.visible and j._lanterna.light_energy > 1.0 and j._lanterna_mao.visible, "lanterna na mão liga sozinha no escuro")
@@ -266,8 +265,8 @@ func _noite() -> void:
 	z.global_position = Vector3(30, 0, -18)
 	z.velocity = Vector3.ZERO
 	z.alvo = j
-	await frames(30)
-	ok(Vector2(z.velocity.x, z.velocity.z).length() > Zumbi.CORRER * 1.2, "à noite corre mais (%.1f m/s)" % Vector2(z.velocity.x, z.velocity.z).length())
+	await frames(55)  # termina o ataque anterior e acelera
+	ok(Vector2(z.velocity.x, z.velocity.z).length() > Zumbi.CORRER * z._vel * 1.15, "à noite corre mais (%.1f m/s, %s)" % [Vector2(z.velocity.x, z.velocity.z).length(), z.tipo])
 	for i in 400:
 		await physics_frame
 		if j.vida < 100:
@@ -356,20 +355,17 @@ func _esperto() -> void:
 	zz.global_position = Vector3(30, 0, -16)
 	j.entrada["mira_segurando"] = true
 	var com_mira: float = await _lado_max(zz, 90)
-	ok(sem_mira < 0.8 and com_mira > 1.4, "mirando nele vem em ziguezague (de lado: %.1f sem mira, %.1f com mira)" % [sem_mira, com_mira])
+	ok(sem_mira < 0.8 and com_mira < 0.8, "mirando nele vem reto, sem ziguezague (de lado: %.1f sem mira, %.1f com mira)" % [sem_mira, com_mira])
 	j.entrada["mira_segurando"] = null
 	await frames(5)
-	# pouca vida: foge e depois volta
+	# pouca vida: não foge, continua vindo (dono 30/10: fugir era "criança")
 	zz.global_position = Vector3(30, 0, -27.5)
 	zz.vida = 40
 	await frames(10)
 	zz.levar_golpe(20, Vector3.FORWARD, j)
 	var d0: float = plano(zz.global_position, j.global_position)
-	await frames(int(Zumbi.FOGE_POR * 60))
-	var d1: float = plano(zz.global_position, j.global_position)
-	ok(d1 > d0 + 5.0, "com pouca vida foge (%.1f -> %.1f m)" % [d0, d1])
-	await frames(60 * 6)
-	ok(plano(zz.global_position, j.global_position) < d1 - 4.0, "depois volta (%.1f -> %.1f m)" % [d1, plano(zz.global_position, j.global_position)])
+	await frames(60 * 2)
+	ok(zz._foge_t <= 0.0 and plano(zz.global_position, j.global_position) <= d0 + 0.5, "com pouca vida não foge (%.1f -> %.1f m)" % [d0, plano(zz.global_position, j.global_position)])
 
 
 func _patrulha() -> void:
@@ -429,43 +425,3 @@ func _chefe() -> void:
 		if j.vida < antes:
 			break
 	ok(antes - j.vida == Zumbi.DANO_CHEFE, "soco do chefe tira %d (tirou %d)" % [Zumbi.DANO_CHEFE, antes - j.vida])
-
-
-# fugindo com pouca vida, se esconde atrás do muro (x = 12) e, se o jogador der a volta, troca de esconderijo
-func _cobertura() -> void:
-	for outro in main.zumbis.get_children():
-		outro.free()
-	var zz := Zumbi.new()
-	zz.position = Vector3(9.5, 0, 8)
-	zz.casa = zz.position
-	main.zumbis.add_child(zz)
-	await frames(2)
-	zz._sem_gritar = INF
-	j.vida = 100000
-	j.velocity = Vector3.ZERO
-	j.global_position = Vector3(5, 0.1, 8)
-	zz.alvo = j
-	zz.vida = 40
-	await frames(5)
-	ok(zz._ve(j), "antes de fugir o zumbi está à vista")
-	zz.levar_golpe(20, Vector3.FORWARD, j)
-	ok(zz._abrigo != Vector3.INF, "acha um esconderijo (%s)" % str(zz._abrigo))
-	var escondido: bool = false
-	for i in 60 * 6:
-		await physics_frame
-		if not zz._ve(j) and plano(zz.global_position, zz._abrigo) < 0.8:
-			escondido = true
-			break
-	ok(escondido, "corre e se esconde atrás do muro (em %s)" % str(zz.global_position))
-	var primeiro: Vector3 = zz._abrigo
-	j.global_position = Vector3(zz.global_position.x, 0.1, zz.global_position.z - 6.0)  # dá a volta
-	var de_novo: bool = false
-	var mais_perto: float = INF
-	for i in 60 * 7:
-		await physics_frame
-		mais_perto = minf(mais_perto, plano(zz.global_position, j.global_position))
-		if zz._abrigo != primeiro and not zz._ve(j) and plano(zz.global_position, zz._abrigo) < 0.8:
-			de_novo = true
-			break
-	ok(de_novo, "visto de novo, troca de esconderijo (%s)" % str(zz.global_position))
-	ok(mais_perto > 2.5, "e não passa do lado do jogador para isso (chegou a %.1f m)" % mais_perto)

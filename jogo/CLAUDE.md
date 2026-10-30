@@ -33,17 +33,17 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `main.gd` — pista de teste (blocos, rampas, túnel, prédio, casinha com `Porta_0`, carro), bonecos de treino, itens
   (`Item_0..3` munição, `Item_casa`, `Item_comida_k`/`Item_agua_k`), `PONTOS_ZUMBI`, `PONTOS_TOCAIA`, `PATRULHAS`, `PONTOS_CHEFE`, spawners
   (jogadores e zumbis), malha de navegação (grupo "cenario", raio 0.35), `iniciar_solo/criar_partida/entrar_partida/iniciar_servidor`.
-- `bairro.gd` (Bairro) — cidade real do OpenStreetMap (centro de Monroeville, AL; `assets/mapa/monroeville.json`, gerado
-  por `tools/mapa/osm_para_json.py` do XML da API OSM 0.6; ORIGEM (0,0,-300), TAMANHO 500: termina em z -50, longe da pista). Prédio = paredes pelo contorno
-  real, porta no lado da rua (`Porta_<nome>` em 2 de 3), janelas com moldura e vidro (1/4 quebradas, 1/3 com tábuas),
-  parede interna com vão (`_divisoria`, área > 90 m²), forro/laje vistos de baixo, telhado de 4 águas nas casas. `_eh_casa`:
-  "house" ou "yes" < 260 m²; o resto é loja (prateleiras). Casas = modelos do Sketchfab com cômodos (`CASAS_MODELO`,
-  `_casa_modelo`: frente = lado da calçada do lote, portas internas tiradas, a da frente vira Porta com `largura` do vão,
-  texturas gastas em `_gasto`); não cabe -> casa em código. `MARCOS`: escaneados (fotogrametria) no lugar das maiores
-  lojas (`_marco`, frente +Z, cm -> m, `AFUNDA`). Créditos em `assets/sketchfab/cidade/CREDITOS.txt`. Detalhe pequeno
-  some a `Config.qualidade().detalhe`. As 3 maiores casas = `Mansao_k` (meta "dominavel", BauFac, Cama,
-  BancadaFac, LojaFac). Texturas Poly Haven CC0 em `assets/texturas` (`_mat`, triplanar). Rua: carros (queimados),
-  barricadas do exército (`_barricadas`), árvores secas, hidrantes, barris com fogo.
+- `bairro.gd` (Bairro) — cidade do OpenStreetMap (centro de Monroeville, AL; `assets/mapa/monroeville.json`, gerado
+  por `tools/mapa/osm_para_json.py`; ORIGEM (0,0,-300), TAMANHO 500: termina em z -50, longe da pista). Cada lote recebe
+  uma RUÍNA modelada no Blender (30/10, pedido do dono): `tools/blender/ruinas.py` gera `assets/ruinas/*.glb`
+  (casa_r1..r6: telhado caído, queimada, 2 andares com escada; loja_r1/r2: vitrine, gôndolas; predio_r1: canto
+  desabado; móveis dentro). Rodar: `~/.local/blender/blender-4.2.9-linux-x64/blender -b -P tools/blender/ruinas.py --
+  assets/ruinas` e depois `$G --headless --path . --import`; foto: `tools/blender/foto_ruinas.py -- assets/ruinas dir`.
+  Colisão vem do glb (nome "-col"/"-colonly": sem parede invisível). `_ruina` escolhe pelo nome entre `RUINAS_CASA/
+  LOJA/MANSAO` que cabem e não encostam na rua (senão lote vazio; mansão cai na casa em código `_construcao`),
+  `_poe_ruina` (Porta no Empty "porta"), `_mat_ruina` (nome do material do Blender -> textura). As 3 maiores casas =
+  `Mansao_k` (meta "dominavel", BauFac, Cama, BancadaFac, LojaFac). Texturas Poly Haven CC0 em `assets/texturas`
+  (`_mat`, triplanar). Rua: carros (queimados), barricadas (`_barricadas`), árvores secas, hidrantes, barris com fogo.
   API: `pontos_zumbi`, `pontos_nascer`, `casa_em`, `dominavel`, `bau_da`, `frente_da`, `dentro_da`; malha própria em
   `_poe_zumbis` (célula 0.25, raio 0.25 para passar na porta). Nascer (11): `pontos_bons/ruins`, `Bairro.sorteia`,
   `main.ponto_nascer(nick)`. Testes: test_bairro (4), test_nascer (5). Fotos: tools/foto_bairro.gd.
@@ -53,7 +53,7 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   facão (`GOLPES`, `_inicia_golpe`, `_acerta`), overlay de braços (`_escolhe_cima`, `_aplica_cima`, `_aponta_tronco`),
   `_toca` (variante `_p` com pistola), lanterna na mão esquerda, `olha_camera`, `mirando_em`, sinais `dano_levado`,
   `item_pego`, `acertou_alvo`. Osso da mão: `MAO`, tronco: `TRONCO` (Mixamo).
-- `zumbi.gd` (Zumbi) — servidor decide. Estados: alvo (ver 18 m/ouvir 5 m), ataque, cambaleio, grito/horda (22 m),
+- `zumbi.gd` (Zumbi) — servidor decide. Estados: alvo (ver 30 m/ouvir 9 m; 30/10: corre 4,6 m/s, não foge nem desvia, `main.BANDO` por ponto), ataque, cambaleio, grito/horda (22 m),
   ouvir tiro (`Zumbi.barulho`), procurar/voltar, cerco (`_calcula_cerco`), tocaia (`_deita/_acorda`), porta
   (`_porta_na_frente`), ziguezague/fuga, noite (`Ciclo.forca_noite`), patrulha (`rota`), cobertura (`_acha_abrigo`, `_custo_caminho`), chefe (`chefe`, `VIDA_CHEFE`, `DANO_CHEFE`). Camada 8.
 - `anims.gd` — `CLIPES` (jogador) e `CLIPES_ZUMBI`: nome lógico → [arquivo, ini, fim]; "kaykit:" (retarget),

@@ -1478,8 +1478,8 @@ func _monta_lanterna() -> void:
 	_lanterna_mao.add_child(_ponta)
 	_lanterna = SpotLight3D.new()
 	_lanterna.light_color = Color(1.0, 0.93, 0.8)
-	_lanterna.spot_range = 24.0
-	_lanterna.spot_angle = 24.0
+	_lanterna.spot_range = 32.0
+	_lanterna.spot_angle = 34.0
 	_lanterna.spot_attenuation = 0.8
 	_lanterna.light_energy = 0.0
 	add_child(_lanterna)
@@ -1508,7 +1508,7 @@ func _atualiza_lanterna() -> void:
 	_lanterna_mao.visible = tem_lanterna
 	var c := get_tree().get_first_node_in_group("ciclo") as Ciclo
 	var forca: float = clampf(c.noite() * 1.5 - 0.2, 0.0, 1.0) if c and tem_lanterna and vida > 0 else 0.0
-	_lanterna.light_energy = 3.0 * forca
+	_lanterna.light_energy = 4.5 * forca
 	_lanterna.visible = forca > 0.0
 	_lente_mat.emission_energy_multiplier = 3.0 * forca
 	if forca > 0.0:

@@ -1,10 +1,10 @@
 # Cidade do mapa: o centro de Monroeville (Alabama, EUA — cidadezinha do sul com a praça do fórum), com ruas e prédios reais do
 # OpenStreetMap (© OpenStreetMap contributors, ODbL; convertido por tools/mapa/osm_para_json.py para
-# assets/mapa/monroeville.json). Cada construção sobe no formato real com textura realista (Poly Haven, CC0): casas de madeira,
-# reboco ou tijolo com telhado, lojas de tijolo com teto plano; porta virada para a rua mais perto, janelas (algumas
-# tapadas), lado de dentro com móveis de um de quatro jeitos. As 3 maiores casas são as MANSÕES (só elas dominadas por
-# facção: baú, cama, bancada e loja da facção). Rua: asfalto e calçada pelo traçado real, carros largados (alguns
-# queimados), árvores mortas, hidrantes, barris com fogo. Tudo determinístico (mesmos nomes em todos os aparelhos).
+# assets/mapa/monroeville.json). Cada lote recebe uma ruína do fim do mundo modelada no Blender (tools/blender/ruinas.py:
+# casas com telhado caído, queimadas, de dois andares, lojas e prédio desabado), virada para a rua; a colisão vem do
+# próprio modelo (sem parede invisível). As 3 maiores casas são as MANSÕES (só elas dominadas por facção: baú, cama,
+# bancada e loja da facção). Rua: asfalto e calçada pelo traçado real, carros largados (alguns queimados), árvores
+# mortas, hidrantes, barris com fogo. Tudo determinístico (mesmos nomes em todos os aparelhos).
 class_name Bairro
 extends Node3D
 
@@ -13,12 +13,11 @@ const TAMANHO: float = 500.0          # lado da área usada (o resto do recorte 
 const PAREDE: float = 3.0             # pé-direito de um andar
 const MAPA: String = "res://assets/mapa/monroeville.json"
 const TEX: String = "res://assets/texturas/%s_%s.jpg"
-const MODELOS := "res://assets/sketchfab/cidade/%s.glb"
-## Construções escaneadas (fotogrametria): uma de cada, no lugar de uma loja grande
-const MARCOS: Array[String] = ["scan_casarao", "scan_galpao", "scan_galpao_pichado", "predio_velho", "posto_velho"]
-const MARCOS_ABERTOS: Array[String] = ["scan_galpao_pichado"]
-const AFUNDA: Dictionary = {"scan_casarao": 4.5}  # o escaneado vem com um bloco de terreno embaixo
-const CASAS_MODELO: Array[String] = ["casa_fleetwood", "casa_glenwood", "casa_mayflower", "casa_mayflower2"]
+## Ruínas modeladas no Blender (tools/blender/ruinas.py), do maior para o menor
+const RUINAS := "res://assets/ruinas/%s.glb"
+const RUINAS_CASA: Array[String] = ["casa_r5", "casa_r2", "casa_r4", "casa_r1", "casa_r3", "casa_r6"]
+const RUINAS_MANSAO: Array[String] = ["casa_r5", "casa_r2", "casa_r3"]
+const RUINAS_LOJA: Array[String] = ["predio_r1", "loja_r2", "loja_r1"]
 const LARG_RUA: Dictionary = {"primary": 10.0, "secondary": 9.0, "tertiary": 8.0, "residential": 6.5, "unclassified": 6.0, "service": 4.0}
 
 var pontos_zumbi: Array[Vector3] = []
@@ -32,8 +31,7 @@ const CHANCE_BOM: float = 0.75
 var _rng := RandomNumberGenerator.new()
 var _mats: Dictionary = {}
 var _ruas: Array = []      # [[a, b, largura]] em coordenadas locais (x, z)
-var _infos: Dictionary = {}  # modelo -> _info_modelo
-var _formas: Dictionary = {}  # Mesh -> Shape3D (colisão dividida)
+var _infos: Dictionary = {}  # ruína -> tamanho no chão
 var _poligonos: Array = [] # polígonos (PackedVector2Array) de todas as construções, para não pôr nada dentro
 
 
@@ -50,28 +48,15 @@ func _ready() -> void:
 	var casas: Array = predios.filter(_eh_casa)
 	casas.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return absf(_area(_poly(a.p))) > absf(_area(_poly(b.p))))
 	var mansoes: Array = casas.slice(0, 3)
-	# as construções escaneadas ficam no lugar das maiores lojas onde cabem
-	var lojas: Array = predios.filter(func(p: Dictionary) -> bool: return not _eh_casa(p))
-	lojas.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return absf(_area(_poly(a.p))) > absf(_area(_poly(b.p))))
-	var marcos: Array = []
-	for arq: String in MARCOS:
-		for p: Dictionary in lojas:
-			if p not in marcos and _marco(_poly(p.p), "Marco_%d" % marcos.size(), arq):
-				marcos.append(p)
-				_poligonos.append(_poly(p.p))
-				break
 	var n_casa: int = 0
 	var n_mansao: int = 0
 	for p: Dictionary in predios:
-		if p in marcos:
-			continue
 		var poly := _poly(p.p)
 		_poligonos.append(poly)
 		if p in mansoes:
 			_construcao(poly, "Mansao_%d" % n_mansao, p, true)
 			n_mansao += 1
-		else:
-			_construcao(poly, "Casa_%d" % n_casa, p, false)
+		elif _construcao(poly, "Casa_%d" % n_casa, p, false):
 			n_casa += 1
 	_carros()
 	_barricadas()
@@ -136,10 +121,13 @@ func _eh_casa(p: Dictionary) -> bool:
 	return p.tipo in ["house", "residential", "detached"] or (p.tipo == "yes" and absf(_area(_poly(p.p))) < 260.0)
 
 # paredes pelo contorno real (porta no lado de frente para a rua), janelas, piso, telhado; dentro, móveis e loot
-func _construcao(poly: PackedVector2Array, nome: String, dados: Dictionary, mansao: bool) -> void:
+## Ruína do Blender no lote; mansão que não cabe sobe em código (as 3 têm que existir). false = lote vazio.
+func _construcao(poly: PackedVector2Array, nome: String, dados: Dictionary, mansao: bool) -> bool:
 	var loja: bool = not mansao and not _eh_casa(dados)
-	if not loja and not mansao and _casa_modelo(poly, nome):
-		return
+	if _ruina(poly, nome, RUINAS_MANSAO if mansao else (RUINAS_LOJA if loja else RUINAS_CASA), mansao, loja):
+		return true
+	if not mansao:
+		return false
 	var andares: int = int(dados.andares) if dados.andares > 0 else (2 if loja and absf(_area(poly)) > 150.0 else 1)
 	if dados.tipo == "church":
 		andares = 3
@@ -180,6 +168,7 @@ func _construcao(poly: PackedVector2Array, nome: String, dados: Dictionary, mans
 	if absf(_area(poly)) > 90.0:
 		_divisoria(no, poly, c, porta_i, alt if loja else PAREDE, parede)
 	_recheio(no, poly, porta_i, mansao, loja)
+	return true
 
 
 # frente (onde nasce quem chega), móveis, baú e item; nas mansões, as coisas da facção
@@ -202,7 +191,8 @@ func _recheio(no: Node3D, poly: PackedVector2Array, porta_i: int, mansao: bool, 
 	if mansao:
 		_coisas_da_faccao(no, cantos, c)
 	else:
-		_moveis(no, cantos, c, loja)
+		if not no.has_meta("modelo"):  # a ruína do Blender já vem mobiliada
+			_moveis(no, cantos, c, loja)
 		var k: int = int(nome.trim_prefix("Casa_"))
 		if k % 2 == 0:
 			var bau := Bau.new()
@@ -221,182 +211,86 @@ func _recheio(no: Node3D, poly: PackedVector2Array, porta_i: int, mansao: bool, 
 ## Casa de verdade (modelo do Sketchfab com cômodos), virada com a porta para a rua no lugar do contorno do OSM.
 ## Colisão = malhas do modelo (menos vidro e portas); portas internas tiradas; a da frente vira Porta (2 de 3) ou
 ## fica arrombada. Não cabe (encosta na rua) -> false e a casa é feita em código.
-func _casa_modelo(poly: PackedVector2Array, nome: String) -> bool:
-	var k: int = int(nome.trim_prefix("Casa_"))
-	var arq: String = CASAS_MODELO[k % CASAS_MODELO.size()]
-	var info: Dictionary = _info_modelo(arq)
+## Ruína modelada no Blender (tools/blender/ruinas.py) no lote `poly`, frente (+Z do modelo) virada para a rua.
+## Escolhe pelo nome, entre os `opcoes` que cabem (área até 1,3x a do lote e sem encostar na rua). false = não coube.
+func _ruina(poly: PackedVector2Array, nome: String, opcoes: Array, mansao: bool, loja: bool) -> bool:
+	var area: float = absf(_area(poly))
+	var cabem: Array = opcoes.filter(func(a: String) -> bool: var t: Vector2 = _tam_ruina(a); return t.x * t.y <= area * 1.3)
+	if cabem.is_empty():
+		cabem = [opcoes[-1]]  # o menor
 	var porta_i: int = _lado_da_rua(poly)
 	var fora: Vector2 = _normal_fora(poly, porta_i)
 	var c: Vector2 = _centro(poly)
-	# gira o modelo para a frente dele (info.frente, no plano) apontar para `fora`
-	var ang: float = info.frente.angle_to(fora)
-	var ret: PackedVector2Array = []
-	var tam: Vector2 = info.tam
-	for q: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
-		var p: Vector2 = c + (q * tam * 0.5).rotated(ang)
-		if _perto_de_rua(p, 0.5):
-			return false
-		ret.append(p)
+	var ang: float = Vector2(0, 1).angle_to(fora)
+	var h: int = absi(hash(nome))
+	for k in cabem.size():
+		var arq: String = cabem[(h + k) % cabem.size()]
+		var tam: Vector2 = _tam_ruina(arq)
+		var ret: PackedVector2Array = []
+		for q: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+			ret.append(c + (q * tam * 0.5).rotated(ang))
+		if Array(ret).all(func(p: Vector2) -> bool: return not _perto_de_rua(p, 0.5)):
+			_poe_ruina(ret, nome, arq, ang, c, mansao, loja)
+			return true
+	return false
+
+
+func _tam_ruina(arq: String) -> Vector2:
+	if not _infos.has(arq):
+		var m: Node3D = (load(RUINAS % arq) as PackedScene).instantiate()
+		var cx := AABB()
+		for mi: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
+			if mi.name.begins_with("ext"):
+				var a: AABB = mi.transform * mi.get_aabb()
+				cx = a if cx.size == Vector3.ZERO else cx.merge(a)
+		m.free()
+		_infos[arq] = Vector2(cx.size.x, cx.size.z)
+	return _infos[arq]
+
+
+func _poe_ruina(ret: PackedVector2Array, nome: String, arq: String, ang: float, c: Vector2, mansao: bool, loja: bool) -> void:
 	var no := Node3D.new()
 	no.name = nome
 	add_child(no)
 	no.set_meta("poly", ret)
 	no.set_meta("modelo", arq)
 	no.add_to_group("casas")
-	var m: Node3D = (load(MODELOS % arq) as PackedScene).instantiate()
-	# no plano o ângulo é anti-horário em (x, z); em 3D a rotação em Y vai no sentido contrário
-	m.rotation.y = -ang
-	m.position = _v3(c) - Vector3(info.meio.x, 0, info.meio.y).rotated(Vector3.UP, -ang)
+	if mansao:
+		no.set_meta("dominavel", true)
+	var m: Node3D = (load(RUINAS % arq) as PackedScene).instantiate()
+	m.rotation.y = -ang  # no plano o ângulo é anti-horário em (x, z); em 3D o giro em Y é ao contrário
+	m.position = _v3(c)
 	no.add_child(m)
-	var corpo := StaticBody3D.new()
-	no.add_child(corpo)
-	var vao := AABB()
+	var tinta: Color = [Color(0.82, 0.8, 0.76), Color(0.7, 0.74, 0.72), Color(0.8, 0.7, 0.62), Color(0.72, 0.72, 0.76)][absi(hash(nome)) % 4]
 	for mi: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
-		var n: String = String(mi.name).to_lower()
-		if n.contains("door-interior_") or n.contains("door_interior"):
-			mi.queue_free()  # porta interna: só o batente fica
-			continue
-		if n.contains("doorfront"):
-			if n.contains("_001_"):  # a da frente; a _002 (fundos) fica só o vão
-				var bx: AABB = _transf_ate(mi, m) * mi.get_aabb()
-				vao = bx if vao.size == Vector3.ZERO else vao.merge(bx)
-			mi.queue_free()
-			continue
-		var gasto: Material = _gasto(n, k)
-		if gasto:
-			mi.material_override = gasto
-		if n.contains("glass") or n.contains("door"):
-			continue
-		var cs := CollisionShape3D.new()
-		cs.shape = _forma(mi.mesh)
-		corpo.add_child(cs)
-		cs.transform = m.transform * _transf_ate(mi, m)
-	# porta da frente no vão do modelo (hash como nas outras: 1 em 3 arrombada)
-	if vao.size != Vector3.ZERO and hash(nome) % 3 != 0:
+		for s in mi.mesh.get_surface_count():
+			var mm: Material = mi.mesh.surface_get_material(s)
+			mi.set_surface_override_material(s, _mat_ruina(mm.resource_name if mm else "", tinta))
+	var marca: Node3D = m.get_node_or_null("porta")
+	if marca and absi(hash(nome)) % 3 != 0:  # 1 em 3 com a porta arrombada
 		var porta := Porta.new()
 		porta.name = "Porta_" + nome
-		porta.largura = maxf(vao.size.x, vao.size.z)
-		var dobradica: Vector3 = vao.position + (Vector3(0, 0, vao.size.z * 0.5) if vao.size.x > vao.size.z else Vector3(vao.size.x * 0.5, 0, 0))
-		porta.position = m.transform * Vector3(dobradica.x, 0, dobradica.z)
-		porta.rotation.y = m.rotation.y + (0.0 if vao.size.x > vao.size.z else -PI * 0.5)
+		porta.largura = 1.2
+		porta.position = m.transform * marca.position
+		porta.rotation.y = m.rotation.y
 		no.add_child(porta)
-	_recheio(no, ret, _lado_da_rua(ret), false, false)
-	return true
+	_recheio(no, ret, _lado_da_rua(ret), mansao, loja)
 
 
-## Material gasto (textura escaneada) para a parte `n` do modelo de casa; null = deixa o do modelo.
-func _gasto(n: String, k: int) -> Material:
-	var tintas: Array[Color] = [Color(0.78, 0.74, 0.66), Color(0.62, 0.68, 0.66), Color(0.74, 0.62, 0.55), Color(0.66, 0.66, 0.7)]
-	if n.contains("roof") and not n.contains("wood"):
-		return _mat("telhado", 0.5, Color(0.7, 0.68, 0.66))
-	if n.contains("foundation") or n.contains("concrete") or n.contains("chimney"):
-		return _mat("concreto", 0.4, Color(0.7, 0.68, 0.64))
-	if n.contains("woodfloor"):
-		return _mat("madeira", 0.5, Color(0.6, 0.5, 0.4))
-	if n.contains("glass"):
-		return _cor(Color(0.06, 0.07, 0.08)) if (hash(n) + k) % 4 == 0 else _vidro()
-	if n.contains("accent"):
-		return _mat("reboco", 0.35, Color(0.85, 0.83, 0.78))  # acabamento
-	if n.contains("walls_"):
-		return _mat("madeira", 0.35, tintas[k % tintas.size()])  # tábuas de fora
-	return null
-
-
-## Construção escaneada no contorno `poly` (frente do modelo = +Z, virada para a rua). Colisão = a malha toda.
-## false se encosta numa rua.
-func _marco(poly: PackedVector2Array, nome: String, arq: String) -> bool:
-	var m: Node3D = (load(MODELOS % arq) as PackedScene).instantiate()
-	var cx := AABB()
-	for mi: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
-		var a: AABB = _transf_ate(mi, m) * mi.get_aabb()
-		cx = a if cx.size == Vector3.ZERO else cx.merge(a)
-	var esc: float = 0.01 if cx.size.x > 200.0 else 1.0  # alguns vêm em centímetros
-	var tam := Vector2(cx.size.x, cx.size.z) * esc
-	var porta_i: int = _lado_da_rua(poly)
-	var fora: Vector2 = _normal_fora(poly, porta_i)
-	var c: Vector2 = _centro(poly)
-	var ang: float = Vector2(0, 1).angle_to(fora)
-	var ret: PackedVector2Array = []
-	for q: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
-		var p: Vector2 = c + (q * tam * 0.5).rotated(ang)
-		if _perto_de_rua(p, 0.5):
-			m.free()
-			return false
-		ret.append(p)
-	var no := Node3D.new()
-	no.name = nome
-	add_child(no)
-	no.set_meta("poly", ret)
-	no.set_meta("modelo", arq)
-	m.scale = Vector3.ONE * esc
-	m.rotation.y = -ang
-	var meio := Vector3(cx.get_center().x, cx.position.y, cx.get_center().z) * esc
-	m.position = _v3(c) - meio.rotated(Vector3.UP, -ang) - Vector3(0, AFUNDA.get(arq, 0.0), 0)
-	no.add_child(m)
-	var corpo := StaticBody3D.new()
-	no.add_child(corpo)
-	if arq in MARCOS_ABERTOS:  # dá para andar dentro: colisão pela malha
-		for mi: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
-			var cs := CollisionShape3D.new()
-			cs.shape = _forma(mi.mesh)
-			corpo.add_child(cs)
-			cs.transform = m.transform * _transf_ate(mi, m)
-	else:  # fechado: uma caixa basta (a malha escaneada inteira pesava ~100 MB de colisão)
-		var cs := CollisionShape3D.new()
-		var bs := BoxShape3D.new()
-		bs.size = Vector3(tam.x, cx.size.y * esc - AFUNDA.get(arq, 0.0), tam.y) * 0.96
-		cs.shape = bs
-		cs.position = _v3(c) + Vector3(0, bs.size.y * 0.5, 0)
-		cs.rotation.y = -ang
-		corpo.add_child(cs)
-	var meio_frente: Vector2 = c + fora * (tam.y * 0.5 + 3.0)
-	no.set_meta("frente", ORIGEM + Vector3(meio_frente.x, 0.1, meio_frente.y))
-	return true
-
-
-## Colisão de uma malha de modelo, feita uma vez e dividida por todas as casas iguais (cada uma com a sua pesava
-## mais de 1 GB).
-func _forma(m: Mesh) -> Shape3D:
-	if not _formas.has(m):
-		_formas[m] = m.create_trimesh_shape()
-	return _formas[m]
-
-
-## Transform de `no` relativo a `ate` (o nó ainda fora da árvore).
-func _transf_ate(no: Node3D, ate: Node3D) -> Transform3D:
-	var t := Transform3D.IDENTITY
-	var n: Node = no
-	while n != ate and n is Node3D:
-		t = (n as Node3D).transform * t
-		n = n.get_parent()
-	return t
-
-
-## Tamanho no chão (x, z), centro e lado da frente (para onde vai a calçada do lote) de um modelo; guardado.
-func _info_modelo(arq: String) -> Dictionary:
-	if _infos.has(arq):
-		return _infos[arq]
-	var m: Node3D = (load(MODELOS % arq) as PackedScene).instantiate()
-	var cx := AABB()
-	var porta := Vector3.ZERO
-	for mi: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
-		var a: AABB = _transf_ate(mi, m) * mi.get_aabb()
-		if String(mi.name).to_lower().contains("concretetiles"):
-			porta = a.get_center()  # a calçada do lote vai até a porta da frente
-			continue  # e não conta no tamanho
-		cx = a if cx.size == Vector3.ZERO else cx.merge(a)
-	m.free()
-	var meio := Vector2(cx.get_center().x, cx.get_center().z)
-	var d := Vector2(porta.x, porta.z) - meio
-	# frente = o lado da caixa mais perto da porta
-	var frente: Vector2
-	if absf(d.x) / cx.size.x > absf(d.y) / cx.size.z:
-		frente = Vector2(signf(d.x), 0)
-	else:
-		frente = Vector2(0, signf(d.y))
-	_infos[arq] = {"tam": Vector2(cx.size.x, cx.size.z), "meio": meio, "frente": frente}
-	return _infos[arq]
-
+## Textura do jogo para o material do Blender (só o nome vem do modelo).
+func _mat_ruina(n: String, tinta: Color) -> Material:
+	match n:
+		"parede": return _mat("reboco", 0.3, tinta)
+		"tijolo": return _mat("tijolo", 0.4, Color(0.8, 0.74, 0.7))
+		"madeira": return _mat("madeira", 0.35, tinta * 0.9)
+		"tabua": return _mat("madeira", 0.5, Color(0.6, 0.5, 0.4))
+		"telhado": return _mat("telhado", 0.5, Color(0.7, 0.68, 0.66))
+		"queimado": return _mat("concreto", 0.4, Color(0.14, 0.12, 0.11))
+		"metal": return _cor(Color(0.3, 0.29, 0.27), 0.6)
+		"pano": return _mat("reboco", 0.8, Color(0.4, 0.36, 0.33))  # estofado sujo
+		"branco": return _cor(Color(0.7, 0.69, 0.64), 0.5)
+		"papelao": return _cor(Color(0.5, 0.4, 0.28))
+	return _mat("concreto", 0.4, Color(0.7, 0.68, 0.64))
 
 func _coisas_da_faccao(no: Node3D, cantos: Array, c: Vector2) -> void:
 	var pega := func(k: int) -> Vector3: return _v3(cantos[k % cantos.size()].lerp(c, 0.15 * (k / cantos.size())))
@@ -832,7 +726,7 @@ func casa_em(p: Vector3) -> String:
 
 func _classifica() -> void:
 	for r: Array in _ruas:  # zumbis pelas ruas (fora os dos carros)
-		if pontos_zumbi.size() >= 16:
+		if pontos_zumbi.size() >= 30:  # dono 30/10: muito fácil (era 16)
 			break
 		if (r[0] as Vector2).distance_to(r[1]) > 25.0 and _rng.randf() < 0.5:
 			var p: Vector2 = (r[0] as Vector2).lerp(r[1], 0.5)
