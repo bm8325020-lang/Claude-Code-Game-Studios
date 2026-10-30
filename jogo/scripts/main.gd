@@ -373,7 +373,7 @@ func pede_dominar() -> void:
 	if j == null or j.vida <= 0:
 		return
 	var casa: String = bairro.casa_em(j.global_position)
-	var motivo: String = "Entre numa casa para dominar" if casa == "" else faccoes.comecar(casa, j.nick, _dentro_das_casas().get(casa, []))
+	var motivo: String = "Entre numa mansão para dominar" if not bairro.dominavel(casa) else faccoes.comecar(casa, j.nick, _dentro_das_casas().get(casa, []))
 	if motivo != "":
 		aviso_todos.rpc_id(_quem(), motivo)
 		return
@@ -578,7 +578,7 @@ func _poe_zumbis() -> void:
 	# o bairro tem a malha dele (outra região, só a área dele)
 	var nav_b := NavigationRegion3D.new()
 	var mb: NavigationMesh = malha.duplicate()
-	var meio: float = Bairro.QUADRA + Bairro.RUA * 1.5
+	var meio: float = Bairro.TAMANHO * 0.5
 	mb.filter_baking_aabb = AABB(Bairro.ORIGEM - Vector3(meio, 1, meio), Vector3(meio * 2.0, 10, meio * 2.0))
 	nav_b.navigation_mesh = mb
 	add_child(nav_b)

@@ -33,10 +33,13 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `main.gd` — pista de teste (blocos, rampas, túnel, prédio, casinha com `Porta_0`, carro), bonecos de treino, itens
   (`Item_0..3` munição, `Item_casa`, `Item_comida_k`/`Item_agua_k`), `PONTOS_ZUMBI`, `PONTOS_TOCAIA`, `PATRULHAS`, `PONTOS_CHEFE`, spawners
   (jogadores e zumbis), malha de navegação (grupo "cenario", raio 0.35), `iniciar_solo/criar_partida/entrar_partida/iniciar_servidor`.
-- `bairro.gd` (Bairro) — primeira área do mapa em código (ORIGEM (0,0,-78), 4 quarteirões, 12 casas `Casa_k` com
-  `Porta_bk`/`Bau_bk`/`Item_bk`, prédio, galpão, ruas, árvores, carros), `pontos_zumbi`, `pontos_nascer`; malha própria
-  em `_poe_zumbis`. Nascer (11): `pontos_bons/ruins` (`_classifica`: baú fácil ≤ BOM_BAU, zumbi ≥ BOM_ZUMBI),
-  `Bairro.sorteia` (CHANCE_BOM 75%), `main.ponto_nascer()` (também ao renascer). Teste: test_nascer (5). Jogador nasce lá (`main.nascer_no_bairro`, test_rede desliga). Foto: tools/foto_bairro.gd. Teste: test_bairro (3).
+- `bairro.gd` (Bairro) — a cidade em código (ORIGEM (0,0,-112), 3x3 quarteirões de 30 m, TAMANHO 130): praça, posto,
+  mercado + prédio, casas comuns `Casa_k` (estado abandonada/arrombada/destruída, móveis, `Porta_bk` só nas abandonadas,
+  `Bau_bk`, `Item_bk`) e 3 MANSÕES `Mansao_k` (meta "dominavel": muro, colunas, 2º andar de fora, piscina, garagem,
+  `Porta_mk`, `BauFac`, `Cama`). Rua: faixas, postes, lixeiras, hidrantes, carros (queimados), barricadas. Detalhe pequeno
+  some a LONGE_DETALHE. API: `pontos_zumbi`, `pontos_nascer`, `casa_em`, `dominavel`, `bau_da`, `frente_da`; malha própria
+  em `_poe_zumbis`. Nascer (11): `pontos_bons/ruins` (`_classifica`), `Bairro.sorteia` (CHANCE_BOM 75%),
+  `main.ponto_nascer(nick)`. Testes: test_bairro (4), test_nascer (5). Fotos: tools/foto_bairro.gd.
 - `jogador.gd` (Jogador) — `entrada` dict (move, olhar, pular, correr, agachar, andar, mirar, mira_segurando, atacar,
   trocar, arma, recarregar, pegar, comer, beber). Vida/`levar_dano`/`_cai`/`_caido`, fome/sede (`_passa_fome`),
   itens (`_tenta_pegar`, `ganhar`→`_recebe`), portas (`porta_perto`), pistola (`_atira`, `raio_mira`, `_rede_tiro`),
@@ -80,7 +83,7 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `faccoes.gd` (Faccoes: faccoes/tentativas, comecar/passa/adicionar/dona/faccao_de; MIN_CRIAR 1 (pedido do dono),
   DOMINAR_T 360, REDOMINAR_T 180, LIMITE 10). main: `faccoes`, `pede_dominar`/`pede_adicionar` (rpc), `_passa_dominio`,
   `_manda_faccoes` → `_faccoes_cli`, `faccao_de`. Bairro: `casa_em(pos)`, grupo "casas", meta "tam". controles:
-  `_btn_dominar` (bandeira, PC H), `_dominio` (relógio), página FACÇÃO na pausa. Teste: test_faccoes (11).
+  `_btn_dominar` (bandeira, PC H; só em mansão), `_dominio` (relógio), página FACÇÃO na pausa. Teste: test_faccoes (11).
   Casa (13): cada casa tem `BauFac_k` (`Bau.de_faccao`/`faccao`/`pode`/`guarda_por`; `Jogador.guarda_no_bau`) e `Cama`
   (grupo "camas"; `Jogador._cama` CURA_CAMA). Manutenção: `Faccoes.passa_manutencao` (MANUT_DIAS 7, MANUT_CUSTO 20000,
   AVISO_DIAS 3, fundo via `main.pede_depositar`), `liberar` (main `_libera_casas` ao sair). Renasce em

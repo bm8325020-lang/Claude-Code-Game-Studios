@@ -558,7 +558,7 @@ func _monta_faccao() -> void:
 	var principal := get_tree().get_first_node_in_group("principal")
 	var f: String = principal.faccao_de(jogador.nick)
 	if f == "":
-		_lista_faccao.add_child(UiTema.rotulo("Você não tem facção. Entre numa casa do bairro e aperte DOMINAR (bandeira). Fique %d min dentro dela." % int(Faccoes.DOMINAR_T / 60.0), 22, UiTema.APAGADO))
+		_lista_faccao.add_child(UiTema.rotulo("Você não tem facção. Entre numa das mansões da cidade e aperte DOMINAR (bandeira). Fique %d min dentro dela." % int(Faccoes.DOMINAR_T / 60.0), 22, UiTema.APAGADO))
 		return
 	var d: Dictionary = principal._faccoes_cli.f[f]
 	_lista_faccao.add_child(UiTema.rotulo(f.to_upper(), 30))
@@ -706,7 +706,7 @@ func _atualiza_dominio(principal: Node) -> void:
 		for n: String in principal._faccoes_cli.f:
 			if principal._faccoes_cli.f[n].casa == casa:
 				dona = n
-	var pode: bool = casa != "" and tent == null and (minha == "" or dona != minha)
+	var pode: bool = casa != "" and principal.bairro.dominavel(casa) and tent == null and (minha == "" or dona != minha)
 	if _btn_dominar:
 		_btn_dominar.visible = pode
 	if pode and not toque and Input.is_action_just_pressed("dominar"):

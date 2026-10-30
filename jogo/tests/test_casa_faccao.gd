@@ -48,13 +48,13 @@ func _init() -> void:
 	main.controles.jogador = null
 	for z in main.zumbis.get_children():
 		z.free()
-	var casa: Node3D = main.bairro.get_node("Casa_5")
-	var bf: Bau = main.bairro.bau_da("Casa_5")
-	j.global_position = bf.global_position + casa.global_basis.x * -0.2 + casa.global_basis.z * -0.9 + Vector3(0, 0.1, 0)
+	var casa: Node3D = main.bairro.get_node("Mansao_1")
+	var bf: Bau = main.bairro.bau_da("Mansao_1")
+	j.global_position = bf.global_position + casa.global_basis.x * -0.2 + casa.global_basis.z * 0.9 + Vector3(0, 0.1, 0)
 	await frames(5)
 	ok(bf.conteudo.is_empty() and j.bau_perto() != bf, "sem facção: o baú da facção não abre")
 	main.faccoes.faccoes["Velha"] = {"membros": ["Dono"], "casa": "", "fundo": 0, "prazo": 0.0, "guardado": [{"tipo": "cano", "qtd": 2}]}
-	main.faccoes.tentativas["Casa_5"] = {"faccao": "Velha", "t": 0.2, "total": 180.0, "quem": "Dono"}
+	main.faccoes.tentativas["Mansao_1"] = {"faccao": "Velha", "t": 0.2, "total": 180.0, "quem": "Dono"}
 	await frames(60)
 	ok(bf.faccao == "Velha" and bf.conteudo.size() == 1 and j.bau_perto() == bf, "dominou: o baú é da facção, abre e o guardado voltou")
 	j.mochila.adicionar("mola", 4)
@@ -63,13 +63,13 @@ func _init() -> void:
 	ok(bf.conteudo.size() == 2 and j.mochila.conta("mola") == 0, "guarda da mochila no baú da facção")
 	j.vida = 50
 	j.velocity = Vector3.ZERO
-	j.global_position = casa.get_node("Cama").global_position + casa.global_basis.x * 1.0 + Vector3(0, 0.1, 0)
+	j.global_position = casa.get_node("Cama").global_position + casa.global_basis.x * 1.3 + Vector3(0, 0.1, 0)
 	await frames(120)
 	ok(j.vida > 52, "do lado da cama cura (vida %d)" % j.vida)
 	j.levar_dano(1000, Vector3.FORWARD)
 	j._morto_t = 0.02
 	await frames(10)
-	ok(j.vida > 0 and j.global_position.distance_to(main.bairro.frente_da("Casa_5")) < 1.5, "renasce na frente da casa da facção")
+	ok(j.vida > 0 and j.global_position.distance_to(main.bairro.frente_da("Mansao_1")) < 1.5, "renasce na frente da casa da facção")
 	main.faccoes.faccoes.Velha.membros = ["Fulano"]  # nenhum membro no servidor
 	main._libera_casas()
 	await frames(3)

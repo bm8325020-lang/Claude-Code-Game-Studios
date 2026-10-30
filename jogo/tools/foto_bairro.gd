@@ -15,10 +15,15 @@ func _init() -> void:
 	main.add_child(c)
 	c.current = true
 	var o := Image.create(1280, 360, false, Image.FORMAT_RGBA8)
-	var vistas: Array = [[Bairro.ORIGEM + Vector3(-45, 40, 45), Bairro.ORIGEM], [main.jogador.global_position + Vector3(0, 1.6, 0), main.jogador.global_position + Vector3(0, 1.4, 0) + main.jogador.global_basis.z * -1.0 + Vector3(0, 0, 0)]]
+	var vistas: Array = [[Bairro.ORIGEM + Vector3(-70, 60, 75), Bairro.ORIGEM + Vector3(0, 0, 10)], [main.jogador.global_position + Vector3(0, 1.6, 0), main.jogador.global_position + Vector3(0, 1.4, 0) + main.jogador.global_basis.z * -1.0 + Vector3(0, 0, 0)]]
 	for k in 2:
 		c.global_position = vistas[k][0]
-		c.look_at(vistas[k][1] if k == 0 else Bairro.ORIGEM + Vector3(0, 1.5, 0))
+		if k == 1:  # na frente de uma mansão
+			var m: Node3D = main.bairro.get_node("Mansao_1")
+			c.global_position = main.bairro.frente_da("Mansao_1") + m.global_basis.z * 6.0 + m.global_basis.x * 4.0 + Vector3(0, 1.7, 0)
+			c.look_at(m.to_global(Vector3(0, 2.5, 1.0)))
+		else:
+			c.look_at(vistas[k][1])
 		for i in 6: await process_frame
 		var im := root.get_viewport().get_texture().get_image()
 		im.convert(Image.FORMAT_RGBA8)

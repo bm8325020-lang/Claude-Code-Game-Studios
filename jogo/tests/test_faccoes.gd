@@ -31,7 +31,7 @@ func _init() -> void:
 	f.comecar("Casa_1", "caio", ["caio"])
 	ev = f.passa(Faccoes.DOMINAR_T + 1.0, {"Casa_1": ["caio"]})
 	ok(f.dona("Casa_1") != nome and f.faccoes.has(nome) and f.faccoes[nome].casa == "", "outro grupo tomou: perde a área, não a facção")
-	ok(f.comecar("Casa_3", "bia", ["bia"]) == "" and f.tentativas.Casa_3.total == Faccoes.REDOMINAR_T, "facção que já existe redomina com 1 membro em %d min" % int(Faccoes.REDOMINAR_T / 60))
+	ok(f.comecar("Mansao_0", "bia", ["bia"]) == "" and f.tentativas.Mansao_0.total == Faccoes.REDOMINAR_T, "facção que já existe redomina com 1 membro em %d min" % int(Faccoes.REDOMINAR_T / 60))
 	for k in Faccoes.LIMITE - 2:
 		f.adicionar("ana", "m%d" % k)
 	ok(f.faccoes[nome].membros.size() == Faccoes.LIMITE and f.adicionar("ana", "extra") != "", "limite de %d membros" % Faccoes.LIMITE)
@@ -44,15 +44,15 @@ func _init() -> void:
 	var j: Jogador = main.jogador
 	for z in main.zumbis.get_children():
 		z.free()
-	var casa: Node3D = main.bairro.get_node("Casa_3")
-	j.global_position = casa.global_position + Vector3(0, 0.1, 0)
+	var casa: Node3D = main.bairro.get_node("Mansao_0")
+	j.global_position = casa.to_global(Vector3(-1.5, 0.1, 1.0))  # sala da mansão
 	for i in 5: await physics_frame
-	ok(main.bairro.casa_em(j.global_position) == "Casa_3", "sabe que o jogador está dentro da casa")
+	ok(main.bairro.casa_em(j.global_position) == "Mansao_0", "sabe que o jogador está dentro da casa")
 	main.pede_dominar()
 	for i in 3: await physics_frame
-	ok(main.faccoes.tentativas.has("Casa_3") and main.controles._faixa_texto.text.contains("DOMINAR"), "DOMINAR começa e avisa todos (%s)" % main.controles._faixa_texto.text)
-	main.faccoes.tentativas.Casa_3.t = 0.3
+	ok(main.faccoes.tentativas.has("Mansao_0") and main.controles._faixa_texto.text.contains("DOMINAR"), "DOMINAR começa e avisa todos (%s)" % main.controles._faixa_texto.text)
+	main.faccoes.tentativas.Mansao_0.t = 0.3
 	for i in 60: await physics_frame
-	ok(main.faccao_de("Dono") != "" and main._faccoes_cli.f[main.faccao_de("Dono")].casa == "Casa_3", "tempo acabou: o jogador tem facção e a casa (%s)" % main.faccao_de("Dono"))
+	ok(main.faccao_de("Dono") != "" and main._faccoes_cli.f[main.faccao_de("Dono")].casa == "Mansao_0", "tempo acabou: o jogador tem facção e a casa (%s)" % main.faccao_de("Dono"))
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
