@@ -16,6 +16,7 @@ const TEX: String = "res://assets/texturas/%s_%s.jpg"
 const MODELOS := "res://assets/sketchfab/cidade/%s.glb"
 ## Construções escaneadas (fotogrametria): uma de cada, no lugar de uma loja grande
 const MARCOS: Array[String] = ["scan_casarao", "scan_galpao", "scan_galpao_pichado", "predio_velho", "posto_velho"]
+const MARCOS_ABERTOS: Array[String] = ["scan_galpao_pichado"]
 const AFUNDA: Dictionary = {"scan_casarao": 4.5}  # o escaneado vem com um bloco de terreno embaixo
 const CASAS_MODELO: Array[String] = ["casa_fleetwood", "casa_glenwood", "casa_mayflower", "casa_mayflower2"]
 const LARG_RUA: Dictionary = {"primary": 10.0, "secondary": 9.0, "tertiary": 8.0, "residential": 6.5, "unclassified": 6.0, "service": 4.0}
@@ -32,11 +33,13 @@ var _rng := RandomNumberGenerator.new()
 var _mats: Dictionary = {}
 var _ruas: Array = []      # [[a, b, largura]] em coordenadas locais (x, z)
 var _infos: Dictionary = {}  # modelo -> _info_modelo
+var _formas: Dictionary = {}  # Mesh -> Shape3D (colisão dividida)
 var _poligonos: Array = [] # polígonos (PackedVector2Array) de todas as construções, para não pôr nada dentro
 
 
 func _ready() -> void:
 	_rng.seed = 1993
+	_janela.size = Vector2(1.1, 1.2)
 	position = ORIGEM
 	var dados: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(MAPA))
 	_chao()
@@ -265,7 +268,7 @@ func _casa_modelo(poly: PackedVector2Array, nome: String) -> bool:
 		if n.contains("glass") or n.contains("door"):
 			continue
 		var cs := CollisionShape3D.new()
-		cs.shape = mi.mesh.create_trimesh_shape()
+		cs.shape = _forma(mi.mesh)
 		corpo.add_child(cs)
 		cs.transform = m.transform * _transf_ate(mi, m)
 	# porta da frente no vão do modelo (hash como nas outras: 1 em 3 arrombada)
@@ -332,14 +335,31 @@ func _marco(poly: PackedVector2Array, nome: String, arq: String) -> bool:
 	no.add_child(m)
 	var corpo := StaticBody3D.new()
 	no.add_child(corpo)
-	for mi: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
+	if arq in MARCOS_ABERTOS:  # dá para andar dentro: colisão pela malha
+		for mi: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
+			var cs := CollisionShape3D.new()
+			cs.shape = _forma(mi.mesh)
+			corpo.add_child(cs)
+			cs.transform = m.transform * _transf_ate(mi, m)
+	else:  # fechado: uma caixa basta (a malha escaneada inteira pesava ~100 MB de colisão)
 		var cs := CollisionShape3D.new()
-		cs.shape = mi.mesh.create_trimesh_shape()
+		var bs := BoxShape3D.new()
+		bs.size = Vector3(tam.x, cx.size.y * esc - AFUNDA.get(arq, 0.0), tam.y) * 0.96
+		cs.shape = bs
+		cs.position = _v3(c) + Vector3(0, bs.size.y * 0.5, 0)
+		cs.rotation.y = -ang
 		corpo.add_child(cs)
-		cs.transform = m.transform * _transf_ate(mi, m)
 	var meio_frente: Vector2 = c + fora * (tam.y * 0.5 + 3.0)
 	no.set_meta("frente", ORIGEM + Vector3(meio_frente.x, 0.1, meio_frente.y))
 	return true
+
+
+## Colisão de uma malha de modelo, feita uma vez e dividida por todas as casas iguais (cada uma com a sua pesava
+## mais de 1 GB).
+func _forma(m: Mesh) -> Shape3D:
+	if not _formas.has(m):
+		_formas[m] = m.create_trimesh_shape()
+	return _formas[m]
 
 
 ## Transform de `no` relativo a `ate` (o nó ainda fora da árvore).
@@ -506,6 +526,8 @@ func _parede_com_porta(no: Node3D, a: Vector2, b: Vector2, alt: float, m: Materi
 
 # janelas pela fachada a cada ~3 m, no meio de cada andar; 1 em 3 tapada com tábuas
 func _janelas(no: Node3D, a: Vector2, b: Vector2, c: Vector2, alt: float, com_porta: bool) -> void:
+	if Rede.servidor_sem_tela:
+		return  # só enfeite: o servidor não vê
 	var d: Vector2 = b - a
 	var L: float = d.length()
 	var n: int = int(L / 3.0)
@@ -523,9 +545,7 @@ func _janelas(no: Node3D, a: Vector2, b: Vector2, c: Vector2, alt: float, com_po
 			var y: float = andar * PAREDE + 1.6
 			var rot: float = atan2(fora.x, fora.y)
 			var j := MeshInstance3D.new()
-			var q := QuadMesh.new()
-			q.size = Vector2(1.1, 1.2)
-			j.mesh = q
+			j.mesh = _janela
 			# vidro reflete o céu; 1 em 4 quebrada (só o buraco escuro)
 			j.material_override = _cor(Color(0.06, 0.07, 0.08)) if _rng.randf() < 0.25 else _vidro()
 			j.position = Vector3(p.x, y, p.y)
@@ -892,11 +912,15 @@ func _perto_de_rua(p: Vector2, folga: float) -> bool:
 
 # --- construção ---
 
+## Caixa de 1 m dividida por todas as peças (cada uma esticada com `scale`): uma malha por peça pesava centenas de MB.
+var _cubo := BoxMesh.new()
+var _janela := QuadMesh.new()  # 1,1 x 1,2 m (no _ready)
+
+
 func _caixa(corpo: Node3D, tam: Vector3, m: Material) -> void:
 	var mi := MeshInstance3D.new()
-	var bm := BoxMesh.new()
-	bm.size = tam
-	mi.mesh = bm
+	mi.mesh = _cubo
+	mi.scale = tam
 	mi.material_override = m
 	corpo.add_child(mi)
 	var cs := CollisionShape3D.new()
@@ -913,11 +937,11 @@ func _bloco(pai: Node3D, c: Vector3, tam: Vector3, m: Material) -> void:
 	_caixa(corpo, tam, m)
 
 
+## Peça só de enfeite (sem colisão). Quem gira a peça depois mexe em `rotation`; o tamanho fica no `scale`.
 func _peca(pai: Node3D, p: Vector3, tam: Vector3, m: Material) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
-	var bm := BoxMesh.new()
-	bm.size = tam
-	mi.mesh = bm
+	mi.mesh = _cubo
+	mi.scale = tam
 	mi.material_override = m
 	mi.position = p
 	pai.add_child(mi)

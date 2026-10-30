@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cdh43br1cjp5f"
-path="res://.godot/imported/posto_velho_8.webp-80b430ac61b3862de6fa2aaba63c622f.ctex"
+path.s3tc="res://.godot/imported/posto_velho_8.webp-80b430ac61b3862de6fa2aaba63c622f.s3tc.ctex"
+path.etc2="res://.godot/imported/posto_velho_8.webp-80b430ac61b3862de6fa2aaba63c622f.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "264b35c64dd02536d01b1b8a1b5be1af"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/sketchfab/cidade/posto_velho_8.webp"
-dest_files=["res://.godot/imported/posto_velho_8.webp-80b430ac61b3862de6fa2aaba63c622f.ctex"]
+dest_files=["res://.godot/imported/posto_velho_8.webp-80b430ac61b3862de6fa2aaba63c622f.s3tc.ctex", "res://.godot/imported/posto_velho_8.webp-80b430ac61b3862de6fa2aaba63c622f.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -39,5 +41,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=1

@@ -30,7 +30,7 @@ func _process(_dt: float) -> void:
 		ws.outbound_buffer_size = 1 << 22
 		ws.max_queued_packets = 4096
 		ws.accept_stream(_tcp.take_connection())
-		_con.append({"ws": ws, "sala": "", "id": 0})
+		_con.append({"ws": ws, "sala": "", "id": 0, "t": Time.get_ticks_msec()})
 	for c: Dictionary in _con.duplicate():
 		var ws: WebSocketPeer = c.ws
 		ws.poll()
@@ -39,6 +39,8 @@ func _process(_dt: float) -> void:
 			_con.erase(c)
 			continue
 		if ws.get_ready_state() != WebSocketPeer.STATE_OPEN:
+			if Time.get_ticks_msec() - int(c.t) > 10000:  # não virou WebSocket (ex.: página aberta no navegador)
+				_con.erase(c)
 			continue
 		while ws.get_available_packet_count() > 0:
 			var p: PackedByteArray = ws.get_packet()

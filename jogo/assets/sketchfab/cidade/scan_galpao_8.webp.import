@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://xeymv4anw5fx"
-path="res://.godot/imported/scan_galpao_8.webp-bebe77b9fd8fd2df5e50ceb9a8a3b4fb.ctex"
+path.s3tc="res://.godot/imported/scan_galpao_8.webp-bebe77b9fd8fd2df5e50ceb9a8a3b4fb.s3tc.ctex"
+path.etc2="res://.godot/imported/scan_galpao_8.webp-bebe77b9fd8fd2df5e50ceb9a8a3b4fb.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "346c6e5d341285232a231ee2f5a8a8ef"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/sketchfab/cidade/scan_galpao_8.webp"
-dest_files=["res://.godot/imported/scan_galpao_8.webp-bebe77b9fd8fd2df5e50ceb9a8a3b4fb.ctex"]
+dest_files=["res://.godot/imported/scan_galpao_8.webp-bebe77b9fd8fd2df5e50ceb9a8a3b4fb.s3tc.ctex", "res://.godot/imported/scan_galpao_8.webp-bebe77b9fd8fd2df5e50ceb9a8a3b4fb.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -39,5 +41,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=1

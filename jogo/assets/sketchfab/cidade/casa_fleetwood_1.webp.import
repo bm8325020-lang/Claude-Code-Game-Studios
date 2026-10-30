@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cd4n2bb4w3cpp"
-path="res://.godot/imported/casa_fleetwood_1.webp-358564bf1ef2a1a6fc84b7bb696a9a3b.ctex"
+path.s3tc="res://.godot/imported/casa_fleetwood_1.webp-358564bf1ef2a1a6fc84b7bb696a9a3b.s3tc.ctex"
+path.etc2="res://.godot/imported/casa_fleetwood_1.webp-358564bf1ef2a1a6fc84b7bb696a9a3b.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "00f8ac5f4f7bf493ad72a229fb5fada5"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/sketchfab/cidade/casa_fleetwood_1.webp"
-dest_files=["res://.godot/imported/casa_fleetwood_1.webp-358564bf1ef2a1a6fc84b7bb696a9a3b.ctex"]
+dest_files=["res://.godot/imported/casa_fleetwood_1.webp-358564bf1ef2a1a6fc84b7bb696a9a3b.s3tc.ctex", "res://.godot/imported/casa_fleetwood_1.webp-358564bf1ef2a1a6fc84b7bb696a9a3b.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -39,5 +41,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=1

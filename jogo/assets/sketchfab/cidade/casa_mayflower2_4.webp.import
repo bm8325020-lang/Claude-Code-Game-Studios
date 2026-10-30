@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://di2dc2f2pa4sg"
-path="res://.godot/imported/casa_mayflower2_4.webp-0cf7eef9a2ae6a0089c0bef0885e596f.ctex"
+path.s3tc="res://.godot/imported/casa_mayflower2_4.webp-0cf7eef9a2ae6a0089c0bef0885e596f.s3tc.ctex"
+path.etc2="res://.godot/imported/casa_mayflower2_4.webp-0cf7eef9a2ae6a0089c0bef0885e596f.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "6ec14e9b119639680d037106c7389383"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/sketchfab/cidade/casa_mayflower2_4.webp"
-dest_files=["res://.godot/imported/casa_mayflower2_4.webp-0cf7eef9a2ae6a0089c0bef0885e596f.ctex"]
+dest_files=["res://.godot/imported/casa_mayflower2_4.webp-0cf7eef9a2ae6a0089c0bef0885e596f.s3tc.ctex", "res://.godot/imported/casa_mayflower2_4.webp-0cf7eef9a2ae6a0089c0bef0885e596f.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -39,5 +41,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=1

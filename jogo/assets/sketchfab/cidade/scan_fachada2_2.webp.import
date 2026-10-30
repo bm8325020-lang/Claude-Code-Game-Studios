@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://wosv7wwc7jh0"
-path="res://.godot/imported/scan_fachada2_2.webp-199080eb6c8e1b4b9d5e09772e5dfe6e.ctex"
+path.s3tc="res://.godot/imported/scan_fachada2_2.webp-199080eb6c8e1b4b9d5e09772e5dfe6e.s3tc.ctex"
+path.etc2="res://.godot/imported/scan_fachada2_2.webp-199080eb6c8e1b4b9d5e09772e5dfe6e.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "8312303a42d7e374df93614c6acaa89a"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/sketchfab/cidade/scan_fachada2_2.webp"
-dest_files=["res://.godot/imported/scan_fachada2_2.webp-199080eb6c8e1b4b9d5e09772e5dfe6e.ctex"]
+dest_files=["res://.godot/imported/scan_fachada2_2.webp-199080eb6c8e1b4b9d5e09772e5dfe6e.s3tc.ctex", "res://.godot/imported/scan_fachada2_2.webp-199080eb6c8e1b4b9d5e09772e5dfe6e.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -39,5 +41,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=1

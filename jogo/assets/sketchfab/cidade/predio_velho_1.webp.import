@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://doodxt7jarhjx"
-path="res://.godot/imported/predio_velho_1.webp-f6f9113f8ad7e3d81b346a7469fc34be.ctex"
+path.s3tc="res://.godot/imported/predio_velho_1.webp-f6f9113f8ad7e3d81b346a7469fc34be.s3tc.ctex"
+path.etc2="res://.godot/imported/predio_velho_1.webp-f6f9113f8ad7e3d81b346a7469fc34be.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "1f7047c21e305fd9eafd5681a1dad154"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/sketchfab/cidade/predio_velho_1.webp"
-dest_files=["res://.godot/imported/predio_velho_1.webp-f6f9113f8ad7e3d81b346a7469fc34be.ctex"]
+dest_files=["res://.godot/imported/predio_velho_1.webp-f6f9113f8ad7e3d81b346a7469fc34be.s3tc.ctex", "res://.godot/imported/predio_velho_1.webp-f6f9113f8ad7e3d81b346a7469fc34be.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -39,5 +41,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=1

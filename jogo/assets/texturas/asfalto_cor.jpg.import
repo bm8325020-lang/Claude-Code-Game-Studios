@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c3ffprert234w"
-path="res://.godot/imported/asfalto_cor.jpg-1f184e08a0e47fc4ced60c0b48826e93.ctex"
+path.s3tc="res://.godot/imported/asfalto_cor.jpg-1f184e08a0e47fc4ced60c0b48826e93.s3tc.ctex"
+path.etc2="res://.godot/imported/asfalto_cor.jpg-1f184e08a0e47fc4ced60c0b48826e93.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/texturas/asfalto_cor.jpg"
-dest_files=["res://.godot/imported/asfalto_cor.jpg-1f184e08a0e47fc4ced60c0b48826e93.ctex"]
+dest_files=["res://.godot/imported/asfalto_cor.jpg-1f184e08a0e47fc4ced60c0b48826e93.s3tc.ctex", "res://.godot/imported/asfalto_cor.jpg-1f184e08a0e47fc4ced60c0b48826e93.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

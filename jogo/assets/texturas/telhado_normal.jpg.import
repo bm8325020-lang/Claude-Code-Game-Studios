@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://1dyu3qiws5pr"
-path="res://.godot/imported/telhado_normal.jpg-e4f59c768830e063b6c92f17462439c6.ctex"
+path.s3tc="res://.godot/imported/telhado_normal.jpg-e4f59c768830e063b6c92f17462439c6.s3tc.ctex"
+path.etc2="res://.godot/imported/telhado_normal.jpg-e4f59c768830e063b6c92f17462439c6.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/texturas/telhado_normal.jpg"
-dest_files=["res://.godot/imported/telhado_normal.jpg-e4f59c768830e063b6c92f17462439c6.ctex"]
+dest_files=["res://.godot/imported/telhado_normal.jpg-e4f59c768830e063b6c92f17462439c6.s3tc.ctex", "res://.godot/imported/telhado_normal.jpg-e4f59c768830e063b6c92f17462439c6.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

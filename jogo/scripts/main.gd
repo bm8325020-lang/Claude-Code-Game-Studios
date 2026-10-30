@@ -45,6 +45,8 @@ signal salas_mudou(erro: String)
 func _ready() -> void:
 	add_to_group("principal")
 	Config.carrega()
+	if "dedicado" in OS.get_cmdline_user_args() and DisplayServer.get_name() == "headless":
+		Rede.servidor_sem_tela = true  # antes da cidade: ela pula o que é só enfeite
 	_luz()
 	_chao()
 	_obstaculos()
@@ -109,6 +111,8 @@ func iniciar_servidor() -> Error:
 	_comeca()
 	controles.visible = false
 	_poe_zumbis()
+	if "relay" in OS.get_cmdline_user_args():  # o carteiro das salas no mesmo processo (memória do serviço grátis)
+		add_child(Relay.new())
 	for a: String in OS.get_cmdline_user_args():
 		if a.begins_with("status="):
 			_status(a.trim_prefix("status="))
