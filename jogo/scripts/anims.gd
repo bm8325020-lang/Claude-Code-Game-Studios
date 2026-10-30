@@ -13,6 +13,12 @@ const MODELO: String = "res://assets/mixamo/xbot.fbx"
 ## personagem fica para depois); os zumbis variam entre os três; o chefe é o parasita.
 const JOGADOR: String = "remy"
 const ZUMBIS: Array[String] = ["zumbi_policial", "zumbi_mulher", "zumbi_soldado"]
+## modelos de cada tipo (dono: "os zumbis são sempre os mesmos"): o nome do zumbi sorteia um deles
+const MODELOS_TIPO: Dictionary = {
+	"zumbi_policial": ["zumbi_policial", "zumbi_prisioneiro", "sobrevivente"],
+	"zumbi_mulher": ["zumbi_mulher", "zumbi_escoteira"],
+	"zumbi_soldado": ["zumbi_soldado", "zumbi_esqueleto", "zumbi_mutante"],
+}
 const CHEFE: String = "chefe_parasita"
 const ALTURA_XBOT: float = 1.81  # as animações foram feitas para essa altura (posição do quadril)
 

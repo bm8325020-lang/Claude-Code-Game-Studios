@@ -190,7 +190,9 @@ func _ready() -> void:
 	# o nome é o mesmo em todos os aparelhos: todos veem o mesmo zumbi
 	if not chefe:
 		aplica_tipo(tipo_fixo if tipo_fixo != "" else Anims.ZUMBIS[hash(String(name)) % Anims.ZUMBIS.size()])
-	modelo = Anims.boneco(Anims.CHEFE if chefe else tipo)
+	var lista: Array = Anims.MODELOS_TIPO.get(tipo, [tipo])
+	var cara: String = Anims.CHEFE if chefe else String(lista[hash(String(name) + "m") % lista.size()])
+	modelo = Anims.boneco(cara)
 	modelo.scale = Vector3.ONE * k
 	add_child(modelo)
 	_mat_pele = StandardMaterial3D.new()  # por cima da roupa: pisca vermelho ao levar golpe
@@ -201,7 +203,7 @@ func _ready() -> void:
 		m.material_overlay = _mat_pele
 	anim = AnimationPlayer.new()
 	modelo.add_child(anim)
-	anim.add_animation_library("", Anims.adaptada(Anims.biblioteca_zumbi(), Anims.CHEFE if chefe else tipo))
+	anim.add_animation_library("", Anims.adaptada(Anims.biblioteca_zumbi(), cara))
 	_agente = NavigationAgent3D.new()
 	_agente.radius = RAIO + 0.05
 	_agente.height = ALTURA
