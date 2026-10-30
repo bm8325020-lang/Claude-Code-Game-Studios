@@ -8,21 +8,18 @@ Leia nesta ordem: este arquivo, `jogo/CLAUDE.md` (mapa do código e comandos) e 
   testes curtos. Nada com cara de IA. A cada passo: testes, commit + push, APK assinado mandado para ele.
 - Nunca commitar: `jogo/export_presets.cfg`, chaves, `jogo/assets/mixamo/`, `jogo/assets/cgtrader/`. Sem PR.
 
-## Estado (APK 0.60, 30/10)
-- Só modo **sobrevivência em salas**: menu = nome, CRIAR SALA, ENTRAR NUMA SALA, CONFIGURAÇÕES.
-  Quem cria hospeda o mundo no celular; o servidor online (Render) roda só o **carteiro** (`scripts/relay.gd`,
-  rota `/salas`) que lista as salas e repassa as mensagens. PvP e "mundo aberto" saíram do menu (código ficou).
-- Cidade real do OpenStreetMap (Monroeville, AL), casas de modelo com cômodos, construções escaneadas, céu de fim do
-  mundo. Memória cortada (servidor 1,2 GB -> 315 MB; APK 197 MB); a 0.58+ abre no celular do dono.
-- Infecção (barra, antibiótico) e mordida no pescoço com briga no tempo certo (EMPURRAR!). Barras com %.
-- Qualidade gráfica Batata/Média/Alta/Ultra nas configurações.
+## Estado (APK 0.76, 31/10)
+- Salas de sobrevivência pelo carteiro online (Render). O carteiro só compara a versão de quem entra com a de quem criou
+  (não precisa republicar a cada versão; republicar: `GODOT=$G bash tools/servidor/publica.sh wss://zumbi-servidor.onrender.com/jogo`,
+  precisa de aprovação do dono). Sala começa na hora, com tela de carregamento.
+- Feito em 30–31/10 (ver jogo/CLAUDE.md): cidade nossa com ruínas do Blender, rio/pontes/morro, telhados ligados, frestas,
+  delegacia (raid), zumbis realistas e difíceis, som, fogo, corvos, sobreviventes/bilhetes, progressão (livro de
+  habilidades na mochila), dividir o peso dos zumbis entre celulares. Pausa só com CONFIGURAÇÕES; botão FACÇÃO na tela.
+- Tela rosa no celular: tirado filtro de cor/glow na 0.76 (confirmar com o dono).
 
-## Próximos passos pedidos pelo dono
-1. Dividir o peso do mundo com quem entra na sala (cada celular cuida dos zumbis perto dele).
-2. Sobrevivência muito difícil + sistema de progressão.
-3. Raids de zumbi: delegacia (zumbis com arma de fogo e arma branca), bunker cheio de loot e zumbi.
-4. Facções continuam, mas sem invasão de jogador (só zumbi).
-5. Depois: PvP de novo como sala criada por jogador; modo história cooperativo (até 4).
+## Próximo (pedido do dono, 31/10)
+1. Carro simples: entrar/dirigir/sair, sincronizado na rede, controle de celular. Depois: lockpick (outra conversa).
+- Sem convite pelo nome (não há nome fixo). GASTAR POUCO: sem loop, sem fotos, só testes do que mudou, APK só no fim.
 
 ## O que NÃO está no repositório (refazer na sessão nova se precisar)
 - Godot 4.7.2 em `/home/user/.local/godot/`, Android build-tools e o keystore de debug
