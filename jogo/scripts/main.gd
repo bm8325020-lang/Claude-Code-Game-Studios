@@ -365,28 +365,35 @@ func _luz() -> void:
 	ciclo.ambiente = env
 
 
+# concreto velho feito em código (sem textura baixada): manchas grandes, grão fino, sujeira subindo do chão e
+# marcas de forma a cada 1,2 m; `xadrez` (rampas/plataformas) deixa as marcas a cada 1 m para ver a distância
+static var _concreto: Shader
+
+
 func _mat(cor: Color, xadrez: bool = false) -> Material:
-	if not xadrez:
-		var m := StandardMaterial3D.new()
-		m.albedo_color = cor
-		m.roughness = 0.9
-		return m
-	# xadrez de 1 m: dá para ver a velocidade e a distância andando
-	var sh := Shader.new()
-	sh.code = """shader_type spatial;
-uniform vec3 a; uniform vec3 b;
-varying vec3 wp;
-void vertex() { wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
+	if _concreto == null:
+		_concreto = Shader.new()
+		_concreto.code = """shader_type spatial;
+uniform vec3 cor; uniform float passo;
+varying vec3 wp; varying vec3 wn;
+float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float r(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+void vertex() { wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; wn = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz); }
 void fragment() {
-	vec2 c = floor(wp.xz);
-	float k = mod(c.x + c.y, 2.0);
-	ALBEDO = mix(a, b, k);
-	ROUGHNESS = 0.95;
+	vec2 uv = abs(wn.y) > 0.5 ? wp.xz : (abs(wn.x) > 0.5 ? wp.zy : wp.xy);
+	float m = r(uv * 0.7) * 0.6 + r(uv * 3.0) * 0.25 + h(floor(uv * 40.0)) * 0.15;
+	vec3 c = cor * (0.68 + m * 0.3);
+	c *= mix(0.72, 1.0, smoothstep(0.0, 0.9, wp.y));
+	vec2 g = abs(fract(uv / passo) - 0.5);
+	c *= 1.0 - 0.18 * step(0.485, max(g.x, g.y));
+	ALBEDO = c;
+	ROUGHNESS = 0.92;
 }"""
 	var sm := ShaderMaterial.new()
-	sm.shader = sh
-	sm.set_shader_parameter("a", Vector3(cor.r, cor.g, cor.b))
-	sm.set_shader_parameter("b", Vector3(cor.r * 0.82, cor.g * 0.82, cor.b * 0.82))
+	sm.shader = _concreto
+	sm.set_shader_parameter("cor", Vector3(cor.r, cor.g, cor.b))
+	sm.set_shader_parameter("passo", 1.0 if xadrez else 1.2)
 	return sm
 
 

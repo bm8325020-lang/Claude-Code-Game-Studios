@@ -194,7 +194,7 @@ algo, seletor só com a smg); correr = analógico no fim para a frente; trocar/c
 Prompt das próximas partes: atacar os pontos fracos, um por iteração, com foto antes/depois:
 1. (feito, d363c78+) Luz e céu: céu de fim de tarde nublado (ProceduralSky/PhysicalSky com névoa leve de profundidade), sombra macia,
    cor fria e dessaturada (pós-processo barato no gl_compatibility: só ajustes do Environment), noite azulada.
-2. Pista: trocar blocos cinza por modelos (muro, contêiner, carro velho, barricada) grátis e de licença aberta,
+2. (concreto em código feito; falta pôr modelos) Pista: trocar blocos cinza por modelos (muro, contêiner, carro velho, barricada) grátis e de licença aberta,
    chão de asfalto/terra com textura; manter colisão e malha de navegação (testes de zumbi passando).
 3. Arma na tela não atravessa parede (encolher para perto/baixar quando há parede a < 0,6 m na frente).
 4. Itens soltos no chão com o modelo 3D (o mesmo dos ícones), girando devagar, em vez de caixinhas.
