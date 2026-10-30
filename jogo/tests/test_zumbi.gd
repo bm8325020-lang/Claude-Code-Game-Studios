@@ -27,6 +27,7 @@ func plano(a: Vector3, b: Vector3) -> float:
 
 
 func _init() -> void:
+	Zumbi.tipo_fixo = "zumbi_policial"  # este teste mede o zumbi médio (os tipos: test_tipos.gd)
 	main = (load("res://main.tscn") as PackedScene).instantiate()
 	root.add_child(main)
 	await frames(10)

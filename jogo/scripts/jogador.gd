@@ -387,6 +387,7 @@ func _physics_process(dt: float) -> void:
 	var dir: Vector3 = (direita * mov.x + frente * mov.y)
 	var forca: float = mov.length()
 
+	agarrado_t -= get_physics_process_delta_time()
 	var alvo_vel: float
 	if mira_travada:
 		alvo_vel = MIRA_VEL
@@ -400,6 +401,8 @@ func _physics_process(dt: float) -> void:
 		alvo_vel = TROTE
 	if _golpe >= 0:
 		alvo_vel *= 0.3  # golpeando quase não anda
+	if agarrado_t > 0.0:
+		alvo_vel *= 0.45  # agarrado pelo zumbi policial
 	var desejada: Vector3 = dir.normalized() * alvo_vel * clampf(forca / 0.55, 0.0, 1.0) if forca > 0.08 else Vector3.ZERO
 
 	var plano := Vector3(velocity.x, 0, velocity.z)
@@ -734,6 +737,21 @@ signal item_pego(tipo: String, qtd: int)
 
 
 ## Dano de zumbi (ou, depois, de outro jogador). Quem bate pode estar em outro aparelho: o dano vai para o dono.
+## Agarrado (soco do zumbi policial): anda bem mais devagar por `t` s. Quem manda no movimento é o dono do jogador.
+var agarrado_t: float = 0.0
+func agarrar(t: float) -> void:
+	if is_multiplayer_authority():
+		agarrado_t = maxf(agarrado_t, t)
+	else:
+		_rede_agarra.rpc_id(get_multiplayer_authority(), t)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rede_agarra(t: float) -> void:
+	if multiplayer.get_remote_sender_id() == 1:
+		agarrado_t = maxf(agarrado_t, minf(t, 5.0))
+
+
 func levar_dano(dano: int, dir: Vector3) -> void:
 	dano_srv_t = Time.get_ticks_msec() / 1000.0
 	if is_multiplayer_authority():

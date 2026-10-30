@@ -48,6 +48,9 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   `assets/mixamo/personagens/`): `Anims.boneco(nome)` (altura igualada ao X Bot), `Anims.JOGADOR` sobrevivente,
   `Anims.ZUMBIS` (policial/mulher/soldado, escolhido pelo nome do nó), `Anims.CHEFE` parasita. Chefe: pancada no
   chão (`_pancada_no_chao`, PANCADA_RAIO/DANO/INTERVALO, rpc `_poeira`). Teste: tests/test_chefe.gd (7).
+  Tipos (`Zumbi.TIPOS`, `aplica_tipo`, `tipo_fixo` p/ testes): corredora (rápida, frágil, `bote`), policial (médio,
+  `agarrao` → `Jogador.agarrar`/`agarrado_t`), soldado (lento, duro, `blindado`); andar/correr próprios (Anims
+  andar_rapido/correr_rapido/andar_lento/correr_lento). Teste: tests/test_tipos.gd (5).
 - `retarget.gd` — KayKit→X Bot. `golpes.gd` — golpes do facão feitos à mão (poses-chave).
 - `pistola.gd` — arma de fogo: `tipo` (FOGO: pistola/smg) define pente/dano/cadência/dispersão/coice/recarga/automática;
   `modo_auto`, tiro (máscara 1|8), `efeito`, `Pistola.sangue`, `BARULHO`. Jogador: `pistola`, `smg`, `fogo()`, `e_fogo(tipo)`,

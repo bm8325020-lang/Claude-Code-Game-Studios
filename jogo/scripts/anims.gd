@@ -74,9 +74,13 @@ const CLIPES_ZUMBI: Dictionary = {
 	"correr": ["zumbi2/zombie_running", 0.0, -1.0], "ataque": ["zumbi2/zombie_punching", 0.0, -1.0],
 	"dano": ["zumbi2/zombie_reaction_hit", 0.0, 0.7], "grito": ["zumbi/zombie_scream", 0.0, 1.8],
 	"deitado": ["zumbi2/zombie_stand_up", 0.0, 0.5], "levantar": ["zumbi2/zombie_stand_up", 1.2, 2.7], "morte": ["zumbi/zombie_death", 0.0, -1.0],
+	# jeito de andar de cada tipo (Zumbi.TIPOS): corredora rápida, soldado cambaleando pesado
+	"andar_rapido": ["zumbi/zombie_walk", 0.0, -1.0], "correr_rapido": ["zumbi/zombie_run", 0.0, -1.0],
+	"andar_lento": ["zumbi2/zombie_stumbling", 0.0, -1.0], "correr_lento": ["zumbi2/walking_2", 0.0, -1.0],
 }
 const NAO_REPETE_ZUMBI: Array[String] = ["ataque", "dano", "morte", "grito", "levantar"]
-const VELOCIDADE_ZUMBI: Dictionary = {"andar": 0.56, "correr": 3.1}
+const VELOCIDADE_ZUMBI: Dictionary = {"andar": 0.56, "correr": 3.1, "andar_rapido": 0.7, "correr_rapido": 3.4,
+	"andar_lento": 0.45, "correr_lento": 0.9}
 
 static var _lib: AnimationLibrary
 static var _lib_zumbi: AnimationLibrary

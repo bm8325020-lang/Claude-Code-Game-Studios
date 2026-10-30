@@ -65,6 +65,29 @@ var chefe: bool = false
 const ESCALA_CHEFE: float = 1.35
 const VIDA_CHEFE: int = 400
 const DANO_CHEFE: int = 35
+## Tipos de zumbi (vem do modelo): vida, dano, velocidade (× ANDAR/CORRER), animações de andar/correr e habilidade.
+## Corredora: rápida e frágil, dá um BOTE de longe. Policial: médio, o soco AGARRA (deixa o jogador lento).
+## Soldado: lento e duro, BLINDADO (leva menos dano e não cambaleia com golpe fraco).
+const TIPOS: Dictionary = {
+	"zumbi_mulher": {"nome": "Corredora", "vida": 70, "dano": 10, "vel": 1.3, "andar": "andar_rapido", "correr": "correr_rapido", "skill": "bote"},
+	"zumbi_policial": {"nome": "Policial", "vida": 100, "dano": 15, "vel": 1.0, "andar": "andar", "correr": "correr", "skill": "agarrao"},
+	"zumbi_soldado": {"nome": "Soldado", "vida": 180, "dano": 20, "vel": 0.65, "andar": "andar_lento", "correr": "correr_lento", "skill": "blindado"},
+}
+const BOTE_DE: float = 3.0          # m: distância mínima e máxima para o bote
+const BOTE_ATE: float = 6.5
+const BOTE_VEL: float = 8.0         # m/s durante o bote
+const BOTE_DUR: float = 0.35
+const BOTE_INTERVALO: float = 6.0
+const AGARRA_T: float = 2.0         # s que o jogador fica lento depois do soco do policial
+const BLINDAGEM: float = 0.6        # o soldado leva 60% do dano
+const BLINDADO_CAMBALEIA: int = 30  # e só cambaleia com golpe a partir disso
+var tipo: String = "zumbi_policial"
+## testes: força um tipo para todos os zumbis criados (vazio = escolhe pelo nome)
+static var tipo_fixo: String = ""
+var _dano: int = DANO
+var _vel: float = 1.0
+var _skill_t: float = 2.0
+var _bote: float = 0.0
 ## Habilidade do chefe: pancada no chão (em vez do soco, de tempos em tempos): acerta todos em volta, até de costas
 const PANCADA_RAIO: float = 4.0
 const PANCADA_DANO: int = 25
@@ -146,7 +169,9 @@ func _ready() -> void:
 	add_child(cs)
 	_forma = cs
 	# o nome é o mesmo em todos os aparelhos: todos veem o mesmo zumbi
-	modelo = Anims.boneco(Anims.CHEFE if chefe else Anims.ZUMBIS[hash(String(name)) % Anims.ZUMBIS.size()])
+	if not chefe:
+		aplica_tipo(tipo_fixo if tipo_fixo != "" else Anims.ZUMBIS[hash(String(name)) % Anims.ZUMBIS.size()])
+	modelo = Anims.boneco(Anims.CHEFE if chefe else tipo)
 	modelo.scale = Vector3.ONE * k
 	add_child(modelo)
 	_mat_pele = StandardMaterial3D.new()  # por cima da roupa: pisca vermelho ao levar golpe
@@ -203,6 +228,8 @@ func _manda() -> bool:
 
 func _physics_process(dt: float) -> void:
 	_pancada_t -= dt
+	_skill_t -= dt
+	_bote -= dt
 	if not _manda():
 		global_position = global_position.lerp(pos_rede, 1.0 - exp(-14.0 * dt))
 		if global_position.distance_to(pos_rede) > 4.0:
@@ -256,7 +283,7 @@ func _physics_process(dt: float) -> void:
 		_atualiza_ataque(dt)
 	elif _foge_t > 0.0 and alvo:
 		_foge_t -= dt
-		var corre: float = CORRER * 1.2 * Ciclo.forca_noite(get_tree(), NOITE_VEL)
+		var corre: float = CORRER * 1.2 * (1.0 if chefe else _vel) * Ciclo.forca_noite(get_tree(), NOITE_VEL)
 		if _abrigo == Vector3.INF:
 			var longe: Vector3 = global_position - alvo.global_position
 			longe.y = 0.0
@@ -274,7 +301,16 @@ func _physics_process(dt: float) -> void:
 	elif alvo:
 		var d: Vector3 = alvo.global_position - global_position
 		d.y = 0.0
-		if d.length() < ALCANCE and _porta_na_frente(d) == null:
+		if not chefe and TIPOS[tipo].skill == "bote" and _skill_t <= 0.0 and _ataque_t < 0.0 and d.length() > BOTE_DE \
+				and d.length() < BOTE_ATE and _ve(alvo):
+			_bote = BOTE_DUR  # corredora: pula em cima de longe
+			_skill_t = BOTE_INTERVALO
+		if _bote > 0.0:
+			_vira_para(d, dt * 6.0)
+			desejada = d.normalized() * BOTE_VEL
+			velocity.x = desejada.x
+			velocity.z = desejada.z
+		elif d.length() < ALCANCE and _porta_na_frente(d) == null:
 			_vira_para(d, dt * 2.0)
 			_ataca()
 		else:
@@ -287,7 +323,7 @@ func _physics_process(dt: float) -> void:
 					_fechando = true
 				else:
 					destino = lado
-			desejada = _caminho(destino, (CORRER if d.length() < PERTO else ANDAR) * (0.8 if chefe else 1.0) * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
+			desejada = _caminho(destino, (CORRER if d.length() < PERTO else ANDAR) * (0.8 if chefe else _vel) * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
 			# mirando nele de longe: desvia para os lados (troca de lado a cada ~0,7 s, sem ritmo fixo)
 			if d.length() > ZIGUE_LONGE and alvo.mirando_em(global_position, 12.0):
 				_zigue_t += dt * randf_range(0.8, 1.2)
@@ -332,7 +368,8 @@ func _physics_process(dt: float) -> void:
 	move_and_slide()
 	if _ataque_t < 0.0 and _cambaleio <= 0.0 and _grito_t < 0.0 and _levantando < 0.0:
 		var v: float = plano.length()
-		_toca("parado" if v < 0.2 else ("correr" if v > 1.6 else "andar"), 0.25)
+		var nomes: Dictionary = {"andar": "andar", "correr": "correr"} if chefe else TIPOS[tipo]
+		_toca("parado" if v < 0.2 else (nomes.correr if v > 1.6 * (1.0 if chefe else _vel) else nomes.andar), 0.25)
 		var base: float = float(Anims.VELOCIDADE_ZUMBI.get(_clipe, 0.0))
 		anim.speed_scale = clampf(v / base, 0.6, 2.2) if base > 0.0 and v > 0.2 else 1.0
 	_publica()
@@ -360,7 +397,7 @@ func _patrulha(dt: float) -> Vector3:
 		_rota_i = (_rota_i + 1) % rota.size()
 		_pausa_t = randf_range(1.5, 3.5)
 		return Vector3.ZERO
-	return _caminho(alvo_p, ANDAR * 0.8, dt)
+	return _caminho(alvo_p, ANDAR * 0.8 * (1.0 if chefe else _vel), dt)
 
 
 static func _plano(v: Vector3) -> float:
@@ -554,7 +591,7 @@ func _atualiza_ataque(dt: float) -> void:
 		if _pancada:
 			_pancada_no_chao()
 		elif _porta_alvo:
-			_porta_alvo.leva_soco(DANO)
+			_porta_alvo.leva_soco(_dano)
 			_porta_alvo = null
 		elif alvo and is_instance_valid(alvo):
 			var d: Vector3 = alvo.global_position - global_position
@@ -562,9 +599,21 @@ func _atualiza_ataque(dt: float) -> void:
 			var frente: Vector3 = modelo.global_basis.z
 			if d.length() < ALCANCE_ACERTO and rad_to_deg(Vector3(frente.x, 0, frente.z).angle_to(d)) < 70.0:
 				# o chefe empurra longe (o empurrão do jogador é proporcional ao tamanho de `dir`)
-				alvo.levar_dano(roundi((DANO_CHEFE if chefe else DANO) * Ciclo.forca_noite(get_tree(), NOITE_DANO)), d.normalized() * (2.5 if chefe else 1.0))
+				alvo.levar_dano(roundi((DANO_CHEFE if chefe else _dano) * Ciclo.forca_noite(get_tree(), NOITE_DANO)), d.normalized() * (2.5 if chefe else 1.0))
+				if not chefe and TIPOS[tipo].skill == "agarrao":
+					alvo.agarrar(AGARRA_T)
 	if _ataque_t >= dur:
 		_ataque_t = -1.0
+
+
+## Vida, dano e velocidade do tipo (o nome do nó escolhe; os testes podem forçar).
+func aplica_tipo(t: String) -> void:
+	tipo = t
+	var d: Dictionary = TIPOS[t]
+	_vida_max = d.vida
+	vida = d.vida
+	_dano = d.dano
+	_vel = d.vel
 
 
 # servidor: a pancada do chefe acerta todos os jogadores no raio (dano cai com a distância) e empurra para fora
@@ -636,12 +685,15 @@ func _pede_golpe(dano: int, dir: Vector3) -> void:
 func _aplica(dano: int, dir: Vector3) -> void:
 	if _deitado:
 		_acorda()
+	var blindado: bool = not chefe and TIPOS[tipo].skill == "blindado"
+	if blindado:
+		dano = maxi(1, roundi(dano * BLINDAGEM))
 	vida = maxi(0, vida - dano)
 	if vida > 0 and vida <= FOGE_VIDA and not _fugiu and alvo and not chefe:
 		_fugiu = true
 		_abrigo = _acha_abrigo()
 		_foge_t = FOGE_POR if _abrigo == Vector3.INF else ESCONDE_POR
-	if vida > 0 and (not chefe or dano >= 40):
+	if vida > 0 and (not chefe or dano >= 40) and (not blindado or dano >= roundi(BLINDADO_CAMBALEIA * BLINDAGEM)):
 		_cambaleio = CAMBALEIO
 		_ataque_t = -1.0
 		_grito_t = -1.0
