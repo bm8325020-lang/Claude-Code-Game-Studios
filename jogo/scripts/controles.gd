@@ -564,6 +564,22 @@ func _monta_faccao() -> void:
 	_lista_faccao.add_child(UiTema.rotulo(f.to_upper(), 30))
 	_lista_faccao.add_child(UiTema.rotulo(("Casa: %s" % d.casa) if d.casa != "" else "Sem casa agora (domine outra com 1 membro em %d min)" % int(Faccoes.REDOMINAR_T / 60.0), 20, UiTema.APAGADO))
 	_lista_faccao.add_child(UiTema.rotulo("Membros (%d/%d): %s" % [d.membros.size(), Faccoes.LIMITE, ", ".join(d.membros)], 20))
+	if d.casa != "":
+		var dias: int = ceili(float(d.prazo) / Faccoes.DIA)
+		_lista_faccao.add_child(UiTema.rotulo("Fundo: $%d. Manutenção de $%d em %d dias do jogo (sem fundo = perde a casa e o baú)." % [int(d.fundo), Faccoes.MANUT_CUSTO, dias], 20))
+	var dep := HBoxContainer.new()
+	for v: int in [100, 1000]:
+		var b := UiTema.botao("DEPOSITAR $%d" % v)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.pressed.connect(func() -> void:
+			if jogador.dinheiro >= v:
+				jogador.dinheiro -= v
+				principal.pede_depositar.rpc_id(1, v)
+				aviso("$%d no fundo da facção" % v, Color(0.35, 0.6, 0.9))
+			else:
+				aviso("Sem dinheiro"))
+		dep.add_child(b)
+	_lista_faccao.add_child(dep)
 	for j: Jogador in principal.jogadores.get_children():
 		if j == jogador or principal.faccao_de(j.nick) != "":
 			continue

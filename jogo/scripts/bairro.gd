@@ -49,6 +49,20 @@ func _ready() -> void:
 	_classifica()
 
 
+## Ponto na frente da porta da casa (renascer na casa da facção).
+func frente_da(casa: String) -> Vector3:
+	var c := get_node_or_null(casa) as Node3D
+	if c == null:
+		return ORIGEM
+	return c.global_position + c.global_basis.z * ((c.get_meta("tam") as Vector2).y * 0.5 + 2.5) + Vector3(0, 0.1, 0)
+
+
+## Baú da facção da casa.
+func bau_da(casa: String) -> Bau:
+	var c := get_node_or_null(casa)
+	return c.get_node_or_null("BauFac_" + casa.trim_prefix("Casa_")) as Bau if c else null
+
+
 ## Nome da casa (Casa_k) em que o ponto está dentro, ou "".
 func casa_em(p: Vector3) -> String:
 	for casa: Node3D in get_tree().get_nodes_in_group("casas"):
@@ -129,6 +143,27 @@ func _casa(lote: Vector3, giro: float, larg: float, fundo: float) -> void:
 		b.position = Vector3(larg * 0.5 - 0.9, 0, -fundo * 0.5 + 0.7)
 		b.facil = k % 4 == 0
 		casa.add_child(b)
+	# da facção que dominar a casa: baú (fechado para os outros) e cama que cura
+	var bf := Bau.new()
+	bf.name = "BauFac_%d" % k
+	bf.de_faccao = true
+	bf.position = Vector3(larg * 0.5 - 0.9, 0, fundo * 0.5 - 1.1)
+	bf.rotation_degrees.y = 180.0
+	casa.add_child(bf)
+	var cama := StaticBody3D.new()
+	cama.name = "Cama"
+	cama.position = Vector3(-larg * 0.5 + 1.0, 0, 0.4)
+	cama.add_to_group("camas")
+	casa.add_child(cama)
+	_peca(cama, Vector3(0, 0.25, 0), Vector3(1.0, 0.5, 2.0), Color(0.36, 0.26, 0.18))  # estrado
+	_peca(cama, Vector3(0, 0.55, 0.1), Vector3(0.92, 0.12, 1.75), Color(0.62, 0.6, 0.55))  # colchão
+	_peca(cama, Vector3(0, 0.66, -0.7), Vector3(0.6, 0.1, 0.3), Color(0.78, 0.76, 0.7))  # travesseiro
+	var cs := CollisionShape3D.new()
+	var bs := BoxShape3D.new()
+	bs.size = Vector3(1.0, 0.6, 2.0)
+	cs.shape = bs
+	cs.position.y = 0.3
+	cama.add_child(cs)
 	var it := Item.new()
 	it.name = "Item_b%d" % k
 	it.tipo = ["comida", "agua", "municao"][k % 3]

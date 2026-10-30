@@ -81,6 +81,10 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   DOMINAR_T 360, REDOMINAR_T 180, LIMITE 10). main: `faccoes`, `pede_dominar`/`pede_adicionar` (rpc), `_passa_dominio`,
   `_manda_faccoes` → `_faccoes_cli`, `faccao_de`. Bairro: `casa_em(pos)`, grupo "casas", meta "tam". controles:
   `_btn_dominar` (bandeira, PC H), `_dominio` (relógio), página FACÇÃO na pausa. Teste: test_faccoes (11).
+  Casa (13): cada casa tem `BauFac_k` (`Bau.de_faccao`/`faccao`/`pode`/`guarda_por`; `Jogador.guarda_no_bau`) e `Cama`
+  (grupo "camas"; `Jogador._cama` CURA_CAMA). Manutenção: `Faccoes.passa_manutencao` (MANUT_DIAS 7, MANUT_CUSTO 20000,
+  AVISO_DIAS 3, fundo via `main.pede_depositar`), `liberar` (main `_libera_casas` ao sair). Renasce em
+  `bairro.frente_da(casa)` (`main.ponto_nascer(nick)`). Teste: test_casa_faccao (11).
 - `rede.gd` — ENet 7777, broadcast 7778, pergunta direta 7779, `VERSAO`, `LISTA_URL` (servidores.json). Endereço
   "ws://"/"wss://" = WebSocket (servidor online atrás de site; `-- dedicado ws` escuta em `PORTA_WS` 7861).
 - `config.gd` (Config) — `Config.v[...]` salvo em user://config.cfg, `muda()`, `aplica()`, `sensibilidade(arma, mirando)`,

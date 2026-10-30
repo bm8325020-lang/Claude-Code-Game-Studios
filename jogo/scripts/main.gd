@@ -396,11 +396,62 @@ func pede_adicionar(nick: String) -> void:
 
 func _passa_dominio(dt: float) -> void:
 	_faccao_tick -= dt
-	if _faccao_tick > 0.0 or faccoes.tentativas.is_empty():
+	if _faccao_tick > 0.0:
 		return
 	_faccao_tick = 0.5
+	var mudou: bool = not faccoes.tentativas.is_empty()
+	var donas_antes: Dictionary = {}
+	for n: String in faccoes.faccoes:
+		donas_antes[faccoes.faccoes[n].casa] = n
 	for ev: Array in faccoes.passa(0.5, _dentro_das_casas()):
-		aviso_todos.rpc(("%s dominou uma casa" % ev[2]) if ev[0] == "sucesso" else "O domínio da casa falhou")
+		if ev[0] == "sucesso":
+			aviso_todos.rpc("%s dominou uma casa" % ev[2])
+			var b := bairro.bau_da(ev[1])
+			if donas_antes.has(ev[1]) and faccoes.faccoes.has(donas_antes[ev[1]]):
+				faccoes.faccoes[donas_antes[ev[1]]].guardado.append_array(b.conteudo)  # quem perdeu a área leva o baú
+			b.faccao = ev[2]
+			b.conteudo = faccoes.faccoes[ev[2]].guardado.duplicate(true)  # o que a facção tinha guardado volta
+			faccoes.faccoes[ev[2]].guardado = []
+		else:
+			aviso_todos.rpc("O domínio da casa falhou")
+	for ev: Array in faccoes.passa_manutencao(0.5):
+		mudou = true
+		if ev[0] == "aviso":
+			_avisa_faccao(ev[1], "Faltam %d dias para perder a casa (fundo sem $%d)" % [ev[2], Faccoes.MANUT_CUSTO])
+		elif ev[0] == "pagou":
+			_avisa_faccao(ev[1], "Manutenção da casa paga")
+		else:
+			var b := bairro.bau_da(ev[2])
+			b.faccao = ""
+			b.conteudo = []  # não pagou: perde a casa e o baú
+			_avisa_faccao(ev[1], "A facção perdeu a casa (manutenção não paga)")
+	if mudou:
+		_manda_faccoes()
+
+
+func _avisa_faccao(nome: String, texto: String) -> void:
+	for j: Jogador in jogadores.get_children():
+		if j.nick in faccoes.faccoes[nome].membros:
+			aviso_todos.rpc_id(int(String(j.name)), texto)
+
+
+@rpc("any_peer", "call_local", "reliable")
+func pede_depositar(valor: int) -> void:
+	var j := jogadores.get_node_or_null(str(_quem())) as Jogador
+	if multiplayer.is_server() and j and valor > 0 and valor <= 100000 and faccoes.depositar(j.nick, valor):
+		_manda_faccoes()
+
+
+# servidor: nenhum membro da facção ficou no servidor = casa liberada e o baú vai com a facção
+func _libera_casas() -> void:
+	var online: Array = jogadores.get_children().filter(func(j: Node) -> bool: return not j.is_queued_for_deletion()).map(func(j: Jogador) -> String: return j.nick)
+	for n: String in faccoes.faccoes:
+		var d: Dictionary = faccoes.faccoes[n]
+		if d.casa != "" and not d.membros.any(func(m: String) -> bool: return m in online):
+			var b := bairro.bau_da(d.casa)
+			faccoes.liberar(n, b.conteudo)
+			b.conteudo = []
+			b.faccao = ""
 	_manda_faccoes()
 
 
@@ -422,7 +473,10 @@ func faccao_de(nick: String) -> String:
 
 
 ## Lugar sorteado para nascer/renascer (prompt 11). Quem tem casa de facção renasce nela (prompt 13).
-func ponto_nascer() -> Vector3:
+func ponto_nascer(nick: String = "") -> Vector3:
+	var f: String = faccao_de(nick) if nick != "" else ""
+	if f != "" and String(_faccoes_cli.f[f].casa) != "":
+		return bairro.frente_da(_faccoes_cli.f[f].casa)  # quem tem casa de facção renasce nela
 	return Bairro.sorteia(_rng_nascer, bairro.pontos_bons, bairro.pontos_ruins)
 
 
@@ -480,6 +534,8 @@ func _peer_saiu(id: int) -> void:
 		if multiplayer.is_server():
 			saiu_morrendo(n as Jogador)
 		n.queue_free()
+		if multiplayer.is_server():
+			_libera_casas()
 
 
 ## Servidor: quem sai do jogo caído ou em luta (dano há menos de 10 s) larga o saco com a última cópia da mochila.

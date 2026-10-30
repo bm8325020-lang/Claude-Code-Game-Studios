@@ -254,7 +254,11 @@ aumentar pagando muito dinheiro). Uma facção = uma casa. Facção já existent
 Aceite: testes do relógio de domínio (pausa, falha, sucesso) e do anúncio.
 
 ## 13. Casa da facção e manutenção
-Status: pendente
+Status: feito em parte (APK 0.52): renascer na casa, baú da facção (guardar/pegar, só membros), cama que cura,
+manutenção ($20 mil do fundo da facção a cada 7 dias do jogo, aviso nos últimos 3 dias, sem fundo perde casa e baú),
+fundo (DEPOSITAR na página FACÇÃO), todos saíram = casa liberada e o baú vai com a facção (volta na próxima casa;
+quem perde a casa para outro grupo também leva o baú). Falta: armário pessoal, lojas de membros (15), garagem (18).
+Teste: tests/test_casa_faccao.gd (11).
 
 Benefícios: renascer na casa, **baú da facção**, **armário pessoal** por membro, **cama que cura**, loja de
 munição e de comida/água ao lado (só membros compram), garagem. **Manutenção ~20 mil a cada 7 dias do jogo**

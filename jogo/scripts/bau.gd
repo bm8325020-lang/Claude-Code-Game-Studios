@@ -14,6 +14,9 @@ const REENCHE: float = 300.0
 var saco: bool = false
 const SOME_SACO: float = 600.0
 var _saco_t: float = SOME_SACO
+## baú da facção (prompt 13): começa vazio, não reenche, só membros da facção dona da casa (`faccao`) abrem
+var de_faccao: bool = false
+var faccao: String = ""
 ## [{"tipo", "qtd"}] — vai pela rede quando muda
 var conteudo: Array = []
 var _vazio_t: float = 0.0
@@ -27,12 +30,14 @@ func _ready() -> void:
 	var cfg := SceneReplicationConfig.new()
 	cfg.add_property(NodePath(".:conteudo"))
 	cfg.property_set_replication_mode(NodePath(".:conteudo"), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+	cfg.add_property(NodePath(".:faccao"))
+	cfg.property_set_replication_mode(NodePath(".:faccao"), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	var sync := MultiplayerSynchronizer.new()
 	sync.name = "Sincronia"
 	sync.root_path = NodePath("..")
 	sync.replication_config = cfg
 	add_child(sync)
-	if _manda() and not saco:
+	if _manda() and not saco and not de_faccao:
 		_rng.seed = hash(name) ^ Time.get_ticks_usec()
 		conteudo = Loot.sorteia(_rng, facil)
 
@@ -41,12 +46,22 @@ func _manda() -> bool:
 	return not multiplayer.has_multiplayer_peer() or multiplayer.is_server()
 
 
-## O baú usável mais perto de `pos` (null se nenhum).
-static func perto(arvore: SceneTree, pos: Vector3) -> Bau:
+## Pode abrir? Baú da facção: só quem é da facção dona.
+func pode(j: Jogador) -> bool:
+	if not de_faccao:
+		return true
+	var principal := get_tree().get_first_node_in_group("principal")
+	return j != null and faccao != "" and principal != null and principal.faccao_de(j.nick) == faccao
+
+
+## O baú usável mais perto de `pos` (null se nenhum); `quem` filtra os baús de facção.
+static func perto(arvore: SceneTree, pos: Vector3, quem: Jogador = null) -> Bau:
 	var melhor: Bau = null
 	var dist: float = ALCANCE
 	for n: Node in arvore.get_nodes_in_group("baus"):
 		var b := n as Bau
+		if b.de_faccao and not b.pode(quem):
+			continue
 		var d: float = Vector2(b.global_position.x - pos.x, b.global_position.z - pos.z).length()
 		if d < dist:
 			dist = d
@@ -56,7 +71,7 @@ static func perto(arvore: SceneTree, pos: Vector3) -> Bau:
 
 ## Servidor: `j` pega o item `i` (ou todos se i < 0). Confere distância e o que ainda tem.
 func pega_por(j: Jogador, i: int) -> void:
-	if j.vida <= 0 or Vector2(global_position.x - j.global_position.x, global_position.z - j.global_position.z).length() > ALCANCE + 0.8:
+	if not pode(j) or j.vida <= 0 or Vector2(global_position.x - j.global_position.x, global_position.z - j.global_position.z).length() > ALCANCE + 0.8:
 		return
 	var novo: Array = conteudo.duplicate(true)
 	var idx: Array = range(novo.size()) if i < 0 else [i]
@@ -67,8 +82,23 @@ func pega_por(j: Jogador, i: int) -> void:
 		j.ganhar(String(novo[n].tipo), int(novo[n].qtd))
 		novo.remove_at(n)
 	conteudo = novo  # reatribui: a sincronia só manda quando a propriedade muda
-	if conteudo.is_empty():
+	if conteudo.is_empty() and not de_faccao:
 		_vazio_t = REENCHE
+
+
+## Servidor: `j` guarda `qtd` de `tipo` (já tirou da mochila dele). Não pode: devolve.
+func guarda_por(j: Jogador, tipo: String, qtd: int) -> void:
+	if not de_faccao or not pode(j) or qtd <= 0 or Vector2(global_position.x - j.global_position.x, global_position.z - j.global_position.z).length() > ALCANCE + 0.8:
+		j.ganhar(tipo, qtd)
+		return
+	var novo: Array = conteudo.duplicate(true)
+	for e: Dictionary in novo:
+		if e.tipo == tipo:
+			e.qtd = int(e.qtd) + qtd
+			conteudo = novo
+			return
+	novo.append({"tipo": tipo, "qtd": qtd})
+	conteudo = novo
 
 
 func _process(dt: float) -> void:
@@ -79,7 +109,7 @@ func _process(dt: float) -> void:
 				queue_free()
 		return
 	_tampa.rotation.x = lerp_angle(_tampa.rotation.x, deg_to_rad(-100.0) if conteudo.is_empty() else 0.0, 1.0 - exp(-6.0 * dt))
-	if _manda() and conteudo.is_empty():
+	if _manda() and conteudo.is_empty() and not de_faccao:
 		_vazio_t -= dt
 		if _vazio_t <= 0.0:
 			conteudo = Loot.sorteia(_rng, facil)

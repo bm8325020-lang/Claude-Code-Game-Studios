@@ -337,6 +337,7 @@ func _physics_process(dt: float) -> void:
 			agua -= 1
 			sede = minf(100.0, sede + ENCHE)
 	_passa_fome(dt)
+	_cama(dt)
 	_abre_bau(dt, mov)
 	_fabrica(dt)
 	_copia_t -= dt
@@ -579,7 +580,7 @@ func _fabrica(dt: float) -> void:
 
 ## Baú perto (para o botão ABRIR).
 func bau_perto() -> Bau:
-	return Bau.perto(get_tree(), global_position) if vida > 0 else null
+	return Bau.perto(get_tree(), global_position, self) if vida > 0 else null
 
 
 ## Abrindo baú: segundos que faltam (> 0 = abrindo) e qual.
@@ -595,6 +596,29 @@ func pega_do_bau(b: Bau, i: int) -> void:
 		b.pega_por(self, i)
 	else:
 		_pede_bau.rpc_id(1, get_path_to(b), i)
+
+
+## Guarda o espaço `i` da mochila no baú da facção (tira daqui; o servidor põe lá ou devolve).
+func guarda_no_bau(b: Bau, i: int) -> void:
+	var e: Variant = mochila.espacos[i]
+	if e == null or e.tipo in Mochila.PRESOS or not b.de_faccao:
+		return
+	var tipo: String = e.tipo
+	var qtd: int = int(e.qtd)
+	mochila.espacos[i] = null
+	mochila.mudou.emit()
+	if not multiplayer.has_multiplayer_peer() or multiplayer.is_server():
+		b.guarda_por(self, tipo, qtd)
+	else:
+		_pede_guardar.rpc_id(1, get_path_to(b), tipo, qtd)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _pede_guardar(caminho: NodePath, tipo: String, qtd: int) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority():
+		var b := get_node_or_null(caminho) as Bau
+		if b:
+			b.guarda_por(self, tipo, qtd)
 
 
 @rpc("any_peer", "call_remote", "reliable")
@@ -836,6 +860,25 @@ func _copia_agora() -> void:
 		_copia.rpc_id(1, tudo)
 
 
+## Cama da casa da facção (prompt 13): parado do lado dela, cura CURA_CAMA de vida por segundo.
+const CURA_CAMA: float = 4.0
+var _cura_acum: float = 0.0
+func _cama(dt: float) -> void:
+	if vida >= VIDA_MAX or Vector2(velocity.x, velocity.z).length() > 0.3:
+		return
+	var principal := get_tree().get_first_node_in_group("principal")
+	var f: String = principal.faccao_de(nick) if principal else ""
+	if f == "":
+		return
+	for c: Node3D in get_tree().get_nodes_in_group("camas"):
+		if String(c.get_parent().name) == String(principal._faccoes_cli.f[f].casa) and c.global_position.distance_to(global_position) < 1.6:
+			_cura_acum += CURA_CAMA * dt
+			if _cura_acum >= 1.0:
+				vida = mini(VIDA_MAX, vida + int(_cura_acum))
+				_cura_acum -= int(_cura_acum)
+			return
+
+
 ## Caído esperando o grupo (prompt 10): não larga nada até o tempo acabar.
 const RESGATE_T: float = 90.0
 const RESGATE_VIDA: int = 30
@@ -988,7 +1031,7 @@ func _caido(dt: float) -> void:
 	if _morto_t <= 0.0:
 		var principal := get_tree().get_first_node_in_group("principal")
 		if principal and principal.nascer_no_bairro and principal.bairro:
-			inicio = principal.ponto_nascer()  # renasce num lugar sorteado (75% bom)
+			inicio = principal.ponto_nascer(nick)  # casa da facção, ou um lugar sorteado (75% bom)
 		global_position = inicio
 		velocity = Vector3.ZERO
 		vida = VIDA_MAX

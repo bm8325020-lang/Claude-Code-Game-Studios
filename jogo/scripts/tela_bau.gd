@@ -8,6 +8,8 @@ var bau: Bau
 var _lista: VBoxContainer
 var _visto: Array = []
 var _titulo: Label
+var _guardar: VBoxContainer  # baú da facção: o que tem na mochila, com GUARDAR
+var _mochila_vista: Array = []
 
 
 func _ready() -> void:
@@ -26,6 +28,9 @@ func _ready() -> void:
 	var tudo := UiTema.botao("PEGAR TUDO", true)
 	tudo.pressed.connect(func() -> void: jogador.pega_do_bau(bau, -1))
 	col.add_child(tudo)
+	_guardar = VBoxContainer.new()
+	_guardar.add_theme_constant_override("separation", 6)
+	col.add_child(_guardar)
 	var voltar := UiTema.botao_voltar()
 	voltar.position = Vector2(36, 28)
 	voltar.pressed.connect(func() -> void: visible = false)
@@ -37,7 +42,8 @@ func abre(j: Jogador, b: Bau) -> void:
 	bau = b
 	_visto = []
 	visible = true
-	_titulo.text = "MOCHILA NO CHÃO" if b.saco else "BAÚ"
+	_titulo.text = "MOCHILA NO CHÃO" if b.saco else ("BAÚ DA FACÇÃO" if b.de_faccao else "BAÚ")
+	_mochila_vista = []
 	move_to_front()
 
 
@@ -47,6 +53,7 @@ func _process(_dt: float) -> void:
 	if jogador.bau_perto() != bau:
 		visible = false
 		return
+	_lista_guardar()
 	if bau.conteudo == _visto:
 		return
 	_visto = bau.conteudo.duplicate(true)
@@ -77,3 +84,24 @@ func _process(_dt: float) -> void:
 		b.pressed.connect(func() -> void: jogador.pega_do_bau(bau, i))
 		linha.add_child(b)
 		_lista.add_child(linha)
+
+
+# baú da facção: os itens da mochila (menos os presos) com GUARDAR
+func _lista_guardar() -> void:
+	_guardar.visible = bau.de_faccao
+	if not bau.de_faccao:
+		return
+	var agora: Array = jogador.mochila.espacos.map(func(e: Variant) -> Variant: return null if e == null else [e.tipo, e.qtd])
+	if agora == _mochila_vista:
+		return
+	_mochila_vista = agora
+	for c in _guardar.get_children():
+		c.queue_free()
+	_guardar.add_child(UiTema.rotulo("GUARDAR DA MOCHILA", 22, UiTema.APAGADO))
+	for i in jogador.mochila.espacos.size():
+		var e: Variant = jogador.mochila.espacos[i]
+		if e == null or e.tipo in Mochila.PRESOS:
+			continue
+		var b := UiTema.botao("GUARDAR  %s  X%d" % [String(Mochila.NOMES.get(e.tipo, e.tipo)).to_upper(), int(e.qtd)])
+		b.pressed.connect(func() -> void: jogador.guarda_no_bau(bau, i))
+		_guardar.add_child(b)
