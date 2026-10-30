@@ -339,6 +339,17 @@ Cidade inicial (mais fácil) + outras cidades, escombros, lugares preservados, c
 domináveis. Usar os modelos já baixados (Sketchfab) e pacotes grátis; dividir por áreas que carregam por
 proximidade.
 
+## 23. Modos de jogo: Sobrevivência (mundo aberto), PvP em salas e História cooperativa
+Status: pendente (ideia do dono, 30/10)
+
+Menu com 3 modos:
+- **Sobrevivência**: o que existe hoje (mundo aberto, facções, 40 por servidor).
+- **PvP em salas**: criar sala pública (aparece na lista global) ou privada (entra por código), escolher mapa, tempo
+  e número de jogadores; partida curta com fim e placar. Lista global precisa de um servidor de salas (matchmaking).
+- **História cooperativa**: campanha própria (original, clima de terror e sobrevivência), sozinho ou com até 3
+  amigos (4 no total). Capítulos com objetivos, cenas, chefes, puzzles simples, munição escassa e salvamento por
+  capítulo. Quem cria a sala hospeda (4 jogadores pesa pouco no celular) ou usa o servidor.
+
 ## 22. Passe, loja visual e Play Store (por último)
 Status: pendente
 
