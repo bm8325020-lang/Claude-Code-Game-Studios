@@ -262,8 +262,14 @@ def caixa_paredes(w, d, z0, alt, m, frente_porta, n_jan, quebras, tapadas, fundo
 def divisorias(w, d, z0, m):
     """Parede interna atravessando a casa (com vão) e outra dividindo um dos lados."""
     x = rnd.uniform(-0.15, 0.15) * w
-    parede("int_0", (x, -d / 2 + ESP), (x, d / 2 - ESP), z0, PE, [(rnd.uniform(1.2, d - 2.4), 1.0, 0, 2.1)], m)
+    t = rnd.uniform(1.2, d - 2.4)
+    parede("int_0", (x, -d / 2 + ESP), (x, d / 2 - ESP), z0, PE, [(t, 1.0, 0, 2.1)], m)
+    porta_y = -d / 2 + ESP + t
     y = rnd.uniform(-0.1, 0.25) * d
+    for _ in range(20):  # a outra parede não pode encostar no vão da primeira (trancava o cômodo)
+        if abs(y - porta_y) > 1.1:
+            break
+        y = rnd.uniform(-0.3, 0.3) * d
     x1 = w / 2 - ESP if rnd.random() < 0.5 else -w / 2 + ESP
     parede("int_1", (x, y), (x1, y), z0, PE, [(abs(x1 - x) / 2, 1.0, 0, 2.1)], m)
 
@@ -653,23 +659,133 @@ def galpao(nome, w, d, semente):
     exporta(nome)
 
 
+def marca(nome, x, y, z=0.06):
+    """Ponto marcado (Empty) que o jogo lê: zumbi_k, zumbi_arm_k (com arma de fogo), bau_k."""
+    e = bpy.data.objects.new(nome, None)
+    bpy.context.collection.objects.link(e)
+    e.location = (x, y, z)
+
+
+def grade(nome, a, b, alt=2.6, vao=None):
+    """Grade de cela de a até b (barras de ferro); vao = (t, largura) fica aberto (porta da cela arrombada)."""
+    a, b = Vector((a[0], a[1], 0)), Vector((b[0], b[1], 0))
+    u = (b - a).normalized()
+    comp = (b - a).length
+    barras = []
+    t = 0.06
+    while t < comp:
+        if not (vao and abs(t - vao[0]) < vao[1] / 2):
+            c = a + u * t
+            barras.append(caixa("g", (c.x, c.y, alt / 2), (0.04, 0.04, alt), "metal"))
+        t += 0.16
+    c = a + u * (comp / 2)
+    barras.append(caixa("g", (c.x, c.y, alt - 0.05), (comp, 0.06, 0.08), "metal", (0, 0, math.atan2(u.y, u.x))))
+    junta(barras, nome)
+    # colisão: placas finas nos trechos fechados
+    pedacos = [(0, comp)] if not vao else [(0, vao[0] - vao[1] / 2), (vao[0] + vao[1] / 2, comp)]
+    for k, (t0, t1) in enumerate(pedacos):
+        if t1 - t0 > 0.05:
+            c = a + u * ((t0 + t1) / 2)
+            caixa("%s_%d-colonly" % (nome, k), (c.x, c.y, alt / 2), (t1 - t0, 0.08, alt), "metal", (0, 0, math.atan2(u.y, u.x)))
+
+
+def delegacia(nome, w, d, semente):
+    """Raid: delegacia tomada. Recepção com balcão, corredor, 3 celas com grade (fundo à esquerda), arsenal (fundo à
+    direita, estantes de metal), escritório; sacos de areia e placa na frente. Marca zumbis e baús para o jogo."""
+    limpa()
+    rnd.seed(semente)
+    hw, hd = w / 2, d / 2
+    m = "parede"
+    # externas: frente com porta dupla e janelas gradeadas
+    parede("ext_0", (-hw, -hd), (hw, -hd), 0, PE + 0.6, [(hw, 2.2, 0, 2.4), (hw - 5, JAN_L, JAN_BASE, JAN_TOPO), (hw + 5, JAN_L, JAN_BASE, JAN_TOPO)], m)
+    parede("ext_1", (hw, -hd), (hw, hd), 0, PE + 0.6, janelas(d, 3), m, 1)
+    parede("ext_2", (hw, hd), (-hw, hd), 0, PE + 0.6, [(w / 2 + 4, PORTA_L, 0, PORTA_A)], m)
+    parede("ext_3", (-hw, hd), (-hw, -hd), 0, PE + 0.6, janelas(d, 3), m, 2)
+    for x in (-5, 5):  # grades nas janelas da frente
+        for k in range(6):
+            caixa("grade_jan", (x - 0.45 + k * 0.18, -hd - 0.15, (JAN_BASE + JAN_TOPO) / 2), (0.03, 0.03, JAN_TOPO - JAN_BASE), "metal")
+    piso("chao", -hw, -hd, hw, hd, 0.06, "concreto", 0.06)
+    piso("teto", -hw, -hd, hw, hd, PE + 0.6, "concreto", buraco=(-2.0, 0.5, 1.5, 3.5))
+    for i, (a, b) in enumerate([((-hw, -hd), (hw, -hd)), ((hw, -hd), (hw, hd)), ((hw, hd), (-hw, hd)), ((-hw, hd), (-hw, -hd))]):
+        parede("mureta_%d" % i, a, b, PE + 0.6, 0.7, [], m, rnd.randint(0, 1))
+    # recepção: parede com vão separando a frente (4,5 m) do resto; balcão
+    yr = -hd + 4.5
+    parede("int_recepcao", (-hw + ESP, yr), (hw - ESP, yr), 0, PE, [(hw - 3, 1.4, 0, 2.2), (hw + 4, 1.2, 0, 2.2)], m)
+    balcao("balcao", 0, yr - 1.4, 0, 4.0)
+    estante("arquivo", hw - 1.0, -hd + 0.6, 3.1416, larg=1.0, cor="metal")
+    # celas: fundo à esquerda, 3 de 2,6 m com grade; a do meio arrombada
+    yc = hd - 3.2
+    for k in range(4):
+        x = -hw + ESP + k * 2.6
+        parede("cela_div_%d" % k, (x, yc), (x, hd - ESP), 0, PE, [], m)
+    grade("grade_celas", (-hw + ESP, yc), (-hw + ESP + 7.8, yc), vao=(3.9, 1.0))
+    for k in range(3):
+        cama("catre_%d" % k, -hw + 1.5 + k * 2.6, hd - 1.3, 0)
+    # arsenal: fundo à direita, parede com porta, estantes de metal e baús
+    xa = hw - 5.5
+    parede("int_arsenal", (xa, yc - 0.6), (xa, hd - ESP), 0, PE, [(1.4, 1.1, 0, 2.2)], m)
+    parede("int_arsenal2", (xa, yc - 0.6), (hw - ESP, yc - 0.6), 0, PE, [], m)
+    for k in range(3):
+        estante("arma_%d" % k, xa + 1.0 + k * 1.4, hd - 0.5, 3.1416, caida=k == 1, larg=1.2, cor="metal")
+    # escritório no meio: mesas e arquivos
+    mesa("mesa_a", -2.5, -1.0)
+    mesa("mesa_b", 2.5, 0.5)
+    estante("arquivo2", -hw + 0.4, -1.0, -1.5708, caida=True, larg=1.0, cor="metal")
+    entulho("entulho", (rnd.uniform(-3, 3), rnd.uniform(-2, 2), 0.06), 6, 0.4, "papelao")
+    # frente: sacos de areia em meia-lua e placa
+    for k in range(9):
+        a = math.pi * (0.15 + 0.7 * k / 8)
+        x, y = math.cos(a) * 4.2, -hd - 3.2 + math.sin(a) * -1.6
+        for z in range(2 if k not in (4,) else 0):
+            caixa("saco", (x, y, 0.15 + z * 0.28), (0.75, 0.4, 0.28), "pano", (0, 0, a + 1.5708 + rnd.uniform(-0.2, 0.2)))
+    caixa("placa", (0, -hd - 0.12, PE + 0.15), (6.0, 0.1, 0.7), "metal")
+    bpy.ops.object.text_add(location=(0, -hd - 0.18, PE + 0.15), rotation=(1.5708, 0, 0))
+    t = bpy.context.object
+    t.data.body = "DELEGACIA"
+    t.data.size = 0.55
+    t.data.align_x = "CENTER"
+    t.data.align_y = "CENTER"
+    t.data.extrude = 0.02
+    bpy.ops.object.convert(target="MESH")
+    t.name = "letreiro"
+    t.data.materials.clear()
+    t.data.materials.append(mat("branco"))
+    marca_porta(hw, -hd)
+    # zumbis (os _arm_ atiram) e baús da raid
+    pts = [(-4, -3.5, 0), (3, -3.0, 1), (-1, 0, 0), (4, 1.5, 1), (-6, 0.5, 0), (6, -1, 0), (-5.6, hd - 1.5, 0),
+           (-0.4, hd - 1.5, 0), (hw - 3, hd - 1.5, 1), (hw - 2, yc - 2, 1), (0, -hd - 2.0, 0), (-3, -hd - 5, 0)]
+    for k, (x, y, arm) in enumerate(pts):
+        marca(("zumbi_arm_%d" if arm else "zumbi_%d") % k, x, y)
+    marca("bau_0", hw - 1.2, hd - 1.6)
+    marca("bau_1", xa + 1.2, yc + 0.6)
+    marca("bau_2", -hw + 4.0, hd - 1.0)
+    exporta(nome)
+
+
 if __name__ == "__main__":
     import os
     os.makedirs(SAIDA, exist_ok=True)
-    casa("casa_r1", 9.0, 7.0, 11, "inteira")
-    casa("casa_r2", 11.0, 8.0, 12, "inteira")
-    casa("casa_r3", 7.5, 9.0, 13, "dois")
-    casa("casa_r4", 10.0, 8.0, 14, "queimada")
-    casa("casa_r5", 12.5, 9.0, 15, "inteira")
-    casa("casa_r6", 8.0, 6.5, 16, "queimada")
-    loja("loja_r1", 12.0, 10.0, 21, 1)
-    loja("loja_r2", 16.0, 12.0, 22, 2)
-    predio("predio_r1", 18.0, 12.0, 31)
-    galpao("galpao_r1", 18.0, 12.0, 41)
-    galpao("galpao_r2", 16.0, 12.0, 42)
-    carro("carro_r1", 51)
-    carro("carro_r2", 52, queimado=True)
-    van("van_r1", 53)
-    onibus("onibus_r1", 54)
-    caixa_dagua("caixa_dagua")
+    SO = sys.argv[sys.argv.index("--") + 2:] if "--" in sys.argv else []  # nomes depois da pasta: só esses
+    TODOS = [
+        ("casa_r1", lambda: casa("casa_r1", 9.0, 7.0, 11, "inteira")),
+        ("casa_r2", lambda: casa("casa_r2", 11.0, 8.0, 12, "inteira")),
+        ("casa_r3", lambda: casa("casa_r3", 7.5, 9.0, 13, "dois")),
+        ("casa_r4", lambda: casa("casa_r4", 10.0, 8.0, 14, "queimada")),
+        ("casa_r5", lambda: casa("casa_r5", 12.5, 9.0, 15, "inteira")),
+        ("casa_r6", lambda: casa("casa_r6", 8.0, 6.5, 16, "queimada")),
+        ("loja_r1", lambda: loja("loja_r1", 12.0, 10.0, 21, 1)),
+        ("loja_r2", lambda: loja("loja_r2", 16.0, 12.0, 22, 2)),
+        ("predio_r1", lambda: predio("predio_r1", 18.0, 12.0, 31)),
+        ("galpao_r1", lambda: galpao("galpao_r1", 18.0, 12.0, 41)),
+        ("galpao_r2", lambda: galpao("galpao_r2", 16.0, 12.0, 42)),
+        ("carro_r1", lambda: carro("carro_r1", 51)),
+        ("carro_r2", lambda: carro("carro_r2", 52, queimado=True)),
+        ("van_r1", lambda: van("van_r1", 53)),
+        ("onibus_r1", lambda: onibus("onibus_r1", 54)),
+        ("caixa_dagua", lambda: caixa_dagua("caixa_dagua")),
+        ("delegacia", lambda: delegacia("delegacia", 18.0, 13.0, 61)),
+    ]
+    for nome, faz in TODOS:
+        if not SO or nome in SO:
+            faz()
     print("RUINAS_OK")

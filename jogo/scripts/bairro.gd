@@ -24,6 +24,9 @@ const FRESTA_ALT: float = 4.2  # muros da fresta (mais altos que o pulo)
 const LARG_RUA: Dictionary = {"primary": 10.0, "secondary": 9.0, "tertiary": 8.0, "residential": 6.5, "unclassified": 6.0, "service": 4.0}
 
 var pontos_zumbi: Array[Vector3] = []
+## raids (lugares cheios de loot e zumbi): [{"pos", "armado"}] dos zumbis e {"nome", "pos"} de cada lugar
+var pontos_raid: Array[Dictionary] = []
+var raids: Array[Dictionary] = []
 var pontos_nascer: Array[Vector3] = []
 ## nascer (prompt 11): "bom" = baú fácil a até BOM_BAU m e nenhum ponto de zumbi a menos de BOM_ZUMBI m
 var pontos_bons: Array[Vector3] = []
@@ -52,6 +55,15 @@ func _ready() -> void:
 	var casas: Array = predios.filter(_eh_casa)
 	casas.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return absf(_area(_poly(a.p))) > absf(_area(_poly(b.p))))
 	var mansoes: Array = casas.slice(0, 3)
+	# raid: a delegacia no lote do centro mais perto do meio da cidade onde ela cabe
+	var centro: Array = predios.filter(func(p: Dictionary) -> bool: return p.get("uso", "") == "centro")
+	centro.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _centro(_poly(a.p)).length() < _centro(_poly(b.p)).length())
+	for p: Dictionary in centro:
+		if _ruina(_poly(p.p), "Delegacia", ["delegacia"], false, true):
+			predios.erase(p)
+			_poligonos.append(_poly(p.p))
+			_monta_raid(get_node("Delegacia"), "DELEGACIA")
+			break
 	var n_casa: int = 0
 	var n_mansao: int = 0
 	for p: Dictionary in predios:
@@ -256,6 +268,30 @@ func _ruina(poly: PackedVector2Array, nome: String, opcoes: Array, mansao: bool,
 	return false
 
 
+## Raid: lê os pontos marcados no modelo (zumbi_k, zumbi_arm_k, bau_k), põe baús de loot raro e viaturas na frente.
+func _monta_raid(no: Node3D, titulo: String) -> void:
+	var m: Node3D = no.get_child(0)
+	raids.append({"nome": titulo, "pos": no.global_position if no.is_inside_tree() else ORIGEM + no.position + m.position})
+	for e: Node in m.get_children():
+		var n: String = e.name
+		if not e is Node3D or e is MeshInstance3D:
+			continue
+		var p: Vector3 = ORIGEM + m.transform * (e as Node3D).position
+		if n.begins_with("zumbi_"):
+			pontos_raid.append({"pos": p + Vector3(0, 0.1, 0), "armado": n.begins_with("zumbi_arm_")})
+		elif n.begins_with("bau_"):
+			var bau := Bau.new()
+			bau.name = "Bau_raid_%s" % n.trim_prefix("bau_")
+			bau.raid = true
+			bau.position = m.transform * (e as Node3D).position
+			no.add_child(bau)
+	var frente: Vector3 = no.get_meta("frente") - ORIGEM
+	for k in 2:  # viaturas largadas na frente
+		var v: Node3D = _veiculo("carro_r1", Color(0.08, 0.08, 0.1))
+		v.position = frente + Vector3(-4.0 + k * 7.0, -0.1, k * 1.5)
+		v.rotation.y = m.rotation.y + PI * 0.5 + _rng.randf_range(-0.4, 0.4)
+
+
 func _tam_ruina(arq: String) -> Vector2:
 	if not _infos.has(arq):
 		var m: Node3D = (load(RUINAS % arq) as PackedScene).instantiate()
@@ -291,7 +327,13 @@ func _poe_ruina(ret: PackedVector2Array, nome: String, arq: String, ang: float, 
 		porta.position = m.transform * marca.position
 		porta.rotation.y = m.rotation.y
 		no.add_child(porta)
-	_recheio(no, ret, _lado_da_rua(ret), mansao, loja)
+	if nome != "Delegacia":  # a raid tem o recheio dela (marcado no modelo)
+		_recheio(no, ret, _lado_da_rua(ret), mansao, loja)
+	else:
+		var a: Vector2 = ret[_lado_da_rua(ret)]
+		var b2: Vector2 = ret[(_lado_da_rua(ret) + 1) % ret.size()]
+		var fora: Vector2 = _normal_fora(ret, _lado_da_rua(ret))
+		no.set_meta("frente", ORIGEM + _v3((a + b2) * 0.5 + fora * 6.0) + Vector3(0, 0.1, 0))
 
 
 ## Troca os materiais do modelo do Blender pelas texturas do jogo (tinta: parede e madeira; lataria: cor do carro).
@@ -551,11 +593,9 @@ func _telhado(no: Node3D, poly: PackedVector2Array, alt: float, m: Material) -> 
 func _carros() -> void:
 	var cores: Array[Color] = [Color(0.45, 0.12, 0.1), Color(0.18, 0.25, 0.38), Color(0.62, 0.6, 0.55), Color(0.22, 0.26, 0.2), Color(0.35, 0.33, 0.3)]
 	var n: int = 0
-	for r: Array in _ruas:
+	for r: Array in _espalhados(22, 0.0):
 		var a: Vector2 = r[0]
 		var b: Vector2 = r[1]
-		if a.distance_to(b) < 14.0 or _rng.randf() < 0.45 or n >= 18:
-			continue
 		n += 1
 		var d: Vector2 = (b - a).normalized()
 		var p: Vector2 = a.lerp(b, _rng.randf_range(0.3, 0.7)) + Vector2(d.y, -d.x) * float(r[2]) * 0.25 * (1 if _rng.randf() < 0.5 else -1)
@@ -638,11 +678,9 @@ func _barricadas() -> void:
 	var conc := _mat("concreto", 0.5, Color(0.72, 0.7, 0.66))
 	var saco := _cor(Color(0.42, 0.38, 0.28))
 	var n: int = 0
-	for r: Array in _ruas:
+	for r: Array in _espalhados(5, 7.0):
 		var a: Vector2 = r[0]
 		var b: Vector2 = r[1]
-		if a.distance_to(b) < 20.0 or float(r[2]) < 6.0 or _rng.randf() < 0.75 or n >= 5:
-			continue
 		n += 1
 		var d: Vector2 = (b - a).normalized()
 		var lado := Vector2(d.y, -d.x)
@@ -804,13 +842,28 @@ func casa_em(p: Vector3) -> String:
 	return ""
 
 
+## `n` pedaços de rua (de largura >= `larg_min`) espalhados por igual pelo comprimento de todas as ruas: as ruas
+## curvas são feitas de pedacinhos de ~6 m, então escolher por pedaço comprido não serve.
+func _espalhados(n: int, larg_min: float) -> Array:
+	var ok: Array = _ruas.filter(func(r: Array) -> bool: return float(r[2]) >= larg_min)
+	var total: float = 0.0
+	for r: Array in ok:
+		total += (r[0] as Vector2).distance_to(r[1])
+	var passo: float = total / maxf(n, 1)
+	var proximo: float = _rng.randf() * passo
+	var corre: float = 0.0
+	var out: Array = []
+	for r: Array in ok:
+		corre += (r[0] as Vector2).distance_to(r[1])
+		if corre >= proximo and out.size() < n:
+			out.append(r)
+			proximo += passo * _rng.randf_range(0.7, 1.3)
+	return out
+
+
 func _classifica() -> void:
-	for r: Array in _ruas:  # zumbis pelas ruas (fora os dos carros)
-		if pontos_zumbi.size() >= 30:  # dono 30/10: muito fácil (era 16)
-			break
-		if (r[0] as Vector2).distance_to(r[1]) > 25.0 and _rng.randf() < 0.5:
-			var p: Vector2 = (r[0] as Vector2).lerp(r[1], 0.5)
-			pontos_zumbi.append(ORIGEM + Vector3(p.x, 0.1, p.y))
+	for r: Array in _espalhados(30, 0.0):  # zumbis pelas ruas (fora os dos carros)
+		pontos_zumbi.append(ORIGEM + _v3((r[0] as Vector2).lerp(r[1], 0.5)) + Vector3(0, 0.1, 0))
 	var faceis: Array = find_children("Bau_*", "Bau", true, false).filter(func(b: Bau) -> bool: return b.facil)
 	for p: Vector3 in pontos_nascer:
 		var perto_bau: bool = faceis.any(func(b: Bau) -> bool: return b.global_position.distance_to(p) <= BOM_BAU)

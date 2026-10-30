@@ -13,7 +13,7 @@ for f in sorted(os.listdir(pasta)):
             o.hide_render = True
     cam = bpy.data.objects.new("c", bpy.data.cameras.new("c"))
     bpy.context.collection.objects.link(cam)
-    cam.location = (14, -20, 13)
+    cam.location = (16, -24, 16)
     cam.rotation_euler = (math.radians(60), 0, math.radians(35))
     bpy.context.scene.camera = cam
     sol = bpy.data.objects.new("s", bpy.data.lights.new("s", "SUN"))

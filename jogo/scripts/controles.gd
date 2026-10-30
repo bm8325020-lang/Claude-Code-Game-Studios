@@ -63,7 +63,9 @@ var _btn_atacar: _Icone
 var _btn_recarregar: _Icone
 var _municao: Label
 var _vermelho: ColorRect
-var _filme: ColorRect  # bordas escuras, granulado e bordas vermelhas pulsando com pouca vida
+var _filme: ColorRect
+var _raid_t: float = 0.0
+var _raids_avisadas: Dictionary = {}  # bordas escuras, granulado e bordas vermelhas pulsando com pouca vida
 var _caiu: Label
 var _relogio: Label
 var _btn_pegar: Button
@@ -215,6 +217,7 @@ func _process(dt: float) -> void:
 	var e: Dictionary = jogador.entrada
 	_atualiza_barras()
 	(_filme.material as ShaderMaterial).set_shader_parameter("vida", float(jogador.vida) / Jogador.VIDA_MAX)
+	_avisa_raid(dt)
 	_qte.jogador = jogador
 	_qte.visible = jogador.mordida_t > 0.0 and jogador.mordida_zumbi != null
 	if _qte.visible:
@@ -1217,3 +1220,18 @@ class _Qte:
 			draw_circle(c, 11.0, Color(0.35, 0.8, 0.3) if k < jogador.qte_acertos else Color(1, 1, 1, 0.25))
 		var resta: float = clampf(jogador.mordida_t / Zumbi.MORDIDA_T, 0.0, 1.0)
 		draw_rect(Rect2(bx, by + 86, bw * resta, 6), Color(0.85, 0.2, 0.15))
+
+
+## Chegando perto de uma raid (a até 35 m), avisa uma vez o que tem lá.
+func _avisa_raid(dt: float) -> void:
+	_raid_t -= dt
+	if _raid_t > 0.0:
+		return
+	_raid_t = 1.0
+	var principal := get_tree().get_first_node_in_group("principal")
+	if principal == null or principal.bairro == null:
+		return
+	for r: Dictionary in principal.bairro.raids:
+		if not _raids_avisadas.has(r.nome) and jogador.global_position.distance_to(r.pos) < 35.0:
+			_raids_avisadas[r.nome] = true
+			aviso("%s — zumbis armados lá dentro, loot raro" % r.nome, UiTema.PERIGO)

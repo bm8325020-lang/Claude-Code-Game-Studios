@@ -10,6 +10,9 @@ const REENCHE: float = 300.0
 
 ## cidade inicial: mais comida e água
 @export var facil: bool = false
+## baú de raid (delegacia): loot raro, reenche devagar
+var raid: bool = false
+const REENCHE_RAID: float = 1200.0
 ## saco de quem caiu (não sorteia, não reenche, some vazio ou em SOME_SACO)
 var saco: bool = false
 const SOME_SACO: float = 600.0
@@ -39,7 +42,7 @@ func _ready() -> void:
 	add_child(sync)
 	if _manda() and not saco and not de_faccao:
 		_rng.seed = hash(name) ^ Time.get_ticks_usec()
-		conteudo = Loot.sorteia(_rng, facil)
+		conteudo = Loot.sorteia(_rng, facil, raid)
 
 
 func _manda() -> bool:
@@ -83,7 +86,7 @@ func pega_por(j: Jogador, i: int) -> void:
 		novo.remove_at(n)
 	conteudo = novo  # reatribui: a sincronia só manda quando a propriedade muda
 	if conteudo.is_empty() and not de_faccao:
-		_vazio_t = REENCHE
+		_vazio_t = REENCHE_RAID if raid else REENCHE
 
 
 ## Servidor: `j` guarda `qtd` de `tipo` (já tirou da mochila dele). Não pode: devolve.
@@ -112,7 +115,7 @@ func _process(dt: float) -> void:
 	if _manda() and conteudo.is_empty() and not de_faccao:
 		_vazio_t -= dt
 		if _vazio_t <= 0.0:
-			conteudo = Loot.sorteia(_rng, facil)
+			conteudo = Loot.sorteia(_rng, facil, raid)
 
 
 # caixa de madeira escura com cantoneiras de metal e tampa (dobradiça atrás); o saco é uma mochila de lona

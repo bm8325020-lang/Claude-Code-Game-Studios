@@ -92,6 +92,12 @@ func _init() -> void:
 	ok(j.comeca_fabricar("smg", 1), "fabrica na bancada")
 	await frames(int(Receitas.FABRICAR_T * 60) + 10)
 	ok(j.mochila.tem("smg"), "submetralhadora pronta")
-	ok(Pistola._marcas.size() > 0, "tiro deixa marca (furo ou sangue) no cenário (%d)" % Pistola._marcas.size())
+	# tiro na parede deixa buraco de bala
+	var parede: StaticBody3D = main.bloco(j.global_position + Vector3(0, 1.5, -4), Vector3(3, 3, 0.3), Color.GRAY)
+	await frames(2)
+	var antes: int = Pistola._marcas.size()
+	j.fogo().efeito(j.global_position + Vector3(0, 1.5, -3.85), true, false)
+	ok(Pistola._marcas.size() == antes + 1, "tiro na parede deixa buraco de bala")
+	parede.free()
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)

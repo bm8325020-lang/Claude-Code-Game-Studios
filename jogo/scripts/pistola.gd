@@ -326,7 +326,7 @@ func _faisca(p: Vector3) -> void:
 
 
 # estampido gerado no código (não há som de tiro nos pacotes grátis): estalo de ruído com queda rápida
-func _gera_estampido() -> AudioStreamWAV:
+static func _gera_estampido() -> AudioStreamWAV:
 	var taxa: int = 22050
 	var n: int = int(taxa * 0.35)
 	var dados := PackedByteArray()

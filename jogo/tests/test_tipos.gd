@@ -41,7 +41,7 @@ func _init() -> void:
 	# deixa um só zumbi na pista
 	var z: Zumbi = null
 	for c: Zumbi in main.zumbis.get_children():
-		if z == null and not c.chefe:
+		if z == null and not c.chefe and not c.armado:
 			z = c
 		else:
 			c.free()

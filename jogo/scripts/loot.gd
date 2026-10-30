@@ -49,6 +49,7 @@ const CHEFE_ROLAGENS: Vector2i = Vector2i(2, 3)  # chefe sempre larga, mais cois
 const CHEFE_RARO: float = 3.0  # e as raras ficam 3x mais prováveis
 ## cidade inicial: mais comida e água (mais fácil para quem acabou de nascer)
 const FACIL: Dictionary = {"comida": 1.6, "agua": 1.6}
+const RAID_RARO: float = 4.0  # baú de raid (delegacia): raras 4x mais prováveis
 const ITENS_MIN: int = 2
 const ITENS_MAX: int = 4
 
@@ -62,7 +63,9 @@ static func raridade(tipo: String) -> int:
 
 
 ## Sorteia o conteúdo de um baú: lista de {"tipo", "qtd"} (tipos repetidos se juntam).
-static func sorteia(rng: RandomNumberGenerator, facil: bool = false) -> Array:
+static func sorteia(rng: RandomNumberGenerator, facil: bool = false, raid: bool = false) -> Array:
+	if raid:  # baú de raid: mais coisas e as raras bem mais prováveis
+		return _rola(TABELA, rng, rng.randi_range(ITENS_MIN + 2, ITENS_MAX + 3), {}, RAID_RARO)
 	return _rola(TABELA, rng, rng.randi_range(ITENS_MIN, ITENS_MAX), FACIL if facil else {}, 1.0)
 
 

@@ -702,6 +702,8 @@ func _poe_zumbis() -> void:
 	for p: Vector3 in bairro.pontos_zumbi:  # em bando de BANDO (dono 30/10: muito fácil)
 		for k: int in BANDO:
 			spawner_zumbis.spawn({"pos": p + Vector3(k * 1.3, 0.1, k * 0.7)})
+	for r: Dictionary in bairro.pontos_raid:  # delegacia: policiais, alguns com arma de fogo; mortos ficam mortos
+		spawner_zumbis.spawn({"pos": r.pos, "armado": r.armado, "de_raid": true, "tipo": "zumbi_policial"})
 	for p: Vector3 in PONTOS_ZUMBI:
 		spawner_zumbis.spawn({"pos": p})
 	for p: Vector3 in PONTOS_TOCAIA:
@@ -720,6 +722,9 @@ func _cria_zumbi(dados: Dictionary) -> Node:
 	z.rota = dados.get("rota", [])
 	z.chefe = bool(dados.get("chefe", false))
 	z.raid = int(dados.get("raid", 0))
+	z.armado = bool(dados.get("armado", false))
+	z.de_raid = bool(dados.get("de_raid", false))
+	z.tipo_pedido = String(dados.get("tipo", ""))
 	return z
 
 

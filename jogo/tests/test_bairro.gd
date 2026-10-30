@@ -45,6 +45,7 @@ func _init() -> void:
 			break
 		await physics_frame
 	var cam: PackedVector3Array = NavigationServer3D.map_get_path(mapa, casa.get_meta("frente"), dentro, true)  # da rua
-	ok(cam.size() > 1 and cam[cam.size() - 1].distance_to(dentro) < 1.5, "zumbi acha caminho da rua até dentro da casa (fim a %.1f m)" % (cam[cam.size() - 1].distance_to(dentro) if cam.size() > 0 else 99.0))
+	var alvo_nav: Vector3 = NavigationServer3D.map_get_closest_point(mapa, dentro)  # móvel ou parede podem estar bem no ponto
+	ok(alvo_nav.distance_to(dentro) < 2.0 and cam.size() > 1 and cam[cam.size() - 1].distance_to(alvo_nav) < 0.6, "zumbi acha caminho da rua até dentro da casa (fim a %.1f m)" % (cam[cam.size() - 1].distance_to(alvo_nav) if cam.size() > 0 else 99.0))
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)

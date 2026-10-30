@@ -137,6 +137,20 @@ var rot_rede: float
 var casa: Vector3                  # onde nasce e onde levanta
 ## nasce deitado de tocaia (vem nos dados do spawner)
 var tocaia: bool = false
+## raid (delegacia): tipo pedido pelo spawner, com arma de fogo (atira de longe) e morto fica morto por MORTO_RAID
+var tipo_pedido: String = ""
+var armado: bool = false
+var de_raid: bool = false
+const MORTO_RAID: float = 900.0     # 15 min até a raid encher de novo
+const TIRO_DE: float = 3.5          # m: mais perto que isso bate em vez de atirar
+const TIRO_ATE: float = 18.0
+const TIRO_MIRA: float = 0.6        # s parado mirando antes do tiro (dá para se esconder)
+const TIRO_INTERVALO: float = 2.2
+const TIRO_DANO: int = 14
+const TIRO_CHANCE_PERTO: float = 0.75  # chance de acertar a TIRO_DE; cai até TIRO_CHANCE_LONGE em TIRO_ATE
+const TIRO_CHANCE_LONGE: float = 0.25
+var _tiro_cd: float = 1.0
+var _mirando: float = -1.0
 ## pontos da patrulha (vazio = fica parado em casa)
 var rota: Array = []
 var _rota_i: int = 0
@@ -198,7 +212,7 @@ func _ready() -> void:
 	_forma = cs
 	# o nome é o mesmo em todos os aparelhos: todos veem o mesmo zumbi
 	if not chefe:
-		aplica_tipo(tipo_fixo if tipo_fixo != "" else Anims.ZUMBIS[hash(String(name)) % Anims.ZUMBIS.size()])
+		aplica_tipo(tipo_fixo if tipo_fixo != "" else (tipo_pedido if tipo_pedido != "" else Anims.ZUMBIS[hash(String(name)) % Anims.ZUMBIS.size()]))
 	var lista: Array = Anims.MODELOS_TIPO.get(tipo, [tipo])
 	var cara: String = Anims.CHEFE if chefe else String(lista[hash(String(name) + "m") % lista.size()])
 	modelo = Anims.boneco(cara)
@@ -210,6 +224,8 @@ func _ready() -> void:
 	_mat_pele.albedo_color = Color(0.85, 0.15, 0.1, 0.0)
 	for m: MeshInstance3D in modelo.find_children("*", "MeshInstance3D", true, false):
 		m.material_overlay = _mat_pele
+	if armado and not Rede.servidor_sem_tela:
+		_poe_arma()
 	anim = AnimationPlayer.new()
 	modelo.add_child(anim)
 	anim.add_animation_library("", Anims.adaptada(Anims.biblioteca_zumbi(), cara))
@@ -322,6 +338,8 @@ func _physics_process(dt: float) -> void:
 			_vira_para(alvo.global_position - global_position, dt)
 	elif _ataque_t >= 0.0:
 		_atualiza_ataque(dt)
+	elif _mirando >= 0.0:
+		_mira_e_atira(dt)
 	elif _foge_t > 0.0 and alvo:
 		_foge_t -= dt
 		var corre: float = CORRER * 1.2 * (1.0 if chefe else _vel) * Ciclo.forca_noite(get_tree(), NOITE_VEL)
@@ -346,7 +364,14 @@ func _physics_process(dt: float) -> void:
 				and d.length() < BOTE_ATE and _ve(alvo):
 			_bote = BOTE_DUR  # corredora: pula em cima de longe
 			_skill_t = BOTE_INTERVALO
-		if _bote > 0.0:
+		_tiro_cd -= dt
+		if armado and _tiro_cd <= 0.0 and d.length() > TIRO_DE and d.length() < TIRO_ATE and _ve(alvo):
+			_mirando = TIRO_MIRA  # para, aponta e atira
+			_tiro_cd = TIRO_INTERVALO * randf_range(0.8, 1.3)
+			_toca("parado", 0.15)
+		if _mirando >= 0.0:
+			pass
+		elif _bote > 0.0:
 			_vira_para(d, dt * 6.0)
 			desejada = d.normalized() * BOTE_VEL
 			velocity.x = desejada.x
@@ -364,7 +389,10 @@ func _physics_process(dt: float) -> void:
 					_fechando = true
 				else:
 					destino = lado
-			desejada = _caminho(destino, (CORRER if d.length() < PERTO else ANDAR) * (0.8 if chefe else _vel) * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
+			var vel: float = CORRER if d.length() < PERTO else ANDAR
+			if armado and d.length() < TIRO_ATE and d.length() > TIRO_DE:
+				vel = ANDAR * 0.6  # armado não corre para cima: chega devagar atirando
+			desejada = _caminho(destino, vel * (0.8 if chefe else _vel) * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
 			# mirando nele de longe: desvia para os lados (troca de lado a cada ~0,7 s, sem ritmo fixo)
 			if ZIGUE > 0.0 and d.length() > ZIGUE_LONGE and alvo.mirando_em(global_position, 12.0):
 				_zigue_t += dt * randf_range(0.8, 1.2)
@@ -613,6 +641,92 @@ func _ataca() -> void:
 	_toca("ataque", 0.12, true)
 
 
+# --- zumbi armado (raid da delegacia): para, mira TIRO_MIRA e atira; acerta menos de longe e no jogador agachado ---
+func _mira_e_atira(dt: float) -> void:
+	if alvo == null or not is_instance_valid(alvo):
+		_mirando = -1.0
+		return
+	_vira_para(alvo.global_position - global_position, dt * 3.0)
+	_mirando -= dt
+	if _mirando > 0.0:
+		return
+	_mirando = -1.0
+	var d: float = global_position.distance_to(alvo.global_position)
+	var chance: float = lerpf(TIRO_CHANCE_PERTO, TIRO_CHANCE_LONGE, clampf((d - TIRO_DE) / (TIRO_ATE - TIRO_DE), 0.0, 1.0))
+	if alvo.agachado:
+		chance *= 0.6
+	var mira: Vector3 = alvo.global_position + Vector3(0, 1.3, 0)
+	var acertou: bool = _ve(alvo) and randf() < chance
+	if acertou:
+		alvo.levar_dano(roundi(TIRO_DANO * Ciclo.forca_noite(get_tree(), NOITE_DANO)), (alvo.global_position - global_position).normalized() * 0.3)
+	else:
+		mira += Vector3(randf_range(-1.2, 1.2), randf_range(-0.6, 0.9), randf_range(-1.2, 1.2))
+	Zumbi.barulho(get_tree(), global_position, Pistola.BARULHO * 0.6)
+	_tiro_fx.rpc(mira)
+
+
+## Todos: clarão, estampido e rastro do tiro do zumbi armado.
+@rpc("authority", "call_local", "unreliable")
+func _tiro_fx(ate: Vector3) -> void:
+	if Rede.servidor_sem_tela:
+		return
+	var de: Vector3 = _arma.global_position if _arma else global_position + Vector3(0, 1.4, 0)
+	var luz := OmniLight3D.new()
+	luz.light_color = Color(1, 0.8, 0.5)
+	luz.light_energy = 3.0
+	luz.omni_range = 5.0
+	get_parent().add_child(luz)
+	luz.global_position = de
+	luz.create_tween().tween_property(luz, "light_energy", 0.0, 0.08).finished.connect(luz.queue_free)
+	var som := AudioStreamPlayer3D.new()
+	if _estampido == null:
+		_estampido = Pistola._gera_estampido()
+	som.stream = _estampido
+	som.pitch_scale = randf_range(0.85, 0.95)
+	som.unit_size = 12.0
+	get_parent().add_child(som)
+	som.global_position = de
+	som.finished.connect(som.queue_free)
+	som.play()
+	var r := MeshInstance3D.new()
+	var cil := CylinderMesh.new()
+	cil.top_radius = 0.008
+	cil.bottom_radius = 0.008
+	cil.height = maxf(de.distance_to(ate), 0.01)
+	cil.radial_segments = 4
+	cil.rings = 1
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = Color(1, 0.9, 0.6, 0.7)
+	cil.material = m
+	r.mesh = cil
+	get_parent().add_child(r)
+	r.global_position = (de + ate) * 0.5
+	var eixo: Vector3 = (ate - de).normalized()
+	if absf(eixo.dot(Vector3.UP)) < 0.999:
+		r.global_basis = Basis(Quaternion(Vector3.UP, eixo))
+	r.create_tween().tween_property(m, "albedo_color:a", 0.0, 0.1).finished.connect(r.queue_free)
+
+
+var _arma: Node3D
+static var _estampido: AudioStreamWAV
+
+
+## Pistola na mão direita do zumbi armado.
+func _poe_arma() -> void:
+	var esq: Skeleton3D = modelo.find_children("*", "Skeleton3D", true, false)[0] if not modelo.find_children("*", "Skeleton3D", true, false).is_empty() else null
+	if esq == null or esq.find_bone(Jogador.MAO) < 0:
+		return
+	var preso := BoneAttachment3D.new()
+	preso.bone_name = Jogador.MAO
+	esq.add_child(preso)
+	_arma = (load("res://assets/cgtrader/pistola.glb") as PackedScene).instantiate() if ResourceLoader.exists("res://assets/cgtrader/pistola.glb") else Node3D.new()
+	_arma.scale = Vector3.ONE * 0.2 / maxf(modelo.scale.x, 0.01)
+	_arma.rotation_degrees = Vector3(0, 0, 90)
+	preso.add_child(_arma)
+
+
 # porta fechada a menos de 1 m na direção `dir`, ou null
 func _porta_na_frente(dir: Vector3) -> Porta:
 	var de: Vector3 = global_position + Vector3(0, 1.0, 0)
@@ -811,7 +925,8 @@ func _morre() -> void:
 	_indo_ouvir = false
 	_olhando_t = 0.0
 	_voltando = false
-	_morto_t = MORTO_POR
+	_morto_t = MORTO_RAID if de_raid else MORTO_POR
+	_mirando = -1.0
 	anim.speed_scale = 1.0
 	_toca("morte", 0.1, true)
 	if _manda():
