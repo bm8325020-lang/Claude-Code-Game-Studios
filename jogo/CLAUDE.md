@@ -92,7 +92,7 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `enfeites.gd` (Enfeites, filho do Bairro) — cara do jogo (30/10): chão `Enfeites.chao()` (shader grama/terra/cascalho),
   lixo/mato/manchas/sacos de corpo em MultiMesh por pedaço de 64 m (DENSIDADE pela qualidade, some de longe), postes
   com fio (`_postes`/`_fio`, colisão) e caçambas. Ruínas com sombra de canto assada no Blender (`assa_sombra`: cores dos
-  vértices; `_mat(..., sombra=true)`). main: filtro de cor, glow e ajuste de saturação SAÍRAM (tela rosa no celular, 31/10); controles: `FILME`
+  vértices; `_mat(..., sombra=true)`). main: filtro de cor, glow e ajuste de saturação SAÍRAM (tela rosa no celular, 31/10); controles: `_filme`
   (bordas escuras, granulado, vermelho pulsando com pouca vida).
 - `jogador.gd` (Jogador) — `entrada` dict (move, olhar, pular, correr, agachar, andar, mirar, mira_segurando, atacar,
   trocar, arma, recarregar, pegar, comer, beber). Vida/`levar_dano`/`_cai`/`_caido`, fome/sede (`_passa_fome`),

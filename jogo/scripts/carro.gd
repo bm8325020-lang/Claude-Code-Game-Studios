@@ -9,7 +9,7 @@ extends CharacterBody3D
 const ALCANCE: float = 3.2         # m do centro do carro para o botão ENTRAR aparecer
 const TAM: Vector3 = Vector3(1.8, 1.1, 4.4)
 const VAO: float = 0.35            # altura da caixa acima do chão (as rodas seguram)
-const BANCO: Vector3 = Vector3(0.4, -0.35, -0.2)  # onde fica o jogador (olhos a ~1,25 m do chão)
+const BANCO: Vector3 = Vector3(0.0, 0.1, -1.6)  # onde fica o jogador: olhos acima do porta-malas (o modelo é fechado por dentro)
 const VEL_MAX: float = 14.0        # m/s (~50 km/h)
 const VEL_RE: float = 4.0
 const ACEL: float = 6.0
