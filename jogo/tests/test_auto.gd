@@ -92,5 +92,6 @@ func _init() -> void:
 	ok(j.comeca_fabricar("smg", 1), "fabrica na bancada")
 	await frames(int(Receitas.FABRICAR_T * 60) + 10)
 	ok(j.mochila.tem("smg"), "submetralhadora pronta")
+	ok(Pistola._marcas.size() > 0, "tiro deixa marca (furo ou sangue) no cenário (%d)" % Pistola._marcas.size())
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)

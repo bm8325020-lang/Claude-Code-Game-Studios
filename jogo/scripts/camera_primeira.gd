@@ -29,6 +29,7 @@ var _y_suave: float = 0.0
 var _tremor: float = 0.0
 var _recuo: float = 0.0  # coice do tiro (radianos para cima), volta sozinho
 var _yaw_alvo: float = 0.0
+var _resp: float = 0.0
 ## Zumbi mordendo: a câmera trava na cara dele e fecha o quadro (cena de briga); null = olhar livre.
 var foco: Node3D
 var _pitch_alvo: float = 0.0
@@ -80,7 +81,10 @@ func _process(dt: float) -> void:
 	var forca: float = clampf(vel / 4.0, 0.0, 1.0) * (0.35 if alvo.mira_travada else 1.0)
 	global_position = Vector3(p.x, _y_suave + _altura + absf(sin(_passo)) * BALANCO * forca, p.z)
 	_recuo = move_toward(_recuo, 0.0, dt * deg_to_rad(9.0))
-	rotation = Vector3(-(pitch - _recuo), yaw, 0)
+	# respiração: a vista balança de leve parada; ofegante com pouca vida (mira firme quando aponta)
+	_resp += dt * (1.0 if alvo.vida > 30 else 2.2)
+	var folego: float = (0.0 if alvo.mira_travada else 1.0) * (1.0 if alvo.vida > 30 else 2.5)
+	rotation = Vector3(-(pitch - _recuo) + sin(_resp * 1.4) * 0.004 * folego, yaw + sin(_resp * 0.7) * 0.003 * folego, sin(_resp * 0.9) * 0.002 * folego)
 	var base: float = float(Config.v.fov)
 	var fov_alvo: float = base * (FOV_MIRA if alvo.mira_travada else (FOV_CORRENDO if alvo.correndo else FOV)) / FOV
 	if foco:

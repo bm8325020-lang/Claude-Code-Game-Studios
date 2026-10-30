@@ -204,10 +204,76 @@ func efeito(ponto: Vector3, bateu: bool, carne: bool = false) -> void:
 	var t := rastro.create_tween()
 	t.tween_property(m, "albedo_color:a", 0.0, 0.08)
 	t.tween_callback(rastro.queue_free)
+	var dir: Vector3 = (ponto - de).normalized()
 	if carne:
-		Pistola.sangue(get_tree(), ponto, (ponto - de).normalized())
+		Pistola.sangue(get_tree(), ponto, dir)
+		# o sangue que passa suja a parede ou o chão atrás (até 3 m)
+		var atras := _bate(ponto + dir * 0.4, ponto + dir * 3.0 + Vector3(0, -0.6, 0))
+		if atras:
+			Pistola.marca(get_tree(), atras.position, atras.normal, "sangue")
 	elif bateu:
 		_faisca(ponto)
+		var r := _bate(de, ponto + dir * 0.2)
+		if r:
+			Pistola.marca(get_tree(), r.position, r.normal, "furo")
+
+
+func _bate(de: Vector3, ate: Vector3) -> Dictionary:
+	var q := PhysicsRayQueryParameters3D.create(de, ate, 1)  # só o cenário
+	return get_world_3d().direct_space_state.intersect_ray(q)
+
+
+## Marcas que ficam: sangue espirrado e buraco de bala (as mais velhas somem depois de MARCAS_MAX).
+const MARCAS_MAX: int = 80
+static var _marcas: Array[Node3D] = []
+static var _mat_marca: Dictionary = {}
+
+
+static func marca(arvore: SceneTree, ponto: Vector3, normal: Vector3, tipo: String) -> void:
+	if not _mat_marca.has(tipo):
+		var m := ShaderMaterial.new()
+		m.shader = Shader.new()
+		m.shader.code = MARCA
+		m.set_shader_parameter("cor", Color(0.22, 0.01, 0.0, 0.9) if tipo == "sangue" else Color(0.03, 0.03, 0.03, 0.95))
+		m.set_shader_parameter("furo", tipo == "furo")
+		_mat_marca[tipo] = m
+	var mi := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	var tam: float = randf_range(0.5, 1.1) if tipo == "sangue" else 0.07
+	q.size = Vector2(tam, tam)
+	mi.mesh = q
+	mi.material_override = _mat_marca[tipo]
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	arvore.root.add_child(mi)
+	var cima: Vector3 = Vector3.UP if absf(normal.dot(Vector3.UP)) < 0.95 else Vector3.FORWARD
+	mi.global_transform = Transform3D(Basis.looking_at(-normal, cima).rotated(normal, randf() * TAU), ponto + normal * 0.012)
+	_marcas.append(mi)
+	if _marcas.size() > MARCAS_MAX:
+		var velha: Node3D = _marcas.pop_front()
+		if is_instance_valid(velha):
+			velha.queue_free()
+
+
+const MARCA := """shader_type spatial;
+render_mode blend_mix, depth_draw_never, unshaded;
+uniform vec4 cor : source_color;
+uniform bool furo;
+void fragment() {
+	vec2 c = UV - 0.5;
+	float d = length(c);
+	if (furo) {
+		if (d > 0.5) discard;
+		ALBEDO = mix(cor.rgb, vec3(0.35, 0.33, 0.3), smoothstep(0.18, 0.45, d));  // buraco escuro e borda lascada
+		ALPHA = cor.a * (1.0 - smoothstep(0.42, 0.5, d));
+	} else {
+		float a = atan(c.y, c.x);
+		float borda = 0.25 + 0.08 * sin(a * 7.0 + UV.x * 3.0) + 0.05 * sin(a * 13.0);
+		float pingo = step(length(c - vec2(0.3 * cos(a * 3.0), 0.3 * sin(a * 5.0)) * 0.9), 0.05);  // gotas em volta
+		if (d > borda && pingo < 0.5) discard;
+		ALBEDO = cor.rgb;
+		ALPHA = cor.a;
+	}
+}"""
 
 
 ## Respingo de sangue escuro em `ponto`, espirrando para a direção `dir` (tiro ou facão).
