@@ -355,7 +355,9 @@ Menu com 3 modos:
 ## 24. Sobrevivência em salas + dificuldade, progressão e raids de zumbi (ideia do dono, 30/10)
 Status: em andamento. Salas feitas (APK 0.58): criar (nome, pública/privada, 1–8 jogadores), buscar pelo nome,
 entrar pelo código, tela de espera até encher ou COMEÇAR SOZINHO/AGORA, entrar no meio do jogo; o celular de quem
-cria hospeda e o carteiro online repassa. Falta: dificuldade, progressão, raids (delegacia, bunker).
+cria hospeda e o carteiro online repassa. Menu agora é só CRIAR SALA / ENTRAR NUMA SALA (APK 0.59; PvP e mundo aberto fora, servidor online só carteiro).
+Falta: dividir o peso do mundo com quem entra (cada celular cuida dos zumbis perto dele), dificuldade, progressão,
+raids (delegacia, bunker).
 
 - **Sobrevivência também em salas**: criar sala pública ou privada com nome; buscar sala pelo nome; entrar pelo
   código. Quem cria escolhe quantos jogadores; fica numa tela de espera até todos entrarem, ou aperta **COMEÇAR

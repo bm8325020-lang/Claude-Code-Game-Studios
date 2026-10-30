@@ -129,12 +129,15 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `receitas.gd` (Receitas.LISTA, quantas/fabrica), `bancada.gd` (Bancada: pontos, MUDA, muda_de_lugar → main.aviso_todos),
   `tela_bancada.gd`. Jogador: `receitas`, `comeca_fabricar(arma, n)`, `bancada_perto()`. Teste: tests/test_receitas.gd (13).
 - `ui_tema.gd` (UiTema) — visual único: `tema()`, `botao()`, `rotulo()`, `campo()`, `painel_central()`, cores.
-- `menu.gd` — páginas (`_mostra`): inicio, online (acorda o servidor), wifi, config. `controles.gd` também tem
+- `menu.gd` — páginas (`_mostra`): inicio (nome, CRIAR SALA, ENTRAR NUMA SALA, CONFIGURAÇÕES), criar, entrar (código,
+  busca, lista), config. PvP, mundo aberto, Wi-Fi e sozinho saíram do menu (pedido do dono, 30/10; o código ficou).
+  UiTema: cantos redondos, `painel_central` rola (ScrollContainer até 90% da altura), `UiTema.pagina(col)`,
+  `duas_colunas`, `secao`. Fotos das telas em 20:9: foto_telas.gd com `--resolution 2000x900`. `controles.gd` também tem
   `aviso(texto)` (faixa no alto), `pausa(bool)` (Esc / botão II) e a tela de queda com contagem.
 - `camera_primeira.gd` (CameraPrimeira) — primeira pessoa: olhos 1,62/1,05 m, `virar/coice/tremer`, `cam`, `maos`.
 - `maos.gd` (Maos) — arma na tela: pistola = pacote `assets/sketchfab/fps/pistola_fp.glb` (olho em OLHO_PISTOLA,
   animação pelo estado do jogador); facão = sketchfab/facao.glb girando em volta de OMBRO pelos CORTES (código). `boneco_treino.gd`.
-- tools/: `servidor/site/` (Dockerfile + nginx + start.sh: servidor online num serviço de site, porta $PORT, /jogo = WebSocket, /salas = carteiro; mudou o site: deploy pela API do Render), `foto.gd`, `baixa_mixamo.sh` (rebaixa assets/mixamo do Drive), `servidor/instalar.sh` + `publica.sh`.
+- tools/: `servidor/site/` (Dockerfile + nginx + start.sh: servidor online num serviço de site, porta $PORT, /jogo = WebSocket, /salas = carteiro; o site agora roda SÓ o carteiro (relay_main.gd), sem mundo; mudou o site: deploy pela API do Render), `foto.gd`, `baixa_mixamo.sh` (rebaixa assets/mixamo do Drive), `servidor/instalar.sh` + `publica.sh`.
 
 ## Mixamo (logado)
 Sessão: `/root/.mixamo_sessao/estado.json` (fora do git; conta separada do dono). Token = localStorage `access_token`.

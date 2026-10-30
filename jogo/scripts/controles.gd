@@ -569,8 +569,8 @@ func _monta_pausa() -> void:
 	col_cfg.add_child(TelaConfig.new())
 	var volta := UiTema.botao("VOLTAR", true)
 	col_cfg.add_child(volta)
-	var p_menu: Control = col.get_parent().get_parent()
-	var p_cfg: Control = col_cfg.get_parent().get_parent()
+	var p_menu: Control = UiTema.pagina(col)
+	var p_cfg: Control = UiTema.pagina(col_cfg)
 	p_cfg.visible = false
 	cfg.pressed.connect(func() -> void:
 		p_menu.visible = false
@@ -591,7 +591,7 @@ func _monta_pausa() -> void:
 	col_g.add_child(sai_g)
 	var volta_g := UiTema.botao("VOLTAR", true)
 	col_g.add_child(volta_g)
-	var p_g: Control = col_g.get_parent().get_parent()
+	var p_g: Control = UiTema.pagina(col_g)
 	p_g.visible = false
 	grupo.pressed.connect(func() -> void:
 		_monta_lista_grupo()
@@ -609,7 +609,7 @@ func _monta_pausa() -> void:
 	col_f.add_child(_lista_faccao)
 	var volta_f := UiTema.botao("VOLTAR", true)
 	col_f.add_child(volta_f)
-	var p_f: Control = col_f.get_parent().get_parent()
+	var p_f: Control = UiTema.pagina(col_f)
 	p_f.visible = false
 	fac.pressed.connect(func() -> void:
 		_monta_faccao()
@@ -618,14 +618,13 @@ func _monta_pausa() -> void:
 	volta_f.pressed.connect(func() -> void:
 		p_f.visible = false
 		p_menu.visible = true)
-	var pvp := UiTema.botao("PVP")
-	col.add_child(pvp)
-	var col_p := UiTema.painel_central(_pausa, 660.0)
+	var pvp := UiTema.botao("PVP")  # PvP fora do menu por enquanto (pedido do dono): a página fica pronta para voltar
+	var col_p := UiTema.painel_central(_pausa, 1000.0)
 	tela_salas = TelaSalas.new()
 	col_p.add_child(tela_salas)
 	var volta_p := UiTema.botao("VOLTAR", true)
 	col_p.add_child(volta_p)
-	var p_p: Control = col_p.get_parent().get_parent()
+	var p_p: Control = UiTema.pagina(col_p)
 	p_p.visible = false
 	pvp.pressed.connect(func() -> void:
 		p_menu.visible = false

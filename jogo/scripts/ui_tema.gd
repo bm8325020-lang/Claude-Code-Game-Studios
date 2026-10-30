@@ -11,8 +11,8 @@ const DESTAQUE := Color(0.8, 0.4, 0.15)
 const TEXTO := Color(0.9, 0.88, 0.84)
 const APAGADO := Color(0.58, 0.56, 0.53)
 const PERIGO := Color(0.78, 0.2, 0.16)
-const LETRA: int = 26
-const ALTURA_BOTAO: int = 76  # dedo: acima de 56 px mesmo em tela pequena
+const LETRA: int = 23
+const ALTURA_BOTAO: int = 60  # dedo: acima de 56 px mesmo em tela pequena
 
 static var _tema: Theme
 static var _titulo: FontVariation
@@ -95,12 +95,43 @@ static func tema() -> Theme:
 	t.set_stylebox("focus", "LineEdit", campo_foco)
 	t.set_color("font_color", "LineEdit", TEXTO)
 	t.set_color("font_placeholder_color", "LineEdit", APAGADO)
-	var painel := _caixa(PAINEL, 0)
-	painel.content_margin_left = 28
-	painel.content_margin_right = 28
-	painel.content_margin_top = 24
-	painel.content_margin_bottom = 24
+	var painel := _caixa(PAINEL, 1)
+	painel.border_color = Color(DESTAQUE, 0.25)
+	painel.set_corner_radius_all(16)
+	painel.shadow_color = Color(0, 0, 0, 0.45)
+	painel.shadow_size = 18
+	painel.content_margin_left = 26
+	painel.content_margin_right = 26
+	painel.content_margin_top = 20
+	painel.content_margin_bottom = 20
 	t.set_stylebox("panel", "PanelContainer", painel)
+	# chave (pública/privada) e lista de opções com a mesma cara dos botões
+	for tipo: String in ["CheckButton", "OptionButton"]:
+		for estado: String in ["normal", "hover", "pressed", "focus"]:
+			var c := _caixa(BOTAO if estado != "hover" else BOTAO.lightened(0.08), 0)
+			c.draw_center = estado != "focus"
+			t.set_stylebox(estado, tipo, c)
+		t.set_color("font_color", tipo, TEXTO)
+		t.set_color("font_pressed_color", tipo, TEXTO)
+		t.set_color("font_hover_color", tipo, Color.WHITE)
+		t.set_color("font_hover_pressed_color", tipo, Color.WHITE)
+	# barra de rolagem fina e laranja (dá para arrastar o conteúdo com o dedo também)
+	var trilho := StyleBoxFlat.new()
+	trilho.bg_color = Color(1, 1, 1, 0.06)
+	trilho.set_corner_radius_all(4)
+	trilho.content_margin_left = 6
+	trilho.content_margin_right = 6
+	var pega := StyleBoxFlat.new()
+	pega.bg_color = Color(DESTAQUE, 0.8)
+	pega.set_corner_radius_all(4)
+	t.set_stylebox("scroll", "VScrollBar", trilho)
+	t.set_stylebox("grabber", "VScrollBar", pega)
+	t.set_stylebox("grabber_highlight", "VScrollBar", pega)
+	t.set_stylebox("grabber_pressed", "VScrollBar", pega)
+	var menu := _caixa(PAINEL.lightened(0.05), 1)
+	menu.border_color = Color(DESTAQUE, 0.3)
+	t.set_stylebox("panel", "PopupMenu", menu)
+	t.set_font_size("font_size", "PopupMenu", LETRA)
 	_tema = t
 	return t
 
@@ -111,8 +142,10 @@ static func _caixa(cor: Color, borda: int) -> StyleBoxFlat:
 	c.set_border_width_all(borda)
 	c.content_margin_left = 18
 	c.content_margin_right = 18
-	c.content_margin_top = 10
-	c.content_margin_bottom = 10
+	c.content_margin_top = 8
+	c.content_margin_bottom = 8
+	c.set_corner_radius_all(10)
+	c.anti_aliasing = true
 	return c
 
 
@@ -142,7 +175,7 @@ static func campo(dica: String, valor: String = "") -> LineEdit:
 	var e := LineEdit.new()
 	e.placeholder_text = dica
 	e.text = valor
-	e.custom_minimum_size = Vector2(0, 68)
+	e.custom_minimum_size = Vector2(0, ALTURA_BOTAO)
 	return e
 
 
@@ -154,7 +187,51 @@ static func painel_central(pai: Node, largura: float = 620.0) -> VBoxContainer:
 	var p := PanelContainer.new()
 	p.custom_minimum_size = Vector2(largura, 0)
 	centro.add_child(p)
+	# rola quando não cabe na tela (celular deitado é baixo); a altura acompanha o conteúdo até 90% da tela
+	var rola := ScrollContainer.new()
+	rola.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	p.add_child(rola)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 12)
-	p.add_child(col)
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rola.add_child(col)
+	col.set_meta("pagina", centro)
+	var ajusta := func() -> void:
+		if col.is_inside_tree():
+			rola.custom_minimum_size.y = minf(col.get_combined_minimum_size().y, col.get_viewport_rect().size.y * 0.9 - 40.0)
+	col.minimum_size_changed.connect(ajusta)
+	col.tree_entered.connect(ajusta, CONNECT_DEFERRED)
+	col.resized.connect(ajusta)
 	return col
+
+
+## Duas colunas lado a lado dentro de `col` (tela deitada: usa a largura em vez da altura). Devolve [esquerda, direita].
+static func duas_colunas(col: Control, separacao: int = 28) -> Array[VBoxContainer]:
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", separacao)
+	col.add_child(h)
+	var r: Array[VBoxContainer] = []
+	for i in 2:
+		var v := VBoxContainer.new()
+		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		v.add_theme_constant_override("separation", 10)
+		h.add_child(v)
+		r.append(v)
+	return r
+
+
+## Título pequeno de seção (laranja, com uma linha embaixo).
+static func secao(texto: String) -> Control:
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 4)
+	v.add_child(rotulo(texto, 19, DESTAQUE))
+	var linha := ColorRect.new()
+	linha.color = Color(DESTAQUE, 0.25)
+	linha.custom_minimum_size = Vector2(0, 2)
+	v.add_child(linha)
+	return v
+
+
+## A página inteira (o que se mostra/esconde) de uma coluna feita por painel_central.
+static func pagina(col: Control) -> Control:
+	return col.get_meta("pagina")

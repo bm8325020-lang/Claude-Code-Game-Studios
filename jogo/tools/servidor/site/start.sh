@@ -1,6 +1,6 @@
 #!/bin/bash
-# Baixa o pacote do jogo (em partes) da branch servidor-build, sobe o Godot sem tela (WebSocket 7861 e, no mesmo
-# processo, o carteiro das salas de sobrevivência em 7862, /salas) e o nginx (porta $PORT). A cada 2 min: se saiu versão nova, troca o pacote e reinicia o Godot; se o Godot caiu, sobe de novo.
+# Baixa o pacote do jogo (em partes) da branch servidor-build, sobe só o carteiro das salas (7862, /salas; o
+# mundo roda no celular de quem cria a sala) e o nginx (porta $PORT). A cada 2 min: se saiu versão nova, troca o pacote e reinicia o Godot; se o Godot caiu, sobe de novo.
 RAMO=https://raw.githubusercontent.com/bm8325020-lang/Claude-Code-Game-Studios/servidor-build
 export PORT=${PORT:-7860}
 mkdir -p /tmp/srv /tmp/www
@@ -16,11 +16,10 @@ baixa() {
 	mv novo.pck servidor.pck && echo "$v" > versao.txt
 }
 sobe() {
-	/opt/godot --headless --main-pack /tmp/srv/servidor.pck -- dedicado ws relay "max=${MAX:-10}" status=/tmp/www/status.json &
+	/opt/godot --headless --main-pack /tmp/srv/servidor.pck -s res://scripts/relay_main.gd -- porta=7862 &
 	GODOT=$!
 	cat > /tmp/www/index.html <<HTML
-<h1>Servidor zumbi</h1><p>Pacote $(cut -c1-12 versao.txt), ligado em $(date -u)</p><pre id="s">...</pre>
-<script>setInterval(()=>fetch('status.json').then(r=>r.text()).then(t=>s.textContent=t).catch(()=>{}),5000)</script>
+<h1>Carteiro das salas</h1><p>Pacote $(cut -c1-12 versao.txt), ligado em $(date -u)</p>
 HTML
 }
 until baixa; do sleep 10; done
