@@ -639,6 +639,10 @@ func _cheio() -> void:
 
 
 func _peer_saiu(id: int) -> void:
+	if multiplayer.is_server():  # carro que ele dirigia fica vazio onde parou
+		for c: Carro in get_tree().get_nodes_in_group("carros"):
+			if c.motorista == id:
+				c.motorista = 0
 	if multiplayer.is_server():  # os zumbis que o celular dele pensava voltam para o servidor
 		for z: Zumbi in zumbis.get_children():
 			if z.pensa == id:

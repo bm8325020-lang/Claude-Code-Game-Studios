@@ -268,7 +268,7 @@ func _monta_sincronia() -> void:
 	for p: String in [".:pos_rede", ".:rot_rede"]:
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
-	for p: String in [".:clipe_rede", ".:agachado", ".:nick", ".:arma", ".:cima_rede", ".:vida", ".:tem_lanterna", ".:mira_travada"]:
+	for p: String in [".:clipe_rede", ".:agachado", ".:nick", ".:arma", ".:cima_rede", ".:vida", ".:tem_lanterna", ".:mira_travada", ".:no_carro"]:
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	var sync := MultiplayerSynchronizer.new()
@@ -337,7 +337,12 @@ func _physics_process(dt: float) -> void:
 	if vida <= 0:
 		if fresta:
 			sai_fresta()
+		if carro:
+			sai_do_carro()
 		_caido(dt)
+		return
+	if carro:
+		_dirige(dt)
 		return
 	if _subindo >= 0.0:
 		_escala(dt)
@@ -718,6 +723,8 @@ func _tenta_pegar() -> void:
 				p.alterna_por(self)
 			else:
 				_pede_porta.rpc_id(1, get_path_to(p))
+		elif carro_perto():
+			carro_perto().pede()
 		return
 	if _pegando > 0.0 or _golpe >= 0 or not is_on_floor():
 		return
@@ -1394,6 +1401,66 @@ func _segue_rede(dt: float) -> void:
 	var vel: float = Vector2(global_position.x - antes.x, global_position.z - antes.z).length() / maxf(dt, 0.001)
 	var base: float = float(Anims.VELOCIDADE.get(clipe_rede, 0.0))
 	anim.speed_scale = clampf(vel / base, 0.5, 1.5) if base > 0.1 and vel > 0.15 else 1.0
+
+
+# --- carro (prompt 18, primeira parte; 31/10) ---
+# Sentado: o corpo some (vai junto do carro, sem colisão), o analógico dirige, USAR sai. O servidor decide quem
+# entra (Carro.motorista); entra_no_carro/sai_do_carro rodam no aparelho de quem dirige.
+var carro: Carro = null
+var no_carro: bool = false:  # vai pela rede: os outros não veem o boneco em pé no meio do carro
+	set(v):
+		no_carro = v
+		if modelo:
+			modelo.visible = not v
+
+
+func carro_perto() -> Carro:
+	return Carro.perto(get_tree(), global_position) if vida > 0 and carro == null else null
+
+
+func entra_no_carro(c: Carro) -> void:
+	carro = c
+	no_carro = true
+	_colisor.disabled = true
+	velocity = Vector3.ZERO
+	mira_travada = false
+	_golpe = -1
+	if agachado:
+		_alterna_agachar()
+	_toca("parado", 0.1)
+	if camera:
+		camera.virar(c.global_rotation.y + PI)  # olhando para a frente do carro
+
+
+func sai_do_carro() -> void:
+	var c: Carro = carro
+	if c == null:
+		return
+	carro = null
+	no_carro = false
+	_colisor.disabled = false
+	velocity = Vector3.ZERO
+	global_position = c.saida()
+	c.larga()
+
+
+func _dirige(dt: float) -> void:
+	_passa_fome(dt)
+	for k: String in ["atacar", "pular", "agachar", "mirar", "trocar", "recarregar"]:
+		entrada[k] = false  # no volante não atira nem pula (e nada fica guardado para quando descer)
+	if entrada.get("pegar", false):
+		entrada["pegar"] = false
+		sai_do_carro()
+		return
+	var mov: Vector2 = entrada.get("move", Vector2.ZERO)
+	var giro: float = carro.dirige(mov.limit_length(1.0), dt)
+	if camera:
+		camera.virar(camera.yaw + giro)  # a cabeça vai junto quando o carro vira
+	global_position = carro.global_transform * Carro.BANCO
+	modelo.rotation.y = carro.global_rotation.y
+	pos_rede = global_position
+	rot_rede = modelo.rotation.y
+	clipe_rede = _clipe
 
 
 func _alterna_agachar() -> void:

@@ -92,6 +92,27 @@ func _init() -> void:
 			if papel == "cliente":
 				await espera_ate(func() -> bool: return not is_instance_valid(main.jogador) or main.jogador.vida < 100000, 6000)
 				ok(is_instance_valid(main.jogador) and main.jogador.vida < 100000, "o soco do zumbi pensado no cliente tira vida")
+		# carro: o cliente entra e dirige; o servidor vê quem dirige e o carro andando; ao sair fica vazio nos dois
+		var car: Carro = get_nodes_in_group("carros")[0]
+		var id_mot: int = main.multiplayer.get_unique_id() if papel == "cliente" else outro.get_multiplayer_authority()
+		var c0: Vector3 = car.global_position
+		if papel == "cliente":
+			main.jogador.global_position = car.saida()
+			await espera_ms(500)
+			main.jogador.entrada["pegar"] = true
+		await espera_ate(func() -> bool: return car.motorista == id_mot, 6000)
+		ok(car.motorista == id_mot, "o cliente entra no carro e o servidor sabe (motorista %d)" % car.motorista)
+		if papel == "cliente":
+			main.jogador.entrada["move"] = Vector2(0, -1)  # de ré: o carro largado está encostado olhando a rua
+			await espera_ms(2000)
+			main.jogador.entrada["move"] = Vector2.ZERO
+		await espera_ate(func() -> bool: return car.global_position.distance_to(c0) > 2.0, 6000)
+		ok(car.global_position.distance_to(c0) > 2.0, "o carro anda nos dois (%.1f m)" % car.global_position.distance_to(c0))
+		if papel == "cliente":
+			await espera_ms(1500)
+			main.jogador.entrada["pegar"] = true
+		await espera_ate(func() -> bool: return car.motorista == 0, 8000)
+		ok(car.motorista == 0, "saiu: o carro fica vazio nos dois")
 	await espera_ms(9000)  # deixa o outro lado terminar de medir (o cliente espera o soco do zumbi)
 	print("REDE %s: %s %s" % [papel, "PASS" if falhas.is_empty() else "FAIL", ", ".join(falhas)])
 	quit(0 if falhas.is_empty() else 1)

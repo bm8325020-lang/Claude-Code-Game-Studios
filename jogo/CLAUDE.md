@@ -66,6 +66,13 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   pensador). `main._divide_peso` (servidor, a cada PESO_A_CADA: jogador mais perto a até PESO_RAIO, folga PESO_FOLGA;
   chefe/armado/deitado/mordendo ficam no servidor); peer que sai devolve os zumbis. Jogador aceita dano de zumbi de
   qualquer peer (até 80). Teste: test_rede (parte nova no fim). Rede.VERSAO 31.
+- `carro.gd` (Carro; 31/10, prompt 18 parte 1): os `carro_r1` inteiros do Bairro (`_carros`, `monta`) são CharacterBody3D
+  (caixa + 4 SeparationRayShape3D de roda, frente +Z). `motorista` (peer; servidor decide em `pede_entrar`/`pede_sair`),
+  quem dirige roda `dirige(mov, dt)` e manda `_estado` ao servidor (confere PULO_MAX) -> `pos_rede`/`rot_rede` no
+  sincronizador. Jogador: `carro`, `no_carro` (sincronizado: some o boneco), `carro_perto`, `entra_no_carro`,
+  `sai_do_carro` (`Carro.saida`: lado livre), `_dirige` (USAR sai). main `_peer_saiu` libera o carro. HUD: ENTRAR/SAIR
+  DO CARRO no botão USAR. Falta: lockpick, combustível, atropelar, passageiro. Teste: test_carro (14) + test_rede.
+  Rede.VERSAO 32.
 - `progresso.gd` (Progresso; 31/10): XP (XP_ZUMBI/RAID/CHEFE no `Zumbi._morre`, XP_NOITE ao amanhecer no `Ciclo`), nível
   (`xp_para`), pontos, `hab` vigor/folego/pontaria/forca (até NIVEL_HAB), salvo em user://progresso_<nick>.cfg. Jogador:
   `prog`, `vida_max()`, `mult_espalho/mult_fogo/mult_forca`, `aprende(h)`; `_recebe("xp")`. Pausa: HABILIDADES

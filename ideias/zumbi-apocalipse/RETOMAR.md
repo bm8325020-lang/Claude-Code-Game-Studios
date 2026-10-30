@@ -18,7 +18,8 @@ Leia nesta ordem: este arquivo, `jogo/CLAUDE.md` (mapa do código e comandos) e 
 - Tela rosa no celular: tirado filtro de cor/glow na 0.76 (confirmar com o dono).
 
 ## Próximo (pedido do dono, 31/10)
-1. Carro simples: entrar/dirigir/sair, sincronizado na rede, controle de celular. Depois: lockpick (outra conversa).
+1. (feito 31/10, APK 0.77) Carro simples: entrar/dirigir/sair, sincronizado na rede, controle de celular.
+2. Lockpick (outra conversa); depois combustível, atropelar zumbi, passageiro.
 - Sem convite pelo nome (não há nome fixo). GASTAR POUCO: sem loop, sem fotos, só testes do que mudou, APK só no fim.
 
 ## O que NÃO está no repositório (refazer na sessão nova se precisar)

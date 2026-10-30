@@ -101,7 +101,7 @@ func _sem_sombra(n: Node) -> void:
 func _process(dt: float) -> void:
 	if alvo == null:
 		return
-	visible = alvo.vida > 0 and alvo.fresta == null  # na fresta a arma vai para o coldre
+	visible = alvo.vida > 0 and alvo.fresta == null and alvo.carro == null  # na fresta e no carro a arma vai para o coldre
 	if alvo.arma != _arma:
 		_arma = alvo.arma
 		for t: String in _rigs:

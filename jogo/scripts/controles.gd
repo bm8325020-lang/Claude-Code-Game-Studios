@@ -302,9 +302,12 @@ func _process(dt: float) -> void:
 	var banc: Bancada = jogador.bancada_perto() if it == null and bau == null else null
 	var loja: Lojista = jogador.lojista_perto() if it == null and bau == null and banc == null else null
 	var porta: Porta = jogador.porta_perto() if it == null and bau == null and banc == null and loja == null else null
-	_dica_pegar.visible = it != null or porta != null or bau != null or banc != null or loja != null
+	var carro: Carro = jogador.carro_perto() if it == null and bau == null and banc == null and loja == null and porta == null else null
+	_dica_pegar.visible = it != null or porta != null or bau != null or banc != null or loja != null or carro != null or jogador.carro != null
 	_saldo.text = "$ %d    NV %d  %d/%d XP" % [jogador.dinheiro, jogador.prog.nivel, jogador.prog.xp, Progresso.xp_para(jogador.prog.nivel)]
-	if jogador.abrindo:
+	if jogador.carro:
+		_dica_pegar.text = ("SAIR DO CARRO" if toque else "[E] sair do carro")
+	elif jogador.abrindo:
 		_dica_pegar.text = "ABRINDO... %d%%" % roundi((1.0 - jogador.abrindo_t / Bau.ABRIR_T) * 100.0)
 	elif banc:
 		_dica_pegar.text = ("BANCADA" if toque else "[E] usar a bancada")
@@ -316,6 +319,8 @@ func _process(dt: float) -> void:
 		_dica_pegar.text = ("PEGAR " if toque else "[E] pegar ") + it.nome()
 	elif porta:
 		_dica_pegar.text = ("USAR: " if toque else "[E] ") + porta.acao()
+	elif carro:
+		_dica_pegar.text = ("ENTRAR NO CARRO" if toque else "[E] entrar no carro")
 	if _btn_pegar:
 		_btn_pegar.visible = _dica_pegar.visible
 	_aviso_t -= dt

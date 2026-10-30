@@ -749,6 +749,14 @@ func _carros() -> void:
 		carro.name = "Carro_%d" % n
 		carro.position = Vector3(p.x, 0, p.y)
 		carro.rotation.y = atan2(d.x, d.y) + _rng.randf_range(-0.35, 0.35)
+		if VEICULOS[n % VEICULOS.size()] == "carro_r1":  # o inteiro dá para dirigir (Carro); o queimado e a van não
+			var c := Carro.new()
+			c.transform = carro.transform
+			carro.name = "Modelo"
+			carro.transform = Transform3D()
+			add_child(c)
+			c.name = "Carro_%d" % n
+			c.monta(carro)
 		if _rng.randf() < 0.5:
 			pontos_zumbi.append(ORIGEM + Vector3(p.x, 0.1, p.y) + Vector3(d.y, 0, -d.x) * 3.0)
 

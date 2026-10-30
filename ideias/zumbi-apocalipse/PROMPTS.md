@@ -303,7 +303,8 @@ nova no servidor novo (itens vão junto).
 Aceite: teste com 2 servidores locais e robôs.
 
 ## 18. Carros do mapa
-Status: pendente
+Status: parte 1 feita (31/10: entrar/dirigir/sair em rede, carro_r1 do bairro); falta lockpick, combustível,
+atropelar, passageiros, blindado, concessionária
 
 Carro comum dirigível (VehicleBody3D), entrar/sair, motorista + passageiros, atropelar zumbi, combustível.
 Carros espalhados e numa concessionária abandonada; **lockpick** para levar. Carro **blindado** do mapa
