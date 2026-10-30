@@ -2,9 +2,10 @@
 # PC: WASD anda, mouse gira a câmera, Shift corre, Alt anda devagar, Ctrl/C agacha, Espaço pula,
 # botão esquerdo do mouse golpeia/atira, segurar o botão direito mira, 1/2 escolhe facão/pistola,
 # Q troca de arma, R recarrega, Esc solta o mouse.
-# Celular: analógico que aparece onde o polegar esquerdo toca; arrastar no lado direito gira a câmera;
-# botões ATACAR/ATIRAR, PULAR, CORRER (liga/desliga), AGACHAR, MIRA (canto inferior direito, liga/desliga
-# a mira), TROCAR (arma) e RECARREGAR. Mirando ou com a pistola aparece a mira no centro da tela.
+# Celular: analógico que aparece onde o polegar esquerdo toca (empurrado até o fim para a frente = corre);
+# arrastar no lado direito gira a câmera. Poucos botões, só com ícone: ATAQUE/TIRO grande, MIRA, PULAR e
+# AGACHAR sempre; RECARREGAR, PEGAR e o seletor da submetralhadora só quando servem. Trocar de arma, comer e
+# beber: tocando na barra rápida. HUD limpo: barras finas no canto de cima, relógio curto, munição embaixo.
 class_name Controles
 extends CanvasLayer
 
@@ -26,6 +27,7 @@ var jogador: Jogador:
 			v.acertou_alvo.connect(_acertou)
 			v.bau_aberto.connect(func(b: Bau) -> void: _tela_bau.abre(v, b))
 			v.bancada_aberta.connect(func() -> void: _tela_bancada.abre(v))
+			v.loja_aberta.connect(func() -> void: _tela_loja.abre(v))
 			v.fabricou.connect(func(a: String, n: int) -> void:
 				if n > 0:
 					aviso("%s fabricada" % String(Mochila.NOMES.get(a, a)), Color(0.35, 0.6, 0.9)))
@@ -38,23 +40,18 @@ var _stick_centro: Vector2
 var _stick_vec: Vector2 = Vector2.ZERO
 var _olhar_id: int = -1
 var _olhar_ult: Vector2
-var _correr_ligado: bool = false
 var _base: Control
 var _pino: Control
-var _btn_correr: Button
 var _btn_agachar: Button
 var _btn_mira: Button
 var _mira: Control
-var _btn_atacar: Button
-var _btn_recarregar: Button
+var _btn_atacar: _Icone
+var _btn_recarregar: _Icone
 var _municao: Label
 var _vermelho: ColorRect
 var _caiu: Label
 var _relogio: Label
 var _btn_pegar: Button
-var _btn_comer: Button
-var _btn_beber: Button
-var _bolso: Label
 var _dica_pegar: Label
 var _aviso_item: Label
 var _aviso_t: float = 0.0
@@ -68,6 +65,8 @@ var _barra: Array = []  # espaços 1–6 da barra rápida (TelaMochila.Espaco)
 var _mochila: TelaMochila
 var _tela_bau: TelaBau
 var _tela_bancada: TelaBancada
+var _tela_loja: TelaLoja
+var _saldo: Label
 var _btn_modo: Button
 var _estilos_toque: Array[StyleBoxFlat] = []  # fundo dos botões de toque (transparência das configurações)
 
@@ -86,33 +85,15 @@ func _ready() -> void:
 	_vermelho.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_vermelho.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_vermelho)
-	# vida, fome e sede embaixo no meio, lado a lado: ícone + barra com o número dentro
+	# vida, fome e sede: três barras finas no canto de cima à esquerda, e o dinheiro embaixo delas
 	for i in 3:
 		var barra := _Barra.new()
 		barra.tipo = i
-		barra.anchor_left = 0.5
-		barra.anchor_right = 0.5
-		barra.anchor_top = 1.0
-		barra.anchor_bottom = 1.0
-		# no celular fica mais à esquerda e estreita: à direita estão CORRER/ATACAR
-		barra.offset_left = (-400 + i * 182) if toque else (-300 + i * 205)
-		barra.offset_right = barra.offset_left + (170 if toque else 190)
-		barra.offset_top = -150
-		barra.offset_bottom = -120
+		barra.position = Vector2(24, 20 + i * 24)
+		barra.size = Vector2(210, 16)
 		barra.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(barra)
 		_barras.append(barra)
-	_bolso = Label.new()
-	_bolso.anchor_left = 0.5
-	_bolso.anchor_right = 0.5
-	_bolso.anchor_top = 1.0
-	_bolso.anchor_bottom = 1.0
-	_bolso.offset_left = -400 if toque else -300
-	_bolso.offset_top = -184
-	_bolso.add_theme_font_size_override("font_size", 18)
-	_bolso.add_theme_color_override("font_outline_color", Color.BLACK)
-	_bolso.add_theme_constant_override("outline_size", 5)
-	add_child(_bolso)
 	_caiu = Label.new()
 	_caiu.text = "VOCÊ CAIU"
 	_caiu.set_anchors_preset(Control.PRESET_CENTER)
@@ -124,22 +105,13 @@ func _ready() -> void:
 	_caiu.add_theme_constant_override("outline_size", 8)
 	_caiu.visible = false
 	add_child(_caiu)
-	_relogio = Label.new()
-	_relogio.anchor_left = 1.0
-	_relogio.anchor_right = 1.0
-	_relogio.offset_left = -440
-	_relogio.offset_right = -100  # deixa lugar para o botão de pausa
-	_relogio.offset_top = 22
-	_relogio.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_relogio.add_theme_font_size_override("font_size", 19)
-	_relogio.add_theme_color_override("font_outline_color", Color.BLACK)
-	_relogio.add_theme_constant_override("outline_size", 5)
-	add_child(_relogio)
+	_relogio = _rotulo(20, 0.0)  # curto, no alto do meio: "DIA 4:12" / "NOITE 2:30"
+	_relogio.offset_top = 14
+	_relogio.visible = true
 	# "Pegar munição (24)" embaixo do meio da tela quando tem item perto; aviso "+24 munição" ao pegar
 	_dica_pegar = _rotulo(22, 0.72)
 	_aviso_item = _rotulo(26, 0.62)
 	_municao = Label.new()
-	_municao.add_theme_font_size_override("font_size", 30)
 	_municao.add_theme_color_override("font_outline_color", Color.BLACK)
 	_municao.add_theme_constant_override("outline_size", 6)
 	_municao.anchor_left = 1.0
@@ -148,20 +120,20 @@ func _ready() -> void:
 	_municao.anchor_bottom = 1.0
 	_municao.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_municao.offset_left = -420
-	_municao.offset_right = -175 if toque else -32  # no celular: acima do botão ATIRAR
-	_municao.offset_top = -240 if toque else -76
+	_municao.offset_right = -60 if toque else -32  # no celular: acima do botão de tiro
+	_municao.offset_top = -380 if toque else -84
+	_municao.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_municao)
 	_monta_aviso()
 	_monta_barra_rapida()
 	_monta_pausa()
 	# letras do tema também no HUD
-	for l: Label in [_bolso, _relogio, _municao, _dica_pegar, _aviso_item]:
+	for l: Label in [_relogio, _municao, _dica_pegar, _aviso_item]:
 		l.add_theme_font_override("font", UiTema.tema().default_font)
 	_caiu.add_theme_font_override("font", UiTema.fonte_titulo())
 	_caiu.add_theme_font_size_override("font_size", 64)
 	_municao.add_theme_font_override("font", UiTema.fonte_titulo())
-	_municao.add_theme_font_size_override("font_size", 44)
-	_bolso.add_theme_font_size_override("font_size", 20)
+	_municao.add_theme_font_size_override("font_size", 40)
 	visible = jogador != null
 
 
@@ -186,7 +158,7 @@ func _process(dt: float) -> void:
 	var e: Dictionary = jogador.entrada
 	if toque:
 		e["move"] = _stick_vec
-		e["correr"] = _correr_ligado
+		e["correr"] = _stick_vec.length() > 0.92 and _stick_vec.y > 0.6 and not jogador.agachado  # polegar no fim, para a frente
 	else:
 		e["move"] = Vector2(Input.get_axis("esq", "dir"), Input.get_axis("tras", "frente"))
 		e["correr"] = Input.is_action_pressed("correr")
@@ -217,11 +189,9 @@ func _process(dt: float) -> void:
 	for est in _estilos_toque:
 		est.bg_color.a = float(Config.v.botoes_opacidade)
 	if _btn_agachar:
-		_btn_agachar.modulate = Color(1, 0.85, 0.4) if jogador.agachado else Color.WHITE
-	if _btn_correr:
-		_btn_correr.modulate = Color(1, 0.85, 0.4) if _correr_ligado else Color.WHITE
+		_btn_agachar.ligado = jogador.agachado
 	if _btn_mira:
-		_btn_mira.modulate = Color(1, 0.85, 0.4) if jogador.mira_travada else Color.WHITE
+		_btn_mira.ligado = jogador.mira_travada
 	_barras[0].valor = clampf(float(jogador.vida) / Jogador.VIDA_MAX * 100.0, 0.0, 100.0)
 	_barras[1].valor = jogador.fome
 	_barras[2].valor = jogador.sede
@@ -231,25 +201,25 @@ func _process(dt: float) -> void:
 	_faixa_t -= dt
 	_faixa.visible = _faixa_t > 0.0
 	_faixa.modulate.a = clampf(_faixa_t * 2.0, 0.0, 1.0)
-	_bolso.text = "comida %d  água %d" % [jogador.comida, jogador.agua]
-	if _btn_comer:
-		_btn_comer.visible = jogador.comida > 0 and jogador.fome < 80.0
-		_btn_beber.visible = jogador.agua > 0 and jogador.sede < 80.0
 	var ciclo := get_tree().get_first_node_in_group("ciclo") as Ciclo
 	if ciclo:
 		var f: int = int(ciclo.falta())
-		_relogio.text = ("NOITE — amanhece em %d:%02d" if ciclo.e_noite() else "DIA — escurece em %d:%02d") % [f / 60, f % 60]
+		_relogio.text = ("NOITE  %d:%02d" if ciclo.e_noite() else "DIA  %d:%02d") % [f / 60, f % 60]
 		_relogio.add_theme_color_override("font_color", Color(0.65, 0.75, 1.0) if ciclo.e_noite() else (Color(1, 0.75, 0.4) if f < 60 else Color.WHITE))
 	_vermelho.color.a = move_toward(_vermelho.color.a, 0.35 if jogador.vida <= 0 else 0.0, dt * 0.8)
 	var it: Item = jogador.item_perto()
 	var bau: Bau = jogador.bau_perto() if it == null else null
 	var banc: Bancada = jogador.bancada_perto() if it == null and bau == null else null
-	var porta: Porta = jogador.porta_perto() if it == null and bau == null and banc == null else null
-	_dica_pegar.visible = it != null or porta != null or bau != null or banc != null
+	var loja: Lojista = jogador.lojista_perto() if it == null and bau == null and banc == null else null
+	var porta: Porta = jogador.porta_perto() if it == null and bau == null and banc == null and loja == null else null
+	_dica_pegar.visible = it != null or porta != null or bau != null or banc != null or loja != null
+	_saldo.text = "$ %d" % jogador.dinheiro
 	if jogador.abrindo:
 		_dica_pegar.text = "ABRINDO... %d%%" % roundi((1.0 - jogador.abrindo_t / Bau.ABRIR_T) * 100.0)
 	elif banc:
 		_dica_pegar.text = ("BANCADA" if toque else "[E] usar a bancada")
+	elif loja:
+		_dica_pegar.text = ("LOJA" if toque else "[E] falar com o lojista")
 	elif bau:
 		_dica_pegar.text = ("REVISTAR" if toque else "[E] revistar") if bau.saco else ("ABRIR BAÚ" if toque else "[E] abrir baú")
 	elif it:
@@ -258,7 +228,6 @@ func _process(dt: float) -> void:
 		_dica_pegar.text = ("USAR: " if toque else "[E] ") + porta.acao()
 	if _btn_pegar:
 		_btn_pegar.visible = _dica_pegar.visible
-		_btn_pegar.text = "PEGAR" if it else ("ABRIR" if bau else ("BANCADA" if banc else "USAR"))
 	_aviso_t -= dt
 	_aviso_item.visible = _aviso_t > 0.0
 	_aviso_item.modulate.a = clampf(_aviso_t, 0.0, 1.0)
@@ -267,26 +236,27 @@ func _process(dt: float) -> void:
 	_municao.visible = com_pistola
 	if _btn_modo:
 		_btn_modo.visible = jogador.arma == "smg"
-		_btn_modo.text = "AUTO" if jogador.smg.modo_auto else "SEMI"
+		_btn_modo.ligado = jogador.smg.modo_auto
 	if not toque:
 		e["atirando"] = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 		if Input.is_action_just_pressed("modo"):
 			e["modo"] = true
 	if com_pistola:
 		var p: Pistola = jogador.fogo()
-		_municao.text = ("RECARREGANDO" if p.recarregando else "%d | %d" % [p.balas, p.reserva]) + \
-			(("  AUTO" if p.modo_auto else "  SEMI") if p.automatica else "")
+		_municao.text = ("..." if p.recarregando else "%d / %d" % [p.balas, p.reserva]) + \
+			(("  AUTO" if p.modo_auto else "  SEMI") if p.automatica and not toque else "")
+		_municao.add_theme_color_override("font_color", Color(0.95, 0.35, 0.25) if p.balas == 0 else Color(1, 1, 1, 0.92))
 	if _btn_atacar:
-		_btn_atacar.text = "ATIRAR" if com_pistola else "ATACAR"
-		_btn_recarregar.visible = com_pistola
+		_btn_atacar.icone = "tiro" if com_pistola else "corte"
+		_btn_recarregar.visible = com_pistola and not jogador.fogo().recarregando and jogador.fogo().balas < jogador.fogo().pente and jogador.fogo().reserva > 0
 
 
 func _input(ev: InputEvent) -> void:
 	if jogador == null:
 		return
-	if (_pausa.visible or _mochila.visible or _tela_bau.visible or _tela_bancada.visible) and toque:
+	if (_pausa.visible or _mochila.visible or _tela_bau.visible or _tela_bancada.visible or _tela_loja.visible) and toque:
 		return  # na pausa/mochila o toque é dos botões da tela, não do analógico nem da câmera
-	if (_mochila.visible or _tela_bau.visible or _tela_bancada.visible) and ev is InputEventMouseMotion:
+	if (_mochila.visible or _tela_bau.visible or _tela_bancada.visible or _tela_loja.visible) and ev is InputEventMouseMotion:
 		return
 	if not toque:
 		if ev is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
@@ -307,7 +277,7 @@ func _input(ev: InputEvent) -> void:
 	if ev is InputEventScreenTouch:
 		var t := ev as InputEventScreenTouch
 		if t.pressed:
-			if t.position.x < tela.x * 0.42 and _stick_id == -1:
+			if t.position.x < tela.x * 0.42 and _stick_id == -1 and not _em_botao(t.position):
 				_stick_id = t.index
 				_stick_centro = t.position
 				_base.position = t.position - _base.size * 0.5
@@ -374,9 +344,10 @@ func _monta_barra_rapida() -> void:
 	caixa.anchor_right = 0.5
 	caixa.anchor_top = 1.0
 	caixa.anchor_bottom = 1.0
-	caixa.offset_left = (-470 if toque else -330)
-	caixa.offset_top = -108
-	caixa.add_theme_constant_override("separation", 8)
+	var lado: float = 60.0 if toque else 66.0
+	caixa.offset_left = -(lado + 6.0) * (Mochila.BARRA + 1) * 0.5 - (150.0 if toque else 0.0)  # celular: longe dos botões
+	caixa.offset_top = -lado - 14.0
+	caixa.add_theme_constant_override("separation", 6)
 	add_child(caixa)
 	for i in Mochila.BARRA:
 		var e := TelaMochila.Espaco.new()
@@ -385,15 +356,15 @@ func _monta_barra_rapida() -> void:
 		e.pressed.connect(func() -> void:
 			if jogador:
 				jogador.usar_espaco(i))
-		e.lado = 72.0 if toque else 84.0
+		e.lado = lado
+		e.discreto = true
 		caixa.add_child(e)
 		_barra.append(e)
-	var b := Button.new()
+	var b := _Icone.new()
 	b.name = "Mochila"
-	b.text = "MOCHILA"
-	b.focus_mode = Control.FOCUS_NONE
-	b.theme = UiTema.tema()
-	b.custom_minimum_size = Vector2(120, 72 if toque else 84)
+	b.icone = "mochila"
+	b.redondo = false
+	b.custom_minimum_size = Vector2(lado, lado)
 	b.pressed.connect(func() -> void: abre_mochila(not _mochila.visible))
 	caixa.add_child(b)
 	_mochila = TelaMochila.new()
@@ -402,6 +373,20 @@ func _monta_barra_rapida() -> void:
 	_tela_bau = TelaBau.new()
 	_tela_bau.visible = false
 	add_child(_tela_bau)
+	_tela_loja = TelaLoja.new()
+	_tela_loja.visible = false
+	add_child(_tela_loja)
+	_tela_loja.visibility_changed.connect(func() -> void:
+		if not toque:
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if _tela_loja.visible else Input.MOUSE_MODE_CAPTURED)
+	_saldo = Label.new()
+	_saldo.add_theme_font_override("font", UiTema.fonte_titulo())
+	_saldo.add_theme_font_size_override("font_size", 24)
+	_saldo.add_theme_color_override("font_color", Color(0.85, 0.8, 0.55))
+	_saldo.add_theme_color_override("font_outline_color", Color.BLACK)
+	_saldo.add_theme_constant_override("outline_size", 6)
+	_saldo.position = Vector2(24, 92)
+	add_child(_saldo)
 	_tela_bancada = TelaBancada.new()
 	_tela_bancada.visible = false
 	add_child(_tela_bancada)
@@ -449,17 +434,15 @@ func _monta_aviso() -> void:
 
 
 func _monta_pausa() -> void:
-	var b := Button.new()
-	b.text = "II"
+	var b := _Icone.new()
+	b.icone = "pausa"
 	b.name = "Pausa"
-	b.focus_mode = Control.FOCUS_NONE
 	b.anchor_left = 1.0
 	b.anchor_right = 1.0
-	b.offset_left = -88
+	b.offset_left = -76
 	b.offset_right = -20
-	b.offset_top = 12
-	b.offset_bottom = 80
-	b.theme = UiTema.tema()
+	b.offset_top = 14
+	b.offset_bottom = 70
 	b.pressed.connect(func() -> void: pausa(true))
 	add_child(b)
 	_pausa = Control.new()
@@ -508,6 +491,10 @@ func _pegou(tipo: String, qtd: int) -> void:
 	if tipo == "aprendeu":
 		aviso("Receita aprendida", Color(0.35, 0.6, 0.9))
 		return
+	if tipo == "dinheiro":
+		_aviso_item.text = "+$ %d" % qtd
+		_aviso_t = 1.2
+		return
 	if tipo.begins_with("modo_"):
 		aviso("Automático" if tipo == "modo_auto" else "Tiro a tiro", Color(0.35, 0.6, 0.9), 1.2)
 		return
@@ -521,81 +508,53 @@ func _levou_dano(dano: int) -> void:
 
 
 func _em_botao(p: Vector2) -> bool:
-	for b: Control in [_btn_correr, _btn_agachar, _btn_mira, _btn_atacar, _btn_recarregar, _btn_pegar, _btn_comer, _btn_beber,
-			get_node_or_null("Pular") as Control, get_node_or_null("Trocar") as Control, get_node_or_null("Pausa") as Control,
-			_btn_modo] + _barra:
-		if b and b.get_global_rect().grow(10).has_point(p):
+	for b: Control in [_btn_agachar, _btn_mira, _btn_atacar, _btn_recarregar, _btn_pegar, get_node_or_null("Pular") as Control,
+			get_node_or_null("Pausa") as Control, get_node_or_null("Mochila") as Control, _btn_modo] + _barra:
+		if b and b.is_visible_in_tree() and b.get_global_rect().grow(10).has_point(p):
 			return true
 	return false
 
 
+# botões de toque em arco em volta do de ataque, no canto de baixo à direita; só ícone, sem texto
 func _monta_toque() -> void:
-	_base = _circulo(RAIO_STICK * 2.0, Color(1, 1, 1, 0.18))
+	_base = _circulo(RAIO_STICK * 2.0, Color(1, 1, 1, 0.12))
 	_base.visible = false
 	add_child(_base)
-	_pino = _circulo(90.0, Color(1, 1, 1, 0.45))
+	_pino = _circulo(80.0, Color(1, 1, 1, 0.35))
 	_base.add_child(_pino)
 	_pino.position = _base.size * 0.5 - _pino.size * 0.5
-	# MIRA no canto inferior direito; ATACAR grande ao lado; os outros em arco em volta
-	_btn_mira = _botao("MIRA", Vector2(-140, -140))
-	_btn_mira.button_down.connect(func() -> void:
-		jogador.entrada["mirar"] = true
-		_correr_ligado = false)
-	_btn_atacar = _botao("ATACAR", Vector2(-320, -175), 150.0)
+	_btn_atacar = _botao("corte", Vector2(-210, -210), 150.0)
 	_btn_atacar.button_down.connect(func() -> void:
 		jogador.entrada["atacar"] = true
 		jogador.entrada["atirando"] = true)
 	_btn_atacar.button_up.connect(func() -> void: jogador.entrada["atirando"] = false)
-	_btn_modo = _botao("SEMI", Vector2(-300, -470), 90.0)
-	_btn_modo.name = "Modo"
-	_btn_modo.add_theme_font_size_override("font_size", 18)
-	_btn_modo.button_down.connect(func() -> void: jogador.entrada["modo"] = true)
-	_btn_modo.visible = false
-	var trocar := _botao("TROCAR", Vector2(-130, -420), 100.0)
-	trocar.name = "Trocar"
-	trocar.button_down.connect(func() -> void: jogador.entrada["trocar"] = true)
-	_btn_comer = _botao("COMER", Vector2(-140, -560), 90.0)
-	_btn_comer.add_theme_font_size_override("font_size", 16)
-	_btn_comer.button_down.connect(func() -> void: jogador.entrada["comer"] = true)
-	_btn_beber = _botao("BEBER", Vector2(-245, -560), 90.0)
-	_btn_beber.add_theme_font_size_override("font_size", 16)
-	_btn_beber.button_down.connect(func() -> void: jogador.entrada["beber"] = true)
-	_btn_pegar = _botao("PEGAR", Vector2(-620, -175), 110.0)
-	_btn_pegar.button_down.connect(func() -> void: jogador.entrada["pegar"] = true)
-	_btn_pegar.visible = false
-	_btn_recarregar = _botao("RECARREGAR", Vector2(-450, -330), 110.0)
-	_btn_recarregar.add_theme_font_size_override("font_size", 16)
-	_btn_recarregar.button_down.connect(func() -> void: jogador.entrada["recarregar"] = true)
-	var pular := _botao("PULAR", Vector2(-140, -290))
+	_btn_mira = _botao("mira", Vector2(-350, -128), 92.0)
+	_btn_mira.button_down.connect(func() -> void: jogador.entrada["mirar"] = true)
+	var pular := _botao("pular", Vector2(-128, -350), 92.0)
 	pular.name = "Pular"
 	pular.button_down.connect(func() -> void: jogador.entrada["pular"] = true)
-	_btn_agachar = _botao("AGACHAR", Vector2(-290, -335))
-	_btn_agachar.button_down.connect(func() -> void:
-		jogador.entrada["agachar"] = true
-		_correr_ligado = false)
-	_btn_correr = _botao("CORRER", Vector2(-470, -140))
-	_btn_correr.button_down.connect(func() -> void: _correr_ligado = not _correr_ligado)
+	_btn_agachar = _botao("agachar", Vector2(-300, -300), 80.0)
+	_btn_agachar.button_down.connect(func() -> void: jogador.entrada["agachar"] = true)
+	_btn_recarregar = _botao("recarga", Vector2(-410, -250), 72.0)
+	_btn_recarregar.button_down.connect(func() -> void: jogador.entrada["recarregar"] = true)
+	_btn_modo = _botao("modo", Vector2(-410, -350), 72.0)
+	_btn_modo.name = "Modo"
+	_btn_modo.button_down.connect(func() -> void: jogador.entrada["modo"] = true)
+	_btn_modo.visible = false
+	_btn_pegar = _botao("pegar", Vector2(-540, -170), 100.0)
+	_btn_pegar.button_down.connect(func() -> void: jogador.entrada["pegar"] = true)
+	_btn_pegar.visible = false
 
 
-func _botao(texto: String, desloc: Vector2, tam: float = BOTAO) -> Button:
+func _botao(icone: String, desloc: Vector2, tam: float = BOTAO) -> _Icone:
 	var k: float = float(Config.v.botoes_tamanho)
 	desloc *= k
 	tam *= k
-	var b := Button.new()
-	b.text = texto
-	b.focus_mode = Control.FOCUS_NONE
+	var b := _Icone.new()
+	b.icone = icone
 	b.custom_minimum_size = Vector2(tam, tam)
 	b.size = Vector2(tam, tam)
-	b.add_theme_font_size_override("font_size", 22)
-	var est := StyleBoxFlat.new()
-	est.bg_color = Color(0, 0, 0, 0.35)
-	est.set_corner_radius_all(int(tam * 0.5))
-	_estilos_toque.append(est)
-	est.border_color = Color(1, 1, 1, 0.5)
-	est.set_border_width_all(3)
-	b.add_theme_stylebox_override("normal", est)
-	b.add_theme_stylebox_override("pressed", est)
-	b.add_theme_stylebox_override("hover", est)
+	_estilos_toque.append(b.estilo)
 	b.anchor_left = 1.0
 	b.anchor_right = 1.0
 	b.anchor_top = 1.0
@@ -651,51 +610,119 @@ class _Mira:
 				draw_line(c + d.normalized() * 10.0, c + d.normalized() * 19.0, mc, 3.0)
 
 
-# barra de vida/fome/sede: ícone desenhado à esquerda, barra com o número dentro; pisca quando está baixa
+# barra fina de vida/fome/sede: ícone pequeno à esquerda e a barra; pisca quando está baixa
 class _Barra:
 	extends Control
 
-	const CORES: Array[Color] = [Color(0.45, 0.62, 0.22), Color(0.8, 0.48, 0.2), Color(0.28, 0.52, 0.78)]
+	const CORES: Array[Color] = [Color(0.82, 0.84, 0.8), Color(0.85, 0.6, 0.3), Color(0.4, 0.62, 0.85)]
 	## 0 vida, 1 fome, 2 sede
 	var tipo: int = 0
 	var valor: float = 100.0:
 		set(v):
-			if roundi(v) != roundi(valor) or (v < 15.0) != (valor < 15.0):
+			if absf(v - valor) > 0.2 or (v < 20.0) != (valor < 20.0):
 				queue_redraw()
 			valor = v
 
 	func _process(_dt: float) -> void:
-		if valor < 15.0:
+		if valor < 20.0:
 			queue_redraw()  # piscando
 
 	func _draw() -> void:
 		var h: float = size.y
-		var x0: float = h + 6.0
+		var x0: float = h + 8.0
 		var w: float = size.x - x0
-		draw_rect(Rect2(x0, 0, w, h), Color(0.05, 0.05, 0.05, 0.55))
+		var y: float = h * 0.5 - 3.0
+		draw_rect(Rect2(x0, y, w, 6), Color(0, 0, 0, 0.45))
 		var cor: Color = CORES[tipo]
-		if valor < 15.0:
+		if valor < 20.0:
+			cor = Color(0.85, 0.2, 0.15)
 			cor.a = 0.55 + 0.45 * absf(sin(Time.get_ticks_msec() * 0.006))
-		if tipo == 0 and valor < 30.0:
-			cor = Color(0.75, 0.15, 0.12, cor.a)
-		draw_rect(Rect2(x0, 0, w * clampf(valor / 100.0, 0.0, 1.0), h), cor)
-		var f: Font = UiTema.tema().default_font
-		draw_string(f, Vector2(x0 + 10, h * 0.5 + 9), str(roundi(valor)), HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1, 1, 1, 0.95))
-		_icone(Vector2(h * 0.5, h * 0.5), h * 0.36)
+		draw_rect(Rect2(x0, y, w * clampf(valor / 100.0, 0.0, 1.0), 6), cor)
+		_icone(Vector2(h * 0.5, h * 0.5), h * 0.45, Color(cor, 0.95))
 
-	# coração, garfo e gota em traços simples (sem imagem)
-	func _icone(c: Vector2, r: float) -> void:
-		var b := Color(1, 1, 1, 0.9)
+	# cruz, garfo e gota em traços simples (sem imagem)
+	func _icone(c: Vector2, r: float, b: Color) -> void:
 		match tipo:
 			0:
-				draw_circle(c + Vector2(-r * 0.45, -r * 0.2), r * 0.5, b)
-				draw_circle(c + Vector2(r * 0.45, -r * 0.2), r * 0.5, b)
-				draw_colored_polygon(PackedVector2Array([c + Vector2(-r * 0.93, 0), c + Vector2(r * 0.93, 0), c + Vector2(0, r)]), b)
+				draw_rect(Rect2(c.x - r * 0.3, c.y - r, r * 0.6, r * 2), b)
+				draw_rect(Rect2(c.x - r, c.y - r * 0.3, r * 2, r * 0.6), b)
 			1:
-				draw_line(c + Vector2(0, -r), c + Vector2(0, r), b, 3.0)
-				for dx in [-r * 0.45, 0.0, r * 0.45]:
-					draw_line(c + Vector2(dx, -r), c + Vector2(dx, -r * 0.2), b, 2.0)
-				draw_line(c + Vector2(-r * 0.45, -r * 0.2), c + Vector2(r * 0.45, -r * 0.2), b, 2.0)
+				draw_line(c + Vector2(0, -r), c + Vector2(0, r), b, 2.0)
+				for dx in [-r * 0.5, r * 0.5]:
+					draw_line(c + Vector2(dx, -r), c + Vector2(dx, -r * 0.2), b, 1.5)
+				draw_line(c + Vector2(-r * 0.5, -r * 0.2), c + Vector2(r * 0.5, -r * 0.2), b, 1.5)
 			_:
 				draw_circle(c + Vector2(0, r * 0.3), r * 0.62, b)
 				draw_colored_polygon(PackedVector2Array([c + Vector2(-r * 0.55, r * 0.1), c + Vector2(r * 0.55, r * 0.1), c + Vector2(0, -r)]), b)
+
+
+# botão só com ícone desenhado (círculo escuro com borda fina); `ligado` acende (agachado, mira, automático)
+class _Icone:
+	extends Button
+
+	var icone: String = "":
+		set(v):
+			if v != icone:
+				icone = v
+				queue_redraw()
+	var ligado: bool = false:
+		set(v):
+			if v != ligado:
+				ligado = v
+				queue_redraw()
+	var redondo: bool = true
+	var estilo := StyleBoxFlat.new()
+
+	func _ready() -> void:
+		focus_mode = Control.FOCUS_NONE
+		estilo.bg_color = Color(0, 0, 0, 0.3)
+		estilo.border_color = Color(1, 1, 1, 0.35)
+		estilo.set_border_width_all(2)
+		estilo.set_corner_radius_all(int(size.x * 0.5) if redondo else 4)
+		for e: String in ["normal", "pressed", "hover"]:
+			add_theme_stylebox_override(e, estilo)
+		button_down.connect(func() -> void: modulate = Color(1, 1, 1, 0.6))
+		button_up.connect(func() -> void: modulate = Color.WHITE)
+
+	func _draw() -> void:
+		var c: Vector2 = size * 0.5
+		var r: float = size.x * 0.24
+		var b := Color(1.0, 0.78, 0.35) if ligado else Color(1, 1, 1, 0.9)
+		var g: float = maxf(2.5, size.x * 0.035)
+		match icone:
+			"corte":  # lâmina na diagonal com o cabo
+				draw_line(c + Vector2(-r, r), c + Vector2(r * 1.1, -r * 1.1), b, g * 2.2)
+				draw_line(c + Vector2(-r * 1.3, r * 0.3), c + Vector2(-r * 0.3, r * 1.3), b, g)
+			"tiro":  # bala
+				draw_rect(Rect2(c.x - r * 0.35, c.y - r * 0.3, r * 0.7, r * 1.3), b)
+				draw_circle(c + Vector2(0, -r * 0.3), r * 0.35, b)
+				draw_rect(Rect2(c.x - r * 0.45, c.y + r * 1.0, r * 0.9, r * 0.2), b)
+			"mira":
+				draw_arc(c, r, 0, TAU, 32, b, g)
+				for d: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
+					draw_line(c + d * r * 0.4, c + d * r * 1.35, b, g)
+			"pular":
+				for k in 2:
+					var y: float = c.y - r * 0.15 + k * r * 0.7
+					draw_polyline(PackedVector2Array([Vector2(c.x - r, y), Vector2(c.x, y - r * 0.8), Vector2(c.x + r, y)]), b, g)
+			"agachar":
+				draw_polyline(PackedVector2Array([Vector2(c.x - r, c.y - r * 0.5), Vector2(c.x, c.y + r * 0.3), Vector2(c.x + r, c.y - r * 0.5)]), b, g)
+				draw_line(Vector2(c.x - r, c.y + r * 0.9), Vector2(c.x + r, c.y + r * 0.9), b, g)
+			"recarga":  # seta em volta
+				draw_arc(c, r, -PI * 0.35, PI * 1.35, 24, b, g)
+				var p: Vector2 = c + Vector2.from_angle(-PI * 0.35) * r
+				draw_colored_polygon(PackedVector2Array([p + Vector2(-r * 0.5, -r * 0.1), p + Vector2(r * 0.3, -r * 0.45), p + Vector2(r * 0.25, r * 0.4)]), b)
+			"modo":  # três balinhas = automático
+				for k in 3:
+					draw_rect(Rect2(c.x - r + k * r * 0.75, c.y - r * 0.6, r * 0.45, r * 1.2), b if ligado or k == 1 else Color(b, 0.3))
+			"pegar":  # seta para baixo entrando na mão aberta
+				draw_line(c + Vector2(0, -r * 1.1), c + Vector2(0, r * 0.3), b, g)
+				draw_polyline(PackedVector2Array([c + Vector2(-r * 0.45, -r * 0.15), c + Vector2(0, r * 0.35), c + Vector2(r * 0.45, -r * 0.15)]), b, g)
+				draw_polyline(PackedVector2Array([c + Vector2(-r, r * 0.4), c + Vector2(-r, r), c + Vector2(r, r), c + Vector2(r, r * 0.4)]), b, g)
+			"mochila":
+				draw_rect(Rect2(c.x - r, c.y - r * 0.6, r * 2, r * 1.7), b, false, g)
+				draw_arc(c + Vector2(0, -r * 0.6), r * 0.5, PI, TAU, 12, b, g)
+				draw_line(c + Vector2(-r, r * 0.1), c + Vector2(r, r * 0.1), b, g)
+			"pausa":
+				draw_rect(Rect2(c.x - r * 0.7, c.y - r * 0.8, r * 0.5, r * 1.6), b)
+				draw_rect(Rect2(c.x + r * 0.2, c.y - r * 0.8, r * 0.5, r * 1.6), b)

@@ -176,13 +176,29 @@ em baú. Animações do Mixamo (rifle) misturadas como as da pistola.
 Aceite: teste de cadência/dispersão; robô mostra mira, rajada e recarga.
 
 ## 8. Dinheiro do jogo e lojista
-Status: pendente
+Status: feito (APK 0.42). Zumbi paga $10 (chefe $300, noite ×1,5) a quem bateu por último, conta abates; Lojista na
+pista (barraca + vendedor parado) vende munição/comida/água e compra tudo menos o facão (Lojista.VENDE/PAGA); TelaLoja.
+Teste: tests/test_loja.gd (8). Troca entre jogadores fica para o 9 (grupos).
 
 Dinheiro (moeda do jogo, sem dinheiro real): matar zumbi dá (provisório 10, chefe 300, noite +50%). HUD mostra
 o saldo discreto. **Lojista** NPC (parado, numa barraca) compra qualquer item por um preço e vende munição,
 comida e água. **Venda entre jogadores**: troca segura (os dois confirmam; servidor troca de uma vez).
 Ideia a pensar (deixar desligada numa const): matar jogador pega metade do dinheiro dele.
 Aceite: testes: matar zumbi soma; comprar sem dinheiro falha; troca entre dois jogadores atômica.
+
+## 8b. Cara nova (pedido do dono: "HUD lixo, muito poluído, muito botão"; "cara completamente diferente")
+Status: em andamento. Parte 1 feita (APK 0.42): HUD limpo — barras finas de vida/fome/sede no canto de cima,
+dinheiro embaixo delas, relógio curto ("DIA 4:12"), munição pequena embaixo à direita; celular só com 4 botões de
+ícone (ataque/tiro, mira, pular, agachar) e os de contexto (recarregar só com pente incompleto, pegar só perto de
+algo, seletor só com a smg); correr = analógico no fim para a frente; trocar/comer/beber pela barra rápida discreta.
+Prompt das próximas partes: atacar os pontos fracos, um por iteração, com foto antes/depois:
+1. Luz e céu: céu de fim de tarde nublado (ProceduralSky/PhysicalSky com névoa leve de profundidade), sombra macia,
+   cor fria e dessaturada (pós-processo barato no gl_compatibility: só ajustes do Environment), noite azulada.
+2. Pista: trocar blocos cinza por modelos (muro, contêiner, carro velho, barricada) grátis e de licença aberta,
+   chão de asfalto/terra com textura; manter colisão e malha de navegação (testes de zumbi passando).
+3. Arma na tela não atravessa parede (encolher para perto/baixar quando há parede a < 0,6 m na frente).
+4. Itens soltos no chão com o modelo 3D (o mesmo dos ícones), girando devagar, em vez de caixinhas.
+5. Mão segurando o facão e as armas brancas.
 
 ## 9. Grupos
 Status: pendente

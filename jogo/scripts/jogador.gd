@@ -487,6 +487,49 @@ func porta_perto() -> Porta:
 	return Porta.perto(get_tree(), global_position) if vida > 0 else null
 
 
+## Dinheiro do jogo (nada com dinheiro real) e quantos zumbis já matou. Por enquanto no aparelho (prompt 16: conta).
+var dinheiro: int = 0
+var abates: int = 0
+func lojista_perto() -> Lojista:
+	var l := get_tree().get_first_node_in_group("lojista") as Lojista
+	return l if l and vida > 0 and l.perto(global_position) else null
+
+
+## Compra `lotes` do que o lojista vende. Falha sem dinheiro, longe dele ou sem espaço na mochila.
+func comprar(tipo: String, lotes: int = 1) -> bool:
+	if lojista_perto() == null or not Lojista.VENDE.has(tipo) or lotes <= 0:
+		return false
+	var qtd: int = int(Lojista.VENDE[tipo][0]) * lotes
+	var preco: int = int(Lojista.VENDE[tipo][1]) * lotes
+	if dinheiro < preco or mochila.adicionar(tipo, 0) < 0:
+		return false
+	var coube: int = mochila.adicionar(tipo, qtd)
+	if coube < qtd:  # não coube tudo: devolve e não compra
+		mochila.tirar(tipo, coube)
+		return false
+	dinheiro -= preco
+	return true
+
+
+## Vende `qtd` do espaço `i` da mochila para o lojista (qtd < 0 = tudo). Devolve quanto recebeu.
+func vender(i: int, qtd: int = -1) -> int:
+	var e: Variant = mochila.espacos[i]
+	if lojista_perto() == null or e == null or e.tipo in Mochila.PRESOS or Lojista.paga(e.tipo, 1) <= 0:
+		return 0
+	var n: int = int(e.qtd) if qtd < 0 else mini(qtd, int(e.qtd))
+	var tipo: String = e.tipo
+	e.qtd = int(e.qtd) - n
+	if int(e.qtd) <= 0:
+		mochila.espacos[i] = null
+	mochila.mudou.emit()
+	var valor: int = Lojista.paga(tipo, n)
+	dinheiro += valor
+	return valor
+
+
+signal loja_aberta
+
+
 ## Receitas aprendidas (nomes das armas). Por enquanto no aparelho; vão para a conta no prompt 16.
 var receitas: Array[String] = []
 ## Fabricando: segundos que faltam (> 0), qual arma e quantas.
@@ -577,6 +620,9 @@ func _tenta_pegar() -> void:
 	if it == null and bancada_perto() != null:
 		bancada_aberta.emit()
 		return
+	if it == null and lojista_perto() != null:
+		loja_aberta.emit()
+		return
 	if it == null:
 		var p: Porta = porta_perto()
 		if p:
@@ -628,6 +674,13 @@ func _rede_ganha(tipo: String, qtd: int) -> void:
 
 
 func _recebe(tipo: String, qtd: int) -> void:
+	if tipo == "dinheiro":
+		dinheiro += qtd
+		item_pego.emit(tipo, qtd)
+		return
+	if tipo == "abate":
+		abates += qtd  # registro de zumbis mortos (sem nível: só o número)
+		return
 	var coube: int = mochila.adicionar(tipo, qtd)
 	if coube < qtd:
 		_larga_no_chao(tipo, qtd - coube)  # o que não coube volta para o chão

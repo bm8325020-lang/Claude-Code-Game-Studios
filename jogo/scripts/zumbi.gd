@@ -558,11 +558,20 @@ func _atualiza_ataque(dt: float) -> void:
 
 
 ## Golpe ou tiro (o facão e a pistola chamam isto). No cliente vira pedido ao servidor.
-func levar_golpe(dano: int, dir: Vector3, _quem: Node) -> void:
+## Dinheiro do jogo por zumbi morto (provisório); à noite vale mais.
+const DINHEIRO: int = 10
+const DINHEIRO_CHEFE: int = 300
+const DINHEIRO_NOITE: float = 1.5
+var _ultimo: Jogador  # servidor: quem bateu por último (ganha o dinheiro)
+
+
+func levar_golpe(dano: int, dir: Vector3, quem: Node) -> void:
 	if vida <= 0:
 		return
 	_pisca()
 	if _manda():
+		if quem is Jogador:
+			_ultimo = quem
 		_aplica(dano, dir)
 	else:
 		_pede_golpe.rpc_id(1, dano, dir)
@@ -572,6 +581,10 @@ func levar_golpe(dano: int, dir: Vector3, _quem: Node) -> void:
 func _pede_golpe(dano: int, dir: Vector3) -> void:
 	# shortcut: o servidor confia no dano que o cliente manda; conferir alcance/arma quando houver servidor de verdade
 	if multiplayer.is_server() and vida > 0:
+		var principal := get_tree().get_first_node_in_group("principal")
+		var quem: Node = principal.jogadores.get_node_or_null(str(multiplayer.get_remote_sender_id())) if principal else null
+		if quem is Jogador:
+			_ultimo = quem
 		_aplica(clampi(dano, 0, 100), dir)
 
 
@@ -619,6 +632,11 @@ func _morre() -> void:
 	_toca("morte", 0.1, true)
 	if _manda():
 		_larga_drop()
+		if _ultimo and is_instance_valid(_ultimo):
+			var noite: bool = Ciclo.forca_noite(get_tree(), 2.0) > 1.5
+			_ultimo.ganhar("dinheiro", roundi((DINHEIRO_CHEFE if chefe else DINHEIRO) * (DINHEIRO_NOITE if noite else 1.0)))
+			_ultimo.ganhar("abate", 1)
+		_ultimo = null
 
 
 const DROP_SOME: float = 180.0  # s até o que o zumbi largou sumir

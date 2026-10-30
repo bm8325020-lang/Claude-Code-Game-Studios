@@ -165,13 +165,18 @@ class Espaco:
 	var _sel: bool = false
 	var destaque: bool = false  # barra do HUD: arma na mão
 	var lado: float = 96.0
+	var discreto: bool = false  # barra do HUD: fundo quase transparente, só o vazio marcado
 
 	func _ready() -> void:
 		custom_minimum_size = Vector2(lado, lado)
 		focus_mode = Control.FOCUS_NONE
 		for estado: String in ["normal", "hover", "pressed"]:
 			var c := StyleBoxFlat.new()
-			c.bg_color = Color(0.32, 0.33, 0.34, 0.85)
+			c.bg_color = Color(0, 0, 0, 0.28) if discreto else Color(0.32, 0.33, 0.34, 0.85)
+			if discreto:
+				c.border_color = Color(1, 1, 1, 0.14)
+				c.set_border_width_all(1)
+				c.set_corner_radius_all(4)
 			add_theme_stylebox_override(estado, c)
 
 	func mostra(item: Variant, selecionado: bool) -> void:
@@ -180,8 +185,10 @@ class Espaco:
 		queue_redraw()
 
 	func _draw() -> void:
-		if _sel or destaque:
+		if _sel or (destaque and not discreto):
 			draw_rect(Rect2(Vector2.ZERO, size), Color(0.35, 0.5, 0.7, 0.9))
+		elif destaque:  # HUD: arma na mão = traço claro embaixo
+			draw_rect(Rect2(4, size.y - 4, size.x - 8, 3), Color(1.0, 0.78, 0.35, 0.95))
 		if _item:
 			draw_texture_rect(Icones.de(String(_item.tipo)), Rect2(size * 0.08, size * 0.84), false)
 			if int(_item.qtd) > 1:
@@ -189,4 +196,4 @@ class Espaco:
 				draw_string(f, Vector2(size.x - 44, size.y - 8), "X%d" % int(_item.qtd), HORIZONTAL_ALIGNMENT_RIGHT, 40, 20, Color(1, 1, 1, 0.95))
 		if numero != "":
 			var f2: Font = UiTema.fonte_titulo()
-			draw_string(f2, Vector2(8, 24), numero, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1, 1, 1, 0.9))
+			draw_string(f2, Vector2(6, 20) if discreto else Vector2(8, 24), numero, HORIZONTAL_ALIGNMENT_LEFT, -1, 16 if discreto else 24, Color(1, 1, 1, 0.55 if discreto else 0.9))

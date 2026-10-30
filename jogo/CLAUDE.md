@@ -50,8 +50,11 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   entrada `atirando` (segurando) e `modo` (seletor). Teste: tests/test_auto.gd (13).
 - `porta.gd` — camada 16, `alterna_por`, `leva_soco`, conserto 90 s. `item.gd` — tipos municao/lanterna/comida/agua, volta 60 s.
 - `ciclo.gd` — dia 480 s/noite 300 s, `noite()` 0..1, `INICIO` provisório (noite em 1:30).
-- `controles.gd` — HUD e toque: vida, fome/sede, relógio, munição, mira (`_Mira` com marca de acerto), botões
-  (MIRA, ATACAR/ATIRAR, PULAR, AGACHAR, CORRER, TROCAR, RECARREGAR, PEGAR/USAR, COMER, BEBER). PC: WASD, mouse, E F G Q R 1 2.
+- `controles.gd` — HUD limpo (8b): `_Barra` finas no alto à esquerda, `_saldo`, relógio curto, munição, mira (`_Mira`);
+  toque: botões só com ícone (`_Icone`: corte/tiro, mira, pular, agachar; contexto: recarga, pegar, modo), correr =
+  analógico no fim; barra rápida discreta (Espaco.discreto). PC: WASD, mouse, E F G Q R B Tab 1–6.
+- `lojista.gd` (Lojista: VENDE/PAGA, grupo "lojista"), `tela_loja.gd`. Jogador: `dinheiro`, `abates`, `comprar`, `vender`,
+  `lojista_perto`. Zumbi paga a `_ultimo`. Teste: tests/test_loja.gd (8).
 - `rede.gd` — ENet 7777, broadcast 7778, pergunta direta 7779, `VERSAO`, `LISTA_URL` (servidores.json). Endereço
   "ws://"/"wss://" = WebSocket (servidor online atrás de site; `-- dedicado ws` escuta em `PORTA_WS` 7861).
 - `config.gd` (Config) — `Config.v[...]` salvo em user://config.cfg, `muda()`, `aplica()`, `sensibilidade(arma, mirando)`,

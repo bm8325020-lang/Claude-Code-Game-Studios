@@ -423,6 +423,11 @@ var bancada: Bancada
 
 
 func _baus() -> void:
+	var loja := Lojista.new()
+	loja.name = "Lojista"
+	loja.position = Vector3(-14, 0, 1.5)
+	loja.rotation_degrees.y = 90.0
+	add_child(loja)
 	bancada = Bancada.new()
 	bancada.name = "Bancada"
 	bancada.pontos = PONTOS_BANCADA
