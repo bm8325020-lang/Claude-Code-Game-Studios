@@ -16,6 +16,7 @@ func ok(c: bool, o_que: String) -> void:
 func _init() -> void:
 	var papel: String = OS.get_cmdline_user_args()[0] if OS.get_cmdline_user_args().size() > 0 else "servidor"
 	Zumbi.tipo_fixo = "zumbi_policial"  # mede o zumbi médio
+	(load("res://scripts/main.gd") as GDScript).set("nascer_no_bairro", false)  # anda em campo aberto na pista
 	var main: Node3D = (load("res://main.tscn") as PackedScene).instantiate()
 	root.add_child(main)
 	for i in 5: await physics_frame
@@ -52,7 +53,7 @@ func _init() -> void:
 		ok(outro.clipe_rede != "" and outro.nick == ("Cliente" if papel == "servidor" else "Servidor"), "vê nome e animação do outro (nick=%s)" % outro.nick)
 		ok(not outro.local and outro.camera == null, "o outro não tem câmera aqui")
 		# zumbis: o servidor cria, o cliente recebe; um golpe do cliente vira dano no servidor
-		ok(main.zumbis.get_child_count() == main.PONTOS_ZUMBI.size() + main.PONTOS_TOCAIA.size() + main.PATRULHAS.size() + main.PONTOS_CHEFE.size(), "vê os zumbis (%d)" % main.zumbis.get_child_count())
+		ok(main.zumbis.get_child_count() == main.bairro.pontos_zumbi.size() + main.PONTOS_ZUMBI.size() + main.PONTOS_TOCAIA.size() + main.PATRULHAS.size() + main.PONTOS_CHEFE.size(), "vê os zumbis (%d)" % main.zumbis.get_child_count())
 		var zl: Zumbi = null
 		for n in main.zumbis.get_children():
 			if (n as Zumbi).casa.distance_to(Vector3(24, 0, 0)) < 0.1:

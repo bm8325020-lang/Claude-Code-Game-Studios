@@ -316,7 +316,10 @@ Paredes e portas quebráveis por tiro/golpe (vida por pedaço, troca para versã
 viram cobertura). Servidor decide e sincroniza o estado.
 
 ## 21. Mapa grande (depois — o dono pediu para deixar o mapa por último)
-Status: pendente
+Status: em andamento (adiantado: 11–15, 18 e 20 precisam de lugar). Parte 1 feita (APK 0.48): bairro em código no
+estilo da referência do dono (cidadezinha low-poly): 4 quarteirões, 12 casas com porta/baú/comida, prédio alto,
+galpão, ruas com faixa, árvores, carros; malha dos zumbis; nasce lá. Próximas: crescer o bairro (mais quarteirões,
+mercado, posto, hospital, delegacia), interior com móveis, entulho/barreiras baixados, pontos de nascer bons/ruins (11).
 
 Cidade inicial (mais fácil) + outras cidades, escombros, lugares preservados, concessionária, casas
 domináveis. Usar os modelos já baixados (Sketchfab) e pacotes grátis; dividir por áreas que carregam por

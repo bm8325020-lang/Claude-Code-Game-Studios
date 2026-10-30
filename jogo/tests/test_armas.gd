@@ -21,6 +21,7 @@ func frames(n: int) -> void:
 
 
 func _init() -> void:
+	Zumbi.tipo_fixo = "zumbi_policial"  # o empurrão é medido no zumbi médio (o soldado blindado não cambaleia)
 	main = (load("res://main.tscn") as PackedScene).instantiate()
 	root.add_child(main)
 	await frames(10)

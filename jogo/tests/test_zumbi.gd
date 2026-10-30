@@ -38,7 +38,7 @@ func _init() -> void:
 	main.ciclo.tempo = 0.0  # dia parado: a noite tem o teste dela
 	main.ciclo.set_process(false)
 	main.ciclo._process(0.0)
-	ok(main.zumbis.get_child_count() == main.PONTOS_ZUMBI.size() + main.PONTOS_TOCAIA.size() + main.PATRULHAS.size() + main.PONTOS_CHEFE.size(), "zumbis nascem (%d)" % main.zumbis.get_child_count())
+	ok(main.zumbis.get_child_count() == main.bairro.pontos_zumbi.size() + main.PONTOS_ZUMBI.size() + main.PONTOS_TOCAIA.size() + main.PATRULHAS.size() + main.PONTOS_CHEFE.size(), "zumbis nascem (%d)" % main.zumbis.get_child_count())
 	z = main.zumbis.get_child(0)
 	z._sem_gritar = INF  # o grito tem o teste dele (no fim)
 	for outro in main.zumbis.get_children():
