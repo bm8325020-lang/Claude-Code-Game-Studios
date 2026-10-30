@@ -44,6 +44,7 @@ var _balanco := Vector2.ZERO
 var _mira: float = 0.0
 var _saca: float = 1.0      # 0 = arma ainda subindo (acabou de trocar), 1 = no lugar
 var _respira: float = 0.0
+var _parede: float = 0.0    # 0 = livre, 1 = parede colada na frente (arma recolhe e baixa)
 
 
 func _ready() -> void:
@@ -129,8 +130,21 @@ func _process(dt: float) -> void:
 	var baixa: float = (0.06 if alvo.correndo else 0.0) + (1.0 - _saca) * 0.35
 	if alvo._pegando > Jogador.PEGAR_DUR * 0.4:
 		baixa += 0.3  # pegando do chão: a arma sai da frente
-	position = position.lerp(Vector3(_balanco.x * 0.25, -_balanco.y * 0.25 - baixa, 0.0) + MIRA_PISTOLA * _mira, 1.0 - exp(-14.0 * dt))
-	rotation = Vector3(-_balanco.y * 0.5, _balanco.x * 0.5, 0.0)
+	_parede = move_toward(_parede, _perto_parede(cam), dt * 5.0)
+	baixa += _parede * 0.22
+	position = position.lerp(Vector3(_balanco.x * 0.25, -_balanco.y * 0.25 - baixa, _parede * 0.18) + MIRA_PISTOLA * _mira, 1.0 - exp(-14.0 * dt))
+	rotation = Vector3(-_balanco.y * 0.5 - _parede * 0.5, _balanco.x * 0.5 + _parede * 0.35, 0.0)
+
+
+# parede/caixa a menos de 0,7 m na frente do olho: 0..1 (mais perto = mais recolhida)
+func _perto_parede(cam: CameraPrimeira) -> float:
+	if cam == null or cam.cam == null:
+		return 0.0
+	var o: Vector3 = cam.cam.global_position
+	var q := PhysicsRayQueryParameters3D.create(o, o - cam.cam.global_basis.z * 0.7, 1)
+	q.exclude = [alvo.get_rid()]
+	var r: Dictionary = alvo.get_world_3d().direct_space_state.intersect_ray(q)
+	return 0.0 if r.is_empty() else clampf(1.0 - (o.distance_to(r.position) - 0.25) / 0.45, 0.0, 1.0)
 
 
 # facão: parado respira de leve; correndo deita; golpe = corte em volta do ombro (CORTES)

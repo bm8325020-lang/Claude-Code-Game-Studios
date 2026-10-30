@@ -196,7 +196,7 @@ Prompt das próximas partes: atacar os pontos fracos, um por iteração, com fot
    cor fria e dessaturada (pós-processo barato no gl_compatibility: só ajustes do Environment), noite azulada.
 2. (concreto em código feito; falta pôr modelos) Pista: trocar blocos cinza por modelos (muro, contêiner, carro velho, barricada) grátis e de licença aberta,
    chão de asfalto/terra com textura; manter colisão e malha de navegação (testes de zumbi passando).
-3. Arma na tela não atravessa parede (encolher para perto/baixar quando há parede a < 0,6 m na frente).
+3. (feito) Arma na tela não atravessa parede (encolher para perto/baixar quando há parede a < 0,6 m na frente).
 4. Itens soltos no chão com o modelo 3D (o mesmo dos ícones), girando devagar, em vez de caixinhas.
 5. Mão segurando o facão e as armas brancas.
 

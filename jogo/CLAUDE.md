@@ -70,7 +70,7 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   Morte: `Jogador._larga_tudo()` → `main.solta_saco()` (Bau com `saco`); `copia_mochila`/`dano_srv_t` no servidor e
   `main.saiu_morrendo(j)`. Teste: tests/test_morte.gd (11).
 - `armas.gd` (Armas) — BRANCAS (modelo, ponta, tam, vel, dano[3], alcance, empurra, som), `modelo(tipo)` = pegada na
-  origem e ponta em +Z (Maos, mão do corpo, Item). `main.BRANCAS_MAPA`. Teste: tests/test_armas.gd (15).
+  origem e ponta em +Z (Maos, mão do corpo, Item). `main.BRANCAS_MAPA`. Teste: tests/test_armas.gd (16).
 - `receitas.gd` (Receitas.LISTA, quantas/fabrica), `bancada.gd` (Bancada: pontos, MUDA, muda_de_lugar → main.aviso_todos),
   `tela_bancada.gd`. Jogador: `receitas`, `comeca_fabricar(arma, n)`, `bancada_perto()`. Teste: tests/test_receitas.gd (13).
 - `ui_tema.gd` (UiTema) — visual único: `tema()`, `botao()`, `rotulo()`, `campo()`, `painel_central()`, cores.

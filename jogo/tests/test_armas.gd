@@ -80,5 +80,18 @@ func _init() -> void:
 	j.entrada["pegar"] = true
 	await frames(int(Jogador.PEGAR_DUR * 60) + 10)
 	ok(j.mochila.tem("faca") and not it.ativo, "acha a faca no chão e guarda")
+	# colado numa parede a arma recolhe (não atravessa); longe dela volta
+	var m: Maos = root.find_children("*", "Maos", true, false)[0] if not root.find_children("*", "Maos", true, false).is_empty() else null
+	if m:
+		var paredes: Array = []  # caixa fechada em volta: olhando para qualquer lado tem parede
+		for d: Vector3 in [Vector3.FORWARD, Vector3.BACK, Vector3.LEFT, Vector3.RIGHT]:
+			paredes.append(main.bloco(Vector3(40, 1.5, 40) + d * 0.6, Vector3(1.6, 3, 0.2) if d.x == 0 else Vector3(0.2, 3, 1.6), Color.GRAY))
+		j.global_position = Vector3(40, 0.1, 40)
+		await frames(40)
+		var colado: float = m._parede
+		for p: Node in paredes:
+			p.free()
+		await frames(40)
+		ok(colado > 0.3 and m._parede < 0.1, "arma recolhe colada na parede (%.2f) e volta longe (%.2f)" % [colado, m._parede])
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
