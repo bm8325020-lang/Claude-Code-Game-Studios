@@ -382,6 +382,9 @@ APK 0.73 (31/10): progressão — XP por zumbi (raid e chefe mais) e por noite s
 habilidade (Vigor, Fôlego, Pontaria, Força; 5 níveis cada), salvo no aparelho, página HABILIDADES na pausa.
 APK 0.74 (31/10): dividir o peso — cada zumbi comum é pensado pelo celular do jogador mais perto; o celular de quem
 criou a sala continua decidindo vida, morte e loot. Feito: dividir o peso.
+APK 0.75 (31/10): conserto de criar/entrar (o carteiro online estava na versão 29 e recusava; agora só compara quem
+entra com quem criou), tela de carregamento com dica, capa da cidade no menu, sala começa na hora, malha de navegação
+pronta (criar sala 8 s -> 2,4 s no PC). Plano aprovado 30/10: concluído.
 Falta: dividir o peso do mundo com quem entra (cada celular cuida dos zumbis perto dele), dificuldade, progressão,
 raids (delegacia, bunker).
 

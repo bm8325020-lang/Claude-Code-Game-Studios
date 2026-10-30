@@ -67,8 +67,10 @@ func _controle(c: Dictionary, m: Dictionary) -> void:
 					l.append({"codigo": cod, "nome": s.nome, "n": s.membros.size(), "max": s.max, "comecou": s.comecou})
 			_manda(c, {"op": "lista", "salas": l})
 		"criar":
-			if c.sala != "" or int(m.get("versao", 0)) != Rede.VERSAO:
-				_manda(c, {"op": "erro", "msg": "Atualize o jogo" if int(m.get("versao", 0)) != Rede.VERSAO else "Já está numa sala"})
+			# a versão não é conferida com a do carteiro: ele não precisa ser publicado de novo a cada versão do jogo;
+			# quem entra é que tem que ter a mesma versão de quem criou a sala
+			if c.sala != "":
+				_manda(c, {"op": "erro", "msg": "Já está numa sala"})
 				return
 			var cod: String = ""
 			while cod == "" or salas.has(cod):
@@ -78,14 +80,15 @@ func _controle(c: Dictionary, m: Dictionary) -> void:
 			c.sala = cod
 			c.id = 1
 			salas[cod] = {"nome": String(m.get("nome", "Sala")).strip_edges().left(24), "publica": bool(m.get("publica", true)),
-				"max": clampi(int(m.get("max", 4)), 1, MAX_SALA), "comecou": false, "host": c, "membros": {1: c}}
+				"max": clampi(int(m.get("max", 4)), 1, MAX_SALA), "comecou": false, "host": c, "membros": {1: c},
+				"versao": int(m.get("versao", 0))}
 			_manda(c, {"op": "criada", "codigo": cod})
 		"entrar":
 			var cod: String = String(m.get("codigo", "")).strip_edges().to_upper()
-			if int(m.get("versao", 0)) != Rede.VERSAO:
-				_manda(c, {"op": "erro", "msg": "Atualize o jogo"})
-			elif not salas.has(cod):
+			if not salas.has(cod):
 				_manda(c, {"op": "erro", "msg": "Sala não encontrada"})
+			elif int(m.get("versao", 0)) != int(salas[cod].versao):
+				_manda(c, {"op": "erro", "msg": "Versão diferente da de quem criou a sala: atualizem os dois"})
 			elif salas[cod].membros.size() >= salas[cod].max:
 				_manda(c, {"op": "erro", "msg": "Sala cheia"})
 			elif c.sala == "":

@@ -1,5 +1,5 @@
 # Sala de sobrevivência pelo carteiro, três processos: o carteiro (relay_main.gd), a Ana cria a sala (o mundo roda
-# no aparelho dela) e fica na espera; COMEÇAR SOZINHO; a Bia acha a sala buscando pelo nome, entra no meio do jogo
+# no aparelho dela) e o jogo começa na hora; a Bia acha a sala buscando pelo nome, entra no meio do jogo
 # pelo código e as duas se veem.
 #   godot --headless -s res://scripts/relay_main.gd -- porta=7899 &
 #   godot --headless --path . --fixed-fps 60 -s res://tests/test_sala_sobrev.gd -- host   (e em paralelo)
@@ -35,10 +35,9 @@ func _init() -> void:
 	if papel == "host":
 		main.criar_sala_sobrev("Ana", "Zumbilandia", true, 3)
 		ok(await espera(func() -> bool: return main.jogador != null and main.sala_sobrev.codigo != ""), "criou a sala e hospeda")
-		ok(main.esperando and main.zumbis.process_mode == Node.PROCESS_MODE_DISABLED, "fica na espera com os zumbis parados")
-		await espera(func() -> bool: return false, 500)
-		main.comecar_sala_sobrev()
-		ok(not main.esperando and main.zumbis.process_mode != Node.PROCESS_MODE_DISABLED, "COMEÇAR SOZINHO solta o jogo")
+		# 31/10 (dono): sem tela de espera; o jogo começa na hora e os amigos entram no meio
+		ok(not main.esperando and main.zumbis.process_mode != Node.PROCESS_MODE_DISABLED, "começa na hora, sem espera")
+		ok(main._carregando == null or not is_instance_valid(main._carregando), "a tela de carregamento some quando o jogador chega")
 		ok(await espera(func() -> bool: return main.jogadores.get_child_count() == 2, 30000), "a Bia entrou no meio do jogo")
 		await espera(func() -> bool: return false, 4000)
 	else:

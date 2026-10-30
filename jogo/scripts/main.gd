@@ -172,10 +172,13 @@ func _relay_controle(m: Dictionary) -> void:
 		"criada":
 			sala_sobrev.codigo = m.codigo
 			multiplayer.multiplayer_peer = relay
+			mostra_carregando()
+			await get_tree().process_frame  # deixa a tela de carregamento aparecer antes de montar o mundo
+			await get_tree().process_frame
 			_comeca()
 			spawner.spawn({"id": 1, "pos": _ponto_inicial(0)})
 			_poe_zumbis()
-			muda_espera(sala_sobrev.max > 1)
+			muda_espera(false)  # começa na hora (dono, 31/10: esperar todos demorava); os amigos entram no meio
 		"entrou":
 			sala_sobrev = {"codigo": "", "nome": m.get("nome", ""), "max": 0, "n": 0}
 		"erro":
@@ -193,6 +196,7 @@ func criar_sala_sobrev(nick: String, nome: String, publica: bool, maximo: int) -
 
 func entrar_sala_sobrev(nick: String, cod: String) -> void:
 	nick_local = nick
+	mostra_carregando()
 	relay.entrar(cod)
 	multiplayer.multiplayer_peer = relay
 	_comeca()
@@ -693,7 +697,7 @@ func _poe_zumbis() -> void:
 	navegacao.navigation_mesh = malha
 	add_child(navegacao)
 	add_to_group("cenario")
-	navegacao.bake_navigation_mesh(false)
+	_assa(navegacao, "pista")
 	# o bairro tem a malha dele (outra região, só a área dele)
 	var nav_b := NavigationRegion3D.new()
 	var mb: NavigationMesh = malha.duplicate()
@@ -703,7 +707,7 @@ func _poe_zumbis() -> void:
 	mb.filter_baking_aabb = AABB(Bairro.ORIGEM - Vector3(meio, 4, meio), Vector3(meio * 2.0, 18, meio * 2.0))  # rio e morro
 	nav_b.navigation_mesh = mb
 	add_child(nav_b)
-	nav_b.bake_navigation_mesh(false)
+	_assa(nav_b, "bairro")
 	for p: Vector3 in bairro.pontos_zumbi:  # em bando de BANDO (dono 30/10: muito fácil)
 		for k: int in BANDO:
 			spawner_zumbis.spawn({"pos": p + Vector3(k * 1.3, 0.1, k * 0.7)})
@@ -757,6 +761,8 @@ func _jogador_entrou(n: Node) -> void:
 	var j := n as Jogador
 	if j and j.local:
 		jogador = j
+		if _carregando:
+			_carregando.queue_free()  # o nosso jogador chegou: pronto para jogar
 		j.nick = nick_local
 		controles.jogador = j
 		if abrir_pvp:
@@ -1259,3 +1265,46 @@ func _divide_peso(dt: float) -> void:
 		var novo: int = melhor.get_multiplayer_authority() if melhor else 1
 		if novo != z.pensa and (d_atual > PESO_RAIO or d_melhor + PESO_FOLGA < d_atual):
 			z.muda_pensa.rpc(novo)
+
+
+
+# --- malha de navegação pronta (31/10: assar a cidade levava ~5 s no PC e bem mais no celular ao criar a sala) ---
+const NAV_PRONTA := "res://assets/mapa/nav_%s.res"
+const NAV_VERSAO: int = 1  # subir ao mudar a pista ou o jeito de assar
+
+
+## Usa a malha que vem pronta no APK se o mapa e as ruínas são os mesmos de quando foi assada; senão assa aqui.
+## Gerar de novo: `$G --headless --path . -s res://tools/assa_navegacao.gd` (depois de mudar cidade/ruínas).
+func _assa(regiao: NavigationRegion3D, nome: String) -> void:
+	var chave: String = chave_nav()
+	var caminho: String = NAV_PRONTA % nome
+	if ResourceLoader.exists(caminho):
+		var pronta := load(caminho) as NavigationMesh
+		if pronta and String(pronta.get_meta("chave", "")) == chave:
+			regiao.navigation_mesh = pronta
+			return
+	regiao.bake_navigation_mesh(false)
+	if OS.get_cmdline_user_args().has("salva_nav"):
+		regiao.navigation_mesh.set_meta("chave", chave)
+		ResourceSaver.save(regiao.navigation_mesh, caminho)
+
+
+## Muda quando o mapa ou qualquer ruína do Blender muda (aí a malha pronta não serve mais).
+static func chave_nav() -> String:
+	var partes: PackedStringArray = [str(NAV_VERSAO), FileAccess.get_md5(Bairro.MAPA)]
+	var arqs: PackedStringArray = DirAccess.get_files_at("res://assets/ruinas")
+	arqs.sort()
+	for a: String in arqs:
+		if a.ends_with(".glb"):
+			partes.append(FileAccess.get_md5("res://assets/ruinas/" + a))
+	return "|".join(partes).md5_text()
+
+
+
+var _carregando: Carregando
+
+
+func mostra_carregando() -> void:
+	if _carregando == null or not is_instance_valid(_carregando):
+		_carregando = Carregando.new()
+		add_child(_carregando)

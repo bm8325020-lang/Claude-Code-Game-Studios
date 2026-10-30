@@ -21,8 +21,14 @@ func _ready() -> void:
 	raiz.set_anchors_preset(Control.PRESET_FULL_RECT)
 	raiz.theme = UiTema.tema()
 	add_child(raiz)
+	var capa := TextureRect.new()  # a cidade ao anoitecer (tools/foto_capa.gd), atrás do menu
+	capa.texture = load("res://assets/ui/capa.jpg")
+	capa.set_anchors_preset(Control.PRESET_FULL_RECT)
+	capa.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	capa.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	raiz.add_child(capa)
 	var fundo := ColorRect.new()
-	fundo.color = UiTema.FUNDO
+	fundo.color = Color(UiTema.FUNDO, 0.55)
 	fundo.set_anchors_preset(Control.PRESET_FULL_RECT)
 	raiz.add_child(fundo)
 	# início

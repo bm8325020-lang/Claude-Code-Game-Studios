@@ -177,6 +177,11 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `receitas.gd` (Receitas.LISTA, quantas/fabrica), `bancada.gd` (Bancada: pontos, MUDA, muda_de_lugar → main.aviso_todos),
   `tela_bancada.gd`. Jogador: `receitas`, `comeca_fabricar(arma, n)`, `bancada_perto()`. Teste: tests/test_receitas.gd (13).
 - `ui_tema.gd` (UiTema) — visual único: `tema()`, `botao()`, `rotulo()`, `campo()`, `painel_central()`, cores.
+- Carregamento (31/10): `carregando.gd` (Carregando: capa `assets/ui/capa.jpg` de tools/foto_capa.gd, linha, DICAS); main
+  `mostra_carregando()` ao criar (antes de montar o mundo) e entrar; some quando o jogador local nasce. Sala começa na hora
+  (sem espera). Malha de navegação PRONTA: `assets/mapa/nav_pista.res`/`nav_bairro.res` (main `_assa`, chave = md5 do
+  mapa + ruínas + NAV_VERSAO; muda a cidade/ruínas -> `$G --headless --path . -s res://tools/assa_navegacao.gd -- salva_nav`).
+  Carteiro (`relay.gd`) NÃO compara a versão com a dele: só quem entra vs quem criou (não precisa republicar a cada versão).
 - `menu.gd` — páginas (`_mostra`): inicio (nome, CRIAR SALA, ENTRAR NUMA SALA, CONFIGURAÇÕES), criar, entrar (código,
   busca, lista), config. PvP, mundo aberto, Wi-Fi e sozinho saíram do menu (pedido do dono, 30/10; o código ficou).
   UiTema: cantos redondos, `painel_central` rola (ScrollContainer até 90% da altura), `UiTema.pagina(col)`,
