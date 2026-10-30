@@ -61,7 +61,7 @@ func _init() -> void:
 		ok(zl != null, "zumbi do ponto (24, 0, 0) existe aqui")
 		if zl and papel == "cliente":
 			zl.levar_golpe(30, Vector3.FORWARD, main.jogador)
-		await espera_ms(2000)
+		await espera_ate(func() -> bool: return zl == null or zl.vida != Zumbi.VIDA_MAX, 6000)
 		if zl:
 			ok(zl.vida == Zumbi.VIDA_MAX - 30, "golpe do cliente tira vida do zumbi nos dois (vida %d)" % zl.vida)
 		# item: o cliente pega a caixa; o servidor confere, a caixa some nos dois e as balas chegam no cliente
@@ -71,13 +71,22 @@ func _init() -> void:
 			main.jogador.global_position = caixa.global_position + Vector3(0.6, 0.1, 0)
 			await espera_ms(400)
 			main.jogador.entrada["pegar"] = true
-		await espera_ms(2000)
+		await espera_ate(func() -> bool: return not caixa.ativo, 6000)
 		ok(not caixa.ativo, "caixa pega pelo cliente some nos dois")
 		if papel == "cliente":
 			ok(main.jogador.pistola.reserva == reserva + 24, "as balas chegam no cliente (%d)" % main.jogador.pistola.reserva)
 	await espera_ms(3000)  # deixa o outro lado terminar de medir
 	print("REDE %s: %s %s" % [papel, "PASS" if falhas.is_empty() else "FAIL", ", ".join(falhas)])
 	quit(0 if falhas.is_empty() else 1)
+
+
+# espera a condição (o outro lado pode estar uns segundos atrasado ao carregar), no máximo `ms`
+func espera_ate(cond: Callable, ms: int) -> void:
+	var t0: int = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < ms and not cond.call():
+		await physics_frame
+		OS.delay_msec(16)
+	await espera_ms(300)
 
 
 func espera_ms(ms: int) -> void:
