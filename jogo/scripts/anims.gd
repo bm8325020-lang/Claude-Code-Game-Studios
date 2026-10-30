@@ -15,9 +15,11 @@ const JOGADOR: String = "remy"
 const ZUMBIS: Array[String] = ["zumbi_policial", "zumbi_mulher", "zumbi_soldado"]
 ## modelos de cada tipo (dono: "os zumbis são sempre os mesmos"): o nome do zumbi sorteia um deles
 const MODELOS_TIPO: Dictionary = {
-	"zumbi_policial": ["zumbi_policial", "zumbi_prisioneiro", "sobrevivente"],
-	"zumbi_mulher": ["zumbi_mulher", "zumbi_escoteira"],
-	"zumbi_soldado": ["zumbi_soldado", "zumbi_esqueleto", "zumbi_mutante"],
+	# 31/10 (dono: "zumbis com cara de criança"): saíram escoteira, esqueleto, mutante e sobrevivente; entraram os
+	# realistas do Sketchfab (assets/zumbis, CC BY, créditos em assets/zumbis/CREDITOS.txt)
+	"zumbi_policial": ["zumbi_policial", "zumbi_prisioneiro", "zr_homem", "zr_homem3"],
+	"zumbi_mulher": ["zumbi_mulher", "zr_mulher", "zr_mulher2"],
+	"zumbi_soldado": ["zumbi_soldado", "zr_homem3"],
 }
 const CHEFE: String = "chefe_parasita"
 const ALTURA_XBOT: float = 1.81  # as animações foram feitas para essa altura (posição do quadril)
@@ -44,6 +46,8 @@ static func ajuste_osso(esq: Skeleton3D, osso: String) -> Basis:
 ## animações cai no lugar certo). Sem o arquivo (clone sem os .fbx), cai no X Bot.
 static func boneco(nome: String) -> Node3D:
 	var caminho: String = PASTA + "personagens/%s.fbx" % nome
+	if ResourceLoader.exists("res://assets/zumbis/%s.glb" % nome):
+		caminho = "res://assets/zumbis/%s.glb" % nome
 	if Rede.servidor_sem_tela or not ResourceLoader.exists(caminho):  # servidor não desenha: boneco leve, sem textura
 		return (load(MODELO) as PackedScene).instantiate()
 	var r: Node3D = (load(caminho) as PackedScene).instantiate()
@@ -51,6 +55,12 @@ static func boneco(nome: String) -> Node3D:
 	for mi: MeshInstance3D in r.find_children("*", "MeshInstance3D", true, false):
 		h = maxf(h, (mi.transform * mi.get_aabb()).end.y)
 	var esq: Skeleton3D = r.find_children("*", "Skeleton3D", true, false)[0]
+	if esq.get_parent() != r:  # glb do Blender: nó do objeto em cima do esqueleto; as trilhas querem "Skeleton3D:..."
+		var pai: Node = esq.get_parent()
+		pai.remove_child(esq)
+		r.add_child(esq)
+		esq.name = "Skeleton3D"
+		pai.free()
 	esq.scale *= ALTURA_XBOT / h if h > 0.1 else 1.0  # *= : alguns arquivos já vêm com escala (centímetros)
 	return r
 

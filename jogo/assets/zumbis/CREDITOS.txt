@@ -1,0 +1,5 @@
+Zumbis realistas (Sketchfab, licença CC Attribution 4.0), convertidos com tools/blender/zumbi_sketchfab.py:
+zr_homem   — "zombie cameraman rig" por 1266shin (sketchfab.com/3d-models/c2637ea008aa4bcc8019f2daf75b7d6a)
+zr_homem3  — "Zombie Scream" por Juangamer (sketchfab.com/3d-models/052d81624ba24d8b9dc9b8e87909cef0)
+zr_mulher  — "Zombie female model" por JonatanSantana (sketchfab.com/3d-models/60e0e94ca09240b0bfc5736fc9fc56dc)
+zr_mulher2 — ".fuse female zombie 1" por livrosparacriancas (sketchfab.com/3d-models/98415df5d3124381a46ccef5c2e02b71)

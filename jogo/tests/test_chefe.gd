@@ -37,7 +37,7 @@ func _init() -> void:
 		else:
 			comuns += 1
 	ok(chefe != null and chefe.modelo.scene_file_path.ends_with(Anims.CHEFE + ".fbx"), "o chefe é o parasita")
-	ok(comuns > 0 and main.zumbis.get_children().all(func(z: Zumbi) -> bool: return z.chefe or Array(Anims.MODELOS_TIPO[z.tipo]).any(func(n: String) -> bool: return z.modelo.scene_file_path.ends_with(n + ".fbx"))), "zumbis comuns com os modelos do tipo deles")
+	ok(comuns > 0 and main.zumbis.get_children().all(func(z: Zumbi) -> bool: return z.chefe or Array(Anims.MODELOS_TIPO[z.tipo]).any(func(n: String) -> bool: return (z.modelo.scene_file_path.ends_with(n + ".fbx") or z.modelo.scene_file_path.ends_with(n + ".glb")))), "zumbis comuns com os modelos do tipo deles")
 	ok(j.modelo.scene_file_path.ends_with(Anims.JOGADOR + ".fbx"), "jogador é o sobrevivente")
 	for z: Zumbi in main.zumbis.get_children():
 		if z != chefe:

@@ -216,7 +216,11 @@ func _ready() -> void:
 	var lista: Array = Anims.MODELOS_TIPO.get(tipo, [tipo])
 	var cara: String = Anims.CHEFE if chefe else String(lista[hash(String(name) + "m") % lista.size()])
 	modelo = Anims.boneco(cara)
-	modelo.scale = Vector3.ONE * k
+	# cada um com corpo próprio (nada de clones): altura e largura sorteadas pelo nome, igual em todo aparelho
+	var r := RandomNumberGenerator.new()
+	r.seed = hash(String(name) + "corpo")
+	var largo: float = 1.0 if chefe else r.randf_range(0.94, 1.12)
+	modelo.scale = Vector3(largo, 1.0 if chefe else r.randf_range(0.92, 1.08), largo) * k
 	add_child(modelo)
 	_mat_pele = StandardMaterial3D.new()  # por cima da roupa: pisca vermelho ao levar golpe
 	_mat_pele.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA

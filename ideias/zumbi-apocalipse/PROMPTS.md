@@ -365,6 +365,8 @@ APK 0.63 (30/10): cidade nossa (ruas curvas, sem saída, bairros, bloqueios, cai
 mato, ruas cheias, câmera viva, impacto); 3 zumbis realistas; 4 som; 5 progressão e dividir o peso; 6 carregamento/menu.
 APK 0.65 (31/10): raid DELEGACIA (12 policiais, 5 com pistola que atiram de longe, 3 baús de loot raro, mortos ficam
 15 min), zumbis de volta nas ruas (bug da cidade curva), cômodo trancado corrigido, sangue/buraco de bala.
+APK 0.66 (31/10): zumbis realistas (4 do Sketchfab: 2 homens, 2 mulheres) no lugar dos com cara de desenho
+(escoteira, esqueleto, mutante); corpo variado por zumbi. Mixamo: sessão expirou (pede código no e-mail do dono).
 Falta: dividir o peso do mundo com quem entra (cada celular cuida dos zumbis perto dele), dificuldade, progressão,
 raids (delegacia, bunker).
 

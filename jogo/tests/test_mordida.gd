@@ -64,7 +64,9 @@ func _init() -> void:
 	var antes: float = j.infeccao
 	for i in 120: await physics_frame
 	ok(j.infeccao > antes, "infectado: a barra sobe")
-	# 4) antibiótico
+	# 4) antibiótico (sem zumbi por perto para não reinfectar no meio da conta)
+	for zz in main.zumbis.get_children():
+		zz.free()
 	j.mochila.adicionar("antibiotico", 1)
 	j.toma_antibiotico()
 	var depois: float = j.infeccao
