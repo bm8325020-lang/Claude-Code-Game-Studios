@@ -29,10 +29,22 @@ func _init() -> void:
 	ok(mansoes.all(func(m: Node) -> bool: return b.dominavel(String(m.name)) and b.bau_da(String(m.name)) != null) and not b.dominavel("Casa_0") and b.bau_da("Casa_0") == null, "só as mansões são domináveis (com baú da facção)")
 	var j: Jogador = main.jogador
 	ok(b.pontos_nascer.any(func(p: Vector3) -> bool: return p.distance_to(j.global_position) < 1.5) and j.is_on_floor(), "nasce no bairro, em pé na frente de uma porta")
-	var casa: Node3D = b.get_node("Casa_1")  # arrombada (sem porta)
-	var dentro: Vector3 = casa.global_position
+	var casa: Node3D = casas.filter(func(c: Node) -> bool: return c.find_children("Porta_*", "Porta", true, false).is_empty() and c.has_meta("frente"))[0]  # arrombada
+	var poly: PackedVector2Array = casa.get_meta("poly")
+	var c2 := Vector2.ZERO
+	for p: Vector2 in poly:
+		c2 += p
+	c2 /= poly.size()
+	# ponto depois da parede do meio (que passa pelo centro): o caminho tem que achar o vão dela
+	var fr: Vector3 = casa.get_meta("frente")
+	var meio := Bairro.ORIGEM + Vector3(c2.x, 0.1, c2.y)
+	var dentro: Vector3 = meio + Vector3(meio.x - fr.x, 0, meio.z - fr.z).normalized() * 1.2
 	var mapa: RID = main.get_world_3d().navigation_map
-	var cam: PackedVector3Array = NavigationServer3D.map_get_path(mapa, Bairro.ORIGEM + Vector3(20, 0.1, 5), dentro, true)  # da rua
+	for i in 120:
+		if NavigationServer3D.map_get_iteration_id(mapa) > 0 and NavigationServer3D.map_get_closest_point(mapa, dentro).distance_to(dentro) < 1.0:
+			break
+		await physics_frame
+	var cam: PackedVector3Array = NavigationServer3D.map_get_path(mapa, casa.get_meta("frente"), dentro, true)  # da rua
 	ok(cam.size() > 1 and cam[cam.size() - 1].distance_to(dentro) < 1.0, "zumbi acha caminho da rua até dentro da casa (fim a %.1f m)" % (cam[cam.size() - 1].distance_to(dentro) if cam.size() > 0 else 99.0))
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)

@@ -45,7 +45,7 @@ func _init() -> void:
 	for z in main.zumbis.get_children():
 		z.free()
 	var casa: Node3D = main.bairro.get_node("Mansao_0")
-	j.global_position = casa.to_global(Vector3(-1.5, 0.1, 1.0))  # sala da mansão
+	j.global_position = main.bairro.dentro_da("Mansao_0")  # sala da mansão
 	for i in 5: await physics_frame
 	ok(main.bairro.casa_em(j.global_position) == "Mansao_0", "sabe que o jogador está dentro da casa")
 	main.pede_dominar()

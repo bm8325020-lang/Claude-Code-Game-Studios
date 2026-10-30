@@ -589,6 +589,8 @@ func _poe_zumbis() -> void:
 	# o bairro tem a malha dele (outra região, só a área dele)
 	var nav_b := NavigationRegion3D.new()
 	var mb: NavigationMesh = malha.duplicate()
+	mb.cell_size = 0.25  # área grande: célula um pouco maior para assar rápido
+	mb.agent_radius = 0.25  # múltiplo da célula; 0,35 arredondava para 0,5 e fechava o vão da porta
 	var meio: float = Bairro.TAMANHO * 0.5
 	mb.filter_baking_aabb = AABB(Bairro.ORIGEM - Vector3(meio, 1, meio), Vector3(meio * 2.0, 10, meio * 2.0))
 	nav_b.navigation_mesh = mb

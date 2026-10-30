@@ -33,12 +33,15 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `main.gd` — pista de teste (blocos, rampas, túnel, prédio, casinha com `Porta_0`, carro), bonecos de treino, itens
   (`Item_0..3` munição, `Item_casa`, `Item_comida_k`/`Item_agua_k`), `PONTOS_ZUMBI`, `PONTOS_TOCAIA`, `PATRULHAS`, `PONTOS_CHEFE`, spawners
   (jogadores e zumbis), malha de navegação (grupo "cenario", raio 0.35), `iniciar_solo/criar_partida/entrar_partida/iniciar_servidor`.
-- `bairro.gd` (Bairro) — a cidade em código (ORIGEM (0,0,-112), 3x3 quarteirões de 30 m, TAMANHO 130): praça, posto,
-  mercado + prédio, casas comuns `Casa_k` (estado abandonada/arrombada/destruída, móveis, `Porta_bk` só nas abandonadas,
-  `Bau_bk`, `Item_bk`) e 3 MANSÕES `Mansao_k` (meta "dominavel": muro, colunas, 2º andar de fora, piscina, garagem,
-  `Porta_mk`, `BauFac`, `Cama`). Rua: faixas, postes, lixeiras, hidrantes, carros (queimados), barricadas. Detalhe pequeno
-  some a LONGE_DETALHE. API: `pontos_zumbi`, `pontos_nascer`, `casa_em`, `dominavel`, `bau_da`, `frente_da`; malha própria
-  em `_poe_zumbis`. Nascer (11): `pontos_bons/ruins` (`_classifica`), `Bairro.sorteia` (CHANCE_BOM 75%),
+- `bairro.gd` (Bairro) — cidade real do OpenStreetMap (centro de Monroeville, AL; `assets/mapa/monroeville.json`, gerado
+  por `tools/mapa/osm_para_json.py` do XML da API OSM 0.6; ORIGEM (0,0,-300), TAMANHO 500: termina em z -50, longe da pista). Prédio = paredes pelo contorno
+  real, porta no lado da rua (`Porta_<nome>` em 2 de 3), janelas com moldura e vidro (1/4 quebradas, 1/3 com tábuas),
+  parede interna com vão (`_divisoria`, área > 90 m²), forro/laje vistos de baixo, telhado de 4 águas nas casas. `_eh_casa`:
+  "house" ou "yes" < 260 m²; o resto é loja (prateleiras). As 3 maiores casas = `Mansao_k` (meta "dominavel", BauFac, Cama,
+  BancadaFac, LojaFac). Texturas Poly Haven CC0 em `assets/texturas` (`_mat`, triplanar). Rua: carros (queimados),
+  barricadas do exército (`_barricadas`), árvores secas, hidrantes, barris com fogo. Detalhe pequeno some a LONGE_DETALHE.
+  API: `pontos_zumbi`, `pontos_nascer`, `casa_em`, `dominavel`, `bau_da`, `frente_da`, `dentro_da`; malha própria em
+  `_poe_zumbis` (célula 0.25, raio 0.25 para passar na porta). Nascer (11): `pontos_bons/ruins`, `Bairro.sorteia`,
   `main.ponto_nascer(nick)`. Testes: test_bairro (4), test_nascer (5). Fotos: tools/foto_bairro.gd.
 - `jogador.gd` (Jogador) — `entrada` dict (move, olhar, pular, correr, agachar, andar, mirar, mira_segurando, atacar,
   trocar, arma, recarregar, pegar, comer, beber). Vida/`levar_dano`/`_cai`/`_caido`, fome/sede (`_passa_fome`),
