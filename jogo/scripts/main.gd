@@ -143,6 +143,78 @@ func criar_partida(nick: String) -> Error:
 	return OK
 
 
+# --- Salas de sobrevivência (prompt 24): quem cria hospeda o mundo; o carteiro online (relay.gd) lista e repassa ---
+const RELAY_URL: String = "wss://zumbi-servidor.onrender.com/salas"
+var relay: RelayPeer
+## A minha sala: {"codigo", "nome", "max", "n"}; vazio = não é sala de sobrevivência.
+var sala_sobrev: Dictionary = {}
+## Tela de espera: todos parados até encher a sala ou o dono apertar COMEÇAR.
+var esperando: bool = false
+signal relay_msg(m: Dictionary)
+
+
+## Liga no carteiro (para listar, criar ou entrar). Mensagens chegam por relay_msg.
+func abre_relay(url: String = RELAY_URL) -> void:
+	if relay:
+		relay.close()
+	relay = RelayPeer.new()
+	relay.controle.connect(_relay_controle)
+	relay.conecta(url)
+
+
+func _relay_controle(m: Dictionary) -> void:
+	match String(m.get("op", "")):
+		"criada":
+			sala_sobrev.codigo = m.codigo
+			multiplayer.multiplayer_peer = relay
+			_comeca()
+			spawner.spawn({"id": 1, "pos": _ponto_inicial(0)})
+			_poe_zumbis()
+			muda_espera(sala_sobrev.max > 1)
+		"entrou":
+			sala_sobrev = {"codigo": "", "nome": m.get("nome", ""), "max": 0, "n": 0}
+		"erro":
+			if multiplayer.multiplayer_peer == relay and not multiplayer.is_server():
+				_caiu_conexao(String(m.msg))  # entrou com código errado/sala cheia: volta ao menu
+	relay_msg.emit(m)
+
+
+## Cria a sala e hospeda (o mundo roda aqui). `maximo` = quantos jogadores no total, contando quem cria.
+func criar_sala_sobrev(nick: String, nome: String, publica: bool, maximo: int) -> void:
+	nick_local = nick
+	sala_sobrev = {"codigo": "", "nome": nome, "max": maximo, "n": 1}
+	relay.criar(nome, publica, maximo)
+
+
+func entrar_sala_sobrev(nick: String, cod: String) -> void:
+	nick_local = nick
+	relay.entrar(cod)
+	multiplayer.multiplayer_peer = relay
+	_comeca()
+
+
+## Host: liga/desliga a espera (zumbis e relógio parados) e avisa todos. Começou: a lista mostra "jogando".
+func muda_espera(e: bool) -> void:
+	esperando = e
+	zumbis.process_mode = Node.PROCESS_MODE_DISABLED if e else Node.PROCESS_MODE_INHERIT
+	ciclo.set_process(not e)
+	if not e and relay:
+		relay.pede({"op": "comecou"})
+	_recebe_espera.rpc(e, sala_sobrev)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _recebe_espera(e: bool, sala: Dictionary) -> void:
+	esperando = e
+	sala_sobrev = sala
+
+
+## Dono da sala: COMEÇAR (sozinho ou com quem já entrou).
+func comecar_sala_sobrev() -> void:
+	if multiplayer.is_server() and esperando:
+		muda_espera(false)
+
+
 ## Entra na partida de outro aparelho; o servidor cria o nosso jogador quando a conexão fecha.
 func entrar_partida(ip: String, nick: String) -> Error:
 	nick_local = nick
@@ -189,6 +261,12 @@ func _peer_conectou(id: int) -> void:
 			return
 		spawner.spawn({"id": id, "pos": _ponto_inicial(jogadores.get_child_count())})
 		_recebe_salas.rpc_id(id, {"de": salas.de, "salas": salas.salas})  # quem chega já sabe das salas (e quem não vê)
+		if not sala_sobrev.is_empty():
+			sala_sobrev.n = jogadores.get_child_count()
+			if esperando and sala_sobrev.n >= sala_sobrev.max:
+				muda_espera(false)  # encheu: começa sozinho
+			else:
+				_recebe_espera.rpc(esperando, sala_sobrev)
 
 
 # servidor: a cada 5 s escreve como está (para a página do site e para medir até onde aguenta)
@@ -208,6 +286,8 @@ func _status(caminho: String) -> void:
 
 
 func _process(dt: float) -> void:
+	if relay and multiplayer.multiplayer_peer != relay:
+		relay.poll()  # na tela de salas (ainda não é a conexão do jogo)
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		grupos.passa(dt)
 		_passa_raids(dt)
@@ -549,6 +629,9 @@ func _cheio() -> void:
 
 
 func _peer_saiu(id: int) -> void:
+	if multiplayer.is_server() and not sala_sobrev.is_empty():
+		sala_sobrev.n = jogadores.get_child_count() - 1
+		_recebe_espera.rpc(esperando, sala_sobrev)
 	if multiplayer.is_server() and salas.sala_de(id) != "":
 		salas.sair(id)
 		_manda_salas()

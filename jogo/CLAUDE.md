@@ -105,6 +105,12 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   (`_visivel_para`: só a mesma sala), tiro só para quem vê. Pistola mira jogadores (camada 4) no PvP. Tela:
   `tela_salas.gd` (pausa: PVP; menu: botão PVP abre direto). HUD: relógio e placar. Testes: test_salas (15),
   test_pvp (2 processos, como test_rede).
+- Salas de sobrevivência (prompt 24): quem cria hospeda o mundo; o carteiro online (`relay.gd`, `relay_main.gd`,
+  porta 7862, site `/salas`) lista as salas (busca por nome) e repassa pacotes; `relay_peer.gd` (RelayPeer,
+  MultiplayerPeerExtension; host = id 1). main: `RELAY_URL`, `abre_relay`, `criar_sala_sobrev`, `entrar_sala_sobrev`,
+  `sala_sobrev` {codigo, nome, max, n}, `esperando`/`muda_espera` (zumbis e relógio parados até encher ou COMEÇAR),
+  `comecar_sala_sobrev`. controles: tela de espera (`_espera`). menu: página "sobrev" (SOBREVIVÊNCIA); o mundo de
+  40 virou MUNDO ABERTO. Teste: test_sala_sobrev (3 processos: relay `-- porta=7899`, host, cliente).
 - `config.gd` (Config) — `Config.v[...]` salvo em user://config.cfg, `muda()`, `aplica()`, `sensibilidade(arma, mirando)`,
   `cor_mira()`, `qualidade()` (QUALIDADE: Batata/Média/Alta/Ultra -> sombra, resolução, MSAA, distância de visão,
   detalhe). `tela_config.gd` (TelaConfig) — a tela (menu e pausa). Teste: tests/test_config.gd (10).
@@ -128,7 +134,7 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `camera_primeira.gd` (CameraPrimeira) — primeira pessoa: olhos 1,62/1,05 m, `virar/coice/tremer`, `cam`, `maos`.
 - `maos.gd` (Maos) — arma na tela: pistola = pacote `assets/sketchfab/fps/pistola_fp.glb` (olho em OLHO_PISTOLA,
   animação pelo estado do jogador); facão = sketchfab/facao.glb girando em volta de OMBRO pelos CORTES (código). `boneco_treino.gd`.
-- tools/: `servidor/site/` (Dockerfile + nginx + start.sh: servidor online num serviço de site, porta $PORT, /jogo = WebSocket), `foto.gd`, `baixa_mixamo.sh` (rebaixa assets/mixamo do Drive), `servidor/instalar.sh` + `publica.sh`.
+- tools/: `servidor/site/` (Dockerfile + nginx + start.sh: servidor online num serviço de site, porta $PORT, /jogo = WebSocket, /salas = carteiro; mudou o site: deploy pela API do Render), `foto.gd`, `baixa_mixamo.sh` (rebaixa assets/mixamo do Drive), `servidor/instalar.sh` + `publica.sh`.
 
 ## Mixamo (logado)
 Sessão: `/root/.mixamo_sessao/estado.json` (fora do git; conta separada do dono). Token = localStorage `access_token`.

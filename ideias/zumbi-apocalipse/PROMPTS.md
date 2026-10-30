@@ -353,7 +353,9 @@ Menu com 3 modos:
   capítulo. Quem cria a sala hospeda (4 jogadores pesa pouco no celular) ou usa o servidor.
 
 ## 24. Sobrevivência em salas + dificuldade, progressão e raids de zumbi (ideia do dono, 30/10)
-Status: pendente
+Status: em andamento. Salas feitas (APK 0.58): criar (nome, pública/privada, 1–8 jogadores), buscar pelo nome,
+entrar pelo código, tela de espera até encher ou COMEÇAR SOZINHO/AGORA, entrar no meio do jogo; o celular de quem
+cria hospeda e o carteiro online repassa. Falta: dificuldade, progressão, raids (delegacia, bunker).
 
 - **Sobrevivência também em salas**: criar sala pública ou privada com nome; buscar sala pelo nome; entrar pelo
   código. Quem cria escolhe quantos jogadores; fica numa tela de espera até todos entrarem, ou aperta **COMEÇAR

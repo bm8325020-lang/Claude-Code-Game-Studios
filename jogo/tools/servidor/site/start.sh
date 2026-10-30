@@ -1,6 +1,6 @@
 #!/bin/bash
-# Baixa o pacote do jogo (em partes) da branch servidor-build, sobe o Godot sem tela (WebSocket 7861) e o nginx
-# (porta $PORT). A cada 2 min: se saiu versão nova, troca o pacote e reinicia o Godot; se o Godot caiu, sobe de novo.
+# Baixa o pacote do jogo (em partes) da branch servidor-build, sobe o Godot sem tela (WebSocket 7861), o carteiro
+# das salas de sobrevivência (7862, /salas) e o nginx (porta $PORT). A cada 2 min: se saiu versão nova, troca o pacote e reinicia o Godot; se o Godot caiu, sobe de novo.
 RAMO=https://raw.githubusercontent.com/bm8325020-lang/Claude-Code-Game-Studios/servidor-build
 export PORT=${PORT:-7860}
 mkdir -p /tmp/srv /tmp/www
@@ -18,6 +18,8 @@ baixa() {
 sobe() {
 	/opt/godot --headless --main-pack /tmp/srv/servidor.pck -- dedicado ws "max=${MAX:-10}" status=/tmp/www/status.json &
 	GODOT=$!
+	/opt/godot --headless --main-pack /tmp/srv/servidor.pck -s res://scripts/relay_main.gd -- porta=7862 &
+	RELAY=$!
 	cat > /tmp/www/index.html <<HTML
 <h1>Servidor zumbi</h1><p>Pacote $(cut -c1-12 versao.txt), ligado em $(date -u)</p><pre id="s">...</pre>
 <script>setInterval(()=>fetch('status.json').then(r=>r.text()).then(t=>s.textContent=t).catch(()=>{}),5000)</script>
@@ -29,7 +31,7 @@ nginx -c /tmp/nginx.conf
 sobe
 while true; do
 	sleep 120
-	if baixa; then kill "$GODOT"; wait "$GODOT"; sobe
-	elif ! kill -0 "$GODOT" 2>/dev/null; then sobe
+	if baixa; then kill "$GODOT" "$RELAY"; wait "$GODOT" "$RELAY"; sobe
+	elif ! kill -0 "$GODOT" 2>/dev/null || ! kill -0 "$RELAY" 2>/dev/null; then kill "$GODOT" "$RELAY" 2>/dev/null; sobe
 	fi
 done

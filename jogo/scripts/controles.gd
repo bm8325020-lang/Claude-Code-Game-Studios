@@ -59,6 +59,9 @@ var _faixa: PanelContainer
 var _faixa_texto: Label
 var _pvp_hud: Label  # relógio e placar da partida de PvP (no alto)
 var tela_salas: TelaSalas
+var _espera: PanelContainer  # tela de espera da sala de sobrevivência
+var _espera_texto: Label
+var _espera_botao: Button
 var abre_pvp: Callable  # abre a pausa direto na página do PvP (menu: botão PVP)
 var _faixa_estilo: StyleBoxFlat
 var _barras: Array[_Barra] = []  # vida, fome, sede
@@ -142,6 +145,7 @@ func _ready() -> void:
 	_municao.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_municao)
 	_monta_aviso()
+	_monta_espera()
 	_marcas = _Marcas.new()
 	_marcas.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_marcas.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -178,6 +182,10 @@ func _process(dt: float) -> void:
 	if jogador == null:
 		return
 	var e: Dictionary = jogador.entrada
+	_atualiza_espera()
+	if _espera.visible:
+		e["move"] = Vector2.ZERO  # tela de espera da sala: ninguém anda
+		return
 	if toque:
 		e["move"] = _stick_vec
 		e["correr"] = _stick_vec.length() > 0.92 and _stick_vec.y > 0.6 and not jogador.agachado  # polegar no fim, para a frente
@@ -476,6 +484,43 @@ func _monta_aviso() -> void:
 	_faixa_texto = UiTema.titulo("", 28)
 	_faixa_texto.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_faixa.add_child(_faixa_texto)
+
+
+func _monta_espera() -> void:
+	_espera = PanelContainer.new()
+	_espera.theme = UiTema.tema()
+	_espera.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var fundo := StyleBoxFlat.new()
+	fundo.bg_color = Color(0.03, 0.035, 0.04, 0.88)
+	_espera.add_theme_stylebox_override("panel", fundo)
+	_espera.visible = false
+	add_child(_espera)
+	var col := VBoxContainer.new()
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 18)
+	_espera.add_child(col)
+	_espera_texto = UiTema.titulo("", 32)
+	_espera_texto.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(_espera_texto)
+	_espera_botao = UiTema.botao("COMEÇAR SOZINHO", true)
+	_espera_botao.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_espera_botao.custom_minimum_size.x = 420
+	_espera_botao.pressed.connect(func() -> void: get_tree().get_first_node_in_group("principal").comecar_sala_sobrev())
+	col.add_child(_espera_botao)
+
+
+func _atualiza_espera() -> void:
+	var principal := get_tree().get_first_node_in_group("principal")
+	_espera.visible = principal != null and principal.esperando
+	if not _espera.visible:
+		return
+	var s: Dictionary = principal.sala_sobrev
+	var cod: String = String(s.get("codigo", ""))
+	_espera_texto.text = "%s\nCÓDIGO: %s\n\n%d de %d jogadores\nEsperando todos entrarem..." % [s.get("nome", ""), cod if cod != "" else "...", int(s.get("n", 1)), int(s.get("max", 1))]
+	_espera_botao.visible = multiplayer.is_server()
+	_espera_botao.text = "COMEÇAR SOZINHO" if int(s.get("n", 1)) <= 1 else "COMEÇAR AGORA"
+	if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 func _atualiza_pvp(principal: Node) -> void:
