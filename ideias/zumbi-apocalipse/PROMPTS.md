@@ -352,6 +352,19 @@ Menu com 3 modos:
   amigos (4 no total). Capítulos com objetivos, cenas, chefes, puzzles simples, munição escassa e salvamento por
   capítulo. Quem cria a sala hospeda (4 jogadores pesa pouco no celular) ou usa o servidor.
 
+## 24. Sobrevivência em salas + dificuldade, progressão e raids de zumbi (ideia do dono, 30/10)
+Status: pendente
+
+- **Sobrevivência também em salas**: criar sala pública ou privada com nome; buscar sala pelo nome; entrar pelo
+  código. Quem cria escolhe quantos jogadores; fica numa tela de espera até todos entrarem, ou aperta **COMEÇAR
+  SOZINHO** e os amigos entram depois, com o jogo já rolando. Cada sala = um mundo próprio (cidade, zumbis, loot).
+- **Muito difícil**, com sentimento de **progressão** (sistema de nível/progressão a definir).
+- **Facções continuam** (economia, casa, manutenção), mas **sem invasão de jogador**: o perigo são os zumbis.
+- **Raids de zumbi**: lugares cheios de loot e cheios de zumbi para limpar — bunker, delegacia (zumbis armados com
+  arma de fogo e arma branca), e assim por diante (hospital, base militar...).
+- Hospedagem: cada sala com mundo próprio precisa de um processo de servidor por sala (servidor na Oracle com um
+  gerenciador de salas), ou o celular de quem cria hospeda as salas pequenas (até 4).
+
 ## 22. Passe, loja visual e Play Store (por último)
 Status: pendente
 
