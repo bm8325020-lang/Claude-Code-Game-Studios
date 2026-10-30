@@ -71,6 +71,7 @@ func monta(b: Bairro, ruas: Array, poligonos: Array) -> void:
 
 func _solta(tipo: String, p: Vector2) -> void:
 	var t := Transform3D(Basis(Vector3.UP, _rng.randf() * TAU), Vector3(p.x, 0.0, p.y))
+	var h: float = _b.altura(p)
 	var cor := Color.WHITE
 	match tipo:
 		"papel":
@@ -95,11 +96,15 @@ func _solta(tipo: String, p: Vector2) -> void:
 		"corpo":
 			t.origin.y = 0.18
 			cor = [Color(0.12, 0.14, 0.12), Color(0.2, 0.2, 0.22)][_rng.randi() % 2]
+	t.origin.y += h
 	_guarda(tipo, t, cor)
 
 
 func _poe_mato(p: Vector2) -> void:
-	var t := Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * _rng.randf_range(0.6, 1.4)), Vector3(p.x, 0.0, p.y))
+	var h: float = _b.altura(p)
+	if h < Bairro.AGUA_Y + 0.1:
+		return  # nada de mato debaixo d'água
+	var t := Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * _rng.randf_range(0.6, 1.4)), Vector3(p.x, h, p.y))
 	_guarda("mato", t, Color(0.55, 0.5, 0.3).lerp(Color(0.35, 0.38, 0.2), _rng.randf()))
 
 

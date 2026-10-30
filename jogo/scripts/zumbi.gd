@@ -396,6 +396,8 @@ func _physics_process(dt: float) -> void:
 			var vel: float = CORRER if d.length() < PERTO else ANDAR
 			if armado and d.length() < TIRO_ATE and d.length() > TIRO_DE:
 				vel = ANDAR * 0.6  # armado não corre para cima: chega devagar atirando
+			if global_position.y < Bairro.AGUA_Y + 0.3:
+				vel = minf(vel, ANDAR)  # no rio também é lento
 			desejada = _caminho(destino, vel * (0.8 if chefe else _vel) * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
 			# mirando nele de longe: desvia para os lados (troca de lado a cada ~0,7 s, sem ritmo fixo)
 			if ZIGUE > 0.0 and d.length() > ZIGUE_LONGE and alvo.mirando_em(global_position, 12.0):

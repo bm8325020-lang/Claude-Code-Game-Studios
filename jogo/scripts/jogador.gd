@@ -450,6 +450,8 @@ func _physics_process(dt: float) -> void:
 		alvo_vel *= 0.3  # golpeando quase não anda
 	if agarrado_t > 0.0:
 		alvo_vel *= 0.45  # agarrado pelo zumbi policial
+	if global_position.y < Bairro.AGUA_Y + 0.3:
+		alvo_vel = minf(alvo_vel, ANDAR * 0.8)  # dentro do rio: água pela cintura, anda devagar
 	var desejada: Vector3 = dir.normalized() * alvo_vel * clampf(forca / 0.55, 0.0, 1.0) if forca > 0.08 else Vector3.ZERO
 
 	var plano := Vector3(velocity.x, 0, velocity.z)

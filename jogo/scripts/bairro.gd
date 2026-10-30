@@ -38,6 +38,11 @@ var _rng := RandomNumberGenerator.new()
 var _mats: Dictionary = {}
 var _ruas: Array = []      # [[a, b, largura]] em coordenadas locais (x, z)
 var _n_frestas: int = 0
+## terreno (31/10): altura do chão por metro (rio raso e morro); 0 no resto
+var _alturas: PackedFloat32Array
+var _lado_mapa: int = 0
+var _rio: Array = []  # [[a, b]] pedaços do rio
+const AGUA_Y: float = -0.9  # nível da água do rio (abaixo disso: dentro d'água)
 var _infos: Dictionary = {}  # ruína -> tamanho no chão
 var _poligonos: Array = [] # polígonos (PackedVector2Array) de todas as construções, para não pôr nada dentro
 
@@ -47,9 +52,10 @@ func _ready() -> void:
 	_janela.size = Vector2(1.1, 1.2)
 	position = ORIGEM
 	var dados: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(MAPA))
-	_chao()
+	_terreno(dados.get("terreno", {}))
 	for r: Dictionary in dados.ruas:
 		_rua(r)
+	_pontes()  # depois das ruas: ponte onde cada uma cruza o rio
 	var predios: Array = dados.predios.filter(func(p: Dictionary) -> bool: return _dentro(_centro(_poly(p.p))))
 	# as 3 maiores casas são as mansões
 	var casas: Array = predios.filter(_eh_casa)
@@ -99,16 +105,143 @@ func _ready() -> void:
 
 # --- chão e ruas ---
 
-func _chao() -> void:
+## Chão com relevo: HeightMap de 1 m (colisão), malha de 3 m (visual), água no rio e pontes nas ruas que cruzam.
+func _terreno(t: Dictionary) -> void:
+	_lado_mapa = int(TAMANHO + 40.0) + 1
+	_alturas = PackedFloat32Array()
+	_alturas.resize(_lado_mapa * _lado_mapa)
+	var meio: float = (_lado_mapa - 1) * 0.5
+	for m: Dictionary in t.get("morros", []):  # morro: sobe suave até o topo (dá para andar)
+		var c := Vector2(m.p[0], m.p[1])
+		var r: float = float(m.raio)
+		for zi in range(maxi(0, int(c.y + meio - r)), mini(_lado_mapa, int(c.y + meio + r) + 1)):
+			for xi in range(maxi(0, int(c.x + meio - r)), mini(_lado_mapa, int(c.x + meio + r) + 1)):
+				var d: float = Vector2(xi - meio, zi - meio).distance_to(c) / r
+				if d < 1.0:
+					_alturas[zi * _lado_mapa + xi] += float(m.alt) * (1.0 - smoothstep(0.0, 1.0, d))
+	var rio: Dictionary = t.get("rio", {})
+	var pts: Array = rio.get("p", [])
+	var meia: float = float(rio.get("larg", 0.0)) * 0.5
+	var fundo: float = float(rio.get("fundo", 0.0))
+	for i in range(pts.size() - 1):  # rio: leito fundo no meio, barranco até a margem
+		var a := Vector2(pts[i][0], pts[i][1])
+		var b := Vector2(pts[i + 1][0], pts[i + 1][1])
+		_rio.append([a, b])
+		var lim: float = meia + 3.0
+		for zi in range(maxi(0, int(minf(a.y, b.y) - lim + meio)), mini(_lado_mapa, int(maxf(a.y, b.y) + lim + meio) + 1)):
+			for xi in range(maxi(0, int(minf(a.x, b.x) - lim + meio)), mini(_lado_mapa, int(maxf(a.x, b.x) + lim + meio) + 1)):
+				var p := Vector2(xi - meio, zi - meio)
+				var d: float = p.distance_to(Geometry2D.get_closest_point_to_segment(p, a, b))
+				var h: float = -fundo * (1.0 - smoothstep(meia * 0.45, meia + 2.5, d))
+				var k: int = zi * _lado_mapa + xi
+				_alturas[k] = minf(_alturas[k], h)
 	var corpo := StaticBody3D.new()
-	corpo.position = Vector3(0, -0.5, 0)
+	corpo.name = "Chao"
 	add_child(corpo)
 	var cs := CollisionShape3D.new()
-	var bs := BoxShape3D.new()
-	bs.size = Vector3(TAMANHO + 40, 1, TAMANHO + 40)
-	cs.shape = bs
+	var hm := HeightMapShape3D.new()
+	hm.map_width = _lado_mapa
+	hm.map_depth = _lado_mapa
+	hm.map_data = _alturas
+	cs.shape = hm
 	corpo.add_child(cs)
-	_plano(self, Vector3(0, 0.01, 0), Vector2(TAMANHO + 40, TAMANHO + 40), Enfeites.chao())
+	_malha_chao()
+	if not pts.is_empty():
+		_agua(pts, meia, AGUA_Y)
+
+
+## Altura do chão no ponto (coordenadas do Bairro).
+func altura(p: Vector2) -> float:
+	if _lado_mapa == 0:
+		return 0.0
+	var meio: float = (_lado_mapa - 1) * 0.5
+	var xi: int = clampi(roundi(p.x + meio), 0, _lado_mapa - 1)
+	var zi: int = clampi(roundi(p.y + meio), 0, _lado_mapa - 1)
+	return _alturas[zi * _lado_mapa + xi]
+
+
+func _malha_chao() -> void:
+	var passo: int = 3
+	var n: int = (_lado_mapa - 1) / passo + 1
+	var meio: float = (_lado_mapa - 1) * 0.5
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for zi in n:
+		for xi in n:
+			var x: int = mini(xi * passo, _lado_mapa - 1)
+			var z: int = mini(zi * passo, _lado_mapa - 1)
+			st.set_uv(Vector2(x, z))
+			st.add_vertex(Vector3(x - meio, _alturas[z * _lado_mapa + x] + 0.01, z - meio))
+	for zi in n - 1:
+		for xi in n - 1:
+			var i: int = zi * n + xi
+			st.add_index(i)
+			st.add_index(i + 1)
+			st.add_index(i + n)
+			st.add_index(i + 1)
+			st.add_index(i + n + 1)
+			st.add_index(i + n)
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.name = "MalhaChao"
+	mi.mesh = st.commit()
+	mi.material_override = Enfeites.chao()
+	add_child(mi)
+
+
+func _agua(pts: Array, meia: float, y: float) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in range(pts.size() - 1):
+		var a := Vector2(pts[i][0], pts[i][1])
+		var b := Vector2(pts[i + 1][0], pts[i + 1][1])
+		var l: Vector2 = (b - a).normalized().orthogonal() * (meia + 1.0)
+		var q: Array[Vector3] = [Vector3(a.x + l.x, y, a.y + l.y), Vector3(a.x - l.x, y, a.y - l.y), Vector3(b.x - l.x, y, b.y - l.y), Vector3(b.x + l.x, y, b.y + l.y)]
+		for k in [0, 1, 2, 0, 2, 3]:
+			st.set_normal(Vector3.UP)
+			st.add_vertex(q[k])
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.12, 0.13, 0.09, 0.88)  # água parada e suja
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.roughness = 0.08
+	m.metallic = 0.3
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var mi := MeshInstance3D.new()
+	mi.name = "Agua"
+	mi.mesh = st.commit()
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
+
+
+## Ponte onde uma rua cruza o rio: tabuleiro de concreto no nível da rua, guarda-corpo e pilares.
+func _pontes() -> void:
+	var feitas: Array[Vector2] = []
+	var conc := _mat("concreto", 0.4, Color(0.66, 0.64, 0.6))
+	for r: Array in _ruas:
+		for s: Array in _rio:
+			var x: Variant = Geometry2D.segment_intersects_segment(r[0], r[1], s[0], s[1])
+			if x == null or feitas.any(func(f: Vector2) -> bool: return f.distance_to(x) < 12.0):
+				continue
+			feitas.append(x)
+			var d: Vector2 = ((r[1] as Vector2) - (r[0] as Vector2)).normalized()
+			var larg: float = float(r[2]) + 3.0
+			var comp: float = 24.0
+			var ponte := StaticBody3D.new()
+			ponte.name = "Ponte_%d" % feitas.size()
+			ponte.position = Vector3(x.x, 0, x.y)
+			ponte.rotation.y = atan2(d.x, d.y)
+			add_child(ponte)
+			var tab := StaticBody3D.new()
+			tab.position.y = -0.2
+			ponte.add_child(tab)
+			_caixa(tab, Vector3(larg, 0.5, comp), conc)
+			for s2 in [-1.0, 1.0]:
+				var g := StaticBody3D.new()
+				g.position = Vector3(s2 * (larg * 0.5 - 0.15), 0.55, 0)
+				ponte.add_child(g)
+				_caixa(g, Vector3(0.3, 1.0, comp), conc)
+				_peca(ponte, Vector3(s2 * larg * 0.3, -1.6, 0), Vector3(1.0, 2.4, 1.0), conc)  # pilar
 
 
 # rua: faixa de asfalto pelo traçado; com calçada dos lados nas ruas de carro; trilha de pedestre só calçada

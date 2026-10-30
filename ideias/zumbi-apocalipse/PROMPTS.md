@@ -369,6 +369,7 @@ APK 0.66 (31/10): zumbis realistas (4 do Sketchfab: 2 homens, 2 mulheres) no lug
 (escoteira, esqueleto, mutante); corpo variado por zumbi. Mixamo: sessão expirou (pede código no e-mail do dono).
 APK 0.67 (31/10): som — vento, sustos ao longe (rangido, gemido, tiro distante), passos pelo chão, eco em casa,
 coração com pouca vida, zumbis gemendo/rosnando, fogo crepitando nos barris (sons CC0 do OpenGameArt).
+APK 0.68 (31/10): relevo — rio raso cortando a cidade (água deixa lento), pontes nas ruas que cruzam, morro de 9 m.
 Falta: dividir o peso do mundo com quem entra (cada celular cuida dos zumbis perto dele), dificuldade, progressão,
 raids (delegacia, bunker).
 

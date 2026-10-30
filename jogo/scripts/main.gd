@@ -695,7 +695,7 @@ func _poe_zumbis() -> void:
 	mb.cell_size = 0.25  # área grande: célula um pouco maior para assar rápido
 	mb.agent_radius = 0.25  # múltiplo da célula; 0,35 arredondava para 0,5 e fechava o vão da porta
 	var meio: float = Bairro.TAMANHO * 0.5
-	mb.filter_baking_aabb = AABB(Bairro.ORIGEM - Vector3(meio, 1, meio), Vector3(meio * 2.0, 10, meio * 2.0))
+	mb.filter_baking_aabb = AABB(Bairro.ORIGEM - Vector3(meio, 4, meio), Vector3(meio * 2.0, 18, meio * 2.0))  # rio e morro
 	nav_b.navigation_mesh = mb
 	add_child(nav_b)
 	nav_b.bake_navigation_mesh(false)

@@ -110,6 +110,28 @@ for base, n in ((av, 14), (oeste, 7), (leste, 7), (anel, 5), (anel_n, 5)):
 for z0 in (-120, -60, 60, 120):
     cresce(140, z0, R.uniform(-0.2, 0.2), "service", 110, 0.03)
 
+# ---- terreno: rio raso cortando a cidade (as ruas passam por ponte) e um morro no lugar mais vazio ----
+rio = catmull([(-260, 128), (-160, 142), (-60, 116), (30, 136), (120, 104), (260, 92)], 8.0)
+RIO_LARG = 14.0
+
+
+def perto_rio(p, folga):
+    return any(dist_seg(p, a, b) < RIO_LARG / 2 + folga for a, b in zip(rio, rio[1:]))
+
+
+melhor, folga_m = None, 0.0
+for gx in range(-200, 201, 10):
+    for gz in range(-200, 201, 10):
+        f = min(min(dist_seg((gx, gz), a, b) - m for (a, b, m) in segs), min(dist_seg((gx, gz), a, b) for a, b in zip(rio, rio[1:])) - RIO_LARG)
+        if f > folga_m:
+            melhor, folga_m = (gx, gz), f
+morros = [{"p": list(melhor), "raio": round(min(folga_m - 4.0, 60.0), 1), "alt": 9.0}] if melhor and folga_m > 30 else []
+
+
+def no_morro(p, folga):
+    return any(math.dist(p, m["p"]) < m["raio"] + folga for m in morros)
+
+
 # ---- lotes ----
 predios = []
 caixas = []  # (cx, cz, ang, w, d) para conferir sobreposição
@@ -173,7 +195,7 @@ for r in ruas:
             cx_ok = abs(cx) < LIM - 10 and abs(cz) < LIM - 10
             novo = (cx, cz, ang_lote, w, d)
             cs = cantos(*novo)
-            livre = cx_ok and not any(perto_rua(c, 1.2) for c in cs) and not perto_rua((cx, cz), 1.2) \
+            livre = cx_ok and not any(perto_rua(c, 1.2) or perto_rio(c, 3.0) or no_morro(c, 3.0) for c in cs) and not perto_rua((cx, cz), 1.2) \
                 and not any(sobrepoe(novo, o) for o in caixas if math.dist(o[:2], novo[:2]) < 30)
             vao_ant = vao
             vao = R.choice(vaos)
@@ -204,6 +226,7 @@ marcos = [{"tipo": "caixa_dagua", "p": [-30, 110]}, {"tipo": "caixa_dagua", "p":
           {"tipo": "antena", "p": [-200, -150]}]
 
 out = {"origem": "cidade nossa (tools/mapa/cidade_nossa.py)", "ruas": ruas, "predios": predios, "frestas": frestas,
-       "bloqueios": bloqueios, "marcos": marcos}
+       "bloqueios": bloqueios, "marcos": marcos,
+       "terreno": {"rio": {"p": rio, "larg": RIO_LARG, "fundo": 2.6, "agua": 1.7}, "morros": morros}}
 json.dump(out, open(sys.argv[1] if len(sys.argv) > 1 else "assets/mapa/cidade.json", "w"))
-print("ruas", len(ruas), "predios", len(predios), "frestas", len(frestas), "bloqueios", len(bloqueios))
+print("ruas", len(ruas), "predios", len(predios), "frestas", len(frestas), "bloqueios", len(bloqueios), "morros", morros)
