@@ -136,6 +136,12 @@ func _process(dt: float) -> void:
 	rotation = Vector3(-_balanco.y * 0.5 - _parede * 0.5, _balanco.x * 0.5 + _parede * 0.35, 0.0)
 
 
+## Ponta do cano da arma de fogo que aparece na tela (rastro e clarão do tiro em primeira pessoa).
+func boca(tipo: String) -> Vector3:
+	var c := get_parent() as Node3D  # a Camera3D
+	return c.global_transform * (position + (Vector3(0.031, -0.048, -0.62) if tipo == "smg" else Vector3(0.008, -0.062, -0.42)))
+
+
 # parede/caixa a menos de 0,7 m na frente do olho: 0..1 (mais perto = mais recolhida)
 func _perto_parede(cam: CameraPrimeira) -> float:
 	if cam == null or cam.cam == null:

@@ -178,6 +178,11 @@ func efeito(ponto: Vector3, bateu: bool, carne: bool = false) -> void:
 	_som.pitch_scale = randf_range(0.95, 1.05)
 	_som.play()
 	var de: Vector3 = cano.global_position
+	var dono := get_parent()
+	while dono and not dono is Jogador:
+		dono = dono.get_parent()
+	if dono and (dono as Jogador).camera:  # primeira pessoa: o rastro sai da arma da tela, não da do corpo (só sombra)
+		de = (dono as Jogador).camera.maos.boca(tipo)
 	var rastro := MeshInstance3D.new()
 	var cil := CylinderMesh.new()
 	cil.top_radius = 0.008
