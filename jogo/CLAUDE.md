@@ -77,7 +77,7 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   `Anims.adaptada(lib, nome)` (animações do X Bot convertidas pro descanso do personagem + quadril na escala dele),
   `Anims.ajuste_osso`, `Anims.JOGADOR` remy (humano; sobrevivente tinha cara de caveira),
   `Anims.ZUMBIS` (policial/mulher/soldado, escolhido pelo nome do nó; 31/10: zumbis realistas do Sketchfab em
-  `assets/zumbis/zr_*.glb` (no git, CC BY, CREDITOS.txt), convertidos por `tools/blender/zumbi_sketchfab.py`; `Anims.boneco`
+  `assets/zumbis/zr_*.glb` (CC BY, CREDITOS.txt), convertidos por `tools/blender/zumbi_sketchfab.py`; `Anims.boneco`
   procura lá primeiro e põe o Skeleton3D direto na raiz; cada zumbi com altura/largura própria pelo nome), `Anims.CHEFE` parasita. Chefe: pancada no
   chão (`_pancada_no_chao`, PANCADA_RAIO/DANO/INTERVALO, rpc `_poeira`). Teste: tests/test_chefe.gd (7).
   Tipos (`Zumbi.TIPOS`, `aplica_tipo`, `tipo_fixo` p/ testes): corredora (rápida, frágil, `bote`), policial (médio,
