@@ -12,7 +12,7 @@ const PORTA_PERGUNTA: int = 7779
 const PORTA_WS: int = 7861  # servidor online: o site (porta 7860) repassa /jogo para cá
 const MAX_JOGADORES: int = 30
 ## Sobe quando o que vai pela rede muda: jogo e servidor precisam ter o mesmo número para jogar juntos.
-const VERSAO: int = 20
+const VERSAO: int = 21
 ## Lista de servidores online (o servidor na nuvem se atualiza pela mesma branch).
 const LISTA_URL: String = "https://raw.githubusercontent.com/bm8325020-lang/Claude-Code-Game-Studios/servidor-build/servidores.json"
 

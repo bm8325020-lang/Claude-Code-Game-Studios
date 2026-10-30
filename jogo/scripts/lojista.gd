@@ -28,6 +28,14 @@ static func paga(tipo: String, n: int) -> int:
 	return int(PAGA.get(tipo, 0)) * n
 
 
+## Valor de uma lista de itens ({tipo, qtd}) pelo que o lojista paga (raid do resgate usa).
+static func valor(itens: Array) -> int:
+	var v: int = 0
+	for e: Dictionary in itens:
+		v += paga(String(e.tipo), int(e.qtd))
+	return v
+
+
 # barraca: bancada de caixotes com lona por cima e o vendedor atrás, parado
 func _monta() -> void:
 	var madeira := StandardMaterial3D.new()

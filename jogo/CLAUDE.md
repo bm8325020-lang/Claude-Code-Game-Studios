@@ -65,6 +65,9 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `grupos.gd` (Grupos: de/convites, convidar/responder/sair/passa, `mesmo` p/ futuro PvP, MAX 4). main: `grupos`
   (servidor), `convidar_nick`, `responder_convite`, `sair_grupo`, `_manda_grupos` → `_grupos_cli`, `grupo_de`, `amigos()`.
   controles: `convite(nick)` (ACEITAR/RECUSAR), página GRUPO na pausa, `_Marcas` (nome/seta dos amigos). Teste: test_grupos (12).
+  Resgate: `Jogador._cai` no grupo → `resgate`, `RESGATE_T` 90 s, `main.pede_resgate` (servidor confere
+  `Grupos.pode_resgate`, `inicia_raid`, `Zumbi.raid`, `_passa_raids` → `Jogador.levanta`/`sem_resgate`, paga).
+  `Lojista.valor(itens)`. Teste: tests/test_resgate.gd (9).
 - `rede.gd` — ENet 7777, broadcast 7778, pergunta direta 7779, `VERSAO`, `LISTA_URL` (servidores.json). Endereço
   "ws://"/"wss://" = WebSocket (servidor online atrás de site; `-- dedicado ws` escuta em `PORTA_WS` 7861).
 - `config.gd` (Config) — `Config.v[...]` salvo em user://config.cfg, `muda()`, `aplica()`, `sensibilidade(arma, mirando)`,

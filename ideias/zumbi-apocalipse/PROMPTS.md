@@ -220,7 +220,10 @@ borda da tela; sem fogo amigo entre membros (PvP contra os outros continua). Sai
 Aceite: testes de convite/aceite/saída em rede; dano entre membros = 0.
 
 ## 10. Resgate com raid
-Status: pendente
+Status: feito (APK 0.47). Caído no grupo pede ao servidor; com 2+ do grupo vivos a até 75 m nasce a raid (4–12
+zumbis pelo valor da mochila e abates) em volta; matar todos levanta com 30 de vida e paga $60 + 35% de peça a
+cada membro; tempo (90 s) acabando ou servidor negando = morte normal com saco. Teste: tests/test_resgate.gd (9);
+robôs com 3 jogadores em rede ficaram para depois (teste no aparelho do servidor cobre a lógica).
 
 Morreu com **2+ membros do grupo a até 75 m**: em vez de morrer, fica **caído 90 s**. Zumbis surgem em volta
 do corpo (quantidade e força pelo valor da mochila do caído e quantos zumbis ele já matou). Se o grupo matar

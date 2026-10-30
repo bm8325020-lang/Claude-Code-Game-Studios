@@ -193,6 +193,64 @@ func _status(caminho: String) -> void:
 func _process(dt: float) -> void:
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		grupos.passa(dt)
+		_passa_raids(dt)
+
+
+# --- Resgate com raid (prompt 10): o caído pede, o servidor confere o grupo, solta os zumbis e decide o fim ---
+const RESGATE_T: float = 90.0
+const RESGATE_DINHEIRO: int = 60
+const RESGATE_PECA: float = 0.35
+var raids: Dictionary = {}  # servidor: peer caído -> tempo restante
+
+
+@rpc("any_peer", "call_local", "reliable")
+func pede_resgate() -> void:
+	if not multiplayer.is_server():
+		return
+	var caido: int = _quem()
+	var j := jogadores.get_node_or_null(str(caido)) as Jogador
+	var vivos: Dictionary = {}
+	for o: Jogador in jogadores.get_children():
+		if o.vida > 0:
+			vivos[int(String(o.name))] = o.global_position
+	if j == null or raids.has(caido) or not grupos.pode_resgate(caido, j.global_position, vivos):
+		if j:
+			j.sem_resgate.rpc_id(caido)
+		return
+	inicia_raid(caido, j.global_position, Lojista.valor(j.copia_mochila), j.abates)
+
+
+## Servidor: solta os zumbis da raid em volta do caído.
+func inicia_raid(caido: int, pos: Vector3, valor: int, abates: int) -> void:
+	raids[caido] = RESGATE_T
+	var n: int = Grupos.zumbis_raid(valor, abates)
+	for i in n:
+		var ang: float = TAU * float(i) / float(n)
+		spawner_zumbis.spawn({"pos": pos + Vector3(sin(ang), 0, cos(ang)) * randf_range(8.0, 12.0) + Vector3(0, 0.1, 0), "raid": caido})
+	aviso_todos.rpc("Resgate! Matem os %d zumbis" % n)
+
+
+func restantes_raid(caido: int) -> int:
+	return zumbis.get_children().filter(func(z: Zumbi) -> bool: return z.raid == caido and z.vida > 0).size()
+
+
+func _passa_raids(dt: float) -> void:
+	for caido: int in raids.keys():
+		raids[caido] -= dt
+		var j := jogadores.get_node_or_null(str(caido)) as Jogador
+		if j == null or raids[caido] <= 0.0:
+			raids.erase(caido)  # tempo acabou (o caído larga tudo sozinho) ou saiu do jogo
+			continue
+		if restantes_raid(caido) == 0:
+			raids.erase(caido)
+			j.levanta.rpc_id(caido)
+			var rng := RandomNumberGenerator.new()
+			for o: Jogador in jogadores.get_children():
+				if grupos.mesmo(int(String(o.name)), caido) or o == j:
+					o.ganhar("dinheiro", RESGATE_DINHEIRO)
+					if rng.randf() < RESGATE_PECA:
+						o.ganhar(Loot.PECAS[rng.randi() % Loot.PECAS.size()], 1)
+			aviso_todos.rpc("%s foi resgatado" % j.nick)
 
 
 # --- Grupos (prompt 9): o cliente pede, o servidor decide e manda o resultado para todos ---
@@ -395,6 +453,7 @@ func _cria_zumbi(dados: Dictionary) -> Node:
 	z.tocaia = bool(dados.get("tocaia", false))
 	z.rota = dados.get("rota", [])
 	z.chefe = bool(dados.get("chefe", false))
+	z.raid = int(dados.get("raid", 0))
 	return z
 
 

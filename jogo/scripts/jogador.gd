@@ -802,8 +802,51 @@ func _cai() -> void:
 	pistola.recarregando = false
 	smg.recarregando = false
 	_toca("morte", 0.1)
-	if is_multiplayer_authority():
+	if not is_multiplayer_authority():
+		return
+	var principal := get_tree().get_first_node_in_group("principal")
+	if principal and principal.grupo_de(int(String(name))) != 0:
+		# no grupo: espera o resgate (o servidor confere e solta a raid); só larga tudo se não der
+		resgate = true
+		_morto_t = RESGATE_T
+		_copia_agora()
+		principal.pede_resgate.rpc_id(1)
+	else:
 		_larga_tudo()
+
+
+# cópia da mochila no servidor agora (a raid mede o valor dela; sair no meio larga essa cópia)
+func _copia_agora() -> void:
+	var tudo: Array = conteudo_para_saco(mochila, _balas_pentes())
+	if not multiplayer.has_multiplayer_peer() or multiplayer.is_server():
+		copia_mochila = tudo
+	else:
+		_copia.rpc_id(1, tudo)
+
+
+## Caído esperando o grupo (prompt 10): não larga nada até o tempo acabar.
+const RESGATE_T: float = 90.0
+const RESGATE_VIDA: int = 30
+var resgate: bool = false
+
+
+## Servidor → dono: o grupo não está perto o bastante; morte normal.
+@rpc("authority", "call_local", "reliable")
+func sem_resgate() -> void:
+	if resgate and vida <= 0:
+		resgate = false
+		_morto_t = RENASCE
+		_larga_tudo()
+
+
+## Servidor → dono: o grupo matou a raid; levanta com pouca vida onde caiu.
+@rpc("authority", "call_local", "reliable")
+func levanta() -> void:
+	if resgate and vida <= 0:
+		resgate = false
+		vida = RESGATE_VIDA
+		_morto_t = 0.0
+		_toca("parado", 0.2)
 
 
 ## Tudo da mochila (menos o facão) vira um saco no chão onde caiu; as balas do pente vão junto.
@@ -865,6 +908,9 @@ func _caido(dt: float) -> void:
 	velocity.z = move_toward(velocity.z, 0.0, 20.0 * dt)
 	velocity.y -= GRAVIDADE * dt
 	move_and_slide()
+	if _morto_t <= 0.0 and resgate:
+		resgate = false  # o resgate não veio a tempo: morte normal
+		_larga_tudo()
 	if _morto_t <= 0.0:
 		global_position = inicio
 		velocity = Vector3.ZERO

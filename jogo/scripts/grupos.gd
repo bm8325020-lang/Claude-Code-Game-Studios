@@ -68,3 +68,23 @@ func passa(dt: float) -> void:
 		convites[p][1] -= dt
 		if convites[p][1] <= 0.0:
 			convites.erase(p)
+
+
+## Resgate (prompt 10): quantos do grupo, vivos, estão a até RESGATE_DIST do caído. `vivos` = peer -> posição.
+const RESGATE_DIST: float = 75.0
+const RESGATE_MIN: int = 2
+
+
+func pode_resgate(caido: int, pos: Vector3, vivos: Dictionary) -> bool:
+	if not de.has(caido):
+		return false
+	var n: int = 0
+	for p: int in vivos:
+		if p != caido and mesmo(p, caido) and (vivos[p] as Vector3).distance_to(pos) <= RESGATE_DIST:
+			n += 1
+	return n >= RESGATE_MIN
+
+
+## Quantos zumbis a raid solta: mais com mochila valiosa e com mais zumbis mortos (sem nível: só o registro).
+static func zumbis_raid(valor: int, abates: int) -> int:
+	return clampi(4 + valor / 200 + abates / 15, 4, 12)

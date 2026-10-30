@@ -207,7 +207,10 @@ func _process(dt: float) -> void:
 	_barras[2].valor = jogador.sede
 	_caiu.visible = jogador.vida <= 0
 	if _caiu.visible:
-		_caiu.text = "VOCÊ CAIU\n" + ("voltando em %d s" % ceili(maxf(jogador._morto_t, 0.0)))
+		if jogador.resgate:
+			_caiu.text = "VOCÊ CAIU\nO GRUPO PODE TE SALVAR — %d s" % ceili(maxf(jogador._morto_t, 0.0))
+		else:
+			_caiu.text = "VOCÊ CAIU\n" + ("voltando em %d s" % ceili(maxf(jogador._morto_t, 0.0)))
 	_faixa_t -= dt
 	_convite_t -= dt
 	_convite.visible = _convite_t > 0.0
