@@ -38,7 +38,7 @@ static func ajuste_osso(esq: Skeleton3D, osso: String) -> Basis:
 ## animações cai no lugar certo). Sem o arquivo (clone sem os .fbx), cai no X Bot.
 static func boneco(nome: String) -> Node3D:
 	var caminho: String = PASTA + "personagens/%s.fbx" % nome
-	if not ResourceLoader.exists(caminho):
+	if Rede.servidor_sem_tela or not ResourceLoader.exists(caminho):  # servidor não desenha: boneco leve, sem textura
 		return (load(MODELO) as PackedScene).instantiate()
 	var r: Node3D = (load(caminho) as PackedScene).instantiate()
 	var h: float = 0.0
@@ -121,6 +121,8 @@ static var _adaptadas: Dictionary = {}
 ## descanso DELE (q = descanso_dele * descanso_xbot⁻¹ * q_xbot). Sem isso, ossos com descanso diferente (pescoço,
 ## ombros) ficam tortos — a cabeça olhava para o céu. Uma cópia por personagem, feita uma vez.
 static func adaptada(base: AnimationLibrary, nome: String) -> AnimationLibrary:
+	if Rede.servidor_sem_tela:
+		return base  # o servidor usa o X Bot (boneco leve) e nem anima
 	var chave: String = nome + ("#z" if base == _lib_zumbi else "")
 	if _adaptadas.has(chave):
 		return _adaptadas[chave]

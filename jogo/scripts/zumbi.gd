@@ -90,6 +90,23 @@ var _dano: int = DANO
 var _vel: float = 1.0
 var _skill_t: float = 2.0
 var _bote: float = 0.0
+## mais longe que isso de todos os jogadores (e sem alvo) o zumbi dorme no servidor: economiza para caber mais gente
+const DORME_DIST: float = 60.0
+var _dormindo: bool = false
+var _dorme_t: float = 0.0
+
+
+# nada para fazer: sem alvo, sem patrulha, sem barulho para ir ver, sem procurar nem voltar, sem raid
+func _quieto() -> bool:
+	return alvo == null and raid == 0 and rota.is_empty() and not _indo_ouvir and _olhando_t <= 0.0 and not _voltando \
+		and _foge_t <= 0.0 and _ataque_t < 0.0
+
+
+func _alguem_perto(dist: float) -> bool:
+	for j: Node3D in get_tree().get_nodes_in_group("jogadores"):
+		if j.global_position.distance_squared_to(global_position) < dist * dist:
+			return true
+	return false
 ## Habilidade do chefe: pancada no chão (em vez do soco, de tempos em tempos): acerta todos em volta, até de costas
 const PANCADA_RAIO: float = 4.0
 const PANCADA_DANO: int = 25
@@ -232,6 +249,14 @@ func _physics_process(dt: float) -> void:
 	_pancada_t -= dt
 	_skill_t -= dt
 	_bote -= dt
+	if _manda():
+		# servidor: zumbi sem alvo e longe de todos os jogadores dorme (não pensa nem anda) até alguém chegar
+		_dorme_t -= dt
+		if _dorme_t <= 0.0:
+			_dorme_t = 1.0
+			_dormindo = _quieto() and not _alguem_perto(DORME_DIST)
+		if _dormindo and _quieto():
+			return
 	if not _manda():
 		global_position = global_position.lerp(pos_rede, 1.0 - exp(-14.0 * dt))
 		if global_position.distance_to(pos_rede) > 4.0:

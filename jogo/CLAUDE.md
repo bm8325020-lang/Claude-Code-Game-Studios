@@ -124,3 +124,7 @@ https://zumbi-servidor.onrender.com (status.json), wss://.../jogo. Env MAX=8. De
 Publicar pacote: `publica.sh wss://zumbi-servidor.onrender.com/jogo` (o servidor troca sozinho em ~2 min).
 Carga: vários `tools/carga.gd -- wss://.../jogo 120` em paralelo + ler status.json. Loop: ideias/zumbi-apocalipse/PROMPTS.md.
 Teste local WS: `-- dedicado ws` + test_dedicado `-- ws://127.0.0.1:7861`.
+Capacidade (medida 30/10, servidor preso a 1 núcleo: `taskset -c 0 ... -- dedicado ws status=$SP/st.json` + N `carga.gd`
+em `taskset -c 1-3`): 14 jogadores ≈ 10 ms/quadro de 33 ms → ~40 por núcleo; memória 217 MB (servidor usa X Bot sem
+textura: `Anims.boneco` com `servidor_sem_tela`). Zumbi longe (DORME_DIST 60 m) e quieto dorme (`Zumbi._quieto`).
+Render grátis = 0,1 núcleo (~8 jogadores). Próximo passo: Oracle Cloud grátis (4 núcleos ARM, 24 GB) com vários servidores.

@@ -70,5 +70,17 @@ func _init() -> void:
 			break
 	await frames(2)
 	ok(j.vida < v0 and j.agarrado_t > 1.5, "o soco do policial agarra (vida %d -> %d, agarrado %.1f s)" % [v0, j.vida, j.agarrado_t])
+	# longe de todos e sem nada para fazer: dorme no servidor (não pensa nem anda); alguém chega perto: acorda
+	z.alvo = null
+	z.global_position = j.global_position + Vector3(Zumbi.DORME_DIST + 20.0, 0, 0)
+	z.casa = z.global_position
+	z._voltando = false
+	z._indo_ouvir = false
+	z._procura_t = 0.0
+	await frames(90)
+	var dormiu: bool = z._dormindo
+	j.global_position = z.global_position + Vector3(30, 0, 0)
+	await frames(90)
+	ok(dormiu and not z._dormindo, "zumbi longe de todos dorme e acorda quando alguém chega a %d m" % int(Zumbi.DORME_DIST))
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
