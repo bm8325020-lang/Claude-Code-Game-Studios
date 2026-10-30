@@ -62,6 +62,9 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   analógico no fim; barra rápida discreta (Espaco.discreto). PC: WASD, mouse, E F G Q R B Tab 1–6.
 - `lojista.gd` (Lojista: VENDE/PAGA, grupo "lojista"), `tela_loja.gd`. Jogador: `dinheiro`, `abates`, `comprar`, `vender`,
   `lojista_perto`. Zumbi paga a `_ultimo`. Teste: tests/test_loja.gd (8).
+- `grupos.gd` (Grupos: de/convites, convidar/responder/sair/passa, `mesmo` p/ futuro PvP, MAX 4). main: `grupos`
+  (servidor), `convidar_nick`, `responder_convite`, `sair_grupo`, `_manda_grupos` → `_grupos_cli`, `grupo_de`, `amigos()`.
+  controles: `convite(nick)` (ACEITAR/RECUSAR), página GRUPO na pausa, `_Marcas` (nome/seta dos amigos). Teste: test_grupos (12).
 - `rede.gd` — ENet 7777, broadcast 7778, pergunta direta 7779, `VERSAO`, `LISTA_URL` (servidores.json). Endereço
   "ws://"/"wss://" = WebSocket (servidor online atrás de site; `-- dedicado ws` escuta em `PORTA_WS` 7861).
 - `config.gd` (Config) — `Config.v[...]` salvo em user://config.cfg, `muda()`, `aplica()`, `sensibilidade(arma, mirando)`,

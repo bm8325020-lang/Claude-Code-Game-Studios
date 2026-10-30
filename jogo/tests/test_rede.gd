@@ -15,6 +15,7 @@ func ok(c: bool, o_que: String) -> void:
 
 func _init() -> void:
 	var papel: String = OS.get_cmdline_user_args()[0] if OS.get_cmdline_user_args().size() > 0 else "servidor"
+	Zumbi.tipo_fixo = "zumbi_policial"  # mede o zumbi médio
 	var main: Node3D = (load("res://main.tscn") as PackedScene).instantiate()
 	root.add_child(main)
 	for i in 5: await physics_frame

@@ -211,7 +211,9 @@ Parte 2 (depois): editor de personagem — escolher entre alguns corpos do Mixam
 (prompt 16), mandado pela rede como dado do jogador (só o nome do modelo e as cores; servidor confere a lista).
 
 ## 9. Grupos
-Status: pendente
+Status: feito (APK 0.46). Grupos (dados, servidor decide), convite pelo nome na pausa (GRUPO), faixa ACEITAR/RECUSAR
+(30 s), até 4, sair; nome + distância em cima dos amigos e seta na borda quando fora da tela. Ainda não há PvP:
+`Grupos.mesmo(a, b)` fica pronto para tirar o fogo amigo quando vier. Teste: tests/test_grupos.gd (12) + test_rede.
 
 Convidar por nick (aceitar/recusar), até 4 no grupo (provisório). Membros do grupo aparecem com nome e seta na
 borda da tela; sem fogo amigo entre membros (PvP contra os outros continua). Sair do grupo.

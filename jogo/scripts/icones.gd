@@ -36,6 +36,7 @@ static func de(tipo: String) -> Texture2D:
 	var it := Item.new()
 	it.tipo = tipo
 	it.quantidade = 1
+	it.so_visual = true
 	it.set_process(false)
 	vp.add_child(it)
 	var cam := Camera3D.new()

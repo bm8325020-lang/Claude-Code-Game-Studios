@@ -68,6 +68,11 @@ var _tela_bancada: TelaBancada
 var _tela_loja: TelaLoja
 var _saldo: Label
 var _btn_modo: Button
+var _convite: PanelContainer  # "Fulano te chamou para o grupo" + ACEITAR/RECUSAR
+var _convite_t: float = 0.0
+var _convite_texto: Label
+var _lista_grupo: VBoxContainer
+var _marcas: _Marcas
 var _estilos_toque: Array[StyleBoxFlat] = []  # fundo dos botões de toque (transparência das configurações)
 
 
@@ -125,6 +130,11 @@ func _ready() -> void:
 	_municao.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_municao)
 	_monta_aviso()
+	_marcas = _Marcas.new()
+	_marcas.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_marcas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_marcas)
+	_monta_convite()
 	_monta_barra_rapida()
 	_monta_pausa()
 	# letras do tema também no HUD
@@ -199,6 +209,10 @@ func _process(dt: float) -> void:
 	if _caiu.visible:
 		_caiu.text = "VOCÊ CAIU\n" + ("voltando em %d s" % ceili(maxf(jogador._morto_t, 0.0)))
 	_faixa_t -= dt
+	_convite_t -= dt
+	_convite.visible = _convite_t > 0.0
+	var principal := get_tree().get_first_node_in_group("principal")
+	_marcas.amigos = principal.amigos() if principal else []
 	_faixa.visible = _faixa_t > 0.0
 	_faixa.modulate.a = clampf(_faixa_t * 2.0, 0.0, 1.0)
 	var ciclo := get_tree().get_first_node_in_group("ciclo") as Ciclo
@@ -476,11 +490,102 @@ func _monta_pausa() -> void:
 	volta.pressed.connect(func() -> void:
 		p_cfg.visible = false
 		p_menu.visible = true)
+	var grupo := UiTema.botao("GRUPO")
+	col.add_child(grupo)
+	var col_g := UiTema.painel_central(_pausa, 620.0)
+	col_g.add_child(UiTema.titulo("GRUPO", 40, UiTema.DESTAQUE))
+	col_g.add_child(UiTema.rotulo("Até %d no grupo. Convide pelo nome:" % Grupos.MAX, 20, UiTema.APAGADO))
+	_lista_grupo = VBoxContainer.new()
+	_lista_grupo.add_theme_constant_override("separation", 8)
+	col_g.add_child(_lista_grupo)
+	var sai_g := UiTema.botao("SAIR DO GRUPO")
+	sai_g.pressed.connect(func() -> void: get_tree().get_first_node_in_group("principal").sair_grupo())
+	col_g.add_child(sai_g)
+	var volta_g := UiTema.botao("VOLTAR", true)
+	col_g.add_child(volta_g)
+	var p_g: Control = col_g.get_parent().get_parent()
+	p_g.visible = false
+	grupo.pressed.connect(func() -> void:
+		_monta_lista_grupo()
+		p_menu.visible = false
+		p_g.visible = true)
+	volta_g.pressed.connect(func() -> void:
+		p_g.visible = false
+		p_menu.visible = true)
 	var sair := UiTema.botao("SAIR DA PARTIDA")
 	sair.pressed.connect(func() -> void:
 		pausa(false)
 		get_tree().get_first_node_in_group("principal")._caiu_conexao(""))
 	col.add_child(sair)
+
+
+# lista dos outros jogadores da partida: nome + CONVIDAR (ou "no seu grupo")
+func _monta_lista_grupo() -> void:
+	for c in _lista_grupo.get_children():
+		c.queue_free()
+	var principal := get_tree().get_first_node_in_group("principal")
+	var meu: int = principal.grupo_de(multiplayer.get_unique_id())
+	var algum: bool = false
+	for j: Jogador in principal.jogadores.get_children():
+		if j == jogador:
+			continue
+		algum = true
+		var linha := HBoxContainer.new()
+		var nome := UiTema.rotulo(j.nick, 24)
+		nome.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		linha.add_child(nome)
+		if meu != 0 and principal.grupo_de(int(String(j.name))) == meu:
+			linha.add_child(UiTema.rotulo("NO GRUPO", 20, Color(0.35, 0.6, 0.9)))
+		else:
+			var b := UiTema.botao("CONVIDAR")
+			b.pressed.connect(func() -> void:
+				var motivo: String = principal.convidar_nick(j.nick)
+				aviso(motivo if motivo != "" else "Convite enviado", Color(0.35, 0.6, 0.9))
+				b.disabled = true)
+			linha.add_child(b)
+		_lista_grupo.add_child(linha)
+	if not algum:
+		_lista_grupo.add_child(UiTema.rotulo("Ninguém mais na partida.", 20, UiTema.APAGADO))
+
+
+## Convite recebido: faixa com ACEITAR/RECUSAR por Grupos.CONVITE_T segundos.
+func convite(nick: String) -> void:
+	_convite_texto.text = "%s TE CHAMOU PARA O GRUPO" % nick.to_upper()
+	_convite_t = Grupos.CONVITE_T
+	_convite.move_to_front()
+
+
+func _monta_convite() -> void:
+	_convite = PanelContainer.new()
+	_convite.theme = UiTema.tema()
+	var est := StyleBoxFlat.new()
+	est.bg_color = Color(0.12, 0.13, 0.14, 0.92)
+	est.border_width_left = 6
+	est.border_color = Color(0.35, 0.6, 0.9)
+	est.set_content_margin_all(14)
+	_convite.add_theme_stylebox_override("panel", est)
+	_convite.anchor_left = 0.5
+	_convite.anchor_right = 0.5
+	_convite.offset_left = -330
+	_convite.offset_right = 330
+	_convite.offset_top = 160
+	_convite.visible = false
+	add_child(_convite)
+	var col := VBoxContainer.new()
+	_convite.add_child(col)
+	_convite_texto = UiTema.titulo("", 26)
+	_convite_texto.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(_convite_texto)
+	var bots := HBoxContainer.new()
+	bots.add_theme_constant_override("separation", 12)
+	col.add_child(bots)
+	for aceita: bool in [true, false]:
+		var b := UiTema.botao("ACEITAR" if aceita else "RECUSAR", aceita)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.pressed.connect(func() -> void:
+			get_tree().get_first_node_in_group("principal").responder_convite(aceita)
+			_convite_t = 0.0)
+		bots.add_child(b)
 
 
 func _acertou(forte: bool) -> void:
@@ -608,6 +713,47 @@ class _Mira:
 			var mc := Color(0.95, 0.15, 0.1, a) if marca_forte else Color(1, 1, 1, a)
 			for d: Vector2 in [Vector2(1, 1), Vector2(1, -1), Vector2(-1, 1), Vector2(-1, -1)]:
 				draw_line(c + d.normalized() * 10.0, c + d.normalized() * 19.0, mc, 3.0)
+
+
+# amigos do grupo: nome em cima da cabeça quando aparece na tela; seta na borda quando está fora dela
+class _Marcas:
+	extends Control
+
+	var amigos: Array = []:
+		set(v):
+			amigos = v
+			queue_redraw()
+
+	func _process(_dt: float) -> void:
+		if not amigos.is_empty():
+			queue_redraw()
+
+	func _draw() -> void:
+		var cam := get_viewport().get_camera_3d()
+		if cam == null:
+			return
+		var f: Font = UiTema.tema().default_font
+		var cor := Color(0.45, 0.7, 1.0)
+		var c: Vector2 = size * 0.5
+		for j: Jogador in amigos:
+			if not is_instance_valid(j):
+				continue
+			var p: Vector3 = j.global_position + Vector3(0, 2.1, 0)
+			var dist: int = roundi(cam.global_position.distance_to(j.global_position))
+			var tela: Vector2 = cam.unproject_position(p)
+			var frente: bool = not cam.is_position_behind(p)
+			if frente and Rect2(Vector2(40, 40), size - Vector2(80, 80)).has_point(tela):
+				draw_string(f, tela + Vector2(-100, 0), "%s  %d m" % [j.nick, dist], HORIZONTAL_ALIGNMENT_CENTER, 200, 20, cor)
+				draw_colored_polygon(PackedVector2Array([tela + Vector2(-7, 6), tela + Vector2(7, 6), tela + Vector2(0, 16)]), cor)
+				continue
+			var d: Vector2 = (tela - c) * (1.0 if frente else -1.0)
+			if d.length() < 1.0:
+				d = Vector2.DOWN
+			d = d.normalized()
+			var borda: Vector2 = c + d * minf((c.x - 50) / maxf(absf(d.x), 0.01), (c.y - 50) / maxf(absf(d.y), 0.01))
+			var lado := Vector2(-d.y, d.x)
+			draw_colored_polygon(PackedVector2Array([borda + d * 18, borda - d * 8 + lado * 12, borda - d * 8 - lado * 12]), cor)
+			draw_string(f, borda - d * 34 + Vector2(-100, 6), j.nick, HORIZONTAL_ALIGNMENT_CENTER, 200, 18, cor)
 
 
 # barra fina de vida/fome/sede: ícone pequeno à esquerda e a barra; pisca quando está baixa

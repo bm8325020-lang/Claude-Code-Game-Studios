@@ -25,6 +25,8 @@ const PATRULHAS: Array = [[Vector3(-32, 0, -9), Vector3(-32, 0, 5), Vector3(-19,
 ## zumbi chefe: grandão parado no fundo da pista, longe do início
 const PONTOS_CHEFE: Array[Vector3] = [Vector3(0, 0, 40)]
 var nick_local: String = "Jogador"
+var grupos := Grupos.new()  # servidor: quem está com quem
+var _grupos_cli: Dictionary = {}  # todos: cópia que o servidor manda (peer -> grupo)
 
 
 func _ready() -> void:
@@ -188,6 +190,101 @@ func _status(caminho: String) -> void:
 				"memoria_mb": snappedf(OS.get_static_memory_usage() / 1048576.0, 0.1), "versao": Rede.VERSAO})))
 
 
+func _process(dt: float) -> void:
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		grupos.passa(dt)
+
+
+# --- Grupos (prompt 9): o cliente pede, o servidor decide e manda o resultado para todos ---
+
+func _quem() -> int:
+	var id: int = multiplayer.get_remote_sender_id()
+	return id if id != 0 else multiplayer.get_unique_id()
+
+
+func _jogador_nick(nick: String) -> Jogador:
+	for j: Jogador in jogadores.get_children():
+		if j.nick.to_lower() == nick.strip_edges().to_lower():
+			return j
+	return null
+
+
+## Convida pelo nick. Devolve "" se o pedido foi, ou o motivo (o servidor ainda pode recusar e avisa).
+func convidar_nick(nick: String) -> String:
+	if _jogador_nick(nick) == null:
+		return "Ninguém com esse nick"
+	_pede_convite.rpc_id(1, nick)
+	return ""
+
+
+@rpc("any_peer", "call_local", "reliable")
+func _pede_convite(nick: String) -> void:
+	if not multiplayer.is_server():
+		return
+	var de: int = _quem()
+	var alvo := _jogador_nick(nick)
+	var motivo: String = "Ninguém com esse nick" if alvo == null else grupos.convidar(de, int(String(alvo.name)))
+	if motivo != "":
+		aviso_todos.rpc_id(de, motivo)
+		return
+	var quem := jogadores.get_node_or_null(str(de)) as Jogador
+	_recebe_convite.rpc_id(int(String(alvo.name)), quem.nick if quem else "?")
+
+
+@rpc("authority", "call_local", "reliable")
+func _recebe_convite(nick: String) -> void:
+	if controles:
+		controles.convite(nick)
+
+
+## Resposta ao convite (botões ACEITAR/RECUSAR).
+func responder_convite(aceita: bool) -> void:
+	_responde.rpc_id(1, aceita)
+
+
+@rpc("any_peer", "call_local", "reliable")
+func _responde(aceita: bool) -> void:
+	if multiplayer.is_server() and grupos.responder(_quem(), aceita) != 0:
+		_manda_grupos()
+
+
+func sair_grupo() -> void:
+	_sai.rpc_id(1)
+
+
+@rpc("any_peer", "call_local", "reliable")
+func _sai() -> void:
+	if multiplayer.is_server():
+		grupos.sair(_quem())
+		_manda_grupos()
+
+
+func _manda_grupos() -> void:
+	_recebe_grupos.rpc(grupos.de)
+
+
+@rpc("authority", "call_local", "reliable")
+func _recebe_grupos(d: Dictionary) -> void:
+	var antes: bool = grupo_de(multiplayer.get_unique_id()) != 0
+	_grupos_cli = d
+	var agora: bool = grupo_de(multiplayer.get_unique_id()) != 0
+	if controles and antes != agora:
+		controles.aviso("Você entrou num grupo" if agora else "Você saiu do grupo", Color(0.35, 0.6, 0.9))
+
+
+## Grupo de um jogador (0 = sozinho), pela cópia que o servidor mandou.
+func grupo_de(peer: int) -> int:
+	return int(_grupos_cli.get(peer, 0))
+
+
+## Os outros jogadores do meu grupo (para o nome e a seta na tela).
+func amigos() -> Array:
+	var g: int = grupo_de(multiplayer.get_unique_id())
+	if g == 0:
+		return []
+	return jogadores.get_children().filter(func(j: Node) -> bool: return j != jogador and grupo_de(int(String(j.name))) == g)
+
+
 ## Aviso na tela de todos (faixa no alto).
 @rpc("authority", "call_local", "reliable")
 func aviso_todos(texto: String) -> void:
@@ -234,6 +331,9 @@ func _cheio() -> void:
 
 
 func _peer_saiu(id: int) -> void:
+	if multiplayer.is_server() and grupos.de.has(id):
+		grupos.sair(id)
+		_manda_grupos()
 	var n: Node = jogadores.get_node_or_null(str(id))
 	if n:
 		if multiplayer.is_server():

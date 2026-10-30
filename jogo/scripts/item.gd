@@ -23,9 +23,15 @@ const SOME: float = 600.0
 var _some_t: float = SOME
 
 
+## Só o desenho (ícone da mochila): sem grupo nem rede.
+var so_visual: bool = false
+
+
 func _ready() -> void:
-	add_to_group("itens")
 	_monta_modelo()
+	if so_visual:
+		return
+	add_to_group("itens")
 	var cfg := SceneReplicationConfig.new()
 	cfg.add_property(NodePath(".:ativo"))
 	cfg.property_set_replication_mode(NodePath(".:ativo"), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
