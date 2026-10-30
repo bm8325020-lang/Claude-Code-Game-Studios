@@ -61,6 +61,8 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   Zumbi: `armado` (TIRO_*: para, mira `_mira_e_atira`, rpc `_tiro_fx`, pistola na mão `_poe_arma`, chega devagar),
   `de_raid` (MORTO_RAID 15 min), `tipo_pedido`. HUD `_avisa_raid`. `Bairro._espalhados(n, larg)` espalha zumbis/carros/
   barricadas pelo comprimento das ruas. Teste: test_raid (8).
+- `bichos.gd` (Bichos, filho do main; 31/10; só cliente): bandos de corvos rodando alto (em cima do grupo "fogo_coluna"),
+  corvos no chão que voam a ESPANTA m grasnando, papel rolando com VENTO perto do jogador. Teste: test_bichos (4).
 - `fogo.gd` (Fogo; 31/10): `tamanho`, `coluna` (fumaça alta, de longe); chama em shader (CHAMA: ruído subindo), luz que
   treme, fumaça/faíscas CPUParticles, crepitar, Area de dano (DANO a cada DANO_A_CADA). Nos barris e em casas queimadas
   (Bairro). Teste: test_fogo (3). Foto: tools/foto_fogo.gd.

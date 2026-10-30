@@ -376,6 +376,8 @@ APK 0.70 (31/10): rastros de sobreviventes — 6 refúgios com barricada de entu
 pichações nas fachadas, 12 bilhetes no chão (alguns com dica).
 APK 0.71 (31/10): fogo de verdade (chama animada, luz tremendo, fumaça, faíscas, queima quem entra); casas queimadas
 ainda ardendo com coluna de fumaça que se vê de longe.
+APK 0.72 (31/10): corvos rodando em cima da fumaça, corvos no chão que voam grasnando quando você chega perto, papel
+rolando com o vento.
 Falta: dividir o peso do mundo com quem entra (cada celular cuida dos zumbis perto dele), dificuldade, progressão,
 raids (delegacia, bunker).
 

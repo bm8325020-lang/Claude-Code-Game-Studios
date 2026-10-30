@@ -807,6 +807,10 @@ func _luz() -> void:
 	som_amb.name = "SomAmbiente"
 	som_amb.principal = self
 	add_child(som_amb)
+	var bichos := Bichos.new()  # corvos e papel voando
+	bichos.name = "Bichos"
+	bichos.principal = self
+	add_child(bichos)
 	ciclo = Ciclo.new()
 	ciclo.name = "Ciclo"
 	add_child(ciclo)

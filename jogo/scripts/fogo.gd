@@ -19,6 +19,8 @@ static var _mat_fumaca: ShaderMaterial
 
 
 func _ready() -> void:
+	if coluna:
+		add_to_group("fogo_coluna")  # os corvos rodam em cima da fumaça
 	_area = Area3D.new()
 	_area.collision_layer = 0
 	_area.collision_mask = 2  # jogadores
