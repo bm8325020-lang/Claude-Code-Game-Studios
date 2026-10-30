@@ -232,7 +232,9 @@ acabar: morte normal (saco no chão, prompt 3). Contador de zumbis mortos por jo
 Aceite: teste com 3 jogadores (robôs): resgate dá certo e dá errado.
 
 ## 11. Nascer em lugar aleatório
-Status: pendente
+Status: feito (APK 0.50). Pontos na frente das casas do bairro, bom/ruim calculado (baú fácil a até 18 m e nenhum
+ponto de zumbi a menos de 14 m), sorteio 75% bom, ao entrar e ao renascer. Casa de facção: prompt 13.
+Teste: tests/test_nascer.gd (5).
 
 Pontos de nascimento marcados como bom/ruim; sorteio com mais chance de bom (provisório 75%). "Bom" = perto de
 baús fáceis, longe de horda. Quem tem casa de facção renasce nela (prompt 13).

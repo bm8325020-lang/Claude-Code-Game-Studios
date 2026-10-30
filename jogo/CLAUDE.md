@@ -35,7 +35,8 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   (jogadores e zumbis), malha de navegação (grupo "cenario", raio 0.35), `iniciar_solo/criar_partida/entrar_partida/iniciar_servidor`.
 - `bairro.gd` (Bairro) — primeira área do mapa em código (ORIGEM (0,0,-78), 4 quarteirões, 12 casas `Casa_k` com
   `Porta_bk`/`Bau_bk`/`Item_bk`, prédio, galpão, ruas, árvores, carros), `pontos_zumbi`, `pontos_nascer`; malha própria
-  em `_poe_zumbis`. Jogador nasce lá (`main.nascer_no_bairro`, test_rede desliga). Foto: tools/foto_bairro.gd. Teste: test_bairro (3).
+  em `_poe_zumbis`. Nascer (11): `pontos_bons/ruins` (`_classifica`: baú fácil ≤ BOM_BAU, zumbi ≥ BOM_ZUMBI),
+  `Bairro.sorteia` (CHANCE_BOM 75%), `main.ponto_nascer()` (também ao renascer). Teste: test_nascer (5). Jogador nasce lá (`main.nascer_no_bairro`, test_rede desliga). Foto: tools/foto_bairro.gd. Teste: test_bairro (3).
 - `jogador.gd` (Jogador) — `entrada` dict (move, olhar, pular, correr, agachar, andar, mirar, mira_segurando, atacar,
   trocar, arma, recarregar, pegar, comer, beber). Vida/`levar_dano`/`_cai`/`_caido`, fome/sede (`_passa_fome`),
   itens (`_tenta_pegar`, `ganhar`→`_recebe`), portas (`porta_perto`), pistola (`_atira`, `raio_mira`, `_rede_tiro`),

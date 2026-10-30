@@ -986,6 +986,9 @@ func _caido(dt: float) -> void:
 		resgate = false  # o resgate não veio a tempo: morte normal
 		_larga_tudo()
 	if _morto_t <= 0.0:
+		var principal := get_tree().get_first_node_in_group("principal")
+		if principal and principal.nascer_no_bairro and principal.bairro:
+			inicio = principal.ponto_nascer()  # renasce num lugar sorteado (75% bom)
 		global_position = inicio
 		velocity = Vector3.ZERO
 		vida = VIDA_MAX

@@ -17,6 +17,12 @@ const TELHADOS: Array[Color] = [Color(0.5, 0.2, 0.14), Color(0.32, 0.22, 0.17), 
 ## onde os zumbis do bairro nascem e onde o jogador pode nascer (mundo)
 var pontos_zumbi: Array[Vector3] = []
 var pontos_nascer: Array[Vector3] = []
+## nascer (prompt 11): "bom" = baú fácil a até BOM_BAU m e nenhum ponto de zumbi a menos de BOM_ZUMBI m
+var pontos_bons: Array[Vector3] = []
+var pontos_ruins: Array[Vector3] = []
+const BOM_BAU: float = 18.0
+const BOM_ZUMBI: float = 14.0
+const CHANCE_BOM: float = 0.75
 var _rng := RandomNumberGenerator.new()
 var _mats: Dictionary = {}
 var _n_casa: int = 0
@@ -40,6 +46,21 @@ func _ready() -> void:
 	_carros()
 	pontos_zumbi.append_array([Vector3(0, 0, 0), Vector3(-20, 0, 2), Vector3(22, 0, -1), Vector3(1, 0, 24),
 		Vector3(-2, 0, -26), Vector3(-36, 0, 18)].map(func(p: Vector3) -> Vector3: return p + ORIGEM))
+	_classifica()
+
+
+func _classifica() -> void:
+	var faceis: Array = find_children("Bau_*", "Bau", true, false).filter(func(b: Bau) -> bool: return b.facil)
+	for p: Vector3 in pontos_nascer:
+		var perto_bau: bool = faceis.any(func(b: Bau) -> bool: return b.global_position.distance_to(p) <= BOM_BAU)
+		var longe_zumbi: bool = pontos_zumbi.all(func(z: Vector3) -> bool: return z.distance_to(p) >= BOM_ZUMBI)
+		(pontos_bons if perto_bau and longe_zumbi else pontos_ruins).append(p)
+
+
+## Sorteia onde nascer: CHANCE_BOM de cair num ponto bom (se houver), senão num ruim.
+static func sorteia(rng: RandomNumberGenerator, bons: Array[Vector3], ruins: Array[Vector3], chance: float = CHANCE_BOM) -> Vector3:
+	var lista: Array[Vector3] = bons if (rng.randf() < chance and not bons.is_empty()) or ruins.is_empty() else ruins
+	return lista[rng.randi() % lista.size()]
 
 
 # quarteirão com 4 casas, cada uma de frente para a rua mais perto

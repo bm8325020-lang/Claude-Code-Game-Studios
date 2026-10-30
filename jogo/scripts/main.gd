@@ -349,6 +349,11 @@ func amigos() -> Array:
 	return jogadores.get_children().filter(func(j: Node) -> bool: return j != jogador and grupo_de(int(String(j.name))) == g)
 
 
+## Lugar sorteado para nascer/renascer (prompt 11). Quem tem casa de facção renasce nela (prompt 13).
+func ponto_nascer() -> Vector3:
+	return Bairro.sorteia(_rng_nascer, bairro.pontos_bons, bairro.pontos_ruins)
+
+
 ## Aviso na tela de todos (faixa no alto).
 @rpc("authority", "call_local", "reliable")
 func aviso_todos(texto: String) -> void:
@@ -473,9 +478,12 @@ func _cria_zumbi(dados: Dictionary) -> Node:
 	return z
 
 
+var _rng_nascer := RandomNumberGenerator.new()
+
+
 func _ponto_inicial(i: int) -> Vector3:
 	if nascer_no_bairro and bairro and not bairro.pontos_nascer.is_empty():
-		return bairro.pontos_nascer[i % bairro.pontos_nascer.size()]
+		return ponto_nascer()
 	return Vector3(2.0 * float(i % 6), 0.1, 2.0 * float(i / 6))
 
 
