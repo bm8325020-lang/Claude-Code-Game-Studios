@@ -25,6 +25,9 @@ const PATRULHAS: Array = [[Vector3(-32, 0, -9), Vector3(-32, 0, 5), Vector3(-19,
 ## zumbi chefe: grandão parado no fundo da pista, longe do início
 const PONTOS_CHEFE: Array[Vector3] = [Vector3(0, 0, 40)]
 var nick_local: String = "Jogador"
+var bairro: Bairro
+## nasce no bairro (o jogo); os testes que medem a pista desligam
+static var nascer_no_bairro: bool = true
 var grupos := Grupos.new()  # servidor: quem está com quem
 var _grupos_cli: Dictionary = {}  # todos: cópia que o servidor manda (peer -> grupo)
 
@@ -35,6 +38,9 @@ func _ready() -> void:
 	_luz()
 	_chao()
 	_obstaculos()
+	bairro = Bairro.new()
+	bairro.name = "Bairro"
+	add_child(bairro)
 	_baus()
 	jogadores = Node3D.new()
 	jogadores.name = "Jogadores"
@@ -436,6 +442,16 @@ func _poe_zumbis() -> void:
 	add_child(navegacao)
 	add_to_group("cenario")
 	navegacao.bake_navigation_mesh(false)
+	# o bairro tem a malha dele (outra região, só a área dele)
+	var nav_b := NavigationRegion3D.new()
+	var mb: NavigationMesh = malha.duplicate()
+	var meio: float = Bairro.QUADRA + Bairro.RUA * 1.5
+	mb.filter_baking_aabb = AABB(Bairro.ORIGEM - Vector3(meio, 1, meio), Vector3(meio * 2.0, 10, meio * 2.0))
+	nav_b.navigation_mesh = mb
+	add_child(nav_b)
+	nav_b.bake_navigation_mesh(false)
+	for p: Vector3 in bairro.pontos_zumbi:
+		spawner_zumbis.spawn({"pos": p + Vector3(0, 0.1, 0)})
 	for p: Vector3 in PONTOS_ZUMBI:
 		spawner_zumbis.spawn({"pos": p})
 	for p: Vector3 in PONTOS_TOCAIA:
@@ -458,6 +474,8 @@ func _cria_zumbi(dados: Dictionary) -> Node:
 
 
 func _ponto_inicial(i: int) -> Vector3:
+	if nascer_no_bairro and bairro and not bairro.pontos_nascer.is_empty():
+		return bairro.pontos_nascer[i % bairro.pontos_nascer.size()]
 	return Vector3(2.0 * float(i % 6), 0.1, 2.0 * float(i / 6))
 
 
@@ -577,7 +595,7 @@ func bloco(c: Vector3, tam: Vector3, cor: Color, rot: Vector3 = Vector3.ZERO, xa
 
 
 func _chao() -> void:
-	var chao := bloco(Vector3(0, -0.5, 0), Vector3(200, 1, 200), Color.WHITE)
+	var chao := bloco(Vector3(0, -0.5, -40), Vector3(240, 1, 280), Color.WHITE)
 	var m := StandardMaterial3D.new()  # asfalto velho repetindo a cada 4 m
 	m.albedo_texture = load("res://assets/sketchfab/asfalto.jpg")
 	m.albedo_color = Color(0.42, 0.41, 0.39)
