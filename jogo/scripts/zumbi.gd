@@ -941,6 +941,7 @@ func _morre() -> void:
 			var noite: bool = Ciclo.forca_noite(get_tree(), 2.0) > 1.5
 			_ultimo.ganhar("dinheiro", roundi((DINHEIRO_CHEFE if chefe else DINHEIRO) * (DINHEIRO_NOITE if noite else 1.0)))
 			_ultimo.ganhar("abate", 1)
+			_ultimo.ganhar("xp", Progresso.XP_CHEFE if chefe else (Progresso.XP_RAID if de_raid else Progresso.XP_ZUMBI))
 		_ultimo = null
 
 

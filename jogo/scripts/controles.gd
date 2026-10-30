@@ -65,6 +65,7 @@ var _municao: Label
 var _vermelho: ColorRect
 var _filme: ColorRect
 var _raid_t: float = 0.0
+var _lista_habs: VBoxContainer
 var _raids_avisadas: Dictionary = {}
 var _bilhete_t: float = 0.0
 var _lidos: Dictionary = {}  # bordas escuras, granulado e bordas vermelhas pulsando com pouca vida
@@ -218,7 +219,7 @@ func _process(dt: float) -> void:
 		return
 	var e: Dictionary = jogador.entrada
 	_atualiza_barras()
-	(_filme.material as ShaderMaterial).set_shader_parameter("vida", float(jogador.vida) / Jogador.VIDA_MAX)
+	(_filme.material as ShaderMaterial).set_shader_parameter("vida", float(jogador.vida) / jogador.vida_max())
 	_avisa_raid(dt)
 	_le_bilhete(dt)
 	_qte.jogador = jogador
@@ -299,7 +300,7 @@ func _process(dt: float) -> void:
 	var loja: Lojista = jogador.lojista_perto() if it == null and bau == null and banc == null else null
 	var porta: Porta = jogador.porta_perto() if it == null and bau == null and banc == null and loja == null else null
 	_dica_pegar.visible = it != null or porta != null or bau != null or banc != null or loja != null
-	_saldo.text = "$ %d" % jogador.dinheiro
+	_saldo.text = "$ %d    NV %d  %d/%d XP" % [jogador.dinheiro, jogador.prog.nivel, jogador.prog.xp, Progresso.xp_para(jogador.prog.nivel)]
 	if jogador.abrindo:
 		_dica_pegar.text = "ABRINDO... %d%%" % roundi((1.0 - jogador.abrindo_t / Bau.ABRIR_T) * 100.0)
 	elif banc:
@@ -532,7 +533,7 @@ func _monta_aviso() -> void:
 
 
 func _atualiza_barras() -> void:
-	_barras[0].valor = clampf(float(jogador.vida) / Jogador.VIDA_MAX * 100.0, 0.0, 100.0)
+	_barras[0].valor = clampf(float(jogador.vida) / jogador.vida_max() * 100.0, 0.0, 100.0)
 	_barras[1].valor = jogador.fome
 	_barras[2].valor = jogador.sede
 	_barras[3].valor = jogador.infeccao
@@ -671,6 +672,24 @@ func _monta_pausa() -> void:
 		p_f.visible = true)
 	volta_f.pressed.connect(func() -> void:
 		p_f.visible = false
+		p_menu.visible = true)
+	var habs := UiTema.botao("HABILIDADES")
+	col.add_child(habs)
+	var col_h := UiTema.painel_central(_pausa, 760.0)
+	col_h.add_child(UiTema.titulo("HABILIDADES", 40, UiTema.DESTAQUE))
+	_lista_habs = VBoxContainer.new()
+	_lista_habs.add_theme_constant_override("separation", 10)
+	col_h.add_child(_lista_habs)
+	var volta_h := UiTema.botao("VOLTAR", true)
+	col_h.add_child(volta_h)
+	var p_h: Control = UiTema.pagina(col_h)
+	p_h.visible = false
+	habs.pressed.connect(func() -> void:
+		_monta_habs()
+		p_menu.visible = false
+		p_h.visible = true)
+	volta_h.pressed.connect(func() -> void:
+		p_h.visible = false
 		p_menu.visible = true)
 	var pvp := UiTema.botao("PVP")  # PvP fora do menu por enquanto (pedido do dono): a página fica pronta para voltar
 	var col_p := UiTema.painel_central(_pausa, 1000.0)
@@ -817,6 +836,9 @@ func _acertou(forte: bool) -> void:
 func _pegou(tipo: String, qtd: int) -> void:
 	if tipo == "antibiotico" and jogador and not jogador.infectado:
 		aviso("Antibiótico tomado: a infecção parou", Color(0.45, 0.75, 0.4))
+		return
+	if tipo == "nivel":
+		aviso("NÍVEL %d — ponto de habilidade na pausa (HABILIDADES)" % qtd, UiTema.DESTAQUE, 4.0)
 		return
 	if tipo == "aprendeu":
 		aviso("Receita aprendida", Color(0.35, 0.6, 0.9))
@@ -1251,3 +1273,28 @@ func _le_bilhete(dt: float) -> void:
 			_lidos[b] = true
 			aviso("BILHETE: " + String(b.get_meta("texto")), UiTema.TEXTO, 9.0)
 			return
+
+
+# página das habilidades: nível, XP, pontos e as 4 habilidades com o botão de pôr ponto
+func _monta_habs() -> void:
+	for c in _lista_habs.get_children():
+		c.queue_free()
+	if jogador == null:
+		return
+	var p: Progresso = jogador.prog
+	_lista_habs.add_child(UiTema.rotulo("NÍVEL %d — %d/%d XP — %d ponto(s) para gastar" % [p.nivel, p.xp, Progresso.xp_para(p.nivel), p.pontos], 22, UiTema.TEXTO))
+	for h: String in Progresso.HABS:
+		var linha := HBoxContainer.new()
+		linha.add_theme_constant_override("separation", 14)
+		var n: int = int(p.hab[h])
+		var txt := UiTema.rotulo("%s  %s\n%s" % [Progresso.NOMES[h], "●".repeat(n) + "○".repeat(Progresso.NIVEL_HAB - n), Progresso.TEXTOS[h]], 20, UiTema.TEXTO)
+		txt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		linha.add_child(txt)
+		var mais := UiTema.botao("+")
+		mais.custom_minimum_size = Vector2(70, 56)
+		mais.disabled = p.pontos <= 0 or n >= Progresso.NIVEL_HAB
+		mais.pressed.connect(func() -> void:
+			jogador.aprende(h)
+			_monta_habs())
+		linha.add_child(mais)
+		_lista_habs.add_child(linha)

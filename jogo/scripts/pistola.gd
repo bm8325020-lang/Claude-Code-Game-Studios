@@ -141,7 +141,7 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 	balas -= 1
 	_espera = cadencia
 	# dispersão: um pequeno desvio aleatório dentro de um cone (cresce a cada tiro seguido)
-	var graus: float = (disp_mira if mirando else disp_quadril) + _abertura
+	var graus: float = ((disp_mira if mirando else disp_quadril) + _abertura) * (dono.mult_espalho() if dono else 1.0)
 	_abertura = minf(_abertura + disp_tiro, 4.0 if not automatica else 6.0)
 	var desvio := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)).normalized()
 	dir = dir.rotated(dir.cross(desvio).normalized(), deg_to_rad(randf() * graus)) if dir.cross(desvio).length() > 0.01 else dir
@@ -157,7 +157,7 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 		var alvo: Node3D = hit.collider
 		var altura: Variant = alvo.get("altura_cabeca")
 		var cabeca: bool = ponto.y - alvo.global_position.y > (float(altura) if altura != null else 1.65)
-		alvo.call("levar_golpe", dano * (2 if cabeca else 1), dir, dono)
+		alvo.call("levar_golpe", roundi(dano * (2 if cabeca else 1) * (dono.mult_fogo() if dono else 1.0)), dir, dono)
 		res.acertou = alvo
 		res.cabeca = cabeca
 	res.carne = res.acertou is Zumbi or res.acertou is Jogador

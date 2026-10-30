@@ -156,7 +156,11 @@ var nick: String = "":
 		nick = v
 		if _placa:
 			_placa.text = v
+		if local and v != "":
+			prog.carrega(Progresso.arquivo(v))
 var _placa: Label3D
+## progressão (XP, nível e habilidades), salva no aparelho do dono do jogador
+var prog := Progresso.new()
 var modelo: Node3D
 var anim: AnimationPlayer
 
@@ -441,7 +445,7 @@ func _physics_process(dt: float) -> void:
 	elif agachado:
 		alvo_vel = AGACHADO
 	elif correndo:
-		alvo_vel = CORRER
+		alvo_vel = CORRER * (1.0 + 0.05 * int(prog.hab.folego))
 	elif entrada.get("andar", false) or forca < 0.55:
 		alvo_vel = ANDAR  # stick meio empurrado = andar devagar
 	else:
@@ -762,7 +766,15 @@ func _recebe(tipo: String, qtd: int) -> void:
 		item_pego.emit(tipo, qtd)
 		return
 	if tipo == "abate":
-		abates += qtd  # registro de zumbis mortos (sem nível: só o número)
+		abates += qtd  # registro de zumbis mortos
+		return
+	if tipo == "xp":
+		var subiu: int = prog.ganha(qtd)
+		if nick != "":
+			prog.salva(Progresso.arquivo(nick))
+		if subiu > 0:
+			vida = mini(vida + 8 * subiu, vida_max())
+			item_pego.emit("nivel", prog.nivel)
 		return
 	var coube: int = mochila.adicionar(tipo, qtd)
 	if coube < qtd:
@@ -962,7 +974,7 @@ func renasce_pvp(pos: Vector3) -> void:
 	resgate = false
 	global_position = pos
 	velocity = Vector3.ZERO
-	vida = VIDA_MAX
+	vida = vida_max()
 	reset_physics_interpolation()
 	_toca("parado", 0.0)
 	pos_rede = global_position
@@ -1021,8 +1033,9 @@ func _passa_fome(dt: float) -> void:
 			vida = 0  # a infecção venceu
 			_cai()
 			return
-	fome = maxf(0.0, fome - 100.0 / FOME_TEMPO * dt)
-	sede = maxf(0.0, sede - 100.0 / SEDE_TEMPO * dt)
+	var folego: float = 1.0 - 0.06 * int(prog.hab.folego)
+	fome = maxf(0.0, fome - 100.0 / FOME_TEMPO * dt * folego)
+	sede = maxf(0.0, sede - 100.0 / SEDE_TEMPO * dt * folego)
 	if fome > 0.0 and sede > 0.0:
 		_fome_t = INTERVALO_FOME
 		return
@@ -1113,7 +1126,7 @@ func _cama(dt: float) -> void:
 		return
 	_cura_acum += CURA_CAMA * dt
 	if _cura_acum >= 1.0:
-		vida = mini(VIDA_MAX, vida + int(_cura_acum))
+		vida = mini(vida_max(), vida + int(_cura_acum))
 		_cura_acum -= int(_cura_acum)
 
 
@@ -1352,7 +1365,7 @@ func _caido(dt: float) -> void:
 			inicio = principal.ponto_nascer(nick)  # casa da facção, ou um lugar sorteado (75% bom)
 		global_position = inicio
 		velocity = Vector3.ZERO
-		vida = VIDA_MAX
+		vida = vida_max()
 		infeccao = 0.0
 		infectado = false
 		fome = 100.0
@@ -1738,7 +1751,7 @@ func _atualiza_golpe(dt: float) -> void:
 func _acerta(g: Dictionary) -> void:
 	var a: Dictionary = Armas.BRANCAS.get(arma, Armas.BRANCAS.facao)
 	g = g.duplicate()
-	g.dano = int(a.dano[clampi(_golpe, 0, 2)])
+	g.dano = roundi(float(a.dano[clampi(_golpe, 0, 2)]) * mult_forca())
 	g.alcance = float(a.alcance)
 	var frente: Vector3 = modelo.global_transform.basis.z
 	frente.y = 0.0
@@ -1799,3 +1812,32 @@ func _toca(clipe: String, mistura: float) -> void:
 ## Clipe tocando agora (para testes e depuração).
 func clipe_atual() -> String:
 	return _clipe
+
+
+## Vida máxima com o Vigor.
+func vida_max() -> int:
+	return VIDA_MAX + 8 * int(prog.hab.vigor)
+
+
+## Multiplicadores das habilidades (Pontaria: espalho e dano de arma de fogo; Força: dano de arma branca).
+func mult_espalho() -> float:
+	return 1.0 - 0.1 * int(prog.hab.pontaria)
+
+
+func mult_fogo() -> float:
+	return 1.0 + 0.06 * int(prog.hab.pontaria)
+
+
+func mult_forca() -> float:
+	return 1.0 + 0.08 * int(prog.hab.forca)
+
+
+## Gasta 1 ponto numa habilidade (tela HABILIDADES); salva.
+func aprende(h: String) -> bool:
+	if not prog.gasta(h):
+		return false
+	if h == "vigor":
+		vida = mini(vida + 8, vida_max())
+	if nick != "":
+		prog.salva(Progresso.arquivo(nick))
+	return true

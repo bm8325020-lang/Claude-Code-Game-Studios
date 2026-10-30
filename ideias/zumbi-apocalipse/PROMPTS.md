@@ -378,6 +378,8 @@ APK 0.71 (31/10): fogo de verdade (chama animada, luz tremendo, fumaça, faísca
 ainda ardendo com coluna de fumaça que se vê de longe.
 APK 0.72 (31/10): corvos rodando em cima da fumaça, corvos no chão que voam grasnando quando você chega perto, papel
 rolando com o vento.
+APK 0.73 (31/10): progressão — XP por zumbi (raid e chefe mais) e por noite sobrevivida, nível com ponto de
+habilidade (Vigor, Fôlego, Pontaria, Força; 5 níveis cada), salvo no aparelho, página HABILIDADES na pausa.
 Falta: dividir o peso do mundo com quem entra (cada celular cuida dos zumbis perto dele), dificuldade, progressão,
 raids (delegacia, bunker).
 

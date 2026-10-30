@@ -116,7 +116,7 @@ func _passos(j: Jogador, dentro: bool) -> void:
 
 # coração: com vida abaixo de 35% ou zumbi a menos de 5 m, cada vez mais alto e mais rápido
 func _coracao_bate(j: Jogador, dt: float) -> void:
-	var medo: float = clampf((0.35 - float(j.vida) / Jogador.VIDA_MAX) / 0.25, 0.0, 1.0)
+	var medo: float = clampf((0.35 - float(j.vida) / j.vida_max()) / 0.25, 0.0, 1.0)
 	for n: Node in get_tree().get_nodes_in_group("zumbis"):
 		var z := n as Zumbi
 		if z.vida > 0 and z.alvo == j and z.global_position.distance_to(j.global_position) < 5.0:

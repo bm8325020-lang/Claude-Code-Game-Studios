@@ -36,8 +36,17 @@ func _ready() -> void:
 	add_child(sync)
 
 
+var _era_noite: bool = false
+
+
 func _process(dt: float) -> void:
 	tempo = fmod(tempo + dt, DIA + NOITE)
+	var agora: bool = e_noite()
+	if _era_noite and not agora and multiplayer.is_server():  # amanheceu: quem está vivo ganha XP de sobrevivente
+		for j: Node in get_tree().get_nodes_in_group("jogadores"):
+			if (j as Jogador).vida > 0:
+				(j as Jogador).ganhar("xp", Progresso.XP_NOITE)
+	_era_noite = agora
 	var n: float = noite()
 	if sol:
 		sol.light_energy = lerpf(0.95, 0.3, n)  # noite de luar: escura, mas dá para jogar (pedido do dono)
