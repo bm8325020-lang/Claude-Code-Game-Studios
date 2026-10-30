@@ -462,6 +462,32 @@ def casa(nome, w, d, semente, tipo):
     exporta(nome)
 
 
+def escada_incendio(hw, hd, n):
+    """Escada de incêndio de metal no fundo (lado de fora, y > hd), em zigue-zague até o teto (n lances de 3 m).
+    Rampas de colisão nos lances, patamares em cada andar. Devolve o x onde chega no teto (para abrir a mureta)."""
+    xa, xb = -hw + 0.6, -hw + 5.2
+    faixas = (hd + 0.75, hd + 1.85)
+    pecas = []
+    for k in range(n):
+        y = faixas[k % 2]
+        x0, x1 = (xa, xb) if k % 2 == 0 else (xb, xa)
+        z0, z1 = k * PE, (k + 1) * PE
+        comp = math.hypot(x1 - x0, z1 - z0)
+        ang = math.atan2(z1 - z0, x1 - x0)
+        degraus = int(PE / 0.2)
+        for d in range(degraus):  # degraus de chapa
+            t = (d + 0.5) / degraus
+            pecas.append(caixa("deg", (x0 + (x1 - x0) * t, y, z0 + (z1 - z0) * t), (0.28, 1.0, 0.04), "metal"))
+        for lado in (-0.52, 0.52):  # longarinas e corrimão
+            pecas.append(caixa("lg", ((x0 + x1) / 2, y + lado, (z0 + z1) / 2), (comp, 0.05, 0.16), "ferrugem", (0, -ang, 0)))
+            pecas.append(caixa("cr", ((x0 + x1) / 2, y + lado, (z0 + z1) / 2 + 0.9), (comp, 0.04, 0.04), "ferrugem", (0, -ang, 0)))
+        caixa("lance_%d-colonly" % k, ((x0 + x1) / 2, y, (z0 + z1) / 2 - 0.05), (comp, 1.0, 0.1), "metal", (0, -ang, 0))
+        # patamar no fim do lance, pegando as duas faixas (vira para o próximo)
+        caixa("patamar_%d-col" % k, (x1 + (0.55 if x1 == xb else -0.55), hd + 1.3, z1 - 0.05), (1.3, 2.4, 0.1), "metal")
+    junta(pecas, "escada_incendio")
+    return xb + 0.55 if n % 2 == 1 else xa - 0.55
+
+
 def loja(nome, w, d, semente, andares):
     """Loja de tijolo com vitrine arrebentada e porta de aço meio aberta; teto plano com mureta quebrada."""
     limpa()
@@ -489,8 +515,9 @@ def loja(nome, w, d, semente, andares):
     topo = andares * PE
     piso("teto", -hw, -hd, hw, hd, topo, "concreto",
          buraco=(rnd.uniform(-hw + 1, 0), rnd.uniform(-hd + 1, 0), rnd.uniform(1, hw - 1), rnd.uniform(1, hd - 1)))
+    chega = escada_incendio(hw, hd, andares)  # sobe pelo fundo; a mureta abre onde ela chega
     for i, (a, b) in enumerate([((-hw, -hd), (hw, -hd)), ((hw, -hd), (hw, hd)), ((hw, hd), (-hw, hd)), ((-hw, hd), (-hw, -hd))]):
-        parede("mureta_%d" % i, a, b, topo, 0.8, [], m, rnd.randint(0, 2))
+        parede("mureta_%d" % i, a, b, topo, 0.8, [(hw - chega, 1.4, 0, 0.8)] if i == 2 else [], m, 0 if i == 2 else rnd.randint(0, 2))
     caixa("placa", (0, -hd - 0.15, topo - 0.35), (vit + 1.0, 0.08, 0.6), "metal", (0, 0, rnd.uniform(-0.08, 0.08)))
     entulho("entulho", (rnd.uniform(-hw / 2, hw / 2), rnd.uniform(-hd / 2, hd / 2), 0.06), 7, 0.5)
     entulho("vidro_e_tralha", (0, -hd - 1.0, 0), 4, 0.3, "metal")
@@ -513,6 +540,7 @@ def predio(nome, w, d, semente):
         piso("laje%d" % k, -w / 2, -d / 2, w / 2, d / 2, k * PE, "concreto", buraco=bx)
         escada("escada%d" % k, w / 2 - 0.85, d / 2 - 4.0, d / 2 - 0.4, (k - 1) * PE + 0.06, k * PE)
     piso("teto", -w / 2, -d / 2, w / 2, d / 2, 3 * PE, "concreto")
+    escada_incendio(w / 2, d / 2, 3)
     # canto da frente à esquerda desabou do 2º andar para cima
     for o in [o for o in bpy.data.objects if o.name.startswith(("ext1", "ext2", "laje2", "teto")) and o.type == "MESH"]:
         if o.name.endswith("-colonly"):

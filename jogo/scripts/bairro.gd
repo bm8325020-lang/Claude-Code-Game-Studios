@@ -94,6 +94,7 @@ func _ready() -> void:
 	for f: Dictionary in dados.get("frestas", []):
 		_fresta(Vector2(f.a[0], f.a[1]), Vector2(f.b[0], f.b[1]), float(f.larg))
 	_borda()
+	_tabuas_telhado()
 	_arvores_mortas()
 	_hidrantes_e_fogo()
 	_classifica()
@@ -792,6 +793,57 @@ func _fresta(a: Vector2, b: Vector2, larg: float) -> void:
 	cs.shape = bx
 	f.add_child(cs)
 	add_child(f)
+
+
+## Altura do teto (em cima da mureta) das ruínas de teto plano que têm escada de incêndio.
+const TETO_MURETA: Dictionary = {"loja_r1": 3.8, "loja_r2": 6.8, "predio_r1": 9.0}
+
+
+## Telhados ligados (31/10): tábua grossa de um teto ao vizinho da mesma altura (até 8 m de vão), apoiada nas muretas.
+## Estreita demais para o zumbi (a malha de navegação não passa nela): rota de fuga por cima.
+func _tabuas_telhado() -> void:
+	var tetos: Array = get_children().filter(func(n: Node) -> bool: return n.has_meta("modelo") and TETO_MURETA.has(n.get_meta("modelo")))
+	var madeira := _mat("madeira", 0.5, Color(0.55, 0.45, 0.35))
+	var n: int = 0
+	for i in tetos.size():
+		for k in range(i + 1, tetos.size()):
+			var a: Node3D = tetos[i]
+			var b: Node3D = tetos[k]
+			var h: float = TETO_MURETA[a.get_meta("modelo")]
+			if not is_equal_approx(h, TETO_MURETA[b.get_meta("modelo")]):
+				continue
+			var pa: PackedVector2Array = a.get_meta("poly")
+			var pb: PackedVector2Array = b.get_meta("poly")
+			var ca: Vector2 = _centro(pa)
+			var cb: Vector2 = _centro(pb)
+			if ca.distance_to(cb) > 30.0:
+				continue
+			var sai: Variant = _corta_borda(ca, cb, pa)
+			var entra: Variant = _corta_borda(cb, ca, pb)
+			if sai == null or entra == null:
+				continue
+			var vao: float = (sai as Vector2).distance_to(entra)
+			if vao < 0.3 or vao > 8.0:
+				continue
+			var d: Vector2 = (cb - ca).normalized()
+			var de: Vector2 = (sai as Vector2) - d * 0.5
+			var ate: Vector2 = (entra as Vector2) + d * 0.5
+			var t := StaticBody3D.new()
+			n += 1
+			t.name = "TabuaTeto_%d" % n
+			t.position = Vector3((de.x + ate.x) * 0.5, h + 0.04, (de.y + ate.y) * 0.5)
+			t.rotation.y = atan2(d.x, d.y) + _rng.randf_range(-0.04, 0.04)
+			add_child(t)
+			_caixa(t, Vector3(0.45, 0.07, de.distance_to(ate)), madeira)
+
+
+## Onde o segmento de `de` até `ate` sai do polígono.
+func _corta_borda(de: Vector2, ate: Vector2, poly: PackedVector2Array) -> Variant:
+	for i in poly.size():
+		var x: Variant = Geometry2D.segment_intersects_segment(de, ate, poly[i], poly[(i + 1) % poly.size()])
+		if x != null:
+			return x
+	return null
 
 
 ## Borda do mapa: muro do exército (barreira de concreto com tela em cima) e mata seca do lado de fora.

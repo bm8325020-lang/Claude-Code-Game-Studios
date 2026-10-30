@@ -41,7 +41,9 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   `_bloqueio` (ônibus tombado ou carros), `_veiculo`, `_pinta` (materiais do Blender -> texturas).
   Relevo (31/10): `terreno` no JSON (rio raso + morro no lugar mais vazio); `_terreno` (HeightMapShape3D de 1 m,
   `altura(p)`, `_malha_chao` de 3 m, `_agua`), `_pontes` (depois das ruas), AGUA_Y: jogador/zumbi lentos no rio.
-  Teste: test_relevo (5). Foto: tools/foto_relevo.gd. Cada lote recebe
+  Teste: test_relevo (5). Foto: tools/foto_relevo.gd.
+  Telhados (31/10): escada de incêndio no fundo de loja_r1/loja_r2/predio_r1 (`escada_incendio` no Blender, abre a mureta
+  onde chega), `_tabuas_telhado` (TETO_MURETA; tábua entre tetos da mesma altura, vão até 8 m). Teste: test_telhado (3). Cada lote recebe
   uma RUÍNA modelada no Blender (30/10, pedido do dono): `tools/blender/ruinas.py` gera `assets/ruinas/*.glb`
   (casa_r1..r6: telhado caído, queimada, 2 andares com escada; loja_r1/r2: vitrine, gôndolas; predio_r1: canto
   desabado; móveis dentro). Rodar: `~/.local/blender/blender-4.2.9-linux-x64/blender -b -P tools/blender/ruinas.py --
