@@ -37,9 +37,13 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   por `tools/mapa/osm_para_json.py` do XML da API OSM 0.6; ORIGEM (0,0,-300), TAMANHO 500: termina em z -50, longe da pista). Prédio = paredes pelo contorno
   real, porta no lado da rua (`Porta_<nome>` em 2 de 3), janelas com moldura e vidro (1/4 quebradas, 1/3 com tábuas),
   parede interna com vão (`_divisoria`, área > 90 m²), forro/laje vistos de baixo, telhado de 4 águas nas casas. `_eh_casa`:
-  "house" ou "yes" < 260 m²; o resto é loja (prateleiras). As 3 maiores casas = `Mansao_k` (meta "dominavel", BauFac, Cama,
+  "house" ou "yes" < 260 m²; o resto é loja (prateleiras). Casas = modelos do Sketchfab com cômodos (`CASAS_MODELO`,
+  `_casa_modelo`: frente = lado da calçada do lote, portas internas tiradas, a da frente vira Porta com `largura` do vão,
+  texturas gastas em `_gasto`); não cabe -> casa em código. `MARCOS`: escaneados (fotogrametria) no lugar das maiores
+  lojas (`_marco`, frente +Z, cm -> m, `AFUNDA`). Créditos em `assets/sketchfab/cidade/CREDITOS.txt`. Detalhe pequeno
+  some a `Config.qualidade().detalhe`. As 3 maiores casas = `Mansao_k` (meta "dominavel", BauFac, Cama,
   BancadaFac, LojaFac). Texturas Poly Haven CC0 em `assets/texturas` (`_mat`, triplanar). Rua: carros (queimados),
-  barricadas do exército (`_barricadas`), árvores secas, hidrantes, barris com fogo. Detalhe pequeno some a LONGE_DETALHE.
+  barricadas do exército (`_barricadas`), árvores secas, hidrantes, barris com fogo.
   API: `pontos_zumbi`, `pontos_nascer`, `casa_em`, `dominavel`, `bau_da`, `frente_da`, `dentro_da`; malha própria em
   `_poe_zumbis` (célula 0.25, raio 0.25 para passar na porta). Nascer (11): `pontos_bons/ruins`, `Bairro.sorteia`,
   `main.ponto_nascer(nick)`. Testes: test_bairro (4), test_nascer (5). Fotos: tools/foto_bairro.gd.
@@ -94,7 +98,8 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `rede.gd` — ENet 7777, broadcast 7778, pergunta direta 7779, `VERSAO`, `LISTA_URL` (servidores.json). Endereço
   "ws://"/"wss://" = WebSocket (servidor online atrás de site; `-- dedicado ws` escuta em `PORTA_WS` 7861).
 - `config.gd` (Config) — `Config.v[...]` salvo em user://config.cfg, `muda()`, `aplica()`, `sensibilidade(arma, mirando)`,
-  `cor_mira()`. `tela_config.gd` (TelaConfig) — a tela (menu e pausa). Teste: tests/test_config.gd (8).
+  `cor_mira()`, `qualidade()` (QUALIDADE: Batata/Média/Alta/Ultra -> sombra, resolução, MSAA, distância de visão,
+  detalhe). `tela_config.gd` (TelaConfig) — a tela (menu e pausa). Teste: tests/test_config.gd (10).
 - `mochila.gd` (Mochila) — dados: 24 espaços (0–5 barra), PILHA/LIMITE/PRESOS/NOMES/TEXTOS, adicionar/tirar/definir/
   dividir/mover/tirar_espaco. Jogador: `mochila`, `comida`/`agua`/`pistola.reserva`/`tem_lanterna` leem dela, `largar(i)`,
   `usar_espaco(i)`; `main.solta_item()` + `spawner_itens` (itens soltos, `Item.solto`). `tela_mochila.gd` (TelaMochila +

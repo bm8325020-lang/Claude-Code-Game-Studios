@@ -36,6 +36,7 @@ var _passo: float = 0.0
 func _ready() -> void:
 	top_level = true  # gira sozinha; o corpo só acompanha o giro horizontal
 	cam = Camera3D.new()
+	cam.far = Config.qualidade().longe
 	cam.near = 0.03
 	cam.fov = FOV
 	add_child(cam)

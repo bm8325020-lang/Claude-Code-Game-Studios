@@ -19,6 +19,7 @@ func _ready() -> void:
 	_secao(col, "SOM")
 	_desliza(col, "Volume", "volume", 0.0, 1.0, 0.05, true)
 	_secao(col, "IMAGEM")
+	_escolhe(col, "Qualidade gráfica", "qualidade", Config.NOMES_QUALIDADE, [0, 1, 2, 3])
 	_chave(col, "Sombras", "sombras")
 	_desliza(col, "Resolução 3D", "resolucao", 0.5, 1.0, 0.05, true)
 	_escolhe(col, "Quadros por segundo", "fps", ["30", "60"], [30, 60])
@@ -83,5 +84,10 @@ func _escolhe(col: VBoxContainer, t: String, chave: String, nomes: Array, valore
 	for i in nomes.size():
 		o.add_item(String(nomes[i]), i)
 	o.selected = maxi(0, valores.find(Config.v[chave]))
-	o.item_selected.connect(func(i: int) -> void: Config.muda(chave, valores[i], get_tree()))
+	o.item_selected.connect(func(i: int) -> void:
+		Config.muda(chave, valores[i], get_tree())
+		if chave == "qualidade":  # mostra a sombra e a resolução que o nível escolheu
+			for c in get_children():
+				c.queue_free()
+			_ready.call_deferred())
 	h.add_child(o)

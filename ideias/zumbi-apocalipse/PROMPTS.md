@@ -325,7 +325,8 @@ Paredes e portas quebráveis por tiro/golpe (vida por pedaço, troca para versã
 viram cobertura). Servidor decide e sincroniza o estado.
 
 ## 21. Mapa grande (depois — o dono pediu para deixar o mapa por último)
-Status: em andamento (adiantado: 11–15, 18 e 20 precisam de lugar). Parte 3 feita (APK 0.55): cidade refeita do
+Status: em andamento (adiantado: 11–15, 18 e 20 precisam de lugar). Parte 4 feita (APK 0.56): casas de verdade (modelos com cômodos, texturas gastas), construções escaneadas
+(galpão, casarão, galpão pichado, prédio velho, posto) e Qualidade gráfica (Batata/Média/Alta/Ultra). Parte 3 feita (APK 0.55): cidade refeita do
 OpenStreetMap (centro real de Monroeville, Alabama, 500x500 m, ~110 prédios), texturas Poly Haven, janelas com
 moldura/vidro, parede interna, barricadas do exército. Parte 2 feita (APK 0.53): cidade 3x3 com praça,
 posto, mercado, casas abandonadas/arrombadas/destruídas com móveis e 3 mansões (só elas domináveis, pedido do dono).

@@ -12,6 +12,8 @@ const VIDA_MAX: int = 100
 const CONSERTO: float = 90.0
 const LARGURA: float = 1.3
 const ALTURA: float = 2.15
+## Largura desta porta (a das casas de modelo segue o vão do modelo).
+var largura: float = LARGURA
 
 var aberta: bool = false:
 	set(v):
@@ -38,9 +40,9 @@ func _ready() -> void:
 	add_child(_folha)
 	var cs := CollisionShape3D.new()
 	var b := BoxShape3D.new()
-	b.size = Vector3(LARGURA, ALTURA, 0.06)
+	b.size = Vector3(largura, ALTURA, 0.06)
 	cs.shape = b
-	cs.position = Vector3(LARGURA * 0.5, ALTURA * 0.5, 0)
+	cs.position = Vector3(largura * 0.5, ALTURA * 0.5, 0)
 	_folha.add_child(cs)
 	_mat = StandardMaterial3D.new()
 	_mat.albedo_color = Color(0.36, 0.25, 0.16)
@@ -61,7 +63,7 @@ func _ready() -> void:
 	metal.albedo_color = Color(0.55, 0.52, 0.45)
 	metal.metallic = 0.7
 	mac.material_override = metal
-	mac.position = Vector3(LARGURA - 0.12, 1.0, 0.06)
+	mac.position = Vector3(largura - 0.12, 1.0, 0.06)
 	_folha.add_child(mac)
 	var cfg := SceneReplicationConfig.new()
 	for p: String in [".:aberta", ".:vida"]:
@@ -85,7 +87,7 @@ func _anima() -> void:
 
 ## Centro da passagem (para saber se alguém está perto).
 func centro() -> Vector3:
-	return global_transform * Vector3(LARGURA * 0.5, 0, 0)
+	return global_transform * Vector3(largura * 0.5, 0, 0)
 
 
 func arrombada() -> bool:

@@ -1,0 +1,11 @@
+casa_mayflower: House: "May-Flower" (Design 371) | AleixoAlonso | CC Attribution | https://sketchfab.com/3d-models/9784bb9cec634ccb911b889ef5cb1c57
+casa_mayflower2: House: "May-Flower" (Design 39) | AleixoAlonso | CC Attribution | https://sketchfab.com/3d-models/1ff9aaa72bc24037ac3e3e08c9a35e33
+casa_glenwood: House: "Glenwood" (Design 45) | AleixoAlonso | CC Attribution | https://sketchfab.com/3d-models/686f14daaeef42fe82420890813002fd
+casa_fleetwood: House: "Fleetwood" (Design 50) | AleixoAlonso | CC Attribution | https://sketchfab.com/3d-models/bd4f4d5b7fca476cb7d260a605192bc2
+predio_velho: Old Building [3D Scan] | MrUnity | CC Attribution | https://sketchfab.com/3d-models/f220479855da4aa0a5bbfda99e5a86e4
+posto_velho: Old Gas Station | CGMeller | CC Attribution | https://sketchfab.com/3d-models/e1d067211c8a4226b2393de0db8dad36
+scan_casa_velha: Old abandoned house | nedo | CC Attribution | https://sketchfab.com/3d-models/26516a817a1746d190527ae3f6e317a1
+scan_galpao: Building scan No. 23 | 3Dystopia | CC Attribution | https://sketchfab.com/3d-models/6fbb2f4999e84adc86687e6833322ff2
+scan_casarao: Abandoned Building: Polygraphenwerk Leipzig | Geddart | CC Attribution | https://sketchfab.com/3d-models/6fa85b289def499c95afd232173ecc27
+scan_fachada2: Facade Skrivanova 8, Brno | 3dhdscan | CC Attribution | https://sketchfab.com/3d-models/4be117df2df0425e82e8a9ed85a0302d
+scan_galpao_pichado: Decayed concrete train shed with graffiti | Оrрндп ЯТG | CC Attribution | https://sketchfab.com/3d-models/6ac088dcd828410c92f11a8710133a4d

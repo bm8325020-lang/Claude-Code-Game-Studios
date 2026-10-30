@@ -1,4 +1,4 @@
-# Fotos da cidade (Senoia): de cima e na rua, perto de uma casa e de uma mansão.
+# Fotos da cidade: de cima, uma casa de modelo por fora e por dentro, e a mansão.
 #   xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 -s res://tools/foto_bairro.gd -- saida.png
 extends SceneTree
 
@@ -18,12 +18,13 @@ func _init() -> void:
 	c.current = true
 	c.far = 600
 	var b: Bairro = main.bairro
-	var casa: Node3D = b.get_node("Casa_4")
+	var arg: String = OS.get_cmdline_user_args()[1] if OS.get_cmdline_user_args().size() > 1 else "0"
+	var casa: Node3D = b.get_node(arg) if arg.is_valid_identifier() else b.get_children().filter(func(n: Node) -> bool: return n.has_meta("modelo"))[int(arg)]  # nome (Marco_0) ou n-ésima de modelo
 	var mansao: Node3D = b.get_node("Mansao_0")
 	var vistas: Array = [[Bairro.ORIGEM + Vector3(-120, 90, 130), Bairro.ORIGEM],
-		[(casa.get_meta("frente") as Vector3) + Vector3(6, 1.6, 6), casa.get_meta("frente") + Vector3(0, 1.5, 0) - (casa.get_meta("frente") - Bairro.ORIGEM).normalized() * 0.0],
+		[(casa.get_meta("frente") as Vector3) * 2.0 - b.dentro_da(String(casa.name)) + Vector3(0, 1.7, 0), casa.get_meta("frente")],
 		[(mansao.get_meta("frente") as Vector3) + Vector3(-7, 1.7, 7), mansao.get_meta("frente") + Vector3(0, 1.8, 0)],
-		[main.jogador.global_position + Vector3(0, 1.62, 0), main.jogador.global_position + Vector3(10, 1.4, -10)]]
+		[(b.dentro_da(String(casa.name)) + casa.get_meta("frente")) * 0.5 + Vector3(0, 1.7, 0), Bairro.ORIGEM + Vector3(_cx(casa).x, 1.6, _cx(casa).y)]]
 	var o := Image.create(1280, 720, false, Image.FORMAT_RGBA8)
 	for k in vistas.size():
 		c.global_position = vistas[k][0]
