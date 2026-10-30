@@ -56,6 +56,10 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   Zumbi: `armado` (TIRO_*: para, mira `_mira_e_atira`, rpc `_tiro_fx`, pistola na mão `_poe_arma`, chega devagar),
   `de_raid` (MORTO_RAID 15 min), `tipo_pedido`. HUD `_avisa_raid`. `Bairro._espalhados(n, larg)` espalha zumbis/carros/
   barricadas pelo comprimento das ruas. Teste: test_raid (8).
+- `som_ambiente.gd` (SomAmbiente, filho do main; 31/10): vento (mais forte à noite), sustos ao longe (`_sustos`), passos por
+  chão (`_passos`: casa=tábua, rua=concreto, resto=terra), eco no bus 0 só dentro de casa (`_eco`), coração (`_coracao_bate`),
+  gemidos/rosnados presos no zumbi (`_gemidos`). Sons CC0 em `assets/sons/amb` (CREDITOS.txt); fogo nos barris (Bairro).
+  Teste: test_som (6).
 - `enfeites.gd` (Enfeites, filho do Bairro) — cara do jogo (30/10): chão `Enfeites.chao()` (shader grama/terra/cascalho),
   lixo/mato/manchas/sacos de corpo em MultiMesh por pedaço de 64 m (DENSIDADE pela qualidade, some de longe), postes
   com fio (`_postes`/`_fio`, colisão) e caçambas. Ruínas com sombra de canto assada no Blender (`assa_sombra`: cores dos

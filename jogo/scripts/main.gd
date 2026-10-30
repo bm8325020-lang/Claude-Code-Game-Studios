@@ -803,6 +803,10 @@ void sky() {
 
 
 func _luz() -> void:
+	var som_amb := SomAmbiente.new()  # vento, sustos, passos, eco, coração, gemidos
+	som_amb.name = "SomAmbiente"
+	som_amb.principal = self
+	add_child(som_amb)
 	ciclo = Ciclo.new()
 	ciclo.name = "Ciclo"
 	add_child(ciclo)

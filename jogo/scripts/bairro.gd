@@ -787,6 +787,16 @@ func _hidrantes_e_fogo() -> void:
 			chama.material_override = mf
 			chama.position = Vector3(q.x, 1.05, q.y)
 			add_child(chama)
+			if not Rede.servidor_sem_tela:  # crepitar do fogo
+				var crepita := AudioStreamPlayer3D.new()
+				var fogo: AudioStreamOggVorbis = (load("res://assets/sons/amb/fogo.ogg") as AudioStreamOggVorbis).duplicate()
+				fogo.loop = true
+				crepita.stream = fogo
+				crepita.unit_size = 3.0
+				crepita.max_distance = 18.0
+				crepita.autoplay = true
+				crepita.position = Vector3(q.x, 0.9, q.y)
+				add_child(crepita)
 
 
 func _mancha(no: Node3D, p: Vector3) -> void:
