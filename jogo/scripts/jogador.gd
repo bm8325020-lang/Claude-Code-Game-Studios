@@ -330,10 +330,15 @@ func _physics_process(dt: float) -> void:
 		_segue_rede(dt)
 		return
 	if vida <= 0:
+		if fresta:
+			sai_fresta()
 		_caido(dt)
 		return
 	if _subindo >= 0.0:
 		_escala(dt)
+		return
+	if fresta:
+		_esgueira(dt)
 		return
 	if deitado:
 		_cama(dt)
@@ -424,6 +429,10 @@ func _physics_process(dt: float) -> void:
 	var direita := Vector3(cos(yaw), 0, -sin(yaw))
 	var dir: Vector3 = (direita * mov.x + frente * mov.y)
 	var forca: float = mov.length()
+	var f: Area3D = _acha_fresta(dir) if forca > 0.3 and not mira_travada else null
+	if f:
+		_entra_fresta(f)
+		return
 
 	agarrado_t -= get_physics_process_delta_time()
 	var alvo_vel: float
@@ -1244,6 +1253,84 @@ func _escala(dt: float) -> void:
 	pos_rede = global_position
 	clipe_rede = _clipe
 	cima_rede = ""
+
+
+# --- fresta (beco estreito entre dois prédios; pedido do dono, 30/10) ---
+# Andando para a boca de uma Fresta (Bairro._fresta), o corpo vira de lado para a parede, afina (o zumbi não cabe) e
+# só anda pelo comprido com o analógico para os lados; a câmera fica de frente para a parede, olhando um pouco em volta.
+const ESGUEIRA_VEL: float = 0.85
+const ESGUEIRA_RAIO: float = 0.18
+var fresta: Area3D = null
+var yaw_fresta: float = 0.0  # para onde o rosto aponta (para a parede)
+
+
+## Fresta em cuja boca o jogador está entrando (andando para dentro dela), ou null.
+func _acha_fresta(dir: Vector3) -> Area3D:
+	for f: Area3D in get_tree().get_nodes_in_group("frestas"):
+		var l: Vector3 = f.global_transform.affine_inverse() * global_position
+		var tam: Vector3 = ((f.get_child(0) as CollisionShape3D).shape as BoxShape3D).size
+		if absf(l.x) > tam.x * 0.5 + 0.4 or absf(l.z) > tam.z * 0.5 or absf(l.y) > 1.6:
+			continue
+		var para_dentro: Vector3 = -(f.get_meta("eixo") as Vector3) * signf(l.z)
+		if dir.normalized().dot(para_dentro) > 0.6:
+			return f
+	return null
+
+
+func _entra_fresta(f: Area3D) -> void:
+	fresta = f
+	_forma.radius = ESGUEIRA_RAIO
+	mira_travada = false
+	correndo = false
+	_golpe = -1
+	var eixo: Vector3 = f.get_meta("eixo")
+	var l: Vector3 = f.global_transform.affine_inverse() * global_position
+	l.x = 0.0  # no meio do vão
+	global_position = f.global_transform * l
+	var lado := Vector3(eixo.z, 0, -eixo.x)
+	var frente := Vector3(-sin(camera.yaw), 0, -cos(camera.yaw)) if camera else lado
+	if lado.dot(frente) < 0.0:
+		lado = -lado
+	yaw_fresta = atan2(-lado.x, -lado.z)
+	velocity = Vector3.ZERO
+
+
+func _esgueira(dt: float) -> void:
+	var f: Area3D = fresta
+	var eixo: Vector3 = f.get_meta("eixo")
+	var mov: Vector2 = entrada.get("move", Vector2.ZERO)
+	var direita := Vector3(cos(yaw_fresta), 0, -sin(yaw_fresta))  # paralela ao eixo
+	var l: Vector3 = f.global_transform.affine_inverse() * global_position
+	var tam: Vector3 = ((f.get_child(0) as CollisionShape3D).shape as BoxShape3D).size
+	var anda: Vector3 = direita * clampf(mov.x, -1.0, 1.0) * ESGUEIRA_VEL
+	var lado: Vector3 = f.global_transform.basis.x.normalized()
+	velocity.x = anda.x - lado.x * l.x * 6.0  # puxa de volta para o meio do vão
+	velocity.z = anda.z - lado.z * l.x * 6.0
+	velocity.y = velocity.y - GRAVIDADE * dt if not is_on_floor() else 0.0
+	move_and_slide()
+	_passa_fome(dt)
+	modelo.rotation.y = lerp_angle(modelo.rotation.y, yaw_fresta + PI, 1.0 - exp(-12.0 * dt))
+	var v: float = absf(mov.x)
+	if v > 0.1:
+		_toca("lado_dir" if mov.x > 0.0 else "lado_esq", 0.2)
+		anim.speed_scale = 0.35  # passinhos curtos de lado
+	else:
+		_toca("parado", 0.25)
+		anim.speed_scale = 1.0
+	# saiu pela outra ponta (ou voltou): corpo normal de novo
+	var saindo: bool = signf(l.z) * anda.dot(eixo) > 0.0
+	if absf(l.z) > tam.z * 0.5 - 0.15 and saindo:
+		sai_fresta()
+	pos_rede = global_position
+	rot_rede = modelo.rotation.y
+	clipe_rede = _clipe
+	cima_rede = ""
+
+
+func sai_fresta() -> void:
+	fresta = null
+	_forma.radius = RAIO
+	anim.speed_scale = 1.0
 
 
 func _caido(dt: float) -> void:

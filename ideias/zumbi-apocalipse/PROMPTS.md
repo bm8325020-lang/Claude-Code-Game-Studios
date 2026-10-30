@@ -359,6 +359,10 @@ cria hospeda e o carteiro online repassa. Menu agora é só CRIAR SALA / ENTRAR 
 APK 0.60: céu de fim do mundo, infecção (barra, antibiótico) e mordida no pescoço com briga no tempo certo.
 APK 0.62 (30/10): noite de luar (dá para ver), zumbis difíceis (correm, enxergam 30 m, em bando, sem fugir/desviar),
 cidade nova com ruínas modeladas no Blender (sem paredes invisíveis; escaneados e casas do Sketchfab saíram).
+APK 0.63 (30/10): cidade nossa (ruas curvas, sem saída, bairros, bloqueios, caixa d'água, muro na borda), carros/van/
+ônibus/galpão do Blender, frestas com o jogador de lado (zumbi não cabe). Plano aprovado pelo dono (30/10), em ordem:
+1 cidade (falta: morro/ladeira, telhados ligados, ponte/rio, raids); 2 cara do jogo (luz, filtro de cor, sujeira, lixo,
+mato, ruas cheias, câmera viva, impacto); 3 zumbis realistas; 4 som; 5 progressão e dividir o peso; 6 carregamento/menu.
 Falta: dividir o peso do mundo com quem entra (cada celular cuida dos zumbis perto dele), dificuldade, progressão,
 raids (delegacia, bunker).
 

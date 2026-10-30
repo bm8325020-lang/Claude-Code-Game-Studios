@@ -26,7 +26,8 @@ CORES = {
     "parede": (0.75, 0.72, 0.66), "tijolo": (0.55, 0.3, 0.22), "madeira": (0.45, 0.36, 0.27),
     "concreto": (0.55, 0.55, 0.53), "telhado": (0.3, 0.28, 0.27), "metal": (0.35, 0.33, 0.3),
     "queimado": (0.06, 0.05, 0.05), "tabua": (0.42, 0.33, 0.24), "pano": (0.32, 0.3, 0.28),
-    "branco": (0.78, 0.77, 0.72), "papelao": (0.55, 0.45, 0.32),
+    "branco": (0.78, 0.77, 0.72), "papelao": (0.55, 0.45, 0.32), "lataria": (0.4, 0.15, 0.12),
+    "vidro": (0.05, 0.06, 0.07), "pneu": (0.04, 0.04, 0.04), "ferrugem": (0.35, 0.18, 0.08),
 }
 rnd = random.Random(1)
 _mats = {}
@@ -460,6 +461,142 @@ def predio(nome, w, d, semente):
     exporta(nome)
 
 
+# ----- veículos e marcos (frente do veículo em +Z no Godot = -Y aqui) -----
+
+def chanfra(o, larg=0.08):
+    md = o.modifiers.new("chanfro", "BEVEL")
+    md.width = larg
+    md.segments = 2
+    bpy.context.view_layer.objects.active = o
+    bpy.ops.object.modifier_apply(modifier=md.name)
+
+
+def cabine(nome, y0, y1, z0, z1, larg, recua, m):
+    """Cabine com vidro inclinado: caixa com o topo mais curto que a base."""
+    me = bpy.data.meshes.new(nome)
+    hx = larg / 2
+    v = [(-hx, y0, z0), (hx, y0, z0), (hx, y1, z0), (-hx, y1, z0),
+         (-hx * 0.92, y0 + recua[0], z1), (hx * 0.92, y0 + recua[0], z1), (hx * 0.92, y1 - recua[1], z1), (-hx * 0.92, y1 - recua[1], z1)]
+    f = [(0, 1, 2, 3), (4, 7, 6, 5), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)]
+    me.from_pydata(v, [], f)
+    o = bpy.data.objects.new(nome, me)
+    bpy.context.collection.objects.link(o)
+    me.materials.append(mat(m))
+    return o
+
+
+def rodas(xs, ys, raio, larg, sem=()):
+    out = []
+    for i, x in enumerate(xs):
+        for j, y in enumerate(ys):
+            if (i, j) in sem:  # roubaram a roda: o carro fica caído para esse lado
+                continue
+            bpy.ops.mesh.primitive_cylinder_add(vertices=12, radius=raio, depth=larg, location=(x, y, raio), rotation=(0, 1.5708, 0))
+            o = bpy.context.object
+            o.data.materials.append(mat("pneu"))
+            out.append(o)
+    return out
+
+
+def carro(nome, semente, queimado=False):
+    limpa()
+    rnd.seed(semente)
+    lat = "queimado" if queimado else "lataria"
+    corpo = caixa("corpo", (0, 0, 0.62), (1.8, 4.4, 0.62), lat)
+    chanfra(corpo, 0.12)
+    cab = cabine("cabine", -0.9, 1.1, 0.93, 1.42, 1.72, (0.65, 0.5), "vidro" if not queimado else "queimado")
+    chanfra(cab, 0.04)
+    pecas = [corpo, cab]
+    if not queimado:
+        pecas += rodas((-0.86, 0.86), (-1.4, 1.35), 0.33, 0.24)
+        caixa("capo_amassado", (0.2, -1.7, 0.98), (1.2, 0.8, 0.06), "lataria", (0.25, 0.1, 0.05))
+    else:
+        pecas += rodas((-0.86, 0.86), (-1.4, 1.35), 0.2, 0.2)  # só o aro
+        for o in pecas[:1]:
+            o.location.z -= 0.15
+    junta(pecas, nome)
+    caixa(nome + "_col-colonly", (0, 0, 0.75), (1.8, 4.4, 1.5), lat)
+    exporta(nome)
+
+
+def van(nome, semente):
+    limpa()
+    rnd.seed(semente)
+    corpo = caixa("corpo", (0, 0.4, 1.25), (2.0, 4.6, 1.9), "lataria")
+    chanfra(corpo, 0.1)
+    frente = cabine("frente", -2.7, -1.85, 0.4, 2.1, 2.0, (0.55, 0.0), "lataria")
+    vid = caixa("vidro", (0, -2.35, 1.75), (1.9, 0.05, 0.6), "vidro", (-0.55, 0, 0))
+    pecas = [corpo, frente, vid] + rodas((-0.95, 0.95), (-2.0, 1.8), 0.36, 0.26, sem={(1, 1)})
+    o = junta(pecas, nome)
+    o.rotation_euler = (0, 0.06, 0)  # caída para o lado sem roda
+    caixa(nome + "_col-colonly", (0, -0.1, 1.15), (2.0, 5.5, 2.3), "lataria")
+    exporta(nome)
+
+
+def onibus(nome, semente):
+    """Ônibus escolar tombado de lado (fecha a rua)."""
+    limpa()
+    rnd.seed(semente)
+    corpo = caixa("corpo", (0, 0, 1.4), (2.5, 10.5, 2.6), "ferrugem")
+    chanfra(corpo, 0.15)
+    pecas = [corpo]
+    for k in range(7):
+        pecas.append(caixa("jan", (1.26, -4.0 + k * 1.3, 1.9), (0.04, 1.0, 0.75), "vidro"))
+    pecas += rodas((-1.2, 1.2), (-3.6, 3.4), 0.5, 0.3)
+    o = junta(pecas, nome)
+    o.rotation_euler = (0, 1.5708, 0)
+    o.location = (1.3, 0, 1.25)
+    caixa(nome + "_col-colonly", (0, 0, 1.25), (2.6, 10.6, 2.5), "ferrugem")
+    exporta(nome)
+
+
+def caixa_dagua(nome):
+    limpa()
+    pernas = []
+    for sx in (-2, 2):
+        for sy in (-2, 2):
+            pernas.append(caixa("perna", (sx, sy, 9), (0.3, 0.3, 18), "ferrugem", (sy * 0.02, -sx * 0.02, 0)))
+    for z in (5, 11):  # travessas
+        for sx in (-2, 2):
+            pernas.append(caixa("tr", (sx, 0, z), (0.12, 4.0, 0.12), "ferrugem"))
+            pernas.append(caixa("tr", (0, sx, z), (4.0, 0.12, 0.12), "ferrugem"))
+    junta(pernas, nome + "_pernas-col")
+    bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=3.6, depth=5.0, location=(0, 0, 20.5))
+    t = bpy.context.object
+    t.name = nome + "_tanque"
+    t.data.materials.append(mat("metal"))
+    bpy.ops.mesh.primitive_cone_add(vertices=24, radius1=3.8, depth=1.6, location=(0, 0, 23.8))
+    c = bpy.context.object
+    c.data.materials.append(mat("ferrugem"))
+    morde(t, (3.4, 0, 21.5), 1.2)  # rombo
+    escada("escadinha", 2.15, -0.5, 0.5, 0, 0.1, 0.4)  # só o pé da escada (enfeite)
+    exporta(nome)
+
+
+def galpao(nome, w, d, semente):
+    """Galpão de metal alto, portão de enrolar aberto pela metade, telhado com placas faltando."""
+    limpa()
+    rnd.seed(semente)
+    hw, hd, alt = w / 2, d / 2, 6.0
+    parede("ext_0", (-hw, -hd), (hw, -hd), 0, alt, [(w / 2, 5.0, 0, 4.5), (w / 2 + 5.0, PORTA_L, 0, PORTA_A)], "metal")
+    for i, (a, b, comp) in enumerate([((hw, -hd), (hw, hd), d), ((hw, hd), (-hw, hd), w), ((-hw, hd), (-hw, -hd), d)]):
+        ab = [(comp / 2, PORTA_L, 0, PORTA_A)] if i == 1 else [(t, 2.0, 4.0, 5.2) for t in (comp * 0.25, comp * 0.5, comp * 0.75)]
+        parede("ext_%d" % (i + 1), a, b, 0, alt, ab, "metal", rnd.randint(0, 2))
+    caixa("portao", (0, -hd - 0.1, 3.6), (5.0, 0.08, 1.8), "ferrugem")
+    piso("chao", -hw, -hd, hw, hd, 0.06, "concreto", 0.06)
+    n = int(w / 3)
+    pl = []
+    for k in range(n):
+        if rnd.random() < 0.3:
+            continue
+        pl.append(caixa("tp", (-hw + 1.5 + k * 3, 0, alt + 0.4), (3.0, d + 0.6, 0.05), "ferrugem", (0, rnd.uniform(-0.03, 0.03), 0)))
+    junta(pl, "telhado")
+    for k in range(3):  # caixas e tambores
+        caixa("engradado-col", (rnd.uniform(-hw + 2, hw - 2), rnd.uniform(-hd + 2, hd - 4), 0.6), (1.2, 1.2, 1.2), "madeira")
+    entulho("entulho", (rnd.uniform(-hw / 2, hw / 2), rnd.uniform(-hd / 2, hd / 2), 0.06), 6, 0.5)
+    exporta(nome)
+
+
 if __name__ == "__main__":
     import os
     os.makedirs(SAIDA, exist_ok=True)
@@ -472,4 +609,11 @@ if __name__ == "__main__":
     loja("loja_r1", 12.0, 10.0, 21, 1)
     loja("loja_r2", 16.0, 12.0, 22, 2)
     predio("predio_r1", 18.0, 12.0, 31)
+    galpao("galpao_r1", 18.0, 12.0, 41)
+    galpao("galpao_r2", 16.0, 12.0, 42)
+    carro("carro_r1", 51)
+    carro("carro_r2", 52, queimado=True)
+    van("van_r1", 53)
+    onibus("onibus_r1", 54)
+    caixa_dagua("caixa_dagua")
     print("RUINAS_OK")

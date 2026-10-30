@@ -33,8 +33,12 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `main.gd` — pista de teste (blocos, rampas, túnel, prédio, casinha com `Porta_0`, carro), bonecos de treino, itens
   (`Item_0..3` munição, `Item_casa`, `Item_comida_k`/`Item_agua_k`), `PONTOS_ZUMBI`, `PONTOS_TOCAIA`, `PATRULHAS`, `PONTOS_CHEFE`, spawners
   (jogadores e zumbis), malha de navegação (grupo "cenario", raio 0.35), `iniciar_solo/criar_partida/entrar_partida/iniciar_servidor`.
-- `bairro.gd` (Bairro) — cidade do OpenStreetMap (centro de Monroeville, AL; `assets/mapa/monroeville.json`, gerado
-  por `tools/mapa/osm_para_json.py`; ORIGEM (0,0,-300), TAMANHO 500: termina em z -50, longe da pista). Cada lote recebe
+- `bairro.gd` (Bairro) — cidade NOSSA (30/10): `tools/mapa/cidade_nossa.py` gera `assets/mapa/cidade.json` (mesmo formato
+  do OSM + `frestas`, `bloqueios`, `marcos`): avenida curva, ruas tortas e sem saída, bairros centro/casas/industrial/
+  beira (campo `uso`). Desenho de cima: ver o script. ORIGEM (0,0,-300), TAMANHO 500 (muro do exército na borda, `_borda`).
+  `_fresta` (muros + Area3D grupo "frestas") -> `Jogador._acha_fresta/_entra_fresta/_esgueira/sai_fresta` (de lado,
+  raio ESGUEIRA_RAIO, analógico x; câmera presa de frente para a parede; Maos some). Teste: test_fresta (7).
+  `_bloqueio` (ônibus tombado ou carros), `_veiculo`, `_pinta` (materiais do Blender -> texturas). Cada lote recebe
   uma RUÍNA modelada no Blender (30/10, pedido do dono): `tools/blender/ruinas.py` gera `assets/ruinas/*.glb`
   (casa_r1..r6: telhado caído, queimada, 2 andares com escada; loja_r1/r2: vitrine, gôndolas; predio_r1: canto
   desabado; móveis dentro). Rodar: `~/.local/blender/blender-4.2.9-linux-x64/blender -b -P tools/blender/ruinas.py --

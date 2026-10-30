@@ -66,6 +66,8 @@ func _process(dt: float) -> void:
 		_yaw_alvo = atan2(-d.x, -d.z)
 		_pitch_alvo = atan2(d.y, Vector2(d.x, d.z).length())
 		_tremor = maxf(_tremor, 0.12)
+	if alvo.fresta:  # de lado na fresta: de frente para a parede, olhando no máximo ~55° para cada ponta
+		_yaw_alvo = alvo.yaw_fresta + clampf(angle_difference(alvo.yaw_fresta, _yaw_alvo), -0.95, 0.95)
 	var k: float = 1.0 - exp(-SUAVE_OLHAR * dt)
 	yaw = lerp_angle(yaw, _yaw_alvo, k)
 	pitch = lerpf(pitch, _pitch_alvo, k)

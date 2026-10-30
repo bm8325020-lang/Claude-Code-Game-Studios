@@ -11,13 +11,16 @@ extends Node3D
 const ORIGEM := Vector3(0, 0, -300)   # centro do recorte (a pista de teste fica ao norte, em z > -30)
 const TAMANHO: float = 500.0          # lado da área usada (o resto do recorte fica de fora)
 const PAREDE: float = 3.0             # pé-direito de um andar
-const MAPA: String = "res://assets/mapa/monroeville.json"
+const MAPA: String = "res://assets/mapa/cidade.json"  # tools/mapa/cidade_nossa.py
 const TEX: String = "res://assets/texturas/%s_%s.jpg"
 ## Ruínas modeladas no Blender (tools/blender/ruinas.py), do maior para o menor
 const RUINAS := "res://assets/ruinas/%s.glb"
 const RUINAS_CASA: Array[String] = ["casa_r5", "casa_r2", "casa_r4", "casa_r1", "casa_r3", "casa_r6"]
 const RUINAS_MANSAO: Array[String] = ["casa_r5", "casa_r2", "casa_r3"]
 const RUINAS_LOJA: Array[String] = ["predio_r1", "loja_r2", "loja_r1"]
+const RUINAS_GALPAO: Array[String] = ["galpao_r1", "galpao_r2"]
+const VEICULOS: Array[String] = ["carro_r1", "carro_r1", "van_r1", "carro_r2"]  # carro_r2 = queimado
+const FRESTA_ALT: float = 4.2  # muros da fresta (mais altos que o pulo)
 const LARG_RUA: Dictionary = {"primary": 10.0, "secondary": 9.0, "tertiary": 8.0, "residential": 6.5, "unclassified": 6.0, "service": 4.0}
 
 var pontos_zumbi: Array[Vector3] = []
@@ -31,6 +34,7 @@ const CHANCE_BOM: float = 0.75
 var _rng := RandomNumberGenerator.new()
 var _mats: Dictionary = {}
 var _ruas: Array = []      # [[a, b, largura]] em coordenadas locais (x, z)
+var _n_frestas: int = 0
 var _infos: Dictionary = {}  # ruína -> tamanho no chão
 var _poligonos: Array = [] # polígonos (PackedVector2Array) de todas as construções, para não pôr nada dentro
 
@@ -60,6 +64,18 @@ func _ready() -> void:
 			n_casa += 1
 	_carros()
 	_barricadas()
+	for b: Dictionary in dados.get("bloqueios", []):
+		_bloqueio(Vector2(b.p[0], b.p[1]), float(b.ang), float(b.larg))
+	for m: Dictionary in dados.get("marcos", []):
+		if not ResourceLoader.exists(RUINAS % m.tipo):
+			continue  # marco ainda sem modelo
+		var mk: Node3D = (load(RUINAS % m.tipo) as PackedScene).instantiate()
+		mk.position = Vector3(m.p[0], 0, m.p[1])
+		add_child(mk)
+		_pinta(mk, Color.WHITE)
+	for f: Dictionary in dados.get("frestas", []):
+		_fresta(Vector2(f.a[0], f.a[1]), Vector2(f.b[0], f.b[1]), float(f.larg))
+	_borda()
 	_arvores_mortas()
 	_hidrantes_e_fogo()
 	_classifica()
@@ -124,7 +140,8 @@ func _eh_casa(p: Dictionary) -> bool:
 ## Ruína do Blender no lote; mansão que não cabe sobe em código (as 3 têm que existir). false = lote vazio.
 func _construcao(poly: PackedVector2Array, nome: String, dados: Dictionary, mansao: bool) -> bool:
 	var loja: bool = not mansao and not _eh_casa(dados)
-	if _ruina(poly, nome, RUINAS_MANSAO if mansao else (RUINAS_LOJA if loja else RUINAS_CASA), mansao, loja):
+	var opcoes: Array = RUINAS_MANSAO if mansao else (RUINAS_GALPAO if dados.tipo == "industrial" else (RUINAS_LOJA if loja else RUINAS_CASA))
+	if _ruina(poly, nome, opcoes, mansao, loja):
 		return true
 	if not mansao:
 		return false
@@ -215,7 +232,7 @@ func _recheio(no: Node3D, poly: PackedVector2Array, porta_i: int, mansao: bool, 
 ## Escolhe pelo nome, entre os `opcoes` que cabem (área até 1,3x a do lote e sem encostar na rua). false = não coube.
 func _ruina(poly: PackedVector2Array, nome: String, opcoes: Array, mansao: bool, loja: bool) -> bool:
 	var area: float = absf(_area(poly))
-	var cabem: Array = opcoes.filter(func(a: String) -> bool: var t: Vector2 = _tam_ruina(a); return t.x * t.y <= area * 1.3)
+	var cabem: Array = opcoes.filter(func(a: String) -> bool: var t: Vector2 = _tam_ruina(a); return t.x * t.y <= area * 1.05)
 	if cabem.is_empty():
 		cabem = [opcoes[-1]]  # o menor
 	var porta_i: int = _lado_da_rua(poly)
@@ -261,11 +278,7 @@ func _poe_ruina(ret: PackedVector2Array, nome: String, arq: String, ang: float, 
 	m.rotation.y = -ang  # no plano o ângulo é anti-horário em (x, z); em 3D o giro em Y é ao contrário
 	m.position = _v3(c)
 	no.add_child(m)
-	var tinta: Color = [Color(0.82, 0.8, 0.76), Color(0.7, 0.74, 0.72), Color(0.8, 0.7, 0.62), Color(0.72, 0.72, 0.76)][absi(hash(nome)) % 4]
-	for mi: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
-		for s in mi.mesh.get_surface_count():
-			var mm: Material = mi.mesh.surface_get_material(s)
-			mi.set_surface_override_material(s, _mat_ruina(mm.resource_name if mm else "", tinta))
+	_pinta(m, [Color(0.82, 0.8, 0.76), Color(0.7, 0.74, 0.72), Color(0.8, 0.7, 0.62), Color(0.72, 0.72, 0.76)][absi(hash(nome)) % 4])
 	var marca: Node3D = m.get_node_or_null("porta")
 	if marca and absi(hash(nome)) % 3 != 0:  # 1 em 3 com a porta arrombada
 		var porta := Porta.new()
@@ -275,6 +288,15 @@ func _poe_ruina(ret: PackedVector2Array, nome: String, arq: String, ang: float, 
 		porta.rotation.y = m.rotation.y
 		no.add_child(porta)
 	_recheio(no, ret, _lado_da_rua(ret), mansao, loja)
+
+
+## Troca os materiais do modelo do Blender pelas texturas do jogo (tinta: parede e madeira; lataria: cor do carro).
+func _pinta(m: Node3D, tinta: Color, lataria: Color = Color(0.4, 0.15, 0.12)) -> void:
+	for mi: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
+		for s in mi.mesh.get_surface_count():
+			var mm: Material = mi.mesh.surface_get_material(s)
+			var n: String = mm.resource_name if mm else ""
+			mi.set_surface_override_material(s, _cor(lataria, 0.45) if n == "lataria" else _mat_ruina(n, tinta))
 
 
 ## Textura do jogo para o material do Blender (só o nome vem do modelo).
@@ -290,6 +312,9 @@ func _mat_ruina(n: String, tinta: Color) -> Material:
 		"pano": return _mat("reboco", 0.8, Color(0.4, 0.36, 0.33))  # estofado sujo
 		"branco": return _cor(Color(0.7, 0.69, 0.64), 0.5)
 		"papelao": return _cor(Color(0.5, 0.4, 0.28))
+		"vidro": return _cor(Color(0.05, 0.06, 0.07), 0.15)
+		"pneu": return _cor(Color(0.04, 0.04, 0.04))
+		"ferrugem": return _mat("concreto", 0.6, Color(0.5, 0.28, 0.14))
 	return _mat("concreto", 0.4, Color(0.7, 0.68, 0.64))
 
 func _coisas_da_faccao(no: Node3D, cantos: Array, c: Vector2) -> void:
@@ -530,27 +555,78 @@ func _carros() -> void:
 		n += 1
 		var d: Vector2 = (b - a).normalized()
 		var p: Vector2 = a.lerp(b, _rng.randf_range(0.3, 0.7)) + Vector2(d.y, -d.x) * float(r[2]) * 0.25 * (1 if _rng.randf() < 0.5 else -1)
-		var carro := StaticBody3D.new()
+		var carro: Node3D = _veiculo(VEICULOS[n % VEICULOS.size()], cores[_rng.randi() % cores.size()])
 		carro.name = "Carro_%d" % n
 		carro.position = Vector3(p.x, 0, p.y)
 		carro.rotation.y = atan2(d.x, d.y) + _rng.randf_range(-0.35, 0.35)
-		add_child(carro)
-		var queimado: bool = n % 4 == 0
-		var cor: Color = Color(0.07, 0.06, 0.06) if queimado else cores[_rng.randi() % cores.size()]
-		_peca(carro, Vector3(0, 0.65, 0), Vector3(1.8, 0.7, 4.3), _cor(cor, 0.35))
-		_peca(carro, Vector3(0, 1.25, -0.2), Vector3(1.6, 0.55, 2.1), _cor(cor.darkened(0.15), 0.35))
-		if not queimado:
-			_peca(carro, Vector3(0, 1.25, -0.2), Vector3(1.62, 0.42, 1.7), _cor(Color(0.06, 0.07, 0.08), 0.1))
-		for rr in [Vector3(-0.85, 0.32, 1.35), Vector3(0.85, 0.32, 1.35), Vector3(-0.85, 0.32, -1.35), Vector3(0.85, 0.32, -1.35)]:
-			_peca(carro, rr, Vector3(0.25, 0.64, 0.64), _cor(Color(0.05, 0.05, 0.05)))
-		var cs := CollisionShape3D.new()
-		var bs := BoxShape3D.new()
-		bs.size = Vector3(1.8, 1.5, 4.3)
-		cs.shape = bs
-		cs.position.y = 0.75
-		carro.add_child(cs)
 		if _rng.randf() < 0.5:
 			pontos_zumbi.append(ORIGEM + Vector3(p.x, 0.1, p.y) + Vector3(d.y, 0, -d.x) * 3.0)
+
+
+func _veiculo(arq: String, cor: Color) -> Node3D:
+	var v: Node3D = (load(RUINAS % arq) as PackedScene).instantiate()
+	add_child(v)
+	_pinta(v, Color.WHITE, cor)
+	return v
+
+
+## Rua fechada: ônibus tombado ou carros batidos atravessados, sem passagem (tem que dar a volta).
+func _bloqueio(p: Vector2, ang: float, larg: float) -> void:
+	var lado := Vector2(cos(ang), sin(ang))
+	if _rng.randf() < 0.4:
+		var o: Node3D = _veiculo("onibus_r1", Color.WHITE)
+		o.position = _v3(p)
+		o.rotation.y = -ang + PI * 0.5
+		return
+	var n: int = ceili(larg / 2.0)
+	for k in n:
+		var q: Vector2 = p + lado * ((k - (n - 1) * 0.5) * 2.0)
+		var c: Node3D = _veiculo(VEICULOS[(k + 1) % VEICULOS.size()], Color(0.3, 0.3, 0.32).lerp(Color(0.5, 0.2, 0.15), _rng.randf()))
+		c.position = _v3(q)
+		c.rotation.y = -ang + _rng.randf_range(-0.3, 0.3)
+
+
+## Fresta entre dois prédios: muros dos dois lados, larga só para passar de lado (Jogador entra esgueirando).
+## Zumbi (raio 0,35) não cabe: é rota de fuga.
+func _fresta(a: Vector2, b: Vector2, larg: float) -> void:
+	var d: Vector2 = b - a
+	var lado := Vector2(d.y, -d.x).normalized()
+	var meio: Vector2 = (a + b) * 0.5
+	var tij := _mat("tijolo", 0.4, Color(0.75, 0.68, 0.64))
+	for s in [-1.0, 1.0]:
+		var c: Vector2 = meio + lado * s * (larg * 0.5 + 0.15)
+		var corpo := StaticBody3D.new()
+		corpo.position = Vector3(c.x, FRESTA_ALT * 0.5, c.y)
+		corpo.rotation.y = atan2(d.x, d.y)
+		add_child(corpo)
+		_caixa(corpo, Vector3(0.3, FRESTA_ALT, d.length() + 0.6), tij)
+	var f := Area3D.new()
+	f.name = "Fresta_%d" % _n_frestas
+	_n_frestas += 1
+	f.add_to_group("frestas")
+	f.collision_layer = 0
+	f.collision_mask = 2  # jogadores
+	f.position = Vector3(meio.x, 1.0, meio.y)
+	f.rotation.y = atan2(d.x, d.y)
+	f.set_meta("eixo", Vector3(d.x, 0, d.y).normalized())
+	var cs := CollisionShape3D.new()
+	var bx := BoxShape3D.new()
+	bx.size = Vector3(larg + 0.2, 2.0, d.length() + 1.6)  # pega um pouco antes da boca
+	cs.shape = bx
+	f.add_child(cs)
+	add_child(f)
+
+
+## Borda do mapa: muro do exército (barreira de concreto com tela em cima) e mata seca do lado de fora.
+func _borda() -> void:
+	var conc := _mat("concreto", 0.4, Color(0.62, 0.6, 0.56))
+	var meio: float = TAMANHO * 0.5 - 4.0
+	for lado in 4:
+		var corpo := StaticBody3D.new()
+		var v: bool = lado % 2 == 0
+		corpo.position = Vector3(0 if v else (meio if lado == 1 else -meio), 1.8, (meio if lado == 0 else -meio) if v else 0)
+		add_child(corpo)
+		_caixa(corpo, Vector3(TAMANHO if v else 0.6, 3.6, 0.6 if v else TAMANHO), conc)
 
 
 # bloqueio do exército largado: barreiras de concreto atravessando a rua, sacos de areia e entulho

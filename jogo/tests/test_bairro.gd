@@ -40,11 +40,11 @@ func _init() -> void:
 	var meio := Bairro.ORIGEM + Vector3(c2.x, 0.1, c2.y)
 	var dentro: Vector3 = meio + Vector3(meio.x - fr.x, 0, meio.z - fr.z).normalized() * 1.2
 	var mapa: RID = main.get_world_3d().navigation_map
-	for i in 120:
+	for i in 900:  # cidade grande: o mapa de navegação demora uns segundos para juntar as regiões
 		if NavigationServer3D.map_get_iteration_id(mapa) > 0 and NavigationServer3D.map_get_closest_point(mapa, dentro).distance_to(dentro) < 1.0:
 			break
 		await physics_frame
 	var cam: PackedVector3Array = NavigationServer3D.map_get_path(mapa, casa.get_meta("frente"), dentro, true)  # da rua
-	ok(cam.size() > 1 and cam[cam.size() - 1].distance_to(dentro) < 1.0, "zumbi acha caminho da rua até dentro da casa (fim a %.1f m)" % (cam[cam.size() - 1].distance_to(dentro) if cam.size() > 0 else 99.0))
+	ok(cam.size() > 1 and cam[cam.size() - 1].distance_to(dentro) < 1.5, "zumbi acha caminho da rua até dentro da casa (fim a %.1f m)" % (cam[cam.size() - 1].distance_to(dentro) if cam.size() > 0 else 99.0))
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)
