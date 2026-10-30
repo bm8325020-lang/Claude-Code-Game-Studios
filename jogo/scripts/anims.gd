@@ -9,6 +9,27 @@ extends RefCounted
 
 const PASTA: String = "res://assets/mixamo/"
 const MODELO: String = "res://assets/mixamo/xbot.fbx"
+## Personagens com roupa e textura (Mixamo, mesmo esqueleto do X Bot): o jogador é fixo por enquanto (editor de
+## personagem fica para depois); os zumbis variam entre os três; o chefe é o parasita.
+const JOGADOR: String = "sobrevivente"
+const ZUMBIS: Array[String] = ["zumbi_policial", "zumbi_mulher", "zumbi_soldado"]
+const CHEFE: String = "chefe_parasita"
+const ALTURA_XBOT: float = 1.81  # as animações foram feitas para essa altura (posição do quadril)
+
+
+## Instancia um personagem de assets/mixamo/personagens/ com a altura do X Bot (assim o quadril das
+## animações cai no lugar certo). Sem o arquivo (clone sem os .fbx), cai no X Bot.
+static func boneco(nome: String) -> Node3D:
+	var caminho: String = PASTA + "personagens/%s.fbx" % nome
+	if not ResourceLoader.exists(caminho):
+		return (load(MODELO) as PackedScene).instantiate()
+	var r: Node3D = (load(caminho) as PackedScene).instantiate()
+	var h: float = 0.0
+	for mi: MeshInstance3D in r.find_children("*", "MeshInstance3D", true, false):
+		h = maxf(h, (mi.transform * mi.get_aabb()).end.y)
+	var esq: Skeleton3D = r.find_children("*", "Skeleton3D", true, false)[0]
+	esq.scale = Vector3.ONE * (ALTURA_XBOT / h if h > 0.1 else 1.0)
+	return r
 
 ## nome lógico -> [arquivo, início (s), fim (s, -1 = até o fim)]. Os golpes e a pistola são cortados no
 ## trecho útil (os clipes do Mixamo têm preparação e volta longas).

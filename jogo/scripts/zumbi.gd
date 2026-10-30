@@ -65,8 +65,13 @@ var chefe: bool = false
 const ESCALA_CHEFE: float = 1.35
 const VIDA_CHEFE: int = 400
 const DANO_CHEFE: int = 35
+## Habilidade do chefe: pancada no chão (em vez do soco, de tempos em tempos): acerta todos em volta, até de costas
+const PANCADA_RAIO: float = 4.0
+const PANCADA_DANO: int = 25
+const PANCADA_INTERVALO: float = 7.0
+var _pancada: bool = false
+var _pancada_t: float = 3.0  # servidor: tempo até poder dar a próxima
 var _vida_max: int = VIDA_MAX
-var _pele: Color = Color(0.46, 0.5, 0.41)
 var vida: int = VIDA_MAX:
 	set(v):
 		var antes: int = vida
@@ -132,7 +137,6 @@ func _ready() -> void:
 		_vida_max = VIDA_CHEFE
 		vida = VIDA_CHEFE
 		altura_cabeca *= k
-		_pele = Color(0.33, 0.36, 0.3)
 	var cs := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
 	cap.radius = RAIO * k
@@ -141,17 +145,16 @@ func _ready() -> void:
 	cs.position.y = ALTURA * k * 0.5
 	add_child(cs)
 	_forma = cs
-	modelo = (load(Anims.MODELO) as PackedScene).instantiate()
+	# o nome é o mesmo em todos os aparelhos: todos veem o mesmo zumbi
+	modelo = Anims.boneco(Anims.CHEFE if chefe else Anims.ZUMBIS[hash(String(name)) % Anims.ZUMBIS.size()])
 	modelo.scale = Vector3.ONE * k
 	add_child(modelo)
-	_mat_pele = StandardMaterial3D.new()
-	_mat_pele.albedo_color = _pele
-	_mat_pele.roughness = 0.9
-	var roupa := StandardMaterial3D.new()
-	roupa.albedo_color = Color(0.24, 0.17, 0.14)
-	roupa.roughness = 1.0
+	_mat_pele = StandardMaterial3D.new()  # por cima da roupa: pisca vermelho ao levar golpe
+	_mat_pele.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_mat_pele.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_mat_pele.albedo_color = Color(0.85, 0.15, 0.1, 0.0)
 	for m: MeshInstance3D in modelo.find_children("*", "MeshInstance3D", true, false):
-		m.material_override = roupa if m.name.contains("Joints") else _mat_pele
+		m.material_overlay = _mat_pele
 	anim = AnimationPlayer.new()
 	modelo.add_child(anim)
 	anim.add_animation_library("", Anims.biblioteca_zumbi())
@@ -199,6 +202,7 @@ func _manda() -> bool:
 
 
 func _physics_process(dt: float) -> void:
+	_pancada_t -= dt
 	if not _manda():
 		global_position = global_position.lerp(pos_rede, 1.0 - exp(-14.0 * dt))
 		if global_position.distance_to(pos_rede) > 4.0:
@@ -524,6 +528,10 @@ func _ataca() -> void:
 	_ataque_t = 0.0
 	_acertou = false
 	anim.speed_scale = 1.0
+	_pancada = chefe and _pancada_t <= 0.0
+	if _pancada:
+		_pancada_t = PANCADA_INTERVALO
+		anim.speed_scale = 0.75  # mais devagar: dá para ver vindo e fugir
 	_toca("ataque", 0.12, true)
 
 
@@ -539,11 +547,13 @@ func _porta_na_frente(dir: Vector3) -> Porta:
 
 
 func _atualiza_ataque(dt: float) -> void:
-	_ataque_t += dt
+	_ataque_t += dt * anim.speed_scale
 	var dur: float = anim.get_animation("ataque").length
 	if not _acertou and _ataque_t >= dur * ACERTO:
 		_acertou = true
-		if _porta_alvo:
+		if _pancada:
+			_pancada_no_chao()
+		elif _porta_alvo:
 			_porta_alvo.leva_soco(DANO)
 			_porta_alvo = null
 		elif alvo and is_instance_valid(alvo):
@@ -555,6 +565,41 @@ func _atualiza_ataque(dt: float) -> void:
 				alvo.levar_dano(roundi((DANO_CHEFE if chefe else DANO) * Ciclo.forca_noite(get_tree(), NOITE_DANO)), d.normalized() * (2.5 if chefe else 1.0))
 	if _ataque_t >= dur:
 		_ataque_t = -1.0
+
+
+# servidor: a pancada do chefe acerta todos os jogadores no raio (dano cai com a distância) e empurra para fora
+func _pancada_no_chao() -> void:
+	for j: Jogador in get_tree().get_nodes_in_group("jogadores"):
+		var d: Vector3 = j.global_position - global_position
+		d.y = 0.0
+		if j.vida > 0 and d.length() < PANCADA_RAIO:
+			var f: float = 1.0 - d.length() / PANCADA_RAIO * 0.5
+			j.levar_dano(roundi(PANCADA_DANO * f * Ciclo.forca_noite(get_tree(), NOITE_DANO)), (d.normalized() if d.length() > 0.1 else -modelo.global_basis.z) * 3.0)
+	_poeira.rpc()
+
+
+# todos: anel de poeira se abrindo no chão em volta do chefe
+@rpc("authority", "call_local", "unreliable")
+func _poeira() -> void:
+	if Rede.servidor_sem_tela:
+		return
+	var mi := MeshInstance3D.new()
+	var t := TorusMesh.new()
+	t.inner_radius = 0.85
+	t.outer_radius = 1.0
+	mi.mesh = t
+	var m := StandardMaterial3D.new()
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = Color(0.55, 0.5, 0.42, 0.7)
+	mi.material_override = m
+	get_parent().add_child(mi)
+	mi.global_position = global_position + Vector3(0, 0.1, 0)
+	mi.scale = Vector3(0.5, 0.3, 0.5)
+	var tw := mi.create_tween().set_parallel()
+	tw.tween_property(mi, "scale", Vector3(PANCADA_RAIO, 0.3, PANCADA_RAIO), 0.45).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(m, "albedo_color:a", 0.0, 0.5)
+	tw.chain().tween_callback(mi.queue_free)
 
 
 ## Golpe ou tiro (o facão e a pistola chamam isto). No cliente vira pedido ao servidor.
@@ -608,8 +653,8 @@ func _aplica(dano: int, dir: Vector3) -> void:
 
 func _pisca() -> void:
 	var t := create_tween()
-	t.tween_property(_mat_pele, "albedo_color", Color(0.85, 0.3, 0.25), 0.04)
-	t.tween_property(_mat_pele, "albedo_color", _pele, 0.18)
+	t.tween_property(_mat_pele, "albedo_color:a", 0.45, 0.04)
+	t.tween_property(_mat_pele, "albedo_color:a", 0.0, 0.18)
 
 
 func _morre() -> void:

@@ -44,6 +44,10 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   (`_porta_na_frente`), ziguezague/fuga, noite (`Ciclo.forca_noite`), patrulha (`rota`), cobertura (`_acha_abrigo`, `_custo_caminho`), chefe (`chefe`, `VIDA_CHEFE`, `DANO_CHEFE`). Camada 8.
 - `anims.gd` — `CLIPES` (jogador) e `CLIPES_ZUMBI`: nome lógico → [arquivo, ini, fim]; "kaykit:" (retarget),
   "proprio:" (golpes.gd). `VELOCIDADE*` p/ pés.
+- Personagens (Mixamo, mesmo esqueleto do X Bot, fora do git e do Drive: rebaixar pela API, type "Character",
+  `assets/mixamo/personagens/`): `Anims.boneco(nome)` (altura igualada ao X Bot), `Anims.JOGADOR` sobrevivente,
+  `Anims.ZUMBIS` (policial/mulher/soldado, escolhido pelo nome do nó), `Anims.CHEFE` parasita. Chefe: pancada no
+  chão (`_pancada_no_chao`, PANCADA_RAIO/DANO/INTERVALO, rpc `_poeira`). Teste: tests/test_chefe.gd (7).
 - `retarget.gd` — KayKit→X Bot. `golpes.gd` — golpes do facão feitos à mão (poses-chave).
 - `pistola.gd` — arma de fogo: `tipo` (FOGO: pistola/smg) define pente/dano/cadência/dispersão/coice/recarga/automática;
   `modo_auto`, tiro (máscara 1|8), `efeito`, `Pistola.sangue`, `BARULHO`. Jogador: `pistola`, `smg`, `fogo()`, `e_fogo(tipo)`,

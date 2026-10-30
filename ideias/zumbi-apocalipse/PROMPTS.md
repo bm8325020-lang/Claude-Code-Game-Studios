@@ -200,6 +200,13 @@ Prompt das próximas partes: atacar os pontos fracos, um por iteração, com fot
 4. Itens soltos no chão com o modelo 3D (o mesmo dos ícones), girando devagar, em vez de caixinhas.
 5. Mão segurando o facão e as armas brancas.
 
+## 8c. Personagens novos e editor de personagem (pedido do dono)
+Status: em andamento. Parte 1 feita (APK 0.44): personagem fixo para todos (Mixamo "Survivor"), zumbis com 3 modelos
+(policial, mulher, soldado), chefe com skin própria (parasita) e habilidade própria (pancada no chão: acerta todos a
+4 m, até de costas, empurra, a cada 7 s, anel de poeira). Teste: tests/test_chefe.gd.
+Parte 2 (depois): editor de personagem — escolher entre alguns corpos do Mixamo + cor de roupa/pele, salvo na conta
+(prompt 16), mandado pela rede como dado do jogador (só o nome do modelo e as cores; servidor confere a lista).
+
 ## 9. Grupos
 Status: pendente
 

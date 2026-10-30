@@ -267,14 +267,8 @@ func _monta_sincronia() -> void:
 
 
 func _monta_modelo() -> void:
-	modelo = (load(Anims.MODELO) as PackedScene).instantiate()
+	modelo = Anims.boneco(Anims.JOGADOR)  # personagem fixo por enquanto (editor de personagem: depois)
 	add_child(modelo)
-	# o material do X Bot vem rosado na importação: corpo cinza claro e juntas escuras
-	for m: MeshInstance3D in modelo.find_children("*", "MeshInstance3D", true, false):
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(0.2, 0.2, 0.22) if m.name.contains("Joints") else Color(0.78, 0.78, 0.8)
-		mat.roughness = 0.6
-		m.material_override = mat
 	anim = AnimationPlayer.new()
 	anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL  # avançado em _process
 	modelo.add_child(anim)

@@ -57,7 +57,7 @@ func _monta() -> void:
 	corpo.add_child(cs)
 	add_child(corpo)
 	# o vendedor: o mesmo boneco dos jogadores, parado atrás do balcão
-	var vendedor := (load(Anims.MODELO) as PackedScene).instantiate() as Node3D
+	var vendedor := Anims.boneco(Anims.JOGADOR)
 	vendedor.position = Vector3(0, 0, -0.75)
 	add_child(vendedor)
 	if not Rede.servidor_sem_tela:
