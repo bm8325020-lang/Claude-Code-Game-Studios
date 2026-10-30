@@ -66,6 +66,9 @@ var _vermelho: ColorRect
 var _filme: ColorRect
 var _raid_t: float = 0.0
 var _lista_habs: VBoxContainer
+var abre_habs: Callable
+var abre_faccao: Callable
+var _btn_faccao: Button
 var _raids_avisadas: Dictionary = {}
 var _bilhete_t: float = 0.0
 var _lidos: Dictionary = {}  # bordas escuras, granulado e bordas vermelhas pulsando com pouca vida
@@ -602,6 +605,16 @@ func _monta_pausa() -> void:
 	b.offset_bottom = 70
 	b.pressed.connect(func() -> void: pausa(true))
 	add_child(b)
+	_btn_faccao = UiTema.botao("FACÇÃO")  # aparece quando você é de uma facção
+	_btn_faccao.anchor_left = 1.0
+	_btn_faccao.anchor_right = 1.0
+	_btn_faccao.offset_left = -230
+	_btn_faccao.offset_right = -100
+	_btn_faccao.offset_top = 14
+	_btn_faccao.offset_bottom = 70
+	_btn_faccao.visible = false
+	_btn_faccao.pressed.connect(func() -> void: abre_faccao.call())
+	add_child(_btn_faccao)
 	_pausa = Control.new()
 	_pausa.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_pausa.theme = UiTema.tema()
@@ -634,7 +647,7 @@ func _monta_pausa() -> void:
 		p_cfg.visible = false
 		p_menu.visible = true)
 	var grupo := UiTema.botao("GRUPO")
-	col.add_child(grupo)
+	# dono, 31/10: a pausa fica só com CONFIGURAÇÕES; facção abre pelo botão da tela, habilidades pelo livro
 	var col_g := UiTema.painel_central(_pausa, 620.0)
 	col_g.add_child(UiTema.titulo("GRUPO", 40, UiTema.DESTAQUE))
 	col_g.add_child(UiTema.rotulo("Até %d no grupo. Convide pelo nome:" % Grupos.MAX, 20, UiTema.APAGADO))
@@ -656,7 +669,6 @@ func _monta_pausa() -> void:
 		p_g.visible = false
 		p_menu.visible = true)
 	var fac := UiTema.botao("FACÇÃO")
-	col.add_child(fac)
 	var col_f := UiTema.painel_central(_pausa, 620.0)
 	col_f.add_child(UiTema.titulo("FACÇÃO", 40, UiTema.DESTAQUE))
 	_lista_faccao = VBoxContainer.new()
@@ -674,7 +686,6 @@ func _monta_pausa() -> void:
 		p_f.visible = false
 		p_menu.visible = true)
 	var habs := UiTema.botao("HABILIDADES")
-	col.add_child(habs)
 	var col_h := UiTema.painel_central(_pausa, 760.0)
 	col_h.add_child(UiTema.titulo("HABILIDADES", 40, UiTema.DESTAQUE))
 	_lista_habs = VBoxContainer.new()
@@ -706,6 +717,12 @@ func _monta_pausa() -> void:
 	volta_p.pressed.connect(func() -> void:
 		p_p.visible = false
 		p_menu.visible = true)
+	abre_habs = func() -> void:
+		pausa(true)
+		habs.pressed.emit()
+	abre_faccao = func() -> void:
+		pausa(true)
+		fac.pressed.emit()
 	abre_pvp = func() -> void:
 		pausa(true)
 		pvp.pressed.emit()
@@ -838,7 +855,10 @@ func _pegou(tipo: String, qtd: int) -> void:
 		aviso("Antibiótico tomado: a infecção parou", Color(0.45, 0.75, 0.4))
 		return
 	if tipo == "nivel":
-		aviso("NÍVEL %d — ponto de habilidade na pausa (HABILIDADES)" % qtd, UiTema.DESTAQUE, 4.0)
+		aviso("NÍVEL %d — ponto de habilidade: abra o livro na mochila" % qtd, UiTema.DESTAQUE, 4.0)
+		return
+	if tipo == "livro":
+		abre_habs.call()
 		return
 	if tipo == "aprendeu":
 		aviso("Receita aprendida", Color(0.35, 0.6, 0.9))
@@ -880,6 +900,7 @@ func _atualiza_dominio(principal: Node) -> void:
 	var pode: bool = casa != "" and principal.bairro.dominavel(casa) and tent == null and (minha == "" or dona != minha)
 	if _btn_dominar:
 		_btn_dominar.visible = pode
+	_btn_faccao.visible = minha != ""
 	if pode and not toque and Input.is_action_just_pressed("dominar"):
 		principal.pede_dominar.rpc_id(1)
 	_dominio.visible = tent != null or (casa != "" and dona != "")

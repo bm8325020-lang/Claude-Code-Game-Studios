@@ -173,8 +173,8 @@ func _relay_controle(m: Dictionary) -> void:
 			sala_sobrev.codigo = m.codigo
 			multiplayer.multiplayer_peer = relay
 			mostra_carregando()
-			await get_tree().process_frame  # deixa a tela de carregamento aparecer antes de montar o mundo
-			await get_tree().process_frame
+			for i in 2:  # a tela de carregamento precisa ser desenhada antes de montar o mundo (sem tela: só espera o quadro)
+				await (get_tree().process_frame if DisplayServer.get_name() == "headless" else RenderingServer.frame_post_draw)
 			_comeca()
 			spawner.spawn({"id": 1, "pos": _ponto_inicial(0)})
 			_poe_zumbis()
@@ -853,17 +853,7 @@ func _luz() -> void:
 	env.adjustment_saturation = 0.78  # cor lavada, suja
 	env.adjustment_contrast = 1.1
 	# filtro de cor de fim do mundo (curva por canal): sombra puxada para o verde-azulado, claro amarelado e sem azul
-	var curva := Gradient.new()
-	curva.set_color(0, Color(0.0, 0.025, 0.04))
-	curva.set_color(1, Color(0.97, 0.94, 0.84))
-	curva.add_point(0.5, Color(0.47, 0.5, 0.49))
-	var lut := GradientTexture1D.new()
-	lut.gradient = curva
-	env.adjustment_color_correction = lut
-	env.glow_enabled = true  # fogo, lanterna e clarão do tiro brilham
-	env.glow_intensity = 0.6
-	env.glow_bloom = 0.04
-	env.glow_hdr_threshold = 1.1
+	# 31/10: filtro de cor (LUT) e brilho (glow) deixavam a tela toda rosa no celular: saíram
 	env.fog_enabled = true
 	env.fog_light_color = Ciclo.CEU_HORIZONTE[0]
 	env.fog_density = 0.012

@@ -226,6 +226,7 @@ func _ready() -> void:
 	mochila.adicionar("pistola", 1)
 	if tem_lanterna:
 		mochila.adicionar("lanterna", 1)
+	mochila.adicionar("livro", 1)  # abre as HABILIDADES (dono, 31/10: saiu da pausa)
 	pistola.reserva = Pistola.RESERVA_INICIAL
 	mochila.mudou.connect(func() -> void:
 		tem_lanterna = mochila.tem("lanterna")
@@ -812,6 +813,8 @@ func usar_espaco(i: int) -> void:
 			entrada["beber"] = true
 		"antibiotico":
 			toma_antibiotico()
+		"livro":
+			item_pego.emit("livro", 0)
 
 
 func _larga_no_chao(tipo: String, qtd: int) -> void:
