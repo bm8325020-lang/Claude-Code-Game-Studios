@@ -61,6 +61,11 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   Zumbi: `armado` (TIRO_*: para, mira `_mira_e_atira`, rpc `_tiro_fx`, pistola na mão `_poe_arma`, chega devagar),
   `de_raid` (MORTO_RAID 15 min), `tipo_pedido`. HUD `_avisa_raid`. `Bairro._espalhados(n, larg)` espalha zumbis/carros/
   barricadas pelo comprimento das ruas. Teste: test_raid (8).
+- Dividir o peso (31/10): `Zumbi.pensa` (peer que roda IA/movimento; 1 = servidor), `_pensa_aqui()`, rpc `muda_pensa`
+  (troca a autoridade do sincronizador "Sincronia"; vida fica no "SincVida" do servidor), `_sente_golpe` (cambaleio no
+  pensador). `main._divide_peso` (servidor, a cada PESO_A_CADA: jogador mais perto a até PESO_RAIO, folga PESO_FOLGA;
+  chefe/armado/deitado/mordendo ficam no servidor); peer que sai devolve os zumbis. Jogador aceita dano de zumbi de
+  qualquer peer (até 80). Teste: test_rede (parte nova no fim). Rede.VERSAO 31.
 - `progresso.gd` (Progresso; 31/10): XP (XP_ZUMBI/RAID/CHEFE no `Zumbi._morre`, XP_NOITE ao amanhecer no `Ciclo`), nível
   (`xp_para`), pontos, `hab` vigor/folego/pontaria/forca (até NIVEL_HAB), salvo em user://progresso_<nick>.cfg. Jogador:
   `prog`, `vida_max()`, `mult_espalho/mult_fogo/mult_forca`, `aprende(h)`; `_recebe("xp")`. Pausa: HABILIDADES

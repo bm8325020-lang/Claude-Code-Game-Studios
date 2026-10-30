@@ -139,6 +139,8 @@ var casa: Vector3                  # onde nasce e onde levanta
 var tocaia: bool = false
 ## raid (delegacia): tipo pedido pelo spawner, com arma de fogo (atira de longe) e morto fica morto por MORTO_RAID
 var tipo_pedido: String = ""
+## peer que pensa este zumbi (1 = servidor); dividir o peso entre os celulares da sala (31/10)
+var pensa: int = 1
 var armado: bool = false
 var de_raid: bool = false
 const MORTO_RAID: float = 900.0     # 15 min até a raid encher de novo
@@ -256,24 +258,57 @@ func _ready() -> void:
 		_deita()
 
 
+# Dois sincronizadores: "Sincronia" (posição, giro, animação) vem de quem PENSA o zumbi (pode ser o celular do
+# jogador mais perto: divide o peso); "SincVida" (vida) vem sempre do servidor, que decide dano, morte e loot.
 func _monta_sincronia() -> void:
 	var cfg := SceneReplicationConfig.new()
 	for p: String in [".:pos_rede", ".:rot_rede"]:
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
-	for p: String in [".:clipe_rede", ".:vida"]:
-		cfg.add_property(NodePath(p))
-		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+	cfg.add_property(NodePath(".:clipe_rede"))
+	cfg.property_set_replication_mode(NodePath(".:clipe_rede"), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	var sync := MultiplayerSynchronizer.new()
 	sync.name = "Sincronia"
 	sync.root_path = NodePath("..")
 	sync.replication_interval = 1.0 / 20.0
 	sync.replication_config = cfg
 	add_child(sync)
+	var cv := SceneReplicationConfig.new()
+	cv.add_property(NodePath(".:vida"))
+	cv.property_set_replication_mode(NodePath(".:vida"), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+	var sv := MultiplayerSynchronizer.new()
+	sv.name = "SincVida"
+	sv.root_path = NodePath("..")
+	sv.replication_config = cv
+	add_child(sv)
 
 
 func _manda() -> bool:
 	return not multiplayer.has_multiplayer_peer() or multiplayer.is_server()
+
+
+## Este aparelho pensa (IA e movimento) este zumbi?
+func _pensa_aqui() -> bool:
+	return not multiplayer.has_multiplayer_peer() or multiplayer.get_unique_id() == pensa
+
+
+## Todos: quem passa a pensar o zumbi (o servidor escolhe; ver Main._divide_peso).
+@rpc("authority", "call_local", "reliable")
+func muda_pensa(id: int) -> void:
+	pensa = id
+	(get_node("Sincronia") as MultiplayerSynchronizer).set_multiplayer_authority(id)
+	if _pensa_aqui():
+		global_position = pos_rede if pos_rede != Vector3.ZERO else global_position
+		velocity = Vector3.ZERO
+
+
+## Quem pensa o zumbi sente o golpe que o servidor aplicou (cambaleia e é empurrado).
+@rpc("authority", "call_remote", "reliable")
+func _sente_golpe(dir: Vector3) -> void:
+	_cambaleio = CAMBALEIO
+	_ataque_t = -1.0
+	_toca("dano", 0.08, true)
+	velocity += Vector3(dir.x, 0, dir.z).normalized() * 2.0 * clampf(dir.length(), 0.5, 3.0)
 
 
 func _physics_process(dt: float) -> void:
@@ -281,15 +316,15 @@ func _physics_process(dt: float) -> void:
 	_mordida_cd -= dt
 	_skill_t -= dt
 	_bote -= dt
-	if _manda():
-		# servidor: zumbi sem alvo e longe de todos os jogadores dorme (não pensa nem anda) até alguém chegar
+	if _pensa_aqui():
+		# zumbi sem alvo e longe de todos os jogadores dorme (não pensa nem anda) até alguém chegar
 		_dorme_t -= dt
 		if _dorme_t <= 0.0:
 			_dorme_t = 1.0
 			_dormindo = _quieto() and not _alguem_perto(DORME_DIST)
 		if _dormindo and _quieto():
 			return
-	if not _manda():
+	if not _pensa_aqui():
 		global_position = global_position.lerp(pos_rede, 1.0 - exp(-14.0 * dt))
 		if global_position.distance_to(pos_rede) > 4.0:
 			global_position = pos_rede
@@ -301,7 +336,7 @@ func _physics_process(dt: float) -> void:
 		velocity.y -= GRAVIDADE * dt
 	if vida <= 0:
 		_morto_t -= dt
-		if _morto_t <= 0.0:
+		if _morto_t <= 0.0 and _manda():  # só o servidor ressuscita (a vida é dele)
 			global_position = casa
 			vida = _vida_max
 		velocity.x = 0.0
@@ -763,7 +798,7 @@ func _atualiza_ataque(dt: float) -> void:
 				alvo.levar_dano(roundi((DANO_CHEFE if chefe else _dano) * Ciclo.forca_noite(get_tree(), NOITE_DANO)), d.normalized() * (2.5 if chefe else 1.0))
 				if not chefe and TIPOS[tipo].skill == "agarrao":
 					alvo.agarrar(AGARRA_T)
-					if _mordida_cd <= 0.0 and randf() < chance_mordida and alvo.vida > 0 and alvo.mordida_t <= 0.0:
+					if _manda() and _mordida_cd <= 0.0 and randf() < chance_mordida and alvo.vida > 0 and alvo.mordida_t <= 0.0:
 						_mordendo = MORDIDA_T
 						_mordida_cd = MORDIDA_ESPERA
 						_ataque_t = -1.0
@@ -900,6 +935,8 @@ func _aplica(dano: int, dir: Vector3) -> void:
 		_fugiu = true
 		_abrigo = _acha_abrigo()
 		_foge_t = FOGE_POR if _abrigo == Vector3.INF else ESCONDE_POR
+	if vida > 0 and pensa != 1 and multiplayer.has_multiplayer_peer() and (not blindado or dano >= roundi(BLINDADO_CAMBALEIA * BLINDAGEM)):
+		_sente_golpe.rpc_id(pensa, dir)
 	if vida > 0 and (not chefe or dano >= 40) and (not blindado or dano >= roundi(BLINDADO_CAMBALEIA * BLINDAGEM)):
 		_cambaleio = CAMBALEIO
 		_ataque_t = -1.0
@@ -932,6 +969,8 @@ func _morre() -> void:
 	_olhando_t = 0.0
 	_voltando = false
 	_morto_t = MORTO_RAID if de_raid else MORTO_POR
+	if _manda() and pensa != 1 and multiplayer.has_multiplayer_peer():
+		muda_pensa.rpc(1)  # morto volta para o servidor (ele ressuscita e solta o loot)
 	_mirando = -1.0
 	anim.speed_scale = 1.0
 	_toca("morte", 0.1, true)

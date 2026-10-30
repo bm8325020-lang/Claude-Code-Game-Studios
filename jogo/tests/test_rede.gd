@@ -75,7 +75,24 @@ func _init() -> void:
 		ok(not caixa.ativo, "caixa pega pelo cliente some nos dois")
 		if papel == "cliente":
 			ok(main.jogador.pistola.reserva == reserva + 24, "as balas chegam no cliente (%d)" % main.jogador.pistola.reserva)
-	await espera_ms(3000)  # deixa o outro lado terminar de medir
+		# dividir o peso: o cliente chega perto do zumbi e o celular dele passa a pensar o zumbi; o zumbi anda nos
+		# dois aparelhos e o soco dele tira vida do cliente
+		if zl and is_instance_valid(zl) and zl.vida > 0:
+			var id_cli: int = main.multiplayer.get_unique_id() if papel == "cliente" else outro.get_multiplayer_authority()
+			if papel == "cliente":
+				main.jogador.global_position = zl.global_position + Vector3(4, 0.1, 0)
+				main.jogador.vida = 100000
+			else:
+				main.jogador.global_position = Vector3(-60, 0.1, 60)  # longe: o zumbi só tem o cliente para pegar
+			await espera_ate(func() -> bool: return zl.pensa == id_cli, 10000)
+			ok(zl.pensa == id_cli, "o zumbi perto do cliente passa a ser pensado pelo celular dele (pensa=%d)" % zl.pensa)
+			var p0: Vector3 = zl.global_position
+			await espera_ms(3000)
+			ok(zl.global_position.distance_to(p0) > 0.5 or zl.clipe_atual() == "ataque", "o zumbi pensado no cliente se mexe nos dois")
+			if papel == "cliente":
+				await espera_ate(func() -> bool: return not is_instance_valid(main.jogador) or main.jogador.vida < 100000, 6000)
+				ok(is_instance_valid(main.jogador) and main.jogador.vida < 100000, "o soco do zumbi pensado no cliente tira vida")
+	await espera_ms(9000)  # deixa o outro lado terminar de medir (o cliente espera o soco do zumbi)
 	print("REDE %s: %s %s" % [papel, "PASS" if falhas.is_empty() else "FAIL", ", ".join(falhas)])
 	quit(0 if falhas.is_empty() else 1)
 

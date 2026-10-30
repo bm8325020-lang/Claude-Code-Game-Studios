@@ -957,7 +957,7 @@ func agarrar(t: float) -> void:
 
 @rpc("any_peer", "call_remote", "reliable")
 func _rede_agarra(t: float) -> void:
-	if multiplayer.get_remote_sender_id() == 1:
+	if multiplayer.get_remote_sender_id() != 0:
 		agarrado_t = maxf(agarrado_t, minf(t, 5.0))
 
 
@@ -1007,7 +1007,8 @@ func levar_dano(dano: int, dir: Vector3) -> void:
 
 @rpc("any_peer", "call_remote", "reliable")
 func _rede_dano(dano: int, dir: Vector3) -> void:
-	if multiplayer.get_remote_sender_id() == 1:  # só o servidor (que roda os zumbis) manda dano
+	# servidor ou o celular que pensa o zumbi que bateu (dividir o peso): dano de zumbi limitado
+	if multiplayer.get_remote_sender_id() == 1 or dano <= 80:
 		_recebe_dano(dano, dir)
 
 

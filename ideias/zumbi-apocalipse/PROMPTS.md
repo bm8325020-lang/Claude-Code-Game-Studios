@@ -380,6 +380,8 @@ APK 0.72 (31/10): corvos rodando em cima da fumaça, corvos no chão que voam gr
 rolando com o vento.
 APK 0.73 (31/10): progressão — XP por zumbi (raid e chefe mais) e por noite sobrevivida, nível com ponto de
 habilidade (Vigor, Fôlego, Pontaria, Força; 5 níveis cada), salvo no aparelho, página HABILIDADES na pausa.
+APK 0.74 (31/10): dividir o peso — cada zumbi comum é pensado pelo celular do jogador mais perto; o celular de quem
+criou a sala continua decidindo vida, morte e loot. Feito: dividir o peso.
 Falta: dividir o peso do mundo com quem entra (cada celular cuida dos zumbis perto dele), dificuldade, progressão,
 raids (delegacia, bunker).
 

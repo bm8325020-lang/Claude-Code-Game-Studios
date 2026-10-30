@@ -294,6 +294,7 @@ func _process(dt: float) -> void:
 	if relay and multiplayer.multiplayer_peer != relay:
 		relay.poll()  # na tela de salas (ainda não é a conexão do jogo)
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_divide_peso(dt)
 		grupos.passa(dt)
 		_passa_raids(dt)
 		_passa_dominio(dt)
@@ -634,6 +635,10 @@ func _cheio() -> void:
 
 
 func _peer_saiu(id: int) -> void:
+	if multiplayer.is_server():  # os zumbis que o celular dele pensava voltam para o servidor
+		for z: Zumbi in zumbis.get_children():
+			if z.pensa == id:
+				z.muda_pensa.rpc(1)
 	if multiplayer.is_server() and not sala_sobrev.is_empty():
 		sala_sobrev.n = jogadores.get_child_count() - 1
 		_recebe_espera.rpc(esperando, sala_sobrev)
@@ -1222,3 +1227,35 @@ func ponto_pvp() -> Vector3:
 	if perto.is_empty():
 		perto = bairro.pontos_nascer
 	return perto[_rng_nascer.randi() % perto.size()]
+
+
+
+# --- dividir o peso (31/10): cada zumbi comum é pensado pelo celular do jogador mais perto dele ---
+const PESO_A_CADA: float = 2.0
+const PESO_RAIO: float = 45.0   # m: mais longe que isso de todos, quem pensa é o servidor
+const PESO_FOLGA: float = 8.0   # m: só troca se o novo estiver bem mais perto (não fica trocando)
+var _peso_t: float = 0.0
+
+
+func _divide_peso(dt: float) -> void:
+	_peso_t -= dt
+	if _peso_t > 0.0 or not multiplayer.has_multiplayer_peer() or not multiplayer.is_server() or multiplayer.get_peers().is_empty():
+		return
+	_peso_t = PESO_A_CADA
+	var vivos: Array = jogadores.get_children().filter(func(j: Jogador) -> bool: return j.vida > 0)
+	for z: Zumbi in zumbis.get_children():
+		if z.chefe or z.armado or z.vida <= 0 or z._deitado or z._mordendo > 0.0:
+			continue
+		var melhor: Jogador = null
+		var d_melhor: float = PESO_RAIO
+		var d_atual: float = INF
+		for j: Jogador in vivos:
+			var d: float = j.global_position.distance_to(z.global_position)
+			if d < d_melhor:
+				melhor = j
+				d_melhor = d
+			if j.get_multiplayer_authority() == z.pensa:
+				d_atual = d
+		var novo: int = melhor.get_multiplayer_authority() if melhor else 1
+		if novo != z.pensa and (d_atual > PESO_RAIO or d_melhor + PESO_FOLGA < d_atual):
+			z.muda_pensa.rpc(novo)

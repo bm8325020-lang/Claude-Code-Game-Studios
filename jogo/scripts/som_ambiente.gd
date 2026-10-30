@@ -74,7 +74,7 @@ func _process(dt: float) -> void:
 	var ciclo: Ciclo = principal.ciclo if principal else null
 	var noite: float = ciclo.noite() if ciclo else 0.0
 	_vento.volume_db = lerpf(-15.0, -9.0, noite)
-	if j == null or not is_instance_valid(j):
+	if j == null or not is_instance_valid(j) or not j.is_inside_tree():
 		return
 	var dentro: bool = principal.bairro != null and principal.bairro.casa_em(j.global_position) != ""
 	AudioServer.set_bus_effect_enabled(0, _eco, dentro)

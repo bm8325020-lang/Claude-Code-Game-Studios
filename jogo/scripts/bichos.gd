@@ -91,7 +91,7 @@ func _corvo() -> Node3D:
 
 func _process(dt: float) -> void:
 	var j: Jogador = principal.jogador if principal else null
-	if j == null or not is_instance_valid(j):
+	if j == null or not is_instance_valid(j) or not j.is_inside_tree():
 		return
 	_t += dt
 	var p: Vector3 = j.global_position
