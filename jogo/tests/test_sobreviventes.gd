@@ -41,7 +41,7 @@ func _init() -> void:
 	var b: Node3D = bilhetes[0]
 	j.global_position = b.global_position + Vector3(0.5, 0.1, 0)
 	await frames(30)
-	ok(main.controles._lidos.has(b) and main.controles._faixa_texto.text.begins_with("BILHETE"), "chegou perto do bilhete: lê")
+	ok(main.controles._lidos.has(b) and main.controles._papel != null and main.controles._papel.visible, "chegou perto do bilhete: lê")
 	# arame farpado: corta e prende
 	var arame: Area3D = refugios[0].get_node("Arame")
 	j.vida = 100

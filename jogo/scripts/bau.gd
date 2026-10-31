@@ -20,6 +20,11 @@ var _saco_t: float = SOME_SACO
 ## baú da facção (prompt 13): começa vazio, não reenche, só membros da facção dona da casa (`faccao`) abrem
 var de_faccao: bool = false
 var faccao: String = ""
+## cofre (31/10): armário de metal trancado com loot raro; abre com uma "chave" (que some). A chave fica numa gaveta
+## (`gaveta_chave`) de outra casa; o bilhete do cofre diz onde. Esvaziou e encheu de novo: tranca e a chave volta.
+var trava: bool = false
+var cofre: bool = false
+var gaveta_chave: Gaveta
 ## [{"tipo", "qtd"}] — vai pela rede quando muda
 var conteudo: Array = []
 var _vazio_t: float = 0.0
@@ -33,6 +38,8 @@ func _ready() -> void:
 	var cfg := SceneReplicationConfig.new()
 	cfg.add_property(NodePath(".:conteudo"))
 	cfg.property_set_replication_mode(NodePath(".:conteudo"), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+	cfg.add_property(NodePath(".:trava"))
+	cfg.property_set_replication_mode(NodePath(".:trava"), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	cfg.add_property(NodePath(".:faccao"))
 	cfg.property_set_replication_mode(NodePath(".:faccao"), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	var sync := MultiplayerSynchronizer.new()
@@ -116,6 +123,10 @@ func _process(dt: float) -> void:
 		_vazio_t -= dt
 		if _vazio_t <= 0.0:
 			conteudo = Loot.sorteia(_rng, facil, raid)
+			if cofre:
+				trava = true
+				if gaveta_chave:
+					gaveta_chave.chave = true
 
 
 # caixa de madeira escura com cantoneiras de metal e tampa (dobradiça atrás); o saco é uma mochila de lona
@@ -124,7 +135,7 @@ func _monta() -> void:
 		_monta_saco()
 		return
 	var madeira := StandardMaterial3D.new()
-	madeira.albedo_color = Color(0.33, 0.22, 0.13)
+	madeira.albedo_color = Color(0.33, 0.33, 0.35) if cofre else Color(0.33, 0.22, 0.13)  # cofre: chapa de metal
 	madeira.roughness = 0.85
 	var metal := StandardMaterial3D.new()
 	metal.albedo_color = Color(0.22, 0.22, 0.23)
@@ -145,6 +156,11 @@ func _monta() -> void:
 	add_child(_tampa)
 	_bloco(_tampa, Vector3(0, 0.06, corpo.z * 0.5), Vector3(corpo.x + 0.02, 0.12, corpo.z + 0.02), madeira)
 	_bloco(_tampa, Vector3(0, 0.02, corpo.z + 0.01), Vector3(0.12, 0.1, 0.03), metal)  # fecho
+	if cofre:  # cadeado
+		var lata := StandardMaterial3D.new()
+		lata.albedo_color = Color(0.75, 0.6, 0.2)
+		lata.metallic = 0.7
+		_bloco(_tampa, Vector3(0, -0.07, corpo.z + 0.04), Vector3(0.09, 0.1, 0.04), lata)
 
 
 func _monta_saco() -> void:

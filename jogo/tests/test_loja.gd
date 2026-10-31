@@ -26,6 +26,7 @@ func _init() -> void:
 	main.iniciar_solo("Teste")
 	await frames(5)
 	var j: Jogador = main.jogador
+	j.dinheiro = 0  # o dinheiro fica salvo entre partidas (progresso do nick): o teste começa do zero
 	main.controles.jogador = null
 	main.ciclo.tempo = 0.0
 	main.ciclo.set_process(false)

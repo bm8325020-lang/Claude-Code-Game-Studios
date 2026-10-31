@@ -111,6 +111,7 @@ func _ready() -> void:
 	_hidrantes_e_fogo()
 	_classifica()
 	_mais_carros_e_achados()
+	_gavetas_e_cofres()
 	var enfeites := Enfeites.new()
 	enfeites.name = "Enfeites"
 	add_child(enfeites)
@@ -1090,6 +1091,70 @@ func _mais_carros_e_achados() -> void:
 		it.rotation.y = rng.randf() * TAU
 		add_child(it)
 		n += 1
+
+
+## Gavetas nos móveis das casas (Gaveta) e cofres trancados (Bau `cofre`) com a chave numa gaveta de outra casa e um
+## bilhete no cofre dizendo para que lado e a quantos metros (31/10, ideias do teste com novato). Gerador próprio.
+const COFRES: int = 10
+const LUGAR_CHAVE: Dictionary = {"criado": "criado-mudo", "balcao": "balcão da cozinha", "estante": "estante",
+	"guarda_roupa": "guarda-roupa", "tv": "rack da TV"}
+func _gavetas_e_cofres() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242
+	var n: int = 0
+	var por_casa: Dictionary = {}  # casa -> [Gaveta]
+	for casa: Node3D in get_tree().get_nodes_in_group("casas"):
+		for mi: MeshInstance3D in casa.find_children("*", "MeshInstance3D", true, false):
+			var movel: String = String(mi.name)
+			if not Gaveta.MOVEIS.has(movel):
+				continue
+			var g := Gaveta.new()
+			g.movel = movel
+			g.name = "Gaveta_%d" % n
+			add_child(g)
+			g.global_transform = Transform3D(Basis(Vector3.UP, mi.global_rotation.y), mi.global_position)
+			n += 1
+			if not por_casa.has(casa):
+				por_casa[casa] = []
+			por_casa[casa].append(g)
+	var casas: Array = por_casa.keys().filter(func(c: Node3D) -> bool: return not c.has_meta("refugio"))
+	var sobr: Sobreviventes = get_node_or_null("Sobreviventes")
+	var feitos: int = 0
+	for k in casas.size():
+		if feitos >= COFRES:
+			break
+		var casa: Node3D = casas[rng.randi() % casas.size()]
+		if casa.has_meta("cofre"):
+			continue
+		var aqui: Vector3 = dentro_da(String(casa.name))
+		var longe: Array = casas.filter(func(c: Node3D) -> bool:
+			var d: float = (por_casa[c][0] as Gaveta).global_position.distance_to(aqui)
+			return c != casa and d > 25.0 and d < 90.0)
+		if longe.is_empty():
+			continue
+		var outra: Node3D = longe[rng.randi() % longe.size()]
+		var g: Gaveta = por_casa[outra][rng.randi() % por_casa[outra].size()]
+		g.chave = true
+		var cf := Bau.new()
+		cf.name = "Cofre_%d" % feitos
+		cf.cofre = true
+		cf.raid = true
+		cf.trava = true
+		cf.gaveta_chave = g
+		add_child(cf)
+		var meio: Vector2 = _centro(casa.get_meta("poly"))
+		cf.global_position = aqui + (ORIGEM + Vector3(meio.x, 0.0, meio.y) - aqui).normalized() * 1.2 + Vector3(0, -0.1, 0)
+		casa.set_meta("cofre", true)
+		var d: Vector3 = g.global_position - aqui
+		if sobr:
+			sobr._bilhete(casa, "Tranquei o armário de metal aqui de dentro com o que sobrou do arsenal. A chave ficou no %s de uma casa uns %d metros para o %s daqui." % [
+				LUGAR_CHAVE[g.movel], maxi(10, roundi(Vector2(d.x, d.z).length() / 10.0) * 10), _rumo(d)])
+		feitos += 1
+
+
+static func _rumo(d: Vector3) -> String:
+	var a: float = fposmod(rad_to_deg(atan2(d.x, -d.z)), 360.0)  # 0 = norte (-Z), 90 = leste (+X)
+	return ["norte", "nordeste", "leste", "sudeste", "sul", "sudoeste", "oeste", "noroeste"][int(roundf(a / 45.0)) % 8]
 
 
 func _classifica() -> void:

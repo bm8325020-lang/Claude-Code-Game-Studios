@@ -141,6 +141,14 @@ func _monta_modelo() -> void:
 		_modelo("res://assets/sketchfab/garrafa_agua.glb", 0.24, Vector3(0, 0, 90))  # deitada
 	elif tipo == "antibiotico":
 		_monta_remedio()
+	elif tipo == "chave":  # chave velha de latão: argola, haste e dente
+		var latao := StandardMaterial3D.new()
+		latao.albedo_color = Color(0.72, 0.58, 0.25)
+		latao.metallic = 0.8
+		latao.roughness = 0.35
+		_bloco(Vector3(-0.035, 0.005, 0), Vector3(0.03, 0.008, 0.03), latao)
+		_bloco(Vector3(0.01, 0.005, 0), Vector3(0.07, 0.006, 0.01), latao)
+		_bloco(Vector3(0.04, 0.005, 0.01), Vector3(0.012, 0.006, 0.02), latao)
 	else:
 		_modelo("res://assets/sketchfab/lanterna.glb", 0.2, Vector3.ZERO)
 

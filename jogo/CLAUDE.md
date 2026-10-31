@@ -83,6 +83,13 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   o golpe, relógio "NOITE EM / AMANHECE EM". Bairro: `_classifica` tira pontos de nascer perto do Arame (machucava ao
   nascer), `_mais_carros_e_achados` (rng próprio: CARROS_EXTRA carros dirigíveis "CarroExtra_k" + ACHADOS itens
   "Achado_k" nas ruas). NAV_VERSAO 2, Rede.VERSAO 33.
+- Revistar (31/10, 0.83): `gaveta.gd` (Gaveta: MOVEIS pelo nome da malha do Blender, `revista_por` no servidor sorteia
+  Loot fácil ou "vazio", `chave`, `aberta` sincronizado, REENCHE). Bairro `_gavetas_e_cofres` (rng próprio): Gaveta em
+  cada móvel, COFRES `Bau.cofre/trava/gaveta_chave` (loot de raid; tranca de novo ao reencher) + bilhete com rumo e
+  metros (`_rumo`). Jogador: `gaveta_perto`, `_pede_gaveta`, `_pede_destrancar`, item "chave"; `_recebe("vazio")`.
+  Sala segura: refúgio (Sobreviventes) com lampião (OmniLight); `Jogador.segura` (`_passa_segura`, todos os aparelhos,
+  CURA_SEGURA), Zumbi ignora/desiste de `segura`. controles: folha de papel `_mostra_papel` (bilhete), avisos
+  vazio/trancado/destrancou/sala segura. Teste: test_gavetas (15). Rede.VERSAO 35.
 - `progresso.gd` (Progresso; 31/10): XP (XP_ZUMBI/RAID/CHEFE no `Zumbi._morre`, XP_NOITE ao amanhecer no `Ciclo`), nível
   (`xp_para`), pontos, `hab` vigor/folego/pontaria/forca (até NIVEL_HAB), salvo em user://progresso_<nick>.cfg. Jogador:
   `prog`, `vida_max()`, `mult_espalho/mult_fogo/mult_forca`, `aprende(h)`; `_recebe("xp")`. Pausa: HABILIDADES

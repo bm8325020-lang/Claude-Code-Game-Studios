@@ -334,6 +334,7 @@ func _monta_arma() -> void:
 
 
 func _physics_process(dt: float) -> void:
+	_passa_segura(dt)
 	if not local:
 		_segue_rede(dt)
 		return
@@ -716,6 +717,27 @@ func _abre_bau(dt: float, mov: Vector2) -> void:
 # USAR: pega o item perto; senão abre o baú perto; senão abre/fecha a porta perto
 func _tenta_pegar() -> void:
 	var it: Item = item_perto()
+	if it == null and bau_perto() != null and bau_perto().trava:
+		var cf: Bau = bau_perto()
+		if not mochila.tem("chave"):
+			item_pego.emit("trancado", 0)
+			return
+		mochila.tirar("chave", 1)
+		item_pego.emit("destrancou", 0)
+		if multiplayer.is_server():
+			cf.trava = false
+		else:
+			cf.trava = false  # já abre aqui; o servidor confirma
+			_pede_destrancar.rpc_id(1, get_path_to(cf))
+	if it == null and bau_perto() == null and gaveta_perto() != null:
+		var g: Gaveta = gaveta_perto()
+		_toca("pegar", 0.12)
+		_pegando = 0.5
+		if multiplayer.is_server():
+			g.revista_por(self)
+		else:
+			_pede_gaveta.rpc_id(1, get_path_to(g))
+		return
 	if it == null and bau_perto() != null:
 		abrindo = bau_perto()
 		abrindo_t = Bau.ABRIR_T
@@ -779,6 +801,9 @@ func _rede_ganha(tipo: String, qtd: int) -> void:
 
 
 func _recebe(tipo: String, qtd: int) -> void:
+	if tipo == "vazio":
+		item_pego.emit(tipo, 0)
+		return
 	if tipo == "dinheiro":
 		dinheiro += qtd
 		item_pego.emit(tipo, qtd)
@@ -1478,6 +1503,55 @@ func olha_pro_aberto() -> void:
 		if d > melhor + 0.5:
 			melhor = d
 			camera.virar(yaw)
+
+
+# --- sala segura (refúgio dos sobreviventes; 31/10) ---
+## Dentro de um refúgio: zumbi não persegue e a vida volta CURA_SEGURA por segundo. Cada aparelho calcula para todos.
+const CURA_SEGURA: float = 0.5
+var segura: bool = false
+signal entrou_segura(sim: bool)
+var _segura_t: float = 0.0
+var _cura_segura: float = 0.0
+
+
+func _passa_segura(dt: float) -> void:
+	_segura_t -= dt
+	if _segura_t <= 0.0:
+		_segura_t = 0.5
+		var principal := get_tree().get_first_node_in_group("principal")
+		var b: Bairro = principal.bairro if principal else null
+		var casa: String = b.casa_em(global_position) if b and vida > 0 else ""
+		var agora: bool = casa != "" and b.get_node(casa).has_meta("refugio")
+		if agora != segura:
+			segura = agora
+			entrou_segura.emit(agora)
+	if segura and local and vida > 0 and vida < vida_max():
+		_cura_segura += CURA_SEGURA * dt
+		if _cura_segura >= 1.0:
+			vida = mini(vida_max(), vida + int(_cura_segura))
+			_cura_segura -= int(_cura_segura)
+
+
+func gaveta_perto() -> Gaveta:
+	return Gaveta.perto(get_tree(), global_position) if vida > 0 and carro == null else null
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _pede_gaveta(caminho: NodePath) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority():
+		var g := get_node_or_null(caminho) as Gaveta
+		if g:
+			g.revista_por(self)
+
+
+## Cofre: quem tem chave destranca (a chave some). shortcut: o servidor não confere a mochila do cliente; vale para
+## jogo entre amigos, conferir pela copia da mochila se virar problema.
+@rpc("any_peer", "call_remote", "reliable")
+func _pede_destrancar(caminho: NodePath) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority():
+		var b := get_node_or_null(caminho) as Bau
+		if b and b.cofre and b.global_position.distance_to(global_position) < Bau.ALCANCE + 1.0:
+			b.trava = false
 
 
 func carro_perto() -> Carro:

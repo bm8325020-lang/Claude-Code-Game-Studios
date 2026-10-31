@@ -26,6 +26,9 @@ var jogador: Jogador:
 		visible = v != null
 		if v:
 			v.dano_levado.connect(_levou_dano)
+			v.entrou_segura.connect(func(sim: bool) -> void:
+				if sim:
+					aviso("SALA SEGURA — zumbi não entra aqui; a vida volta devagar", Color(1.0, 0.75, 0.4), 3.0))
 			v.mordida_fim.connect(func(escapou: bool) -> void:
 				if escapou:
 					aviso("VOCÊ SE SOLTOU!  +%d XP" % Jogador.XP_SOLTOU, UiTema.DESTAQUE, 1.6))
@@ -312,9 +315,10 @@ func _process(dt: float) -> void:
 	var bau: Bau = jogador.bau_perto() if it == null else null
 	var banc: Bancada = jogador.bancada_perto() if it == null and bau == null else null
 	var loja: Lojista = jogador.lojista_perto() if it == null and bau == null and banc == null else null
-	var porta: Porta = jogador.porta_perto() if it == null and bau == null and banc == null and loja == null else null
-	var carro: Carro = jogador.carro_perto() if it == null and bau == null and banc == null and loja == null and porta == null else null
-	_dica_pegar.visible = it != null or porta != null or bau != null or banc != null or loja != null or carro != null or jogador.carro != null
+	var gav: Gaveta = jogador.gaveta_perto() if it == null and bau == null and banc == null and loja == null else null
+	var porta: Porta = jogador.porta_perto() if it == null and bau == null and banc == null and loja == null and gav == null else null
+	var carro: Carro = jogador.carro_perto() if it == null and bau == null and banc == null and loja == null and porta == null and gav == null else null
+	_dica_pegar.visible = it != null or porta != null or bau != null or banc != null or loja != null or carro != null or jogador.carro != null or gav != null
 	_saldo.text = "$ %d    NV %d  %d/%d XP" % [jogador.dinheiro, jogador.prog.nivel, jogador.prog.xp, Progresso.xp_para(jogador.prog.nivel)]
 	if jogador.carro:
 		_dica_pegar.text = ("SAIR DO CARRO" if toque else "[E] sair do carro")
@@ -324,8 +328,12 @@ func _process(dt: float) -> void:
 		_dica_pegar.text = ("BANCADA" if toque else "[E] usar a bancada")
 	elif loja:
 		_dica_pegar.text = ("LOJA" if toque else "[E] falar com o lojista")
+	elif bau and bau.trava:
+		_dica_pegar.text = ("DESTRANCAR (CHAVE)" if toque else "[E] destrancar com a chave") if jogador.mochila.tem("chave") else "TRANCADO: PRECISA DE CHAVE"
 	elif bau:
-		_dica_pegar.text = ("REVISTAR" if toque else "[E] revistar") if bau.saco else ("ABRIR BAÚ" if toque else "[E] abrir baú")
+		_dica_pegar.text = ("REVISTAR" if toque else "[E] revistar") if bau.saco else ("ABRIR ARMÁRIO" if toque else "[E] abrir armário") if bau.cofre else ("ABRIR BAÚ" if toque else "[E] abrir baú")
+	elif gav:
+		_dica_pegar.text = (gav.acao().to_upper() if toque else "[E] " + gav.acao())
 	elif it:
 		_dica_pegar.text = ("PEGAR " if toque else "[E] pegar ") + it.nome()
 	elif porta:
@@ -879,6 +887,15 @@ func _pegou(tipo: String, qtd: int) -> void:
 	if tipo == "aprendeu":
 		aviso("Receita aprendida", Color(0.35, 0.6, 0.9))
 		return
+	if tipo == "vazio":
+		aviso("Nada aqui.", UiTema.TEXTO, 1.2)
+		return
+	if tipo == "trancado":
+		aviso("Trancado. Precisa de uma chave (leia o bilhete aqui perto).", UiTema.TEXTO, 3.0)
+		return
+	if tipo == "destrancou":
+		aviso("Destrancou com a chave", UiTema.DESTAQUE, 1.6)
+		return
 	if tipo == "sequencia":
 		aviso("%d ABATES SEGUIDOS!  +%d XP" % [qtd, Jogador.XP_SEQUENCIA * (qtd - 1)], UiTema.DESTAQUE, 1.6)
 		return
@@ -1343,8 +1360,47 @@ func _le_bilhete(dt: float) -> void:
 	for b: Node3D in get_tree().get_nodes_in_group("bilhetes"):
 		if not _lidos.has(b) and jogador.global_position.distance_to(b.global_position) < 1.6:
 			_lidos[b] = true
-			aviso("BILHETE: " + String(b.get_meta("texto")), UiTema.TEXTO, 9.0)
+			_mostra_papel(String(b.get_meta("texto")), b.global_position)
 			return
+	# a folha some ao se afastar do bilhete (ou tocando nela)
+	if _papel and _papel.visible and jogador.global_position.distance_to(_papel_de) > 3.0:
+		_papel.visible = false
+
+
+var _papel: PanelContainer
+var _papel_texto: Label
+var _papel_de: Vector3
+
+
+## Bilhete lido: folha de papel no meio da tela (some ao tocar nela ou se afastar).
+func _mostra_papel(texto: String, de: Vector3) -> void:
+	if _papel == null:
+		_papel = PanelContainer.new()
+		var st := StyleBoxFlat.new()
+		st.bg_color = Color(0.86, 0.82, 0.7, 0.96)
+		st.set_content_margin_all(28)
+		st.shadow_color = Color(0, 0, 0, 0.5)
+		st.shadow_size = 10
+		_papel.add_theme_stylebox_override("panel", st)
+		_papel.set_anchors_preset(Control.PRESET_CENTER)
+		_papel.custom_minimum_size = Vector2(560, 0)
+		_papel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_papel.grow_vertical = Control.GROW_DIRECTION_BOTH
+		_papel.rotation_degrees = -1.5
+		_papel_texto = Label.new()
+		_papel_texto.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_papel_texto.add_theme_color_override("font_color", Color(0.15, 0.12, 0.1))
+		_papel_texto.add_theme_font_size_override("font_size", 26)
+		_papel.add_child(_papel_texto)
+		_papel.gui_input.connect(func(ev: InputEvent) -> void:
+			if ev is InputEventMouseButton or ev is InputEventScreenTouch:
+				_papel.visible = false)
+		add_child(_papel)
+	_papel_texto.text = texto + "\n\n(toque para fechar)"
+	_papel_de = de
+	_papel.visible = true
+	_papel.reset_size()
+	_papel.position = (get_viewport().get_visible_rect().size - _papel.size) * 0.5
 
 
 # página das habilidades: nível, XP, pontos e as 4 habilidades com o botão de pôr ponto

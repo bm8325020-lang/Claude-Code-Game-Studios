@@ -11,19 +11,20 @@ const ESPACOS: int = 24
 const BARRA: int = 6
 ## tamanho da pilha por espaço (o que não está aqui não empilha)
 const PILHA: Dictionary = {"municao": 48, "comida": 5, "agua": 5, "antibiotico": 3, "mola": 10, "gatilho": 10, "cano": 10, "cabo": 10,
-	"ferrolho": 10, "carregador": 10, "receita_pistola": 5, "receita_smg": 5}
+	"ferrolho": 10, "carregador": 10, "receita_pistola": 5, "receita_smg": 5, "chave": 5}
 ## quanto dá para carregar no total (provisório, até existir peso)
 const LIMITE: Dictionary = {"livro": 1, "municao": 96, "comida": 5, "agua": 5, "antibiotico": 3, "lanterna": 1, "facao": 1, "pistola": 1,
-	"faca": 1, "taco": 1, "machado": 1, "mola": 30, "gatilho": 30, "cano": 30, "cabo": 30, "ferrolho": 30, "carregador": 30, "receita_pistola": 5, "smg": 1, "receita_smg": 5}
+	"faca": 1, "taco": 1, "machado": 1, "mola": 30, "gatilho": 30, "cano": 30, "cabo": 30, "ferrolho": 30, "carregador": 30, "receita_pistola": 5, "smg": 1, "receita_smg": 5, "chave": 5}
 ## não dá para largar (são a mão do jogador por enquanto)
 const PRESOS: Array[String] = ["facao", "pistola"]
-const NOMES: Dictionary = {"municao": "Munição", "comida": "Lata de comida", "agua": "Garrafa de água", "antibiotico": "Antibiótico",
+const NOMES: Dictionary = {"chave": "Chave", "municao": "Munição", "comida": "Lata de comida", "agua": "Garrafa de água", "antibiotico": "Antibiótico",
 	"livro": "Livro de habilidades", "lanterna": "Lanterna", "facao": "Facão", "pistola": "Pistola 9 mm", "faca": "Faca de açougueiro",
 	"taco": "Taco de beisebol", "machado": "Machado de bombeiro", "mola": "Mola", "gatilho": "Gatilho", "cano": "Cano",
 	"cabo": "Empunhadura", "ferrolho": "Ferrolho", "carregador": "Carregador", "receita_pistola": "Receita: Pistola 9 mm",
 	"smg": "Submetralhadora MP5", "receita_smg": "Receita: Submetralhadora"}
 const TEXTOS: Dictionary = {
 	"municao": "Balas 9 mm para a pistola.",
+	"chave": "Chave velha. Abre um armário de metal trancado (o bilhete perto dele diz onde ela estava).",
 	"comida": "Conserva sem rótulo. Enche a fome.",
 	"agua": "Água de garrafa. Mata a sede.",
 	"antibiotico": "Segura a infecção da mordida: tira %d%% e para de subir." % Jogador.CURA_ANTIBIOTICO,

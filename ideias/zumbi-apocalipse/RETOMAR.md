@@ -20,6 +20,15 @@ Leia nesta ordem: este arquivo, `jogo/CLAUDE.md` (mapa do código e comandos) e 
 ## Próximo (pedido do dono, 31/10)
 1. (feito 31/10, APK 0.77) Carro simples: entrar/dirigir/sair, sincronizado na rede, controle de celular.
 2. Lockpick (outra conversa); depois combustível, atropelar zumbi, passageiro.
+3. Rumo à nota 10 (agente jogador, 31/10; dono: tudo no MODO SOBREVIVÊNCIA, modo história depois). Feito na 0.83:
+   gavetas/armários para revistar, bilhete em folha na tela, cofres trancados com chave + bilhete com a pista,
+   sala segura nos refúgios. Falta (ordem do agente): começo que ensina fazendo; objetivo/marcador na tela;
+   combate com peso (chute, zumbi cai, som com direção); inventário apertado; atalhos destrancados; reviver amigo;
+   chefe e mais tipos; noite que pede lanterna; polimento do toque ("Jogar sozinho" volta? perguntar ao dono).
+   Mapa: marcos de longe (torre de rádio, igreja, viaduto caído, prédio em chamas), bairros com cara própria,
+   prédios grandes (hospital, escola, mercado) com andares e chave, interiores que contam história, céu/luz por
+   hora do dia, CLIMA (chuva, neblina, trovão), caminhos alternativos (telhado, esgoto), sons do lugar (alarme,
+   cachorro, porta batendo, rádio), ruas que guiam, perigo maior longe da sala segura com loot melhor.
 - Sem convite pelo nome (não há nome fixo). GASTAR POUCO: sem loop, sem fotos, só testes do que mudou, APK só no fim.
 
 ## O que NÃO está no repositório (refazer na sessão nova se precisar)

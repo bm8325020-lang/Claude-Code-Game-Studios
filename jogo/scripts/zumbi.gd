@@ -546,6 +546,9 @@ func _vira_para(d: Vector3, dt: float) -> void:
 
 # o jogador vivo mais perto que dá para ver (ou que está bem perto)
 func _escolhe_alvo() -> void:
+	if alvo and is_instance_valid(alvo) and alvo.segura:
+		alvo = null  # entrou na sala segura (refúgio): desiste e volta
+		_voltando = true
 	if alvo and (not is_instance_valid(alvo) or alvo.vida <= 0 or alvo.global_position.distance_to(global_position) > DESISTE):
 		if is_instance_valid(alvo) and alvo.vida > 0:
 			ouve(alvo.global_position, INF)  # perdeu de vista: vai procurar onde viu por último
@@ -555,7 +558,7 @@ func _escolhe_alvo() -> void:
 	if _deitado:  # deitado não olha em volta: só sente quem passa bem perto
 		for n: Node in get_tree().get_nodes_in_group("jogadores"):
 			var jd := n as Jogador
-			if jd and jd.vida > 0 and jd.global_position.distance_to(global_position) < EMBOSCA:
+			if jd and jd.vida > 0 and not jd.segura and jd.global_position.distance_to(global_position) < EMBOSCA:
 				alvo = jd
 				_acorda()
 				return
@@ -564,7 +567,7 @@ func _escolhe_alvo() -> void:
 	var ouve: float = OUVE * Ciclo.forca_noite(get_tree(), NOITE_OUVE)
 	for n: Node in get_tree().get_nodes_in_group("jogadores"):
 		var j := n as Jogador
-		if j == null or j.vida <= 0:
+		if j == null or j.vida <= 0 or j.segura:
 			continue
 		var dist: float = j.global_position.distance_to(global_position)
 		if dist < melhor and (dist < ouve or (dist < VISAO and _ve(j))):

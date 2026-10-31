@@ -71,6 +71,29 @@ func _refugio(casa: Node3D) -> void:
 	add_child(bar)
 	_b._pinta(bar, Color(0.75, 0.72, 0.66))
 	casa.set_meta("refugio", true)
+	# sala segura (31/10): luz quente de lampião lá dentro; zumbi não persegue quem está aqui e a vida volta devagar
+	var luz := OmniLight3D.new()
+	luz.name = "Lampiao_" + casa.name
+	luz.light_color = Color(1.0, 0.72, 0.42)
+	luz.light_energy = 1.6
+	luz.omni_range = 7.0
+	luz.distance_fade_enabled = true
+	luz.distance_fade_begin = 40.0
+	luz.position = _b.dentro_da(String(casa.name)) - Bairro.ORIGEM + Vector3(0, 2.0, 0)
+	add_child(luz)
+	var lamp := MeshInstance3D.new()
+	var esf := SphereMesh.new()
+	esf.radius = 0.09
+	esf.height = 0.2
+	lamp.mesh = esf
+	var brilho := StandardMaterial3D.new()
+	brilho.albedo_color = Color(1.0, 0.8, 0.5)
+	brilho.emission_enabled = true
+	brilho.emission = Color(1.0, 0.7, 0.35)
+	brilho.emission_energy_multiplier = 3.0
+	lamp.material_override = brilho
+	lamp.position = luz.position
+	add_child(lamp)
 	var arame := Arame.new()
 	arame.name = "Arame"
 	arame.position = Vector3(-0.5, 0.5, 1.4)
