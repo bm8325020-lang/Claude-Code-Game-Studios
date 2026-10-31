@@ -100,9 +100,18 @@ func _solta(tipo: String, p: Vector2) -> void:
 	_guarda(tipo, t, cor)
 
 
+var _casas: Array = []  # contorno (local do Bairro) de cada casa
+
+
 func _poe_mato(p: Vector2) -> void:
 	if _b._poligonos.any(func(pl: PackedVector2Array) -> bool: return Geometry2D.is_point_in_polygon(p, pl)):
 		return  # nada de mato crescendo dentro de casa (dono, 31/10)
+	if _casas.is_empty():
+		for c: Node in _b.get_tree().get_nodes_in_group("casas"):  # a casa pode passar um pouco do lote
+			_casas.append((c.get_meta("poly") as PackedVector2Array).duplicate())
+	for pl: PackedVector2Array in _casas:
+		if Geometry2D.is_point_in_polygon(p, pl):
+			return
 	var h: float = _b.altura(p)
 	if h < Bairro.AGUA_Y + 0.1:
 		return  # nada de mato debaixo d'água
