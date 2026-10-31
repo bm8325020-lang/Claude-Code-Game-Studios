@@ -85,6 +85,8 @@ func _ready() -> void:
 	add_child(rede)
 	controles = Controles.new()
 	add_child(controles)
+	if OS.has_feature("mobile"):
+		Engine.physics_ticks_per_second = 30  # celular (vídeo do dono: 10-20 quadros/s): física e zumbis a 30 Hz, a tela interpola
 	multiplayer.peer_connected.connect(_peer_conectou)
 	multiplayer.peer_disconnected.connect(_peer_saiu)
 	multiplayer.connection_failed.connect(_caiu_conexao.bind("Não conectou no servidor"))

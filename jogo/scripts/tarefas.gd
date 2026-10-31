@@ -37,10 +37,12 @@ func _ready() -> void:
 	fundo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(fundo)
 	_titulo = UiTema.rotulo("TAREFAS", 22, Color(1.0, 0.68, 0.2))
+	_titulo.autowrap_mode = TextServer.AUTOWRAP_OFF  # sem largura, quebrava letra por letra (vídeo do dono)
 	_titulo.position = Vector2(10, 2)
 	add_child(_titulo)
 	_linha = UiTema.rotulo("", 18, Color(1, 1, 1, 0.95))
 	_linha.position = Vector2(14, 30)
+	_linha.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_linha.size = Vector2(312, 28)
 	_linha.clip_text = true
 	add_child(_linha)
