@@ -90,6 +90,14 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   Sala segura: refúgio (Sobreviventes) com lampião (OmniLight); `Jogador.segura` (`_passa_segura`, todos os aparelhos,
   CURA_SEGURA), Zumbi ignora/desiste de `segura`. controles: folha de papel `_mostra_papel` (bilhete), avisos
   vazio/trancado/destrancou/sala segura. Teste: test_gavetas (15). Rede.VERSAO 35.
+- Zumbis com jeitos (31/10, 0.84): `Zumbi.VARIANTES` (parado/andar/correr fixos por nome; ataque/dano sorteados), `_real`
+  (lógico -> animação; o lógico vai pela rede), `_passo` (ritmo próprio), RASTEJANTE (tipo "zumbi_rastejante": colisor
+  baixo, rastejar/rastejar_rapido, `altura_cabeca` 0.45), `come` + `_comendo()` (ajoelhado no corpo `_poe_corpo`, ouve
+  COMENDO_PERCEBE e vê COMENDO_VE), queda (`_derruba` rpc no pensador: QUEDA_DANO/CHANCE, NO_CHAO_T, QUEDA_MAIS),
+  cabeça torta + espasmos (`_monta_torto`, anim em modo manual avançada em `_process`; SkeletonModifier3D não roda na
+  4.7). Clipes novos em Anims.CLIPES_ZUMBI (tirados do exclude_filter do APK). Carro: `dispara_alarme` (tiro da
+  Pistola acerta Carro -> rpc `_toca_alarme`, `assets/sons/alarme.wav` feito aqui, Zumbi.barulho ALARME_RAIO).
+  Teste: test_zumbi_jeitos (13). Rede.VERSAO 36.
 - `progresso.gd` (Progresso; 31/10): XP (XP_ZUMBI/RAID/CHEFE no `Zumbi._morre`, XP_NOITE ao amanhecer no `Ciclo`), nível
   (`xp_para`), pontos, `hab` vigor/folego/pontaria/forca (até NIVEL_HAB), salvo em user://progresso_<nick>.cfg. Jogador:
   `prog`, `vida_max()`, `mult_espalho/mult_fogo/mult_forca`, `aprende(h)`; `_recebe("xp")`. Pausa: HABILIDADES

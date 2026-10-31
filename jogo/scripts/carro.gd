@@ -200,6 +200,40 @@ func dirige(mov: Vector2, dt: float) -> float:
 	return giro
 
 
+## Alarme (tiro no carro): toca ALARME_T s em todos e chama os zumbis a até ALARME_RAIO; cada carro uma vez por
+## ALARME_PAUSA (no aparelho de quem atirou).
+const ALARME_T: float = 9.0
+const ALARME_RAIO: float = 55.0
+const ALARME_PAUSA: float = 90.0
+var _alarme_pausa: float = 0.0
+var _alarme: AudioStreamPlayer3D
+
+
+func dispara_alarme() -> void:
+	if Time.get_ticks_msec() / 1000.0 < _alarme_pausa:
+		return
+	_alarme_pausa = Time.get_ticks_msec() / 1000.0 + ALARME_PAUSA
+	_toca_alarme.rpc()
+
+
+@rpc("any_peer", "call_local", "reliable")
+func _toca_alarme() -> void:
+	Zumbi.barulho(get_tree(), global_position, ALARME_RAIO)
+	if Rede.servidor_sem_tela:
+		return
+	if _alarme == null:
+		_alarme = AudioStreamPlayer3D.new()
+		_alarme.stream = load("res://assets/sons/alarme.wav")
+		_alarme.max_db = 6.0
+		_alarme.unit_size = 14.0
+		_alarme.max_distance = 120.0
+		add_child(_alarme)
+	_alarme.play()
+	get_tree().create_timer(ALARME_T).timeout.connect(func() -> void:
+		if is_instance_valid(_alarme):
+			_alarme.stop())
+
+
 ## Onde o jogador desce: do lado do motorista, do outro lado, atrás ou na frente (o primeiro livre).
 func saida() -> Vector3:
 	var forma := CapsuleShape3D.new()

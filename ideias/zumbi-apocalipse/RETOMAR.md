@@ -21,7 +21,8 @@ Leia nesta ordem: este arquivo, `jogo/CLAUDE.md` (mapa do código e comandos) e 
 1. (feito 31/10, APK 0.77) Carro simples: entrar/dirigir/sair, sincronizado na rede, controle de celular.
 2. Lockpick (outra conversa); depois combustível, atropelar zumbi, passageiro.
 3. Rumo à nota 10 (agente jogador, 31/10; dono: tudo no MODO SOBREVIVÊNCIA, modo história depois). Feito na 0.83:
-   gavetas/armários para revistar, bilhete em folha na tela, cofres trancados com chave + bilhete com a pista,
+   (0.84: zumbis com jeitos próprios, rastejante, comendo corpo, queda com golpe forte, cabeça torta/espasmos,
+   alarme de carro.) gavetas/armários para revistar, bilhete em folha na tela, cofres trancados com chave + bilhete com a pista,
    sala segura nos refúgios. Falta (ordem do agente): começo que ensina fazendo; objetivo/marcador na tela;
    combate com peso (chute, zumbi cai, som com direção); inventário apertado; atalhos destrancados; reviver amigo;
    chefe e mais tipos; noite que pede lanterna; polimento do toque ("Jogar sozinho" volta? perguntar ao dono).

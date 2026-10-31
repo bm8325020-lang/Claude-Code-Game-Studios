@@ -12,7 +12,9 @@ const MODELO: String = "res://assets/mixamo/xbot.fbx"
 ## Personagens com roupa e textura (Mixamo, mesmo esqueleto do X Bot): o jogador é fixo por enquanto (editor de
 ## personagem fica para depois); os zumbis variam entre os três; o chefe é o parasita.
 const JOGADOR: String = "remy"
-const ZUMBIS: Array[String] = ["zumbi_policial", "zumbi_mulher", "zumbi_soldado"]
+## (repetidos = mais comuns; o nome do zumbi sorteia um)
+const ZUMBIS: Array[String] = ["zumbi_policial", "zumbi_mulher", "zumbi_soldado", "zumbi_policial", "zumbi_mulher", "zumbi_rastejante",
+	"zumbi_policial"]
 ## modelos de cada tipo (dono: "os zumbis são sempre os mesmos"): o nome do zumbi sorteia um deles
 const MODELOS_TIPO: Dictionary = {
 	# 31/10 (dono: "zumbis com cara de criança"): saíram escoteira, esqueleto, mutante e sobrevivente; entraram os
@@ -20,6 +22,7 @@ const MODELOS_TIPO: Dictionary = {
 	"zumbi_policial": ["zumbi_policial", "zumbi_prisioneiro", "zr_homem", "zr_homem3"],
 	"zumbi_mulher": ["zumbi_mulher", "zr_mulher", "zr_mulher2"],
 	"zumbi_soldado": ["zumbi_soldado", "zr_homem3"],
+	"zumbi_rastejante": ["zr_homem", "zumbi_prisioneiro", "zr_mulher2"],
 }
 const CHEFE: String = "chefe_parasita"
 const ALTURA_XBOT: float = 1.81  # as animações foram feitas para essa altura (posição do quadril)
@@ -111,10 +114,21 @@ const CLIPES_ZUMBI: Dictionary = {
 	# jeito de andar de cada tipo (Zumbi.TIPOS): corredora rápida, soldado cambaleando pesado
 	"andar_rapido": ["zumbi/zombie_walk", 0.0, -1.0], "correr_rapido": ["zumbi/zombie_run", 0.0, -1.0],
 	"andar_lento": ["zumbi2/zombie_stumbling", 0.0, -1.0], "correr_lento": ["zumbi2/walking_2", 0.0, -1.0],
+	# 31/10 (dono: "todo mundo andando igual é horrível"): variações; cada zumbi escolhe as suas pelo nome (Zumbi.VARIANTES)
+	"parado_2": ["zumbi2/zombie_idle_2", 0.0, -1.0], "parado_3": ["zumbi2/zombie_idle_3", 0.0, -1.0],
+	"parado_4": ["zumbi2/zombie_idle_4", 0.0, -1.0], "parado_coca": ["zumbi2/zombie_scratch_idle", 0.0, -1.0],
+	"parado_agonia": ["zumbi2/zombie_agonizing", 0.0, -1.0], "parado_5": ["zumbi/zombie_idle", 0.0, -1.0],
+	"andar_2": ["zumbi2/walking_2", 0.0, -1.0], "andar_3": ["zumbi/zombie_walk", 0.0, -1.0],
+	"ataque_2": ["zumbi2/zombie_punching_2", 0.0, -1.0], "ataque_3": ["zumbi2/zombie_attack", 0.0, -1.0],
+	"ataque_4": ["zumbi2/zombie_headbutt", 0.0, -1.0], "ataque_5": ["zumbi/zombie_attack", 0.0, -1.0],
+	"dano_2": ["zumbi2/zombie_reaction_hit_2", 0.0, 0.9],
+	# comendo um corpo (ajoelhado) e o rastejante (sem as pernas: arrasta no chão; perto, vem de quatro)
+	"comendo": ["zumbi/zombie_biting_2", 0.0, -1.0],
+	"rastejar": ["zumbi/zombie_crawl", 0.0, -1.0], "rastejar_rapido": ["zumbi/running_crawl", 0.0, -1.0],
 }
 const NAO_REPETE_ZUMBI: Array[String] = ["ataque", "dano", "morte", "grito", "levantar"]
 const VELOCIDADE_ZUMBI: Dictionary = {"andar": 0.56, "correr": 3.1, "andar_rapido": 0.7, "correr_rapido": 3.4,
-	"andar_lento": 0.45, "correr_lento": 0.9}
+	"andar_lento": 0.45, "correr_lento": 0.9, "andar_2": 0.34, "andar_3": 0.34, "rastejar": 0.43, "rastejar_rapido": 2.2}
 
 static var _lib: AnimationLibrary
 static var _lib_zumbi: AnimationLibrary

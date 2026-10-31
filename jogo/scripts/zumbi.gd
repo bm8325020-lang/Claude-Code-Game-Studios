@@ -72,7 +72,31 @@ const TIPOS: Dictionary = {
 	"zumbi_mulher": {"nome": "Corredora", "vida": 110, "dano": 20, "vel": 1.45, "andar": "andar_rapido", "correr": "correr_rapido", "skill": "bote"},
 	"zumbi_policial": {"nome": "Policial", "vida": VIDA_MAX, "dano": DANO, "vel": 1.0, "andar": "andar", "correr": "correr", "skill": "agarrao"},
 	"zumbi_soldado": {"nome": "Soldado", "vida": 300, "dano": 38, "vel": 0.75, "andar": "andar_lento", "correr": "correr_lento", "skill": "blindado"},
+	# 31/10: sem as pernas, se arrasta; perto vem de quatro, rápido. Baixinho: some atrás de carro e mato
+	"zumbi_rastejante": {"nome": "Rastejante", "vida": 70, "dano": 14, "vel": 0.6, "andar": "rastejar", "correr": "rastejar_rapido", "skill": "baixo"},
 }
+## Jeitos diferentes de cada clipe (Anims.CLIPES_ZUMBI): parado/andar/correr ficam fixos por zumbi (pelo nome, igual em
+## todo aparelho); ataque e dano sorteiam a cada vez. O rastejante troca tudo pelo rastejar.
+const VARIANTES: Dictionary = {
+	"parado": ["parado", "parado_2", "parado_3", "parado_4", "parado_coca", "parado_agonia", "parado_5"],
+	"andar": ["andar", "andar_2", "andar_3"], "andar_rapido": ["andar_rapido", "andar"], "andar_lento": ["andar_lento", "andar_2"],
+	"correr": ["correr", "correr_rapido"],
+	"ataque": ["ataque", "ataque_2", "ataque_3", "ataque_4", "ataque_5"], "dano": ["dano", "dano_2"],
+}
+const SORTEIA_SEMPRE: Array[String] = ["ataque", "dano"]
+const RASTEJANTE: Dictionary = {"parado": "rastejar", "ataque": "comendo", "dano": "rastejar", "grito": "rastejar",
+	"deitado": "rastejar", "levantar": "rastejar"}
+## Comendo um corpo (TLOU/RE): ajoelhado no corpo, quase surdo e cego até alguém chegar perto ou fazer barulho.
+const COMENDO_PERCEBE: float = 0.4
+const COMENDO_VE: float = 0.12  # de cabeça baixa no corpo: só vê quem chega bem perto
+## Golpe forte derruba (quem não é soldado nem chefe): fica NO_CHAO_T no chão, levando QUEDA_MAIS de dano, e levanta.
+const QUEDA_DANO: int = 35
+const QUEDA_CHANCE: float = 0.45
+const NO_CHAO_T: float = 2.2
+const QUEDA_MAIS: float = 1.5
+var _no_chao_t: float = 0.0
+var come: bool = false
+var _passo: float = 1.0           # ritmo próprio de cada um
 const BOTE_DE: float = 3.0          # m: distância mínima e máxima para o bote
 const BOTE_ATE: float = 6.5
 const BOTE_VEL: float = 8.0         # m/s durante o bote
@@ -215,6 +239,15 @@ func _ready() -> void:
 	# o nome é o mesmo em todos os aparelhos: todos veem o mesmo zumbi
 	if not chefe:
 		aplica_tipo(tipo_fixo if tipo_fixo != "" else (tipo_pedido if tipo_pedido != "" else Anims.ZUMBIS[hash(String(name)) % Anims.ZUMBIS.size()]))
+	if not chefe and TIPOS[tipo].skill == "baixo":
+		cap.height = 0.75  # deitado se arrastando: colisor baixo (o tiro passa por cima de quem não mira)
+		cap.radius = RAIO
+		cs.position.y = 0.375
+		altura_cabeca = 0.45
+	var rr := RandomNumberGenerator.new()
+	rr.seed = hash(String(name) + "jeito")
+	_passo = rr.randf_range(0.82, 1.18)
+	come = not chefe and not tocaia and not armado and TIPOS[tipo].skill != "baixo" and rr.randf() < 0.3
 	var lista: Array = Anims.MODELOS_TIPO.get(tipo, [tipo])
 	var cara: String = Anims.CHEFE if chefe else String(lista[hash(String(name) + "m") % lista.size()])
 	modelo = Anims.boneco(cara)
@@ -250,6 +283,10 @@ func _ready() -> void:
 	_som.unit_size = 6.0
 	add_child(_som)
 	_monta_sincronia()
+	if not Rede.servidor_sem_tela:
+		_monta_torto(rr)
+		if come:
+			_poe_corpo()
 	_toca("parado", 0.0)
 	anim.seek(randf() * 3.0, true)  # cada um num ponto da animação
 	if Rede.servidor_sem_tela:
@@ -345,8 +382,13 @@ func _physics_process(dt: float) -> void:
 		_publica()
 		return
 	if _deitado:
-		_procura_t -= dt
-		if _procura_t <= 0.0:
+		if _no_chao_t > 0.0:  # derrubado: levanta sozinho
+			_no_chao_t -= dt
+			if _no_chao_t <= 0.0:
+				_acorda()
+		else:
+			_procura_t -= dt
+		if _no_chao_t <= 0.0 and _procura_t <= 0.0:
 			_procura_t = 0.2
 			_escolhe_alvo()
 		if not is_on_floor():
@@ -479,9 +521,9 @@ func _physics_process(dt: float) -> void:
 	if _ataque_t < 0.0 and _cambaleio <= 0.0 and _grito_t < 0.0 and _levantando < 0.0:
 		var v: float = plano.length()
 		var nomes: Dictionary = {"andar": "andar", "correr": "correr"} if chefe else TIPOS[tipo]
-		_toca("parado" if v < 0.2 else (nomes.correr if v > 1.6 * (1.0 if chefe else _vel) else nomes.andar), 0.25)
-		var base: float = float(Anims.VELOCIDADE_ZUMBI.get(_clipe, 0.0))
-		anim.speed_scale = clampf(v / base, 0.6, 2.2) if base > 0.0 and v > 0.2 else 1.0
+		_toca((("comendo" if _comendo() else "parado")) if v < 0.2 else (nomes.correr if v > 1.6 * (1.0 if chefe else _vel) else nomes.andar), 0.25)
+		var base: float = float(Anims.VELOCIDADE_ZUMBI.get(_real(_clipe), 0.0))
+		anim.speed_scale = (clampf(v / base, 0.6, 2.2) if base > 0.0 and v > 0.2 else (0.25 if _real(_clipe) == "rastejar" else 1.0)) * _passo
 	_publica()
 
 
@@ -564,13 +606,14 @@ func _escolhe_alvo() -> void:
 				return
 		return
 	var melhor: float = INF
-	var ouve: float = OUVE * Ciclo.forca_noite(get_tree(), NOITE_OUVE)
+	var ouve: float = OUVE * Ciclo.forca_noite(get_tree(), NOITE_OUVE) * (COMENDO_PERCEBE if _comendo() else 1.0)
+	var visao: float = VISAO * (COMENDO_VE if _comendo() else 1.0)
 	for n: Node in get_tree().get_nodes_in_group("jogadores"):
 		var j := n as Jogador
 		if j == null or j.vida <= 0 or j.segura:
 			continue
 		var dist: float = j.global_position.distance_to(global_position)
-		if dist < melhor and (dist < ouve or (dist < VISAO and _ve(j))):
+		if dist < melhor and (dist < ouve or (dist < visao and _ve(j))):
 			melhor = dist
 			alvo = j
 	if alvo:
@@ -928,12 +971,20 @@ func _pede_golpe(dano: int, dir: Vector3) -> void:
 
 
 func _aplica(dano: int, dir: Vector3) -> void:
-	if _deitado:
+	if _deitado and _no_chao_t > 0.0:
+		dano = roundi(dano * QUEDA_MAIS)  # caído: acabe com ele
+	elif _deitado:
 		_acorda()
 	var blindado: bool = not chefe and TIPOS[tipo].skill == "blindado"
 	if blindado:
 		dano = maxi(1, roundi(dano * BLINDAGEM))
 	vida = maxi(0, vida - dano)
+	if vida > 0 and not chefe and not blindado and not _deitado and TIPOS[tipo].skill != "baixo" and dano >= QUEDA_DANO and randf() < QUEDA_CHANCE:
+		if pensa == multiplayer.get_unique_id() or not multiplayer.has_multiplayer_peer():
+			_derruba()
+		else:
+			_derruba.rpc_id(pensa)
+		return
 	if vida > 0 and vida <= FOGE_VIDA and not _fugiu and alvo and not chefe:
 		_fugiu = true
 		_abrigo = _acha_abrigo()
@@ -1018,6 +1069,101 @@ func _deita() -> void:
 	_toca("deitado", 0.0)
 
 
+## Golpe forte: cai de costas e fica um instante no chão (roda em quem pensa o zumbi).
+@rpc("authority", "call_local", "reliable")
+func _derruba() -> void:
+	if vida <= 0 or _deitado:
+		return
+	_deitado = true
+	_no_chao_t = NO_CHAO_T
+	_ataque_t = -1.0
+	_cambaleio = 0.0
+	_forma_deitada(true)
+	_toca("deitado", 0.12, true)
+
+
+# --- cara de zumbi (só quem desenha): cabeça torta de cada um e espasmos de repente ---
+# A animação avança aqui (modo manual) e a cabeça é entortada por cima, todo quadro (como Jogador._aponta_tronco).
+var _sk: Skeleton3D
+var _cabeca: int = -1
+var _torto_q: Quaternion = Quaternion.IDENTITY
+var _espasmo: float = 0.0
+var _espera: float = 4.0
+var _eixo: Vector3 = Vector3.FORWARD
+
+
+func _monta_torto(rr: RandomNumberGenerator) -> void:
+	var sks: Array = modelo.find_children("*", "Skeleton3D", true, false)
+	_sk = sks[0] if not sks.is_empty() else null
+	if _sk == null or _sk.find_bone("mixamorig_Head") < 0:
+		return
+	_cabeca = _sk.find_bone("mixamorig_Head")
+	_torto_q = Quaternion(Vector3(rr.randf_range(-0.3, 0.3), rr.randf_range(-0.2, 0.2), 1.0).normalized(), rr.randf_range(-0.45, 0.45))
+	_espera = rr.randf_range(2.0, 7.0)
+	anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+
+
+func _process(dt: float) -> void:
+	if _cabeca < 0 or not anim.active:
+		return
+	anim.advance(dt)
+	_espera -= dt
+	_espasmo = maxf(0.0, _espasmo - dt)
+	if _espera <= 0.0 and vida > 0:  # tranco de cabeça (e de novo daqui a pouco)
+		_espera = randf_range(2.5, 8.0)
+		_espasmo = randf_range(0.25, 0.5)
+		_eixo = Vector3(randf_range(-1, 1), randf_range(-0.5, 0.5), randf_range(-1, 1)).normalized()
+	var q: Quaternion = _torto_q
+	if _espasmo > 0.0:
+		q = q * Quaternion(_eixo, sin(_espasmo * 45.0) * _espasmo * 1.2)
+	_sk.set_bone_pose_rotation(_cabeca, (_sk.get_bone_pose_rotation(_cabeca) * q).normalized())
+
+
+func _comendo() -> bool:
+	return come and alvo == null and global_position.distance_to(casa) < 1.5
+
+
+# o corpo que ele está comendo: fica no chão onde ele nasceu (não anda junto)
+func _poe_corpo() -> void:
+	var corpo := Node3D.new()
+	corpo.top_level = true
+	add_child(corpo)
+	corpo.global_position = casa + modelo.global_basis.z * 0.75 + Vector3(0, 0.02, 0)
+	corpo.rotation.y = modelo.rotation.y + 1.3
+	var roupa := StandardMaterial3D.new()
+	roupa.albedo_color = Color(0.13, 0.14, 0.15)
+	roupa.roughness = 0.95
+	var pele := StandardMaterial3D.new()
+	pele.albedo_color = Color(0.42, 0.36, 0.32)
+	var sangue := StandardMaterial3D.new()
+	sangue.albedo_color = Color(0.09, 0.01, 0.01)
+	sangue.roughness = 0.25
+	# deitado de costas: tronco, cabeça, braços e pernas (cápsulas deitadas) numa poça escura e redonda
+	var partes: Array = [[Vector3(0, 0.13, 0), 0.17, 0.75, roupa, 0.0], [Vector3(0, 0.1, 0.52), 0.1, 0.2, pele, 0.0],
+		[Vector3(0.24, 0.07, 0.12), 0.06, 0.6, roupa, 0.5], [Vector3(-0.27, 0.07, 0.05), 0.06, 0.6, roupa, -0.7],
+		[Vector3(0.1, 0.08, -0.62), 0.08, 0.8, roupa, 0.12], [Vector3(-0.12, 0.08, -0.6), 0.08, 0.8, roupa, -0.2]]
+	for p: Array in partes:
+		var mi := MeshInstance3D.new()
+		var c := CapsuleMesh.new()
+		c.radius = p[1]
+		c.height = maxf(p[2], p[1] * 2.0)
+		mi.mesh = c
+		mi.material_override = p[3]
+		mi.position = p[0]
+		mi.rotation = Vector3(PI * 0.5, p[4], 0)
+		corpo.add_child(mi)
+	var poca := MeshInstance3D.new()
+	var cil := CylinderMesh.new()
+	cil.top_radius = 0.7
+	cil.bottom_radius = 0.7
+	cil.height = 0.01
+	poca.mesh = cil
+	poca.material_override = sangue
+	poca.position = Vector3(0.1, 0.006, 0.15)
+	poca.scale = Vector3(1.0, 1.0, 1.4)
+	corpo.add_child(poca)
+
+
 func _forma_deitada(sim: bool) -> void:
 	_forma.rotation.x = PI * 0.5 if sim else 0.0
 	_forma.position = Vector3(0, RAIO if sim else ALTURA * 0.5, 0)
@@ -1038,14 +1184,27 @@ func _toca(clipe: String, mistura: float, de_novo: bool = false) -> void:
 	if clipe == _clipe and not de_novo:
 		return
 	_clipe = clipe
+	var real: String = _real(clipe)
 	if clipe == "grito":  # toca aqui para tocar também nos clientes (que recebem só o nome do clipe)
 		_som.stream = load(SONS_GRITO.pick_random())
 		_som.pitch_scale = randf_range(0.9, 1.05)
 		_som.play()
-	if anim.has_animation(clipe):
-		anim.play(clipe, mistura)
+	if anim.has_animation(real):
+		anim.play(real, mistura)
 		if de_novo:
 			anim.seek(0.0, true)
+
+
+## Nome lógico (vai pela rede) -> animação deste zumbi.
+func _real(clipe: String) -> String:
+	if tipo == "zumbi_rastejante" and not chefe:
+		return RASTEJANTE.get(clipe, clipe)
+	var l: Array = VARIANTES.get(clipe, [])
+	if l.is_empty():
+		return clipe
+	if clipe in SORTEIA_SEMPRE:
+		return l[randi() % l.size()]
+	return l[absi(hash(String(name) + clipe)) % l.size()]
 
 
 ## Clipe tocando agora (testes).

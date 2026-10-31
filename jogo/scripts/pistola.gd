@@ -160,6 +160,8 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 		alvo.call("levar_golpe", roundi(dano * (2 if cabeca else 1) * (dono.mult_fogo() if dono else 1.0)), dir, dono)
 		res.acertou = alvo
 		res.cabeca = cabeca
+	if not hit.is_empty() and hit.collider is Carro:
+		(hit.collider as Carro).dispara_alarme()  # tiro em carro: alarme chama a horda (Dying Light/L4D)
 	res.carne = res.acertou is Zumbi or res.acertou is Jogador
 	efeito(ponto, not hit.is_empty(), res.carne)
 	return res
