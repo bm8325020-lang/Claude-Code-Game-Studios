@@ -34,6 +34,8 @@ func _init() -> void:
 	main.iniciar_solo("Foto")
 	for i in 30: await process_frame
 	main.ciclo.tempo = 100.0
+	if OS.get_environment("CLIMA") != "":
+		main.ciclo.clima = OS.get_environment("CLIMA")
 	main.controles.visible = false
 	for z in main.zumbis.get_children():
 		z.visible = false

@@ -205,6 +205,9 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   entrada `atirando` (segurando) e `modo` (seletor). Teste: tests/test_auto.gd (13).
 - `porta.gd` — camada 16, `alterna_por`, `leva_soco`, conserto 90 s. `item.gd` — tipos municao/lanterna/comida/agua, volta 60 s.
 - `ciclo.gd` — dia 480 s/noite 300 s, `noite()` 0..1, `INICIO` provisório (noite em 1:30).
+- `clima.gd` (Clima, filho do Ciclo; 31/10): TIPOS limpo/chuva/tempestade/neblina/nevasca (chance, partículas, névoa ×,
+  sol ×). `Ciclo.clima` sorteado pelo servidor ao amanhecer (vai pela rede, Rede.VERSAO 41); chuva/neve CPUParticles em
+  volta da câmera, relâmpago (`flash`) na tempestade, névoa branca na nevasca. Teste: test_clima (5). Foto: CLIMA=chuva foto_cidade.gd.
 - `controles.gd` — HUD limpo (8b): `_Barra` finas no alto à esquerda, `_saldo`, relógio curto, munição, mira (`_Mira`);
   toque: botões só com ícone (`_Icone`: corte/tiro, mira, pular, agachar; contexto: recarga, pegar, modo), correr =
   analógico no fim; barra rápida discreta (Espaco.discreto). PC: WASD, mouse, E F G Q R B Tab 1–6.
