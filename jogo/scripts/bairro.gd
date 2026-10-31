@@ -529,8 +529,8 @@ func _ruina(poly: PackedVector2Array, nome: String, opcoes: Array, mansao: bool,
 ## (hidrante, saco de areia, carro) somem de longe; sem isso eram desenhados de qualquer distância, até atrás da parede.
 func _alcance_coisas() -> void:
 	var q: Dictionary = Config.qualidade()
-	var dentro: float = clampf(float(q.detalhe) * 1.2, 22.0, 60.0)
-	var fora: float = clampf(float(q.detalhe) * 2.2, 45.0, 160.0)
+	var dentro: float = clampf(float(q.detalhe) * 0.9, 18.0, 45.0)
+	var fora: float = clampf(float(q.detalhe) * 1.7, 35.0, 120.0)
 	for n: Node in get_children():
 		var predio: bool = n.has_meta("poly")
 		var gs: Array = n.find_children("*", "GeometryInstance3D", true, false)
@@ -574,10 +574,10 @@ func _alcance(m: Node3D) -> void:
 	for g: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
 		var n: String = String(g.name)
 		if n == "dentro" or DENTRO.any(func(p: String) -> bool: return n.begins_with(p)):
-			g.visibility_range_end = clampf(float(q.detalhe) * 1.2, 22.0, 60.0)
+			g.visibility_range_end = clampf(float(q.detalhe) * 0.9, 18.0, 45.0)
 			g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		elif n == "detalhe" or (n not in ["ext", "longe"] and g.get_aabb().size.length() < 5.0):
-			g.visibility_range_end = clampf(float(q.detalhe) * 2.2, 45.0, 160.0)
+			g.visibility_range_end = clampf(float(q.detalhe) * 1.7, 35.0, 120.0)
 			g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 

@@ -25,8 +25,8 @@ const VIDA_MAX: int = 150  # dono: zumbis estavam fracos (era 100)
 const VISAO: float = 30.0          # m: vê o jogador a essa distância (se nada tapa)
 const OUVE: float = 6.5            # m: percebe mesmo sem ver (passos, barulho); 9 ouvia longe demais
 const DESISTE: float = 50.0        # m: perde o alvo
-const ANDAR: float = 1.4           # m/s: alvo longe
-const CORRER: float = 3.7          # m/s: alvo a menos de PERTO (4,6 era rápido demais: dono 31/10)
+const ANDAR: float = 1.2           # m/s: alvo longe (1,4 antes; dono 31/10: "nerfe a velocidade")
+const CORRER: float = 3.0          # m/s: alvo a menos de PERTO (4,6 e depois 3,7 eram rápidos demais: dono 31/10)
 const PERTO: float = 22.0
 const ALCANCE: float = 1.35        # m: começa o ataque
 const ALCANCE_ACERTO: float = 1.8  # m: o soco ainda pega se o alvo estiver até aqui na hora
@@ -71,7 +71,7 @@ const DANO_CHEFE: int = 55  # era 35
 ## Corredora: rápida e frágil, dá um BOTE de longe. Policial: médio, o soco AGARRA (deixa o jogador lento).
 ## Soldado: lento e duro, BLINDADO (leva menos dano e não cambaleia com golpe fraco).
 const TIPOS: Dictionary = {
-	"zumbi_mulher": {"nome": "Corredora", "vida": 110, "dano": 20, "vel": 1.45, "andar": "andar_rapido", "correr": "correr_rapido", "skill": "bote"},
+	"zumbi_mulher": {"nome": "Corredora", "vida": 110, "dano": 20, "vel": 1.25, "andar": "andar_rapido", "correr": "correr_rapido", "skill": "bote"},
 	"zumbi_policial": {"nome": "Policial", "vida": VIDA_MAX, "dano": DANO, "vel": 1.0, "andar": "andar", "correr": "correr", "skill": "agarrao"},
 	"zumbi_soldado": {"nome": "Soldado", "vida": 300, "dano": 38, "vel": 0.75, "andar": "andar_lento", "correr": "correr_lento", "skill": "blindado"},
 	# 31/10: sem as pernas, se arrasta; perto vem de quatro, rápido. Baixinho: some atrás de carro e mato
@@ -1139,7 +1139,7 @@ func _process(dt: float) -> void:
 	if cam:
 		var d: Vector3 = global_position - cam.global_position
 		var dist: float = d.length()
-		modelo.visible = dist < ANIMA_LONGE * 1.6
+		modelo.visible = dist < ANIMA_LONGE * 1.3  # celular: de longe a neblina já esconde
 		if dist > ANIMA_LONGE:
 			pulo = 8
 		elif dist > ANIMA_PERTO or (dist > 6.0 and d.dot(-cam.global_basis.z) < 0.0):

@@ -22,7 +22,7 @@ const TROCA: Array = [
 	["quadro", ["hanging_picture_frame_01", "hanging_picture_frame_02"]],
 	["tv_", ["Television_01"]],
 ]
-const LONGE: float = 38.0  # m: mais longe que isso o móvel não é desenhado (celular)
+const LONGE: float = 30.0  # m: mais longe que isso o móvel não é desenhado (celular)
 static var _cenas: Dictionary = {}
 
 

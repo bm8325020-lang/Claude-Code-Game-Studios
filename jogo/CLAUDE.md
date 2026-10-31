@@ -117,7 +117,7 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   Pistola acerta Carro -> rpc `_toca_alarme`, `assets/sons/alarme.wav` feito aqui, Zumbi.barulho ALARME_RAIO).
   Teste: test_zumbi_jeitos (13). Rede.VERSAO 36.
 - Vídeo do dono (31/10, 0.85): desempenho `Zumbi._process` (anima de 3 em 3 quadros longe/atrás, de 8 em 8 além de
-  ANIMA_LONGE e some além; anim em modo manual em todo cliente). Equilíbrio: DANO 20, CORRER 3.7, OUVE 6.5, NOITE_* menores,
+  ANIMA_LONGE e some além; anim em modo manual em todo cliente). Equilíbrio: DANO 20, CORRER 3.0 (ANDAR 1.2, corredora x1.25), OUVE 6.5, NOITE_* menores,
   Pistola.BARULHO 20, GRITO_RAIO 14, GRITO_CHANCE (senão `_rosna` rpc), ALTURA_ATAQUE (não bate de baixo no telhado).
   Noite mais clara (Ciclo). Carro: câmera de 3ª pessoa (`CameraPrimeira._atras_do_carro`, volta atrás do carro após
   1,2 s sem olhar), `Carro.volante` suave e GIRO_ALTA. Casas: `mobilia(w, d, paredes)` por cômodo com tema sorteado

@@ -26,10 +26,11 @@ const NOMES_QUALIDADE: Array[String] = ["Batata", "Média", "Alta", "Ultra"]
 ## Por nível: sombra (tamanho do mapa, 0 = sem), resolução 3D, antisserrilhado, distância de visão (m) e até onde
 ## aparecem os detalhes pequenos (molduras, tábuas, galhos).
 const QUALIDADE: Array[Dictionary] = [
-	{"sombra": 0, "resolucao": 0.6, "msaa": Viewport.MSAA_DISABLED, "longe": 140.0, "detalhe": 12.0},
-	{"sombra": 1024, "resolucao": 0.8, "msaa": Viewport.MSAA_DISABLED, "longe": 260.0, "detalhe": 30.0},
-	{"sombra": 2048, "resolucao": 1.0, "msaa": Viewport.MSAA_2X, "longe": 450.0, "detalhe": 45.0},
-	{"sombra": 4096, "resolucao": 1.0, "msaa": Viewport.MSAA_4X, "longe": 700.0, "detalhe": 90.0},
+	# 31/10 (dono: "otimize"): visão mais curta (a neblina já esconde), Alta sem antisserrilhado e um pouco menor
+	{"sombra": 0, "resolucao": 0.6, "msaa": Viewport.MSAA_DISABLED, "longe": 120.0, "detalhe": 12.0},
+	{"sombra": 1024, "resolucao": 0.75, "msaa": Viewport.MSAA_DISABLED, "longe": 200.0, "detalhe": 25.0},
+	{"sombra": 2048, "resolucao": 0.9, "msaa": Viewport.MSAA_DISABLED, "longe": 280.0, "detalhe": 40.0},
+	{"sombra": 4096, "resolucao": 1.0, "msaa": Viewport.MSAA_2X, "longe": 450.0, "detalhe": 90.0},
 ]
 
 static var v: Dictionary = PADRAO.duplicate()

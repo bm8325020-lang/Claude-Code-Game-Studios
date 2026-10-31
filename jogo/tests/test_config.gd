@@ -36,7 +36,7 @@ func _init() -> void:
 	Config.muda("qualidade", 0, self)
 	ok(not Config.v.sombras and Config.v.resolucao == 0.6 and root.msaa_3d == Viewport.MSAA_DISABLED, "qualidade Batata: sem sombra, resolução baixa")
 	Config.muda("qualidade", 3, self)
-	ok(Config.v.sombras and Config.v.resolucao == 1.0 and root.msaa_3d == Viewport.MSAA_4X, "qualidade Ultra: sombra e antisserrilhado")
+	ok(Config.v.sombras and Config.v.resolucao == 1.0 and root.msaa_3d == Viewport.MSAA_2X, "qualidade Ultra: sombra e antisserrilhado")
 	Config.v = Config.PADRAO.duplicate()
 	Config.salva()
 	ok(Config.v.sens == Config.PADRAO.sens and not Config.v.inverter_y, "voltar ao padrão")
