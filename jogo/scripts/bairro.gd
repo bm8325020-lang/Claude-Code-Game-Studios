@@ -92,6 +92,7 @@ func _ready() -> void:
 		mk.position = Vector3(m.p[0], altura(Vector2(m.p[0], m.p[1])), m.p[1])  # a antena fica no morro
 		add_child(mk)
 		_pinta(mk, Color.WHITE)
+		marcos_pos[String(m.tipo)] = ORIGEM + mk.position
 		if m.tipo in ["helicoptero", "quarentena", "posto"]:  # longe e perigoso: baú de loot raro e zumbis em volta
 			var bm := Bau.new()
 			bm.name = "BauMarco_%s" % m.tipo
@@ -522,7 +523,17 @@ func _mat_ruina(n: String, tinta: Color) -> Material:
 		"vidro": return _cor(Color(0.05, 0.06, 0.07), 0.15)
 		"pneu": return _cor(Color(0.04, 0.04, 0.04))
 		"ferrugem": return _mat("concreto", 0.6, Color(0.5, 0.28, 0.14), true)
-		"azulejo": return _cor(Color(0.72, 0.78, 0.78), 0.3)
+		"azulejo": return _mat("azulejo", 1.2, Color(0.95, 0.95, 0.93), true)
+		# casa de verdade (31/10): revestimentos por dentro, pisos, forro, fachadas, batente, vidro e telha
+		"papel_1", "papel_2", "papel_3": return _mat(n, 0.6, Color(1, 1, 1).lerp(tinta, 0.35), true)
+		"lambri": return _mat("lambri", 0.7, Color(0.9, 0.85, 0.8), true)
+		"piso_tabua": return _mat("piso_tabua", 0.45, Color(0.9, 0.86, 0.8), true)
+		"piso_ladrilho": return _mat("piso_ladrilho", 0.7, Color(0.95, 0.93, 0.9), true)
+		"forro": return _mat("forro", 0.5, Color(0.95, 0.94, 0.9), true)
+		"fachada_amarela", "fachada_azul", "fachada_tijolo", "fachada_madeira", "fachada_vermelha": return _mat(n, 0.35, Color(0.92, 0.9, 0.88), true)
+		"batente": return _mat("madeira", 0.6, Color(0.92, 0.9, 0.85), true)
+		"telha": return _mat("telhado", 0.5, Color(0.9, 0.55, 0.42), true)
+		"vidro_janela": return _vidro_janela()
 		"militar": return _mat("concreto", 0.5, Color(0.42, 0.46, 0.3), true)
 		"lona": return _mat("reboco", 0.7, Color(0.62, 0.6, 0.45), true)
 		"areia": return _mat("reboco", 0.6, Color(0.8, 0.72, 0.52), true)
@@ -591,7 +602,7 @@ func _perto_da_borda(p: Vector2, poly: PackedVector2Array, dist: float) -> bool:
 	return false
 
 
-func _vidro() -> Material:
+func _vidro_janela() -> Material:
 	if not _mats.has("vidro"):
 		var m := StandardMaterial3D.new()
 		m.albedo_color = Color(0.12, 0.15, 0.17)
@@ -1118,6 +1129,8 @@ func _mais_carros_e_achados() -> void:
 
 ## Gavetas nos móveis das casas (Gaveta) e cofres trancados (Bau `cofre`) com a chave numa gaveta de outra casa e um
 ## bilhete no cofre dizendo para que lado e a quantos metros (31/10, ideias do teste com novato). Gerador próprio.
+## onde ficam os marcos (tipo -> posição no mundo): Tarefas manda o jogador até eles
+var marcos_pos: Dictionary = {}
 const COFRES: int = 10
 const LUGAR_CHAVE: Dictionary = {"criado": "criado-mudo", "balcao": "balcão da cozinha", "estante": "estante",
 	"guarda_roupa": "guarda-roupa", "tv": "rack da TV"}
@@ -1352,6 +1365,18 @@ func _mat(nome: String, escala: float, tinta: Color = Color(0.82, 0.8, 0.76), so
 		m.vertex_color_use_as_albedo = sombra
 		_mats[chave] = m
 	return _mats[chave]
+
+
+func _vidro() -> Material:
+	if not _mats.has("vidro_janela"):
+		var m := StandardMaterial3D.new()
+		m.albedo_color = Color(0.45, 0.55, 0.6, 0.28)
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.roughness = 0.05
+		m.metallic = 0.4
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_mats["vidro_janela"] = m
+	return _mats["vidro_janela"]
 
 
 func _cor(cor: Color, rug: float = 0.9) -> Material:

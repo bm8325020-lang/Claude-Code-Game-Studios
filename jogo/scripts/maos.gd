@@ -20,6 +20,9 @@ const MIRA_PISTOLA := Vector3(0.0, 0.02, 0.025)  # quanto a pistola vem para o c
 const OMBRO := Vector3(0.36, -0.5, 0.12)         # pivô dos cortes (atrás e abaixo, à direita da câmera)
 const CABO := Vector3(-0.04, 0.16, -0.58)         # onde fica o cabo, a partir do ombro (sai pela borda da tela)
 const LAMINA := Vector3(-0.32, 0.72, -0.62)      # para onde a lâmina aponta parada
+## pegada própria (cabo, ponta) de armas grandes: taco na diagonal, cabo embaixo no meio, ponta subindo para a direita
+const POSE: Dictionary = {"taco_pregos": [Vector3(-0.2, -0.02, -0.5), Vector3(0.38, 0.82, -0.42)],
+	"taco": [Vector3(-0.2, -0.02, -0.5), Vector3(0.38, 0.82, -0.42)]}
 ## giro do ombro (graus x sobe, y vai para a esquerda, z inclina) ao longo de cada golpe (fração do golpe)
 const CORTES: Array = [
 	[[0.0, Vector3.ZERO], [0.3, Vector3(8, -42, -22)], [0.4, Vector3(6, -46, -24)], [0.46, Vector3(-2, 12, 8)],
@@ -63,10 +66,10 @@ func _monta_branca(tipo: String) -> void:
 	for c in _ombro.get_children():
 		c.queue_free()
 	var pega: Node3D = Armas.modelo(tipo)
-	var z: Vector3 = LAMINA.normalized()
+	var z: Vector3 = (POSE[tipo][1] if POSE.has(tipo) else LAMINA).normalized()
 	var x: Vector3 = (Vector3.BACK - z * z.dot(Vector3.BACK)).normalized()  # lado chato da lâmina para a câmera
 	pega.basis = Basis(x, z.cross(x), z)
-	pega.position = CABO
+	pega.position = POSE[tipo][0] if POSE.has(tipo) else CABO
 	_ombro.add_child(pega)
 	for mi: MeshInstance3D in pega.find_children("*", "MeshInstance3D", true, false):
 		for i in mi.mesh.get_surface_count():

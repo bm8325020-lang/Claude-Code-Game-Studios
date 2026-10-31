@@ -114,6 +114,17 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   criado; `visibility_range_end` LONGE, sem sombra. Gaveta `sem_caixa` (esconde a gavetinha). Quadros saíram (caíam na
   janela). Nick do jogador vai sempre pela rede. Rede.VERSAO 38. Próximo: paredes por dentro (papel de parede, lambri,
   azulejo), janelas com vidro/moldura, luz de abajur.
+- Casa de verdade (31/10, 0.87; dono: "casa tem cômodo"): `casa_real` em tools/blender/ruinas.py (casa_r1..r3, r5, r7..r14;
+  r4/r6 seguem queimadas): planta coluna A (sala/cozinha) | corredor | coluna B (quarto, banheiro, quarto), passagens
+  sem porta com `batente`, `revestimento` por cômodo (lambri/azulejo embaixo + papel em cima, com as aberturas da parede:
+  `aberturas_em`), piso por cômodo (piso_tabua/piso_ladrilho), forro, fachada sorteada (fachada_*), `janela_real`
+  (moldura, peitoril, vidro inteiro/caco/sem, cortina), varanda com colunas, telhado de telha; móveis `comodo_real`.
+  Texturas Poly Haven CC0 novas em assets/texturas (papel_1..3, lambri, piso_*, azulejo, forro, fachada_*; 512 px) e
+  `Bairro._mat_ruina` para cada nome (+ `_vidro`). Céu: Ciclo CEU_* cinza-azulado (saiu o laranja), CEU com fumaça
+  cinza e sol mais nítido, névoa menor. Tela: `tarefas.gd` (Tarefas: ROTEIRO de aprendizado + DEPOIS sorteadas, XP;
+  eventos item_pego/revistou/abateu/entrou_segura/bilhete/amanheceu/marco via `Bairro.marcos_pos`), barra de vida verde
+  com número (`_Barra.texto`). Arma `taco_pregos` (Blender, Armas.BRANCAS, pegada diagonal `Maos.POSE`); nas salas já vem
+  na mão (`main.arma_inicial`); testes seguem com o facão.
 - `progresso.gd` (Progresso; 31/10): XP (XP_ZUMBI/RAID/CHEFE no `Zumbi._morre`, XP_NOITE ao amanhecer no `Ciclo`), nível
   (`xp_para`), pontos, `hab` vigor/folego/pontaria/forca (até NIVEL_HAB), salvo em user://progresso_<nick>.cfg. Jogador:
   `prog`, `vida_max()`, `mult_espalho/mult_fogo/mult_forca`, `aprende(h)`; `_recebe("xp")`. Pausa: HABILIDADES

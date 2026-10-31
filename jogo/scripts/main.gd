@@ -188,13 +188,19 @@ func _relay_controle(m: Dictionary) -> void:
 
 
 ## Cria a sala e hospeda (o mundo roda aqui). `maximo` = quantos jogadores no total, contando quem cria.
+## Arma que o jogador local já segura ao nascer nas salas de verdade (os testes seguem com o facão).
+var arma_inicial: String = ""
+
+
 func criar_sala_sobrev(nick: String, nome: String, publica: bool, maximo: int) -> void:
+	arma_inicial = "taco_pregos"
 	nick_local = nick
 	sala_sobrev = {"codigo": "", "nome": nome, "max": maximo, "n": 1}
 	relay.criar(nome, publica, maximo)
 
 
 func entrar_sala_sobrev(nick: String, cod: String) -> void:
+	arma_inicial = "taco_pregos"
 	nick_local = nick
 	mostra_carregando()
 	relay.entrar(cod)
@@ -769,6 +775,8 @@ func _jogador_entrou(n: Node) -> void:
 			_carregando.queue_free()  # o nosso jogador chegou: pronto para jogar
 		j.nick = nick_local
 		controles.jogador = j
+		if arma_inicial != "":
+			j.entrada["arma"] = arma_inicial
 		if abrir_pvp:
 			abrir_pvp = false
 			controles.abre_pvp.call_deferred()
@@ -776,7 +784,7 @@ func _jogador_entrou(n: Node) -> void:
 
 # céu: degradê do horizonte ao topo e nuvens de ruído que andam devagar (cobrindo mais perto do horizonte)
 const CEU: String = """shader_type sky;
-// céu de fim do mundo: nuvem grossa e baixa, poeira alaranjada no horizonte, sol abafado atrás da fumaça e colunas de
+// céu de fim do mundo: nuvem grossa e baixa, horizonte cinza (31/10: saiu a poeira laranja), sol atrás das nuvens e colunas de
 // fumaça de incêndios longe (três, em direções fixas). Ciclo troca as cores do dia/noite.
 uniform vec3 topo;
 uniform vec3 horizonte;
@@ -795,7 +803,7 @@ void sky() {
 		// sol abafado: só um brilho largo e fraco, cor de ferrugem
 		if (LIGHT0_ENABLED) {
 			float s = max(dot(EYEDIR, LIGHT0_DIRECTION), 0.0);
-			c += LIGHT0_COLOR * (pow(s, 40.0) * 0.55 + pow(s, 6.0) * 0.18);
+			c += LIGHT0_COLOR * (pow(s, 60.0) * 0.8 + pow(s, 6.0) * 0.12);
 		}
 		vec2 p = EYEDIR.xz / (y + 0.12) * 1.2 + vec2(TIME * 0.01, TIME * 0.004);
 		float n = fbm(p);
@@ -809,8 +817,8 @@ void sky() {
 			float largura = 0.05 + y * 0.35;
 			float d = abs(az - centro) / largura;
 			float massa = exp(-d * d) * smoothstep(0.55, 0.0, y) * (0.55 + 0.6 * fbm(vec2(az * 6.0, y * 9.0 - TIME * 0.08 * (1.0 + float(k)))));
-			c = mix(c, vec3(0.08, 0.075, 0.07), clamp(massa, 0.0, 0.85));
-			c += fogo * exp(-d * d * 2.0) * smoothstep(0.06, 0.0, y) * 0.35;
+			c = mix(c, vec3(0.2, 0.21, 0.23), clamp(massa, 0.0, 0.6));
+			c += fogo * exp(-d * d * 2.0) * smoothstep(0.06, 0.0, y) * 0.12;
 		}
 	}
 	COLOR = c;

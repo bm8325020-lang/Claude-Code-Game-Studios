@@ -13,6 +13,9 @@ const BRANCAS: Dictionary = {
 		"vel": 1.45, "dano": [18, 18, 30], "alcance": 1.4, "empurra": 0.6, "som": "knifeSlice"},
 	"taco": {"modelo": "res://assets/sketchfab/taco.glb", "ponta": Vector3(0, 0, 1), "tam": 0.86,
 		"vel": 0.8, "dano": [35, 35, 50], "alcance": 2.0, "empurra": 2.6, "som": "impactPunch_heavy_000"},
+	# 31/10 (print do dono): taco com pregos e arame farpado (Blender: tools/blender/ruinas.py taco_pregos)
+	"taco_pregos": {"modelo": "res://assets/armas/taco_pregos.glb", "ponta": Vector3(0, 1, 0), "tam": 0.86,
+		"vel": 0.78, "dano": [40, 40, 60], "alcance": 2.0, "empurra": 2.8, "som": "impactPunch_heavy_001"},
 	"machado": {"modelo": "res://assets/sketchfab/machado.glb", "ponta": Vector3(0, 1, 0), "tam": 0.8,
 		"vel": 0.65, "dano": [50, 50, 70], "alcance": 1.9, "empurra": 1.3, "som": "knifeSlice2"},
 }

@@ -9,6 +9,7 @@ const PASTA: String = "res://assets/moveis/%s/%s.gltf"
 const TROCA: Array = [
 	["cadeira", ["dining_chair_02", "SchoolChair_01"]],
 	["escrivaninha", ["metal_office_desk"]],
+	["mesa_centro", ["CoffeeTable_01"]],
 	["mesa", ["WoodenTable_01"]],
 	["sofa", ["Sofa_01", "sofa_02", "sofa_03"]],
 	["poltrona", ["ArmChair_01", "modern_arm_chair_01"]],

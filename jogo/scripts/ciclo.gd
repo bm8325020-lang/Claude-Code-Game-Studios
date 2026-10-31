@@ -19,8 +19,9 @@ var ambiente: Environment
 ## [dia, noite] do céu: topo e horizonte
 ## Fim do mundo: de dia nuvem cinza-marrom e poeira alaranjada no horizonte; de noite quase preto com o horizonte
 ## avermelhado dos incêndios.
-const CEU_TOPO: Array[Color] = [Color(0.27, 0.26, 0.26), Color(0.05, 0.06, 0.09)]
-const CEU_HORIZONTE: Array[Color] = [Color(0.62, 0.47, 0.34), Color(0.16, 0.1, 0.09)]
+# 31/10 (dono: "não gosto desse céu, pegada feia"): saiu o poeirão laranja; dia nublado frio, cinza-azulado, e noite azul-escura
+const CEU_TOPO: Array[Color] = [Color(0.4, 0.46, 0.54), Color(0.03, 0.04, 0.07)]
+const CEU_HORIZONTE: Array[Color] = [Color(0.66, 0.69, 0.71), Color(0.09, 0.1, 0.13)]
 
 
 func _ready() -> void:
@@ -50,7 +51,7 @@ func _process(dt: float) -> void:
 	var n: float = noite()
 	if sol:
 		sol.light_energy = lerpf(0.95, 0.42, n)  # noite de luar: escura, mas dá para jogar (pedido do dono)
-		sol.light_color = Color(1, 0.8, 0.6).lerp(Color(0.55, 0.6, 0.85), n)  # sol abafado pela fumaça
+		sol.light_color = Color(1.0, 0.95, 0.88).lerp(Color(0.55, 0.6, 0.85), n)  # sol de dia nublado; luar azulado
 	if ambiente:
 		var ceu: Color = CEU_HORIZONTE[0].lerp(CEU_HORIZONTE[1], n)
 		ambiente.background_color = ceu
@@ -59,9 +60,9 @@ func _process(dt: float) -> void:
 		if mat:
 			mat.set_shader_parameter("topo", CEU_TOPO[0].lerp(CEU_TOPO[1], n))
 			mat.set_shader_parameter("horizonte", ceu)
-		ambiente.ambient_light_color = Color(0.72, 0.66, 0.6).lerp(Color(0.42, 0.47, 0.62), n)
+		ambiente.ambient_light_color = Color(0.7, 0.72, 0.75).lerp(Color(0.42, 0.47, 0.62), n)
 		ambiente.ambient_light_energy = lerpf(0.6, 0.58, n)  # 31/10: a noite estava escura demais no celular
-		ambiente.fog_density = lerpf(0.012, 0.02, n)
+		ambiente.fog_density = lerpf(0.007, 0.018, n)  # menos poeira de dia: a cidade aparece de longe
 
 
 ## 0 = dia claro, 1 = noite fechada (sobe no anoitecer e desce no amanhecer).

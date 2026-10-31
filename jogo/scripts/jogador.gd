@@ -91,7 +91,9 @@ const RENASCE: float = 4.0  # s caído até voltar no ponto de início (o resgat
 var vida: int = VIDA_MAX
 ## Avisa o HUD que levou dano.
 signal dano_levado(dano: int)
-signal golpe_de(dir: Vector3)  # para onde o golpe empurrou (o HUD mostra de onde veio)
+signal golpe_de(dir: Vector3)
+signal revistou  # abriu gaveta/armário (Tarefas)
+signal abateu    # matou um zumbi (Tarefas)  # para onde o golpe empurrou (o HUD mostra de onde veio)
 var inicio: Vector3
 ## provisório para testar: todos começam com lanterna; depois só quem achar uma no mapa
 var tem_lanterna: bool = true:
@@ -229,6 +231,7 @@ func _ready() -> void:
 	if tem_lanterna:
 		mochila.adicionar("lanterna", 1)
 	mochila.adicionar("livro", 1)  # abre as HABILIDADES (dono, 31/10: saiu da pausa)
+	mochila.adicionar("taco_pregos", 1)  # 31/10: o taco do print do dono (nas salas ele já vem na mão: main.arma_inicial)
 	pistola.reserva = Pistola.RESERVA_INICIAL
 	mochila.mudou.connect(func() -> void:
 		tem_lanterna = mochila.tem("lanterna")
@@ -731,6 +734,7 @@ func _tenta_pegar() -> void:
 			_pede_destrancar.rpc_id(1, get_path_to(cf))
 	if it == null and bau_perto() == null and gaveta_perto() != null:
 		var g: Gaveta = gaveta_perto()
+		revistou.emit()
 		_toca("pegar", 0.12)
 		_pegando = 0.5
 		if multiplayer.is_server():
@@ -810,6 +814,7 @@ func _recebe(tipo: String, qtd: int) -> void:
 		return
 	if tipo == "abate":
 		abates += qtd  # registro de zumbis mortos
+		abateu.emit()
 		sequencia = sequencia + 1 if _seq_t > 0.0 else 1
 		_seq_t = SEQUENCIA_T
 		if sequencia >= 2:

@@ -32,6 +32,7 @@ var jogador: Jogador:
 			v.mordida_fim.connect(func(escapou: bool) -> void:
 				if escapou:
 					aviso("VOCÊ SE SOLTOU!  +%d XP" % Jogador.XP_SOLTOU, UiTema.DESTAQUE, 1.6))
+			_tarefas.liga(v)
 			v.golpe_de.connect(func(dir: Vector3) -> void: _seta_golpe.mostra(-dir))
 			v.item_pego.connect(_pegou)
 			v.acertou_alvo.connect(_acertou)
@@ -82,6 +83,7 @@ var _pvp_hud: Label  # relógio e placar da partida de PvP (no alto)
 var tela_salas: TelaSalas
 var _espera: PanelContainer  # tela de espera da sala de sobrevivência
 var _seta_golpe: _SetaGolpe
+var _tarefas: Tarefas
 var _qte: _Qte  # briga com o zumbi mordendo (barra + EMPURRAR)
 var _clique_qte: bool = false
 var _espera_texto: Label
@@ -137,6 +139,10 @@ func _ready() -> void:
 	_mira.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_mira.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_mira)
+	_tarefas = Tarefas.new()
+	_tarefas.position = Vector2(20, 130)
+	_tarefas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_tarefas)
 	_seta_golpe = _SetaGolpe.new()
 	_seta_golpe.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_seta_golpe.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -150,8 +156,8 @@ func _ready() -> void:
 	for i in 4:
 		var barra := _Barra.new()
 		barra.tipo = i
-		barra.position = Vector2(24, 20 + i * 24)
-		barra.size = Vector2(250, 16)
+		barra.position = Vector2(24, 18) if i == 0 else Vector2(24, 34 + i * 22)
+		barra.size = Vector2(290, 24) if i == 0 else Vector2(250, 16)
 		barra.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(barra)
 		_barras.append(barra)
@@ -561,11 +567,13 @@ func _monta_aviso() -> void:
 
 func _atualiza_barras() -> void:
 	_barras[0].valor = clampf(float(jogador.vida) / jogador.vida_max() * 100.0, 0.0, 100.0)
+	_barras[0].texto = "%d/%d" % [maxi(jogador.vida, 0), jogador.vida_max()]
 	_barras[1].valor = jogador.fome
 	_barras[2].valor = jogador.sede
 	_barras[3].valor = jogador.infeccao
 	_barras[3].visible = jogador.infeccao > 0.0
-	_saldo.position.y = 116.0 if _barras[3].visible else 92.0
+	_saldo.position.y = 122.0 if _barras[3].visible else 100.0
+	_tarefas.position.y = _saldo.position.y + 30.0
 
 
 func _monta_espera() -> void:
@@ -1170,7 +1178,17 @@ class _Barra:
 		if _perigo(valor):
 			queue_redraw()  # piscando
 
+	var texto: String = ""
+
 	func _draw() -> void:
+		if tipo == 0:  # vida: barra verde grossa com o número dentro (como nos jogos de sobrevivência de celular)
+			var cor_v: Color = Color(0.36, 0.62, 0.24) if not _perigo(valor) else Color(0.8, 0.18, 0.12, 0.6 + 0.4 * absf(sin(Time.get_ticks_msec() * 0.006)))
+			draw_rect(Rect2(0, 0, size.x, size.y), Color(0, 0, 0, 0.5))
+			draw_rect(Rect2(2, 2, (size.x - 4) * clampf(valor / 100.0, 0.0, 1.0), size.y - 4), cor_v)
+			var f: Font = UiTema.tema().default_font
+			var tw: float = f.get_string_size(texto, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
+			draw_string(f, Vector2((size.x - tw) * 0.5, size.y - 5.0), texto, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color(1, 1, 1, 0.95))
+			return
 		var h: float = size.y
 		var x0: float = h + 8.0
 		var w: float = size.x - x0 - 46.0  # o resto é a porcentagem
@@ -1361,6 +1379,7 @@ func _le_bilhete(dt: float) -> void:
 		if not _lidos.has(b) and jogador.global_position.distance_to(b.global_position) < 1.6:
 			_lidos[b] = true
 			_mostra_papel(String(b.get_meta("texto")), b.global_position)
+			_tarefas.evento("bilhete")
 			return
 	# a folha some ao se afastar do bilhete (ou tocando nela)
 	if _papel and _papel.visible and jogador.global_position.distance_to(_papel_de) > 3.0:
