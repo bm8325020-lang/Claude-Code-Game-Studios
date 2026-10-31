@@ -39,8 +39,8 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   Igreja; sobrados de comércio com letreiro (FARMÁCIA, PADARIA...) e prédios de apartamento no centro; quarteirão em
   ruínas (loja_r1/r2, predio_r1: telhados com tábua); Morro do Urubu (favela de barracos, subida reta = linha do
   test_relevo, antena no topo); casas com muro e portão; Escola + campinho; zona industrial; rio com 3 pontes; além do
-  rio cemitério com capela, posto, helicóptero; quarentena; pórticos "BEM-VINDOS A SÃO JORGE"; capital destruída ao
-  longe (Majadroid, só vista). Raids (`RAIDS`): Delegacia (policiais), Hospital, Supermercado, Igreja
+  rio cemitério com capela, posto, helicóptero; quarentena; pórticos "BEM-VINDOS A SÃO JORGE"; capital destruída ao norte (o sul
+  do muro é a pista de teste; Majadroid, só vista). Raids (`RAIDS`): Delegacia (policiais), Hospital, Supermercado, Igreja
   (`_monta_raid(no, titulo, tipo)`; `pontos_raid[].tipo`). Prédio com modelo: `predios[].modelo/c/frente` ->
   `_poe_modelo` (nome Casa_k / Mansao_k / Predio_k para os "fechados" = só fachada, marca "fechado"). No morro o lote sobe
   (`no.position.y`, alicerce do barraco). `planta.gd` (Planta.monta): `areas` (praça, estacionamento, terra), `faixas`

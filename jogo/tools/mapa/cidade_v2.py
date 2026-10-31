@@ -10,7 +10,7 @@
 #   Bairros de casas com muro e portão (norte e sul), Escola Estadual com campinho de terra.
 #   Zona industrial (leste): galpões, caixa d'água; engavetamento na saída da rodovia.
 #   Rio ao sul com 3 pontes; do outro lado: cemitério com capela, posto, helicóptero caído, quarentena do exército.
-#   Ao longe, ao sul: a capital destruída (só silhueta).
+#   Ao longe, ao norte: a capital destruída (só silhueta; ao sul do muro fica a pista de teste).
 import json
 import math
 import random
@@ -573,11 +573,11 @@ for k in range(4):
     r = R.uniform(15, 60)
     zumbis.append([round(MORRO["p"][0] + math.cos(a) * r, 2), round(MORRO["p"][1] + math.sin(a) * r, 2)])
 
-# ---------------- a capital destruída ao longe (sul, depois do muro): só silhueta ----------------
+# ---------------- a capital destruída ao longe (norte, depois do muro): só silhueta ----------------
 for (x, z, b, rot) in ((-330, 380, "building_03", 0.3), (-210, 430, "building_07", 0.0), (-90, 360, "building_01", 0.5),
                        (20, 450, "building_06", 0.1), (130, 380, "building_05", 0.8), (240, 420, "building_02", 0.2),
                        (350, 360, "building_04", 0.6), (-420, 300, "building_05", 1.2), (430, 300, "building_03", 0.9)):
-    longe.append({"c": "res://assets/catalogo/majadroid/%s.glb" % b, "p": [x, z], "r": rot})
+    longe.append({"c": "res://assets/catalogo/majadroid/%s.glb" % b, "p": [x, -z], "r": rot})
 
 out = {"origem": "São Jorge (tools/mapa/cidade_v2.py)", "ruas": ruas, "predios": predios, "frestas": frestas, "bloqueios": bloqueios,
        "marcos": marcos, "muros": muros, "props": props, "areas": areas, "faixas": faixas, "postes": postes, "veiculos": veiculos,

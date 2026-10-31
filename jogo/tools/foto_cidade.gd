@@ -15,7 +15,7 @@ const VISTAS: Array = [
 	[Vector3(-100, -9, 1.7), Vector3(-121, -41, 4)],      # 7 supermercado e estacionamento
 	[Vector3(-112, 212, 1.7), Vector3(-175, 212, 1)],     # 8 cemitério
 	[Vector3(-60, 70, 70), Vector3(30, -50, 0)],          # 9 centro de cima
-	[Vector3(4, 135, 1.7), Vector3(10, 300, 40)],         # 10 ponte e a capital ao longe
+	[Vector3(0, -205, 1.7), Vector3(0, -400, 45)],        # 10 a capital destruída ao longe (norte)
 	[Vector3(170, 40, 1.7), Vector3(210, 80, 4)],         # 11 zona industrial
 	[Vector3(-64.7, 3.0, 1.6), Vector3(-65.5, 14.0, 1.4)],    # 12 dentro da farmácia (sobrado_1)
 	[Vector3(-132.2, -147.7, 2.4), Vector3(-130.8, -152.0, 2.6)],  # 13 dentro de um barraco
