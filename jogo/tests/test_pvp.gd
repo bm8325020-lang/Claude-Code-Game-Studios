@@ -36,7 +36,9 @@ func _init() -> void:
 		ok(await espera(func() -> bool: return main.minha_sala().get("jogadores", []).size() == 2, 30000), "a Bia entrou pelo código")
 		main.pede_comecar_sala.rpc_id(1)
 		ok(await espera(func() -> bool: return main.em_pvp()), "a partida começou")
-		await espera(func() -> bool: return false, 1500)  # a Bia chega no ponto dela
+		for z in main.zumbis.get_children():  # o centro da cidade tem zumbi: aqui só conta o tiro da Ana
+			z.queue_free()
+		await espera(func() -> bool: return false, 6000)  # a Bia chega no ponto dela e já vê a Ana (cidade grande: demora mais)
 		var bia: Jogador = null
 		for j: Jogador in main.jogadores.get_children():
 			if j != main.jogador:
@@ -45,7 +47,7 @@ func _init() -> void:
 		if bia:
 			bia.levar_golpe(Jogador.VIDA_MAX + 50, Vector3.FORWARD, main.jogador)
 		ok(await espera(func() -> bool: return main.placar_sala().size() == 2 and main.placar_sala()[0] == ["Ana", 1, 0]), "placar: Ana 1 abate")
-		await espera(func() -> bool: return false, 9000)  # deixa o cliente conferir o renascer
+		await espera(func() -> bool: return false, 20000)  # deixa o cliente conferir o renascer (cidade grande: o cliente anda mais devagar)
 	else:
 		ok(main.entrar_partida("127.0.0.1", "Bia") == OK, "conecta")
 		ok(await espera(func() -> bool: return main.jogador != null and not main._salas_cli.salas.is_empty()), "vê que existe uma sala")

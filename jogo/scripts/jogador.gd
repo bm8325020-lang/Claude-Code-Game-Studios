@@ -1072,7 +1072,8 @@ func _rede_dano(dano: int, dir: Vector3) -> void:
 func _recebe_dano(dano: int, dir: Vector3) -> void:
 	if vida <= 0:
 		return
-	if _jogo_t < NOVATO_T:
+	var principal := get_tree().get_first_node_in_group("principal")
+	if _jogo_t < NOVATO_T and not (principal and principal.em_pvp()):  # no PvP o servidor conta a morte pelo dano cheio
 		dano = ceili(dano * NOVATO_DANO)  # primeiros minutos da partida: os zumbis batem menos
 	vida = maxi(0, vida - dano)
 	if randf() < CHANCE_INFECTAR:

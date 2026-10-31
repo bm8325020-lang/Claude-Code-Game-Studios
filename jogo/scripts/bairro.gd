@@ -612,15 +612,21 @@ const RAIDS: Dictionary = {"delegacia": ["Delegacia", "DELEGACIA", "zumbi_polici
 	"mercado": ["Mercado", "SUPERMERCADO", ""], "igreja": ["Igreja", "IGREJA MATRIZ", ""]}
 
 
+## Zumbis por raid nova (celular: a cidade nasce com muitos; a delegacia fica com todos os dela)
+const RAID_ZUMBIS: Dictionary = {"HOSPITAL MUNICIPAL": 8, "SUPERMERCADO": 6, "IGREJA MATRIZ": 4}
+
+
 func _monta_raid(no: Node3D, titulo: String, tipo: String = "zumbi_policial") -> void:
 	var m: Node3D = no.get_child(0)
+	var cabe: int = RAID_ZUMBIS.get(titulo, 99)
 	raids.append({"nome": titulo, "pos": no.global_position if no.is_inside_tree() else ORIGEM + no.position + m.position})
 	for e: Node in m.get_children():
 		var n: String = e.name
 		if not e is Node3D or e is MeshInstance3D:
 			continue
 		var p: Vector3 = ORIGEM + m.transform * (e as Node3D).position
-		if n.begins_with("zumbi_"):
+		if n.begins_with("zumbi_") and cabe > 0:
+			cabe -= 1
 			pontos_raid.append({"pos": p + Vector3(0, 0.1 + no.position.y, 0), "armado": n.begins_with("zumbi_arm_"), "tipo": tipo})
 		elif n.begins_with("bau_"):
 			var bau := Bau.new()
