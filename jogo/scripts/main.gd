@@ -586,11 +586,11 @@ func faccao_de(nick: String) -> String:
 
 
 ## Lugar sorteado para nascer/renascer (prompt 11). Quem tem casa de facção renasce nela (prompt 13).
-func ponto_nascer(nick: String = "") -> Vector3:
+func ponto_nascer(nick: String = "", chance: float = Bairro.CHANCE_BOM) -> Vector3:
 	var f: String = faccao_de(nick) if nick != "" else ""
 	if f != "" and String(_faccoes_cli.f[f].casa) != "":
 		return bairro.frente_da(_faccoes_cli.f[f].casa)  # quem tem casa de facção renasce nela
-	return Bairro.sorteia(_rng_nascer, bairro.pontos_bons, bairro.pontos_ruins)
+	return Bairro.sorteia(_rng_nascer, bairro.pontos_bons, bairro.pontos_ruins, chance)
 
 
 ## Aviso na tela de todos (faixa no alto).
@@ -746,7 +746,7 @@ var _rng_nascer := RandomNumberGenerator.new()
 
 func _ponto_inicial(i: int) -> Vector3:
 	if nascer_no_bairro and bairro and not bairro.pontos_nascer.is_empty():
-		return ponto_nascer()
+		return ponto_nascer("", 1.0)  # a primeira vez nasce sempre num lugar bom (novato morria logo de cara)
 	return Vector3(2.0 * float(i % 6), 0.1, 2.0 * float(i / 6))
 
 

@@ -73,6 +73,9 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   `sai_do_carro` (`Carro.saida`: lado livre), `_dirige` (USAR sai). main `_peer_saiu` libera o carro. HUD: ENTRAR/SAIR
   DO CARRO no botão USAR. Falta: lockpick, combustível, atropelar, passageiro. Teste: test_carro (14) + test_rede.
   Rede.VERSAO 32.
+- Novato (31/10, teste com agente jogador): 1ª vez nasce sempre em ponto bom (`main._ponto_inicial` -> `ponto_nascer("", 1.0)`),
+  `Jogador.olha_pro_aberto` (câmera para o lado mais livre ao nascer), `_cai` zera mordida/agarrão (EMPURRAR ficava
+  preso), sinal `golpe_de(dir)` -> controles `_SetaGolpe` (seta vermelha de onde veio o golpe), baú "fique parado".
 - `progresso.gd` (Progresso; 31/10): XP (XP_ZUMBI/RAID/CHEFE no `Zumbi._morre`, XP_NOITE ao amanhecer no `Ciclo`), nível
   (`xp_para`), pontos, `hab` vigor/folego/pontaria/forca (até NIVEL_HAB), salvo em user://progresso_<nick>.cfg. Jogador:
   `prog`, `vida_max()`, `mult_espalho/mult_fogo/mult_forca`, `aprende(h)`; `_recebe("xp")`. Pausa: HABILIDADES

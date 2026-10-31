@@ -91,6 +91,7 @@ const RENASCE: float = 4.0  # s caído até voltar no ponto de início (o resgat
 var vida: int = VIDA_MAX
 ## Avisa o HUD que levou dano.
 signal dano_levado(dano: int)
+signal golpe_de(dir: Vector3)  # para onde o golpe empurrou (o HUD mostra de onde veio)
 var inicio: Vector3
 ## provisório para testar: todos começam com lanterna; depois só quem achar uma no mapa
 var tem_lanterna: bool = true:
@@ -258,6 +259,7 @@ func _ready() -> void:
 		camera.yaw = modelo.rotation.y - PI
 		add_child(camera)
 		_so_sombra.call_deferred()
+		olha_pro_aberto.call_deferred()
 	else:
 		collision_layer = 4  # os outros jogadores: não empurram a sua física local por enquanto
 
@@ -1033,6 +1035,8 @@ func _recebe_dano(dano: int, dir: Vector3) -> void:
 	if camera:
 		camera.tremer(0.25)
 	dano_levado.emit(dano)
+	if dir.length() > 0.01:
+		golpe_de.emit(dir)
 	if vida == 0:
 		_cai()
 
@@ -1063,6 +1067,9 @@ func _passa_fome(dt: float) -> void:
 func _cai() -> void:
 	_morto_t = RENASCE
 	_golpe = -1
+	mordida_t = 0.0  # morto não briga mais com o zumbi (a tela de EMPURRAR ficava presa)
+	mordida_zumbi = null
+	agarrado_t = 0.0
 	mira_travada = false
 	pistola.recarregando = false
 	smg.recarregando = false
@@ -1383,6 +1390,7 @@ func _caido(dt: float) -> void:
 		sede = 100.0
 		reset_physics_interpolation()
 		_toca("parado", 0.0)
+		olha_pro_aberto.call_deferred()
 	pos_rede = global_position
 	clipe_rede = _clipe
 	cima_rede = ""
@@ -1412,6 +1420,23 @@ var no_carro: bool = false:  # vai pela rede: os outros não veem o boneco em p�
 		no_carro = v
 		if modelo:
 			modelo.visible = not v
+
+
+## Ao nascer: vira a câmera para o lado mais aberto (não começa de cara para a parede).
+func olha_pro_aberto() -> void:
+	if camera == null or not is_inside_tree():
+		return
+	var espaco := get_world_3d().direct_space_state
+	var olho: Vector3 = global_position + Vector3(0, 1.5, 0)
+	var melhor: float = -1.0
+	for k in 8:
+		var yaw: float = TAU * k / 8.0
+		var q := PhysicsRayQueryParameters3D.create(olho, olho + Vector3(-sin(yaw), 0, -cos(yaw)) * 20.0, 1)
+		var r: Dictionary = espaco.intersect_ray(q)
+		var d: float = olho.distance_to(r.position) if r else 20.0
+		if d > melhor + 0.5:
+			melhor = d
+			camera.virar(yaw)
 
 
 func carro_perto() -> Carro:

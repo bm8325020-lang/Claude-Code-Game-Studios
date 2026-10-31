@@ -26,6 +26,7 @@ var jogador: Jogador:
 		visible = v != null
 		if v:
 			v.dano_levado.connect(_levou_dano)
+			v.golpe_de.connect(func(dir: Vector3) -> void: _seta_golpe.mostra(-dir))
 			v.item_pego.connect(_pegou)
 			v.acertou_alvo.connect(_acertou)
 			v.infectou.connect(func() -> void: aviso("VOCÊ FOI INFECTADO — ache um antibiótico", UiTema.PERIGO))
@@ -74,6 +75,7 @@ var _faixa_texto: Label
 var _pvp_hud: Label  # relógio e placar da partida de PvP (no alto)
 var tela_salas: TelaSalas
 var _espera: PanelContainer  # tela de espera da sala de sobrevivência
+var _seta_golpe: _SetaGolpe
 var _qte: _Qte  # briga com o zumbi mordendo (barra + EMPURRAR)
 var _clique_qte: bool = false
 var _espera_texto: Label
@@ -129,6 +131,10 @@ func _ready() -> void:
 	_mira.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_mira.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_mira)
+	_seta_golpe = _SetaGolpe.new()
+	_seta_golpe.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_seta_golpe.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_seta_golpe)
 	_vermelho = ColorRect.new()
 	_vermelho.color = Color(0.6, 0.0, 0.0, 0.0)
 	_vermelho.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -310,7 +316,7 @@ func _process(dt: float) -> void:
 	if jogador.carro:
 		_dica_pegar.text = ("SAIR DO CARRO" if toque else "[E] sair do carro")
 	elif jogador.abrindo:
-		_dica_pegar.text = "ABRINDO... %d%%" % roundi((1.0 - jogador.abrindo_t / Bau.ABRIR_T) * 100.0)
+		_dica_pegar.text = "ABRINDO (fique parado)... %d%%" % roundi((1.0 - jogador.abrindo_t / Bau.ABRIR_T) * 100.0)
 	elif banc:
 		_dica_pegar.text = ("BANCADA" if toque else "[E] usar a bancada")
 	elif loja:
@@ -1017,6 +1023,38 @@ func _circulo(diam: float, cor: Color) -> Panel:
 
 
 # mira no centro da tela: ponto + quatro tracinhos
+## Seta vermelha na volta da mira apontando de onde veio o último golpe (some em 1,2 s).
+class _SetaGolpe:
+	extends Control
+
+	var de: Vector3 = Vector3.ZERO  # direção do mundo até quem bateu
+	var t: float = 0.0
+
+	func mostra(d: Vector3) -> void:
+		de = Vector3(d.x, 0, d.z).normalized()
+		t = 1.2
+
+	func _process(dt: float) -> void:
+		if t > 0.0:
+			t -= dt
+			queue_redraw()
+
+	func _draw() -> void:
+		var cam := get_viewport().get_camera_3d()
+		if t <= 0.0 or cam == null:
+			return
+		var frente: Vector3 = -cam.global_basis.z
+		frente = Vector3(frente.x, 0, frente.z).normalized()
+		var direita := Vector3(-frente.z, 0, frente.x)
+		var tela := Vector2(de.dot(direita), -de.dot(frente)).normalized()  # para cima na tela = na frente
+		var c: Vector2 = size * 0.5
+		var r: float = minf(size.x, size.y) * 0.3
+		var p: Vector2 = c + tela * r
+		var lado := Vector2(-tela.y, tela.x)
+		var cor := Color(0.9, 0.08, 0.05, clampf(t / 0.5, 0.0, 0.85))
+		draw_colored_polygon(PackedVector2Array([p + tela * 34.0, p + lado * 30.0, p - lado * 30.0]), cor)
+
+
 class _Mira:
 	extends Control
 
