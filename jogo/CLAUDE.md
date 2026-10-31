@@ -46,7 +46,8 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   onde chega), `_tabuas_telhado` (TETO_MURETA; tábua entre tetos da mesma altura, vão até 8 m). Teste: test_telhado (3). Cada lote recebe
   uma RUÍNA modelada no Blender (30/10, pedido do dono): `tools/blender/ruinas.py` gera `assets/ruinas/*.glb`
   (casa_r1..r6: telhado caído, queimada, 2 andares com escada; loja_r1/r2: vitrine, gôndolas; predio_r1: canto
-  desabado; móveis dentro). Rodar: `~/.local/blender/blender-4.2.9-linux-x64/blender -b -P tools/blender/ruinas.py --
+  desabado; móveis dentro: `mobilia` com sofá, tapete, TV, quadros, estante, mesa; quarto com cama/criado/guarda-roupa
+  ou cozinha com balcão/geladeira/fogão/armário aéreo; `bagunca` (papéis sem colisão + caixas); 31/10: AO mais claro 0.42). Rodar: `~/.local/blender/blender-4.2.9-linux-x64/blender -b -P tools/blender/ruinas.py --
   assets/ruinas` e depois `$G --headless --path . --import`; foto: `tools/blender/foto_ruinas.py -- assets/ruinas dir`.
   Colisão vem do glb (nome "-col"/"-colonly": sem parede invisível). `_ruina` escolhe pelo nome entre `RUINAS_CASA/
   LOJA/MANSAO` que cabem e não encostam na rua (senão lote vazio; mansão cai na casa em código `_construcao`),

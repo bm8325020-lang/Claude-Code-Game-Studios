@@ -28,6 +28,7 @@ CORES = {
     "queimado": (0.06, 0.05, 0.05), "tabua": (0.42, 0.33, 0.24), "pano": (0.32, 0.3, 0.28),
     "branco": (0.78, 0.77, 0.72), "papelao": (0.55, 0.45, 0.32), "lataria": (0.4, 0.15, 0.12),
     "vidro": (0.05, 0.06, 0.07), "pneu": (0.04, 0.04, 0.04), "ferrugem": (0.35, 0.18, 0.08),
+    "tapete": (0.38, 0.14, 0.11), "quadro": (0.3, 0.33, 0.36),
 }
 rnd = random.Random(1)
 _mats = {}
@@ -341,19 +342,85 @@ def _poe(o, x, y, ang):
     o.rotation_euler = (0, 0, ang)
 
 
+def tapete(nome, x, y, larg, comp):
+    """Sem colisão (é chão): tapete gasto, um canto dobrado."""
+    caixa(nome, (x, y, 0.075), (larg, comp, 0.015), "tapete", (0, 0, rnd.uniform(-0.2, 0.2)))
+    caixa(nome + "_dobra", (x + larg * 0.4, y - comp * 0.4, 0.1), (larg * 0.25, comp * 0.25, 0.015), "tapete", (0.5, 0, 0.3))
+
+
+def quadro(nome, x, y, ang):
+    """Quadro torto na parede (sem colisão): moldura e a foto apagada."""
+    o = junta([caixa("q", (0, 0, 0), (0.55, 0.03, 0.42), "madeira"), caixa("q", (0, -0.02, 0), (0.45, 0.01, 0.32), "quadro")], nome)
+    o.location = (x, y, rnd.uniform(1.45, 1.75))
+    o.rotation_euler = (0, rnd.uniform(-0.25, 0.25), ang)
+
+
+def tv(nome, x, y, ang):
+    """Rack baixo com a TV velha caída de cara em cima."""
+    p = [caixa("r", (0, 0, 0.25), (1.3, 0.45, 0.5), "madeira"), caixa("t", (0.1, 0.02, 0.6), (0.8, 0.5, 0.18), "metal", (0.12, 0, 0.1))]
+    _poe(junta(p, nome + "-col"), x, y, ang)
+
+
+def fogao(nome, x, y, ang):
+    p = [caixa("f", (0, 0, 0.42), (0.6, 0.6, 0.84), "branco"), caixa("f", (0, 0, 0.86), (0.6, 0.6, 0.03), "metal"),
+         caixa("f", (0, -0.31, 0.45), (0.5, 0.02, 0.4), "vidro")]
+    _poe(junta(p, nome + "-col"), x, y, ang)
+
+
+def armario_aereo(nome, x, y, ang, larg):
+    """Armário de cozinha na parede, uma porta caída (sem colisão: fica acima da cabeça)."""
+    o = junta([caixa("a", (0, 0, 0), (larg, 0.35, 0.6), "madeira"), caixa("a", (larg * 0.25, -0.3, -0.25), (larg * 0.45, 0.02, 0.55), "madeira", (0.6, 0, 0))], nome)
+    o.location = (x, y, 1.75)
+    o.rotation_euler = (0, 0, ang)
+
+
+def guarda_roupa(nome, x, y, ang):
+    p = [caixa("g", (0, 0, 1.0), (1.2, 0.55, 2.0), "madeira"), caixa("g", (0.31, -0.29, 1.0), (0.56, 0.03, 1.9), "madeira", (0, 0, -0.5)),
+         caixa("g", (-0.2, -0.1, 0.12), (0.6, 0.3, 0.2), "pano")]  # porta aberta e roupa no fundo
+    _poe(junta(p, nome + "-col"), x, y, ang)
+
+
+def criado(nome, x, y):
+    p = [caixa("c", (0, 0, 0.27), (0.45, 0.4, 0.54), "madeira"), caixa("c", (0.05, 0, 0.62), (0.15, 0.15, 0.16), "branco")]
+    _poe(junta(p, nome + "-col"), x, y, rnd.uniform(-0.3, 0.3))
+
+
+def bagunca(nome, x, y, n):
+    """Papéis, roupa e latas no chão (sem colisão) e umas caixas de papelão (com colisão)."""
+    for k in range(n):
+        caixa("%s_papel%d" % (nome, k), (x + rnd.uniform(-1.2, 1.2), y + rnd.uniform(-1.0, 1.0), 0.07),
+              (rnd.uniform(0.15, 0.3), rnd.uniform(0.2, 0.3), 0.005), rnd.choice(["branco", "papelao", "pano"]), (0, 0, rnd.uniform(0, 6.28)))
+    for k in range(rnd.randint(1, 2)):
+        tam = rnd.uniform(0.35, 0.55)
+        caixa("%s_caixa%d-col" % (nome, k), (x + rnd.uniform(-0.8, 0.8), y + rnd.uniform(-0.6, 0.6), 0.06 + tam / 2),
+              (tam, tam * 0.8, tam), "papelao", (0, 0, rnd.uniform(0, 6.28)))
+
+
 def mobilia(w, d):
-    """Sala na esquerda (sofá, estante, mesa) e quarto/cozinha na direita, nas paredes de lado."""
+    """Sala na esquerda (sofá, TV, tapete, estante, mesa, quadros) e quarto ou cozinha na direita, nas paredes de lado.
+    Sem móvel no meio da frente (porta) nem nos cantos do fundo (baú e item)."""
     e, dx = -w / 2 + ESP / 2, w / 2 - ESP / 2
     sofa("sofa", e + 0.5, -d / 4, -1.5708)
+    tapete("tapete", e + 1.9, -d / 4, 1.6, 2.2)
+    quadro("quadro_s", e + 0.13, -d / 4 + rnd.uniform(-0.4, 0.4), 1.5708)
+    if w > 7:
+        tv("tv", -w / 2 + 3.4, -d / 4 + rnd.uniform(-0.3, 0.3), 1.5708)
     if rnd.random() < 0.6:
         estante("estante", e + 0.25, -d / 2 + 1.2, -1.5708, caida=rnd.random() < 0.5)
     if w > 8:
         mesa("mesa", -w / 4, -d / 6)
     if rnd.random() < 0.5:
         cama("cama", dx - 0.6, -d / 4 + 0.2, 0)
+        criado("criado", dx - 0.35, -d / 4 + 1.5)
+        guarda_roupa("guarda_roupa", dx - 0.35, -d / 2 + 0.85, 1.5708)
+        quadro("quadro_q", dx - 0.13, -d / 4 + 0.2, -1.5708)
     else:
         balcao("balcao", dx - 0.35, -d / 4, 1.5708, min(2.2, d / 2 - 1.0))
         geladeira("geladeira", dx - 0.45, -d / 2 + 0.7, 1.5708, rnd.random() < 0.4)
+        fogao("fogao", dx - 0.35, -d / 4 + min(2.2, d / 2 - 1.0) / 2 + 0.35, 1.5708)
+        armario_aereo("armario", dx - 0.2, -d / 4, 1.5708, min(2.0, d / 2 - 1.2))
+    bagunca("bag_s", -w / 4, -d / 4 + 0.5, 6)
+    bagunca("bag_f", rnd.uniform(-1.0, 1.0) * w / 4, d / 6, 4)
 
 
 def limpa():
@@ -411,7 +478,7 @@ def assa_sombra():
     bpy.ops.object.bake(type="AO", target="VERTEX_COLORS")
     for o in vis:  # canto escuro, mas nunca preto chapado (a luz do jogo ainda soma por cima)
         for c in o.data.color_attributes[0].data:
-            v = 0.32 + 0.68 * (c.color[0] ** 0.75)
+            v = 0.42 + 0.58 * (c.color[0] ** 0.75)  # 31/10: 0.32 deixava dentro de casa escuro demais
             c.color = (v, v, v, 1.0)
 
 
