@@ -110,6 +110,7 @@ func _ready() -> void:
 	_arvores_mortas()
 	_hidrantes_e_fogo()
 	_classifica()
+	_mais_carros_e_achados()
 	var enfeites := Enfeites.new()
 	enfeites.name = "Enfeites"
 	add_child(enfeites)
@@ -1034,24 +1035,71 @@ func casa_em(p: Vector3) -> String:
 
 ## `n` pedaços de rua (de largura >= `larg_min`) espalhados por igual pelo comprimento de todas as ruas: as ruas
 ## curvas são feitas de pedacinhos de ~6 m, então escolher por pedaço comprido não serve.
-func _espalhados(n: int, larg_min: float) -> Array:
+func _espalhados(n: int, larg_min: float, rng: RandomNumberGenerator = _rng) -> Array:
 	var ok: Array = _ruas.filter(func(r: Array) -> bool: return float(r[2]) >= larg_min)
 	var total: float = 0.0
 	for r: Array in ok:
 		total += (r[0] as Vector2).distance_to(r[1])
 	var passo: float = total / maxf(n, 1)
-	var proximo: float = _rng.randf() * passo
+	var proximo: float = rng.randf() * passo
 	var corre: float = 0.0
 	var out: Array = []
 	for r: Array in ok:
 		corre += (r[0] as Vector2).distance_to(r[1])
 		if corre >= proximo and out.size() < n:
 			out.append(r)
-			proximo += passo * _rng.randf_range(0.7, 1.3)
+			proximo += passo * rng.randf_range(0.7, 1.3)
 	return out
 
 
+## Pedido do dono (31/10): mais carros para dirigir; e coisas pelas ruas para não andar muito sem achar nada.
+## Gerador próprio: não muda o sorteio do resto da cidade.
+const CARROS_EXTRA: int = 26
+const ACHADOS: int = 45
+func _mais_carros_e_achados() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2031
+	var cores: Array[Color] = [Color(0.45, 0.12, 0.1), Color(0.18, 0.25, 0.38), Color(0.62, 0.6, 0.55), Color(0.22, 0.26, 0.2), Color(0.55, 0.45, 0.2)]
+	var n: int = 0
+	for r: Array in _espalhados(CARROS_EXTRA, 5.0, rng):
+		var a: Vector2 = r[0]
+		var b: Vector2 = r[1]
+		var d: Vector2 = (b - a).normalized()
+		var p: Vector2 = a.lerp(b, rng.randf_range(0.2, 0.8)) + Vector2(d.y, -d.x) * float(r[2]) * 0.3 * (1 if rng.randf() < 0.5 else -1)
+		var v: Node3D = _veiculo("carro_r1", cores[rng.randi() % cores.size()])
+		v.name = "Modelo"
+		var c := Carro.new()
+		c.position = Vector3(p.x, 0, p.y)
+		c.rotation.y = atan2(d.x, d.y) + rng.randf_range(-0.2, 0.2) + (PI if rng.randf() < 0.5 else 0.0)
+		add_child(c)
+		c.name = "CarroExtra_%d" % n
+		c.monta(v)
+		n += 1
+	var tipos: Array[String] = ["municao", "comida", "agua", "comida", "agua"]
+	n = 0
+	for r: Array in _espalhados(ACHADOS, 0.0, rng):
+		var a: Vector2 = r[0]
+		var b: Vector2 = r[1]
+		var d: Vector2 = (b - a).normalized()
+		var p: Vector2 = a.lerp(b, rng.randf_range(0.2, 0.8)) + Vector2(d.y, -d.x) * (float(r[2]) * 0.5 + 0.6) * (1 if rng.randf() < 0.5 else -1)
+		var it := Item.new()
+		it.name = "Achado_%d" % n
+		it.tipo = tipos[n % tipos.size()]
+		it.quantidade = 12 if it.tipo == "municao" else 1
+		it.position = Vector3(p.x, altura(p) + 0.02, p.y)
+		it.rotation.y = rng.randf() * TAU
+		add_child(it)
+		n += 1
+
+
 func _classifica() -> void:
+	# nascer em cima do arame farpado dos refúgios machucava logo de cara (novato, 31/10): esses pontos saem
+	var arames: Array = find_children("*", "Area3D", true, false).filter(func(x: Node) -> bool: return x is Sobreviventes.Arame)
+	var livres: Array[Vector3] = []
+	for p: Vector3 in pontos_nascer:
+		if arames.all(func(x: Node3D) -> bool: return x.global_position.distance_to(p) > 5.0):
+			livres.append(p)
+	pontos_nascer = livres
 	for r: Array in _espalhados(30, 0.0):  # zumbis pelas ruas (fora os dos carros)
 		pontos_zumbi.append(ORIGEM + _v3((r[0] as Vector2).lerp(r[1], 0.5)) + Vector3(0, 0.1, 0))
 	var faceis: Array = find_children("Bau_*", "Bau", true, false).filter(func(b: Bau) -> bool: return b.facil)

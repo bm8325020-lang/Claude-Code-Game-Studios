@@ -1261,7 +1261,7 @@ func _divide_peso(dt: float) -> void:
 
 # --- malha de navegação pronta (31/10: assar a cidade levava ~5 s no PC e bem mais no celular ao criar a sala) ---
 const NAV_PRONTA := "res://assets/mapa/nav_%s.res"
-const NAV_VERSAO: int = 1  # subir ao mudar a pista ou o jeito de assar
+const NAV_VERSAO: int = 2  # subir ao mudar a pista ou o jeito de assar
 
 
 ## Usa a malha que vem pronta no APK se o mapa e as ruínas são os mesmos de quando foi assada; senão assa aqui.

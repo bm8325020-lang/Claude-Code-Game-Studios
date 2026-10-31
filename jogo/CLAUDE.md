@@ -76,6 +76,12 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - Novato (31/10, teste com agente jogador): 1ª vez nasce sempre em ponto bom (`main._ponto_inicial` -> `ponto_nascer("", 1.0)`),
   `Jogador.olha_pro_aberto` (câmera para o lado mais livre ao nascer), `_cai` zera mordida/agarrão (EMPURRAR ficava
   preso), sinal `golpe_de(dir)` -> controles `_SetaGolpe` (seta vermelha de onde veio o golpe), baú "fique parado".
+  Atualização do novato (31/10): `Jogador.NOVATO_T/NOVATO_DANO` (dano x0,6 nos 3 primeiros minutos; testes de dano põem
+  `j._jogo_t = Jogador.NOVATO_T`), morte guarda a arma da mão (`_larga_tudo`, sem as balas do pente), `dinheiro` salvo
+  no Progresso, abates seguidos (`sequencia`, XP_SEQUENCIA) e soltar da mordida (XP_SOLTOU) dão XP, trocar arma cancela
+  o golpe, relógio "NOITE EM / AMANHECE EM". Bairro: `_classifica` tira pontos de nascer perto do Arame (machucava ao
+  nascer), `_mais_carros_e_achados` (rng próprio: CARROS_EXTRA carros dirigíveis "CarroExtra_k" + ACHADOS itens
+  "Achado_k" nas ruas). NAV_VERSAO 2, Rede.VERSAO 33.
 - `progresso.gd` (Progresso; 31/10): XP (XP_ZUMBI/RAID/CHEFE no `Zumbi._morre`, XP_NOITE ao amanhecer no `Ciclo`), nível
   (`xp_para`), pontos, `hab` vigor/folego/pontaria/forca (até NIVEL_HAB), salvo em user://progresso_<nick>.cfg. Jogador:
   `prog`, `vida_max()`, `mult_espalho/mult_fogo/mult_forca`, `aprende(h)`; `_recebe("xp")`. Pausa: HABILIDADES

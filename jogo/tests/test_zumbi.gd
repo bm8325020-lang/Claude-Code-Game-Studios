@@ -35,6 +35,7 @@ func _init() -> void:
 	main.iniciar_solo("Teste")
 	await frames(5)
 	j = main.jogador
+	j._jogo_t = Jogador.NOVATO_T  # sem o desconto de dano do começo da partida
 	main.controles.jogador = null
 	main.ciclo.tempo = 0.0  # dia parado: a noite tem o teste dela
 	main.ciclo.set_process(false)
@@ -135,7 +136,7 @@ func _jogador_cai() -> void:
 		if j.vida <= 0:
 			break
 	ok(j.vida == 0 and j.clipe_atual() == "morte", "jogador cai com a vida zerada (%s)" % j.clipe_atual())
-	ok(j.mochila.tem("facao") and not j.mochila.tem("pistola"), "caído: só o facão fica (o resto vai no saco)")
+	ok(j.mochila.tem("facao") and j.mochila.conta(j.arma) == 1 and not j.mochila.tem("lanterna"), "caído: o facão e a arma da mão ficam (o resto vai no saco)")
 	await frames(int(Jogador.RENASCE * 60) + 10)
 	ok(j.vida == Jogador.VIDA_MAX and plano(j.global_position, j.inicio) < 0.5, "volta no início com a vida cheia")
 

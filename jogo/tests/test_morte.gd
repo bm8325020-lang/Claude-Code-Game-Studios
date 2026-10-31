@@ -53,15 +53,15 @@ func _init() -> void:
 	if saco:
 		for e: Dictionary in saco.conteudo:
 			tem[e.tipo] = int(e.qtd)
-	ok(tem.get("pistola", 0) == 1 and tem.get("comida", 0) == 2 and tem.get("lanterna", 0) == 1, "no saco: pistola, comida e lanterna (%s)" % str(tem))
+	ok(not tem.has("pistola") and tem.get("comida", 0) == 2 and tem.get("lanterna", 0) == 1, "no saco: comida e lanterna; a pistola da mão fica (%s)" % str(tem))
 	ok(tem.get("municao", 0) == reserva + balas, "a munição do pente vai junto (%d)" % tem.get("municao", 0))
-	ok(not tem.has("facao") and j.mochila.conta("facao") == 1 and not j.mochila.tem("pistola"), "o facão fica com ele")
-	ok(j.arma == "facao", "sem pistola volta para o facão")
+	ok(not tem.has("facao") and j.mochila.conta("facao") == 1 and j.mochila.conta("pistola") == 1, "o facão e a arma da mão ficam com ele")
+	ok(j.arma == "pistola" and j.pistola.balas == 0, "a pistola fica na mão, sem as balas do pente (%s, %d)" % [j.arma, j.pistola.balas])
 	await frames(int(Jogador.RENASCE * 60) + 10)
 	ok(j.vida == Jogador.VIDA_MAX and not j.mochila.tem("comida"), "volta sem nada (só o facão)")
-	j.entrada["arma"] = "pistola"
+	j.entrada["arma"] = "smg"
 	await frames(3)
-	ok(j.arma == "facao", "não saca pistola que não tem")
+	ok(j.arma == "pistola", "não saca arma que não tem")
 	# revista o saco
 	j.global_position = saco.global_position + Vector3(0, 0.1, 0.8)
 	await frames(5)

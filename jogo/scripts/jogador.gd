@@ -159,6 +159,7 @@ var nick: String = "":
 			_placa.text = v
 		if local and v != "":
 			prog.carrega(Progresso.arquivo(v))
+			dinheiro = prog.dinheiro
 var _placa: Label3D
 ## progressão (XP, nível e habilidades), salva no aparelho do dono do jogador
 var prog := Progresso.new()
@@ -384,6 +385,8 @@ func _physics_process(dt: float) -> void:
 			agua -= 1
 			sede = minf(100.0, sede + ENCHE)
 	_passa_fome(dt)
+	_jogo_t += dt
+	_seq_t -= dt
 	_abre_bau(dt, mov)
 	_fabrica(dt)
 	_copia_t -= dt
@@ -550,7 +553,12 @@ func porta_perto() -> Porta:
 
 
 ## Dinheiro do jogo (nada com dinheiro real) e quantos zumbis já matou. Por enquanto no aparelho (prompt 16: conta).
-var dinheiro: int = 0
+var dinheiro: int = 0:  # salvo no aparelho junto com a XP (novato, 31/10: a XP ficava e o dinheiro zerava)
+	set(v):
+		if v != dinheiro and local and nick != "":
+			prog.dinheiro = v
+			prog.salva(Progresso.arquivo(nick))
+		dinheiro = v
 var abates: int = 0
 func lojista_perto() -> Lojista:
 	if vida <= 0:
@@ -777,6 +785,11 @@ func _recebe(tipo: String, qtd: int) -> void:
 		return
 	if tipo == "abate":
 		abates += qtd  # registro de zumbis mortos
+		sequencia = sequencia + 1 if _seq_t > 0.0 else 1
+		_seq_t = SEQUENCIA_T
+		if sequencia >= 2:
+			item_pego.emit("sequencia", sequencia)
+			_recebe("xp", XP_SEQUENCIA * (sequencia - 1))
 		return
 	if tipo == "xp":
 		var subiu: int = prog.ganha(qtd)
@@ -931,6 +944,8 @@ func _fim_mordida(escapou: bool) -> void:
 		if escapou:
 			var d: Vector3 = global_position - mordida_zumbi.global_position
 			velocity += Vector3(d.x, 0, d.z).normalized() * 4.0  # empurrou e se afastou
+	if escapou:
+		_recebe("xp", XP_SOLTOU)
 	mordida_zumbi = null
 	mordida_fim.emit(escapou)
 
@@ -1027,6 +1042,8 @@ func _rede_dano(dano: int, dir: Vector3) -> void:
 func _recebe_dano(dano: int, dir: Vector3) -> void:
 	if vida <= 0:
 		return
+	if _jogo_t < NOVATO_T:
+		dano = ceili(dano * NOVATO_DANO)  # primeiros minutos da partida: os zumbis batem menos
 	vida = maxi(0, vida - dano)
 	if randf() < CHANCE_INFECTAR:
 		infecta(0.0)
@@ -1064,6 +1081,18 @@ func _passa_fome(dt: float) -> void:
 
 
 # vida zerada: cai e volta no início depois de RENASCE
+## Começo da partida mais justo (teste com novato, 31/10): dano recebido menor nos primeiros NOVATO_T s.
+const NOVATO_T: float = 180.0
+const NOVATO_DANO: float = 0.6
+var _jogo_t: float = 0.0
+## Abates seguidos (a até SEQUENCIA_T s um do outro) dão XP a mais.
+const SEQUENCIA_T: float = 6.0
+const XP_SEQUENCIA: int = 5
+const XP_SOLTOU: int = 15
+var _seq_t: float = 0.0
+var sequencia: int = 0
+
+
 func _cai() -> void:
 	_morto_t = RENASCE
 	_golpe = -1
@@ -1175,11 +1204,23 @@ func levanta() -> void:
 
 ## Tudo da mochila (menos o facão) vira um saco no chão onde caiu; as balas do pente vão junto.
 func _larga_tudo() -> void:
+	# a arma da mão fica com você (novato, 31/10: perder tudo frustrava); o resto vai para o saco
+	var fica: String = arma
 	var tudo: Array = conteudo_para_saco(mochila, _balas_pentes())
+	for d: Dictionary in tudo:
+		if d.tipo == fica:
+			d.qtd -= 1
+	tudo = tudo.filter(func(d: Dictionary) -> bool: return d.qtd > 0)
+	var guardou: bool = false
 	for i in Mochila.ESPACOS:
 		var e: Variant = mochila.espacos[i]
-		if e and e.tipo != "facao":
+		if e and e.tipo == fica and not guardou:
+			guardou = true
+			e.qtd = 1
+		elif e and e.tipo != "facao":
 			mochila.espacos[i] = null
+	if e_fogo(fica):
+		fogo().balas = 0  # as balas do pente foram para o saco
 	if not mochila.tem("pistola"):
 		pistola.balas = 0
 	if not mochila.tem("smg"):
@@ -1539,8 +1580,9 @@ const PISTOLA_POS: Vector3 = Vector3(0, 0.08, 0)
 
 
 func _troca_arma(nova: String) -> void:
-	if nova == arma or _golpe >= 0 or not mochila.tem(nova):
+	if nova == arma or not mochila.tem(nova):
 		return
+	_golpe = -1  # trocar no meio do golpe cancela o golpe (antes o comando era ignorado)
 	arma = nova
 	pistola.recarregando = false  # trocar cancela a recarga
 	if smg:

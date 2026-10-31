@@ -41,7 +41,7 @@ func _init() -> void:
 				outro = n
 		var ini: Vector3 = outro.global_position
 		main.controles.jogador = null
-		main.jogador.entrada["move"] = Vector2(0, 1) if papel == "servidor" else Vector2(1, 0)
+		main.jogador.entrada["move"] = Vector2(0, 1)  # para a frente: ao nascer a câmera olha para o lado aberto
 		var andou: float = 0.0
 		for i in 240:
 			await physics_frame

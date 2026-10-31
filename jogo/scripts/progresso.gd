@@ -46,12 +46,16 @@ func gasta(h: String) -> bool:
 	return true
 
 
+var dinheiro: int = 0
+
+
 func salva(caminho: String) -> void:
 	var cf := ConfigFile.new()
 	cf.set_value("p", "xp", xp)
 	cf.set_value("p", "nivel", nivel)
 	cf.set_value("p", "pontos", pontos)
 	cf.set_value("p", "hab", hab)
+	cf.set_value("p", "dinheiro", dinheiro)
 	cf.save(caminho)
 
 
@@ -62,6 +66,7 @@ func carrega(caminho: String) -> void:
 	xp = int(cf.get_value("p", "xp", 0))
 	nivel = int(cf.get_value("p", "nivel", 1))
 	pontos = int(cf.get_value("p", "pontos", 0))
+	dinheiro = int(cf.get_value("p", "dinheiro", 0))
 	var h: Dictionary = cf.get_value("p", "hab", {})
 	for k: String in HABS:
 		hab[k] = clampi(int(h.get(k, 0)), 0, NIVEL_HAB)

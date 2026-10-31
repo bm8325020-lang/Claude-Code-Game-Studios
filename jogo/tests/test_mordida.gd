@@ -27,6 +27,7 @@ func _init() -> void:
 	main.ciclo.set_process(false)
 	main.controles.jogador = null
 	var j: Jogador = main.jogador
+	j._jogo_t = Jogador.NOVATO_T  # sem o desconto de dano do começo da partida
 	var z: Zumbi = null
 	for n in main.zumbis.get_children():
 		if z == null and not (n as Zumbi).chefe:

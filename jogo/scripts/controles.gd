@@ -26,6 +26,9 @@ var jogador: Jogador:
 		visible = v != null
 		if v:
 			v.dano_levado.connect(_levou_dano)
+			v.mordida_fim.connect(func(escapou: bool) -> void:
+				if escapou:
+					aviso("VOCÊ SE SOLTOU!  +%d XP" % Jogador.XP_SOLTOU, UiTema.DESTAQUE, 1.6))
 			v.golpe_de.connect(func(dir: Vector3) -> void: _seta_golpe.mostra(-dir))
 			v.item_pego.connect(_pegou)
 			v.acertou_alvo.connect(_acertou)
@@ -302,7 +305,7 @@ func _process(dt: float) -> void:
 	var ciclo := get_tree().get_first_node_in_group("ciclo") as Ciclo
 	if ciclo:
 		var f: int = int(ciclo.falta())
-		_relogio.text = ("NOITE  %d:%02d" if ciclo.e_noite() else "DIA  %d:%02d") % [f / 60, f % 60]
+		_relogio.text = ("AMANHECE EM %d:%02d" if ciclo.e_noite() else "NOITE EM %d:%02d") % [f / 60, f % 60]
 		_relogio.add_theme_color_override("font_color", Color(0.65, 0.75, 1.0) if ciclo.e_noite() else (Color(1, 0.75, 0.4) if f < 60 else Color.WHITE))
 	_vermelho.color.a = move_toward(_vermelho.color.a, 0.35 if jogador.vida <= 0 else 0.0, dt * 0.8)
 	var it: Item = jogador.item_perto()
@@ -875,6 +878,9 @@ func _pegou(tipo: String, qtd: int) -> void:
 		return
 	if tipo == "aprendeu":
 		aviso("Receita aprendida", Color(0.35, 0.6, 0.9))
+		return
+	if tipo == "sequencia":
+		aviso("%d ABATES SEGUIDOS!  +%d XP" % [qtd, Jogador.XP_SEQUENCIA * (qtd - 1)], UiTema.DESTAQUE, 1.6)
 		return
 	if tipo == "dinheiro":
 		_aviso_item.text = "+$ %d" % qtd
