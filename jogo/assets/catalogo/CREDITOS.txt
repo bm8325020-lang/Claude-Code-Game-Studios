@@ -1,0 +1,12 @@
+Catálogo do modo construção (31/10). Gerado por tools/catalogo/ (gera_lista.py -> mede.gd -> junta.py).
+
+- Kenney (https://kenney.nl) — CC0 (domínio público): City Kit Roads/Suburban/Commercial/Industrial, Car Kit, Space Kit,
+  Furniture Kit, Building Kit, Modular Buildings, Retro Urban Kit, Survival Kit, Graveyard Kit, Nature Kit, Train Kit,
+  Factory Kit, Mini Market, Fantasy Town Kit. Pasta kenney/ (só os .glb).
+- Poly Haven (https://polyhaven.com) — CC0: modelos em polyhaven/ (1k; texturas a 512 px na importação).
+- Majadroid, "3D Apocalyptic Building / City (CC0)" (https://majadroid.itch.io/3d-apocalyptic-building-city-cc0) — CC0;
+  exportados do .blend para .glb (pasta majadroid/).
+- Atomic Realm (https://atomicrealm.itch.io/) — versões grátis de "Post-Apocalyptic World" e "Post-Apocalyptic Interiors".
+  Licença: pode usar em projetos comerciais, com crédito e link para https://atomicrealm.itch.io/; NÃO pode redistribuir os
+  arquivos. Por isso a pasta atomic/ fica FORA do git: rebaixar com tools/catalogo/baixa_atomic.sh. Crédito no jogo:
+  "Modelos pós-apocalípticos: Atomic Realm (atomicrealm.itch.io)".

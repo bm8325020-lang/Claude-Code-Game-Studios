@@ -1527,6 +1527,9 @@ func _passa_segura(dt: float) -> void:
 		var b: Bairro = principal.bairro if principal else null
 		var casa: String = b.casa_em(global_position) if b and vida > 0 else ""
 		var agora: bool = casa != "" and b.get_node(casa).has_meta("refugio")
+		for s: Node3D in get_tree().get_nodes_in_group("salas_seguras"):  # sala segura posta no construtor
+			if s.global_position.distance_to(global_position) < MapaCustom.RAIO_SEGURA:
+				agora = vida > 0
 		if agora != segura:
 			segura = agora
 			entrou_segura.emit(agora)

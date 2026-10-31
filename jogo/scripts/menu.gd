@@ -43,7 +43,18 @@ func _ready() -> void:
 		_status.text = "Procurando salas..."
 		main.abre_relay()
 		main.relay.lista())
+	_liga(ini, UiTema.botao("MODO CONSTRUÇÃO"), func() -> void: _mostra("construir"))
 	_liga(ini, UiTema.botao("CONFIGURAÇÕES"), func() -> void: _mostra("config"))
+	var con := _pagina(raiz, "construir", 560.0)
+	con.add_child(UiTema.titulo("MODO CONSTRUÇÃO", 40, UiTema.DESTAQUE))
+	con.add_child(UiTema.rotulo("Monte o seu mapa com mais de 2 mil peças. Salve, jogue nele e compartilhe.", 20, UiTema.APAGADO))
+	_liga(con, UiTema.botao("COMEÇAR DO ZERO (TERRENO VAZIO)", true), func() -> void: main.construir(false, "vazio"))
+	_liga(con, UiTema.botao("CONSTRUIR EM CIMA DA CIDADE"), func() -> void: main.construir(false, "cidade"))
+	_liga(con, UiTema.botao("CONTINUAR MEU MAPA"), func() -> void: main.construir(true))
+	_liga(con, UiTema.botao("JOGAR NO MEU MAPA"), func() -> void:
+		main.nick_local = _nick.text.strip_edges()
+		main.jogar_meu_mapa())
+	_voltar(con)
 	_monta_criar(raiz)
 	_monta_entrar(raiz)
 	var cfg := _pagina(raiz, "config", 760.0)

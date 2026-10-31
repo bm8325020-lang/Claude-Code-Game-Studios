@@ -125,6 +125,16 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   eventos item_pego/revistou/abateu/entrou_segura/bilhete/amanheceu/marco via `Bairro.marcos_pos`), barra de vida verde
   com número (`_Barra.texto`). Arma `taco_pregos` (Blender, Armas.BRANCAS, pegada diagonal `Maos.POSE`); nas salas já vem
   na mão (`main.arma_inicial`); testes seguem com o facão.
+- MODO CONSTRUÇÃO (31/10, 0.88; dono: "quero montar meu mapa"): catálogo `assets/catalogo/catalogo.json` (~2100 peças;
+  Kenney CC0 17 kits, Poly Haven CC0 164, Majadroid CC0 ruínas, Atomic Realm grátis com crédito (FORA do git:
+  tools/catalogo/baixa_atomic.sh), mais ruínas/móveis/sketchfab do jogo e "jogo:*"); refazer: gera_lista.py -> mede.gd ->
+  junta.py (ESCALA por kit da Kenney). `mapa_custom.gd` (MapaCustom: lista/item, carrega/salva user://meu_mapa.json,
+  para_texto/de_texto "MAPA1:" gzip+base64, cria (caixa de colisão; ruína usa Bairro._pinta), monta, _liga_jogo:
+  nascer/zumbi/bau/bau_raro/sala_segura (grupo "salas_seguras")/carro/fogo/luz). `construcao.gd` (Construcao: câmera
+  voando, `_Stick`, catálogo por categoria com busca, fantasma verde na mira, coloca/apaga/desfaz/gira/salva/compartilha/
+  cola). main: `construir(continuar, base)`, `jogar_meu_mapa()` (`_nav_forcar`: assa a malha na hora), `_bairro_vazio`
+  (`Bairro.vazio`: só chão e borda; zerado no _ready). Menu: MODO CONSTRUÇÃO. project.godot `[importer_defaults]`
+  texture 512/VRAM (vale para TODA textura nova importada, inclusive de interface). Teste: test_construcao (16).
 - `progresso.gd` (Progresso; 31/10): XP (XP_ZUMBI/RAID/CHEFE no `Zumbi._morre`, XP_NOITE ao amanhecer no `Ciclo`), nível
   (`xp_para`), pontos, `hab` vigor/folego/pontaria/forca (até NIVEL_HAB), salvo em user://progresso_<nick>.cfg. Jogador:
   `prog`, `vida_max()`, `mult_espalho/mult_fogo/mult_forca`, `aprende(h)`; `_recebe("xp")`. Pausa: HABILIDADES

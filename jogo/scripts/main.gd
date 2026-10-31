@@ -51,6 +51,7 @@ func _ready() -> void:
 	_luz()
 	_chao()
 	_obstaculos()
+	Bairro.vazio = false  # o construtor recarrega a cena: a cidade volta
 	bairro = Bairro.new()
 	bairro.name = "Bairro"
 	add_child(bairro)
@@ -190,6 +191,64 @@ func _relay_controle(m: Dictionary) -> void:
 
 
 ## Cria a sala e hospeda (o mundo roda aqui). `maximo` = quantos jogadores no total, contando quem cria.
+# --- modo construção (31/10): Construcao edita, MapaCustom monta; "jogar no meu mapa" sozinho ---
+var _nav_forcar: bool = false  # mapa montado pelo dono: a malha dos zumbis é assada na hora
+
+
+func _bairro_vazio() -> void:
+	bairro.free()
+	Bairro.vazio = true
+	bairro = Bairro.new()
+	bairro.name = "Bairro"
+	add_child(bairro)
+
+
+## Abre o construtor. `continuar`: o mapa salvo; senão um novo ("vazio" = do zero, "cidade" = em cima da cidade).
+func construir(continuar: bool, base: String = "vazio") -> void:
+	_comeca()
+	controles.visible = false
+	var d: Dictionary = MapaCustom.carrega() if continuar else {"base": base, "pecas": []}
+	if String(d.get("base", "vazio")) == "vazio":
+		_bairro_vazio()
+	ciclo.tempo = 60.0
+	ciclo.set_process(false)
+	ciclo._process(0.0)
+	var ed := Construcao.new()
+	ed.main = self
+	ed.dados = d
+	add_child(ed)
+
+
+## Joga sozinho no mapa salvo: põe as peças (as do jogo viram nascer/zumbi/baú/...), assa a malha e começa.
+func jogar_meu_mapa() -> void:
+	var d: Dictionary = MapaCustom.carrega()
+	var ed := get_node_or_null("Construcao")
+	if ed:
+		ed.free()
+	var velho := get_node_or_null("Mapa")
+	if velho:
+		velho.free()
+	_comeca()
+	if String(d.get("base", "vazio")) == "vazio" and not Bairro.vazio:
+		_bairro_vazio()
+	ciclo.set_process(true)
+	var mapa := Node3D.new()
+	mapa.name = "Mapa"
+	add_child(mapa)
+	var r: Dictionary = MapaCustom.monta(d, mapa, bairro, true)
+	if not r.nascer.is_empty():
+		bairro.pontos_nascer.assign(r.nascer)
+		bairro.pontos_bons.assign(r.nascer)
+		bairro.pontos_ruins.assign(r.nascer)
+	elif Bairro.vazio:
+		bairro.pontos_nascer.assign([Bairro.ORIGEM + Vector3(0, 1, 0)])
+		bairro.pontos_bons.assign(bairro.pontos_nascer)
+	bairro.pontos_zumbi.append_array(r.zumbi)
+	controles.visible = true
+	_nav_forcar = true
+	iniciar_solo(nick_local if nick_local != "" else "Construtor")
+
+
 ## Arma que o jogador local já segura ao nascer nas salas de verdade (os testes seguem com o facão).
 var arma_inicial: String = ""
 
@@ -1277,6 +1336,9 @@ const NAV_VERSAO: int = 2  # subir ao mudar a pista ou o jeito de assar
 ## Usa a malha que vem pronta no APK se o mapa e as ruínas são os mesmos de quando foi assada; senão assa aqui.
 ## Gerar de novo: `$G --headless --path . -s res://tools/assa_navegacao.gd` (depois de mudar cidade/ruínas).
 func _assa(regiao: NavigationRegion3D, nome: String) -> void:
+	if _nav_forcar:  # mapa montado no construtor: a malha pronta não serve
+		regiao.bake_navigation_mesh(false)
+		return
 	var chave: String = chave_nav()
 	var caminho: String = NAV_PRONTA % nome
 	if ResourceLoader.exists(caminho):
