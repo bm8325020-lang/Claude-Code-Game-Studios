@@ -476,11 +476,12 @@ def abajur(nome, x, y):
 def ao_longo(w, lado, y0, y1, itens, nome):
     ang = 1.5708 if lado < 0 else -1.5708
     y = y0 + 0.35
-    for k, (f, prof, larg) in enumerate(itens):
+    for k, item in enumerate(itens):
+        f, prof, larg = item[0], item[1], item[2]
         if y + larg > y1 - 0.35:
             break
         x = lado * (w / 2 - ESP - prof / 2 - 0.03)
-        base = f.__name__ if f.__name__ != "<lambda>" else "movel"  # o Bairro acha as gavetas pelo começo do nome
+        base = item[3] if len(item) > 3 else f.__name__  # o Bairro acha gavetas e troca o modelo pelo começo do nome
         f("%s_%s%d" % (base, nome, k), x, y + larg / 2, ang)
         y += larg + rnd.uniform(0.15, 0.5)
 
@@ -491,24 +492,22 @@ def comodo(tema, w, lado, x0, y0, y1, nome):
     meio_y = (y0 + y1) / 2
     tec = rnd.choice(TECIDOS)
     if tema == "sala":
-        ao_longo(w, lado, y0, y1, [(lambda n, x, y, a: sofa(n, x, y, a, tec), 0.85, 2.0), (estante, 0.4, 1.2),
-                                   (lambda n, x, y, a: poltrona(n, x, y, a, rnd.choice(TECIDOS)), 0.8, 0.85)], nome)
+        ao_longo(w, lado, y0, y1, [(lambda n, x, y, a: sofa(n, x, y, a, tec), 0.85, 2.0, "sofa"), (estante, 0.4, 1.2),
+                                   (lambda n, x, y, a: poltrona(n, x, y, a, rnd.choice(TECIDOS)), 0.8, 0.85, "poltrona")], nome)
         tapete(nome + "_tapete", meio_x, meio_y, 1.6, 2.2)
-        quadro(nome + "_quadro", lado * (w / 2 - ESP - 0.03), meio_y, 1.5708 if lado < 0 else -1.5708)
         if abs(x0 - lado * (w / 2)) > 3.2:
             tv("tv_" + nome, meio_x + lado * -0.8, meio_y, 1.5708 if lado > 0 else -1.5708)
         if rnd.random() < 0.5:
             abajur(nome + "_abajur", meio_x, y0 + 0.8)
     elif tema == "cozinha":
         ao_longo(w, lado, y0, y1, [(balcao, 0.6, 1.8), (fogao, 0.6, 0.6), (pia, 0.6, 1.0),
-                                   (lambda n, x, y, a: geladeira(n, x, y, a, rnd.random() < 0.3), 0.7, 0.75)], nome)
+                                   (lambda n, x, y, a: geladeira(n, x, y, a, rnd.random() < 0.3), 0.7, 0.75, "geladeira")], nome)
         armario_aereo("armario_" + nome, lado * (w / 2 - ESP - 0.2), (y0 + y1) / 2, 1.5708 if lado < 0 else -1.5708, min(1.8, (y1 - y0) - 1.0))
         if abs(x0 - lado * (w / 2)) > 3.0:
             mesa(nome + "_mesa", meio_x - lado * 0.4, meio_y)
     elif tema == "quarto":
         ao_longo(w, lado, y0, y1, [(criado, 0.4, 0.45), (cama, 2.0, 1.1), (guarda_roupa, 0.55, 1.2)], nome)
         tapete(nome + "_tapete", meio_x, meio_y, 1.2, 1.6)
-        quadro(nome + "_quadro", lado * (w / 2 - ESP - 0.03), meio_y + 0.6, 1.5708 if lado < 0 else -1.5708)
     elif tema == "crianca":
         ao_longo(w, lado, y0, y1, [(berco, 0.7, 1.25), (criado, 0.4, 0.45), (guarda_roupa, 0.55, 1.2)], nome)
         tapete(nome + "_tapete", meio_x, meio_y, 1.4, 1.4)

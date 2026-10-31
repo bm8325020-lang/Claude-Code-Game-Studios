@@ -15,6 +15,11 @@ const MOVEIS: Dictionary = {
 }
 
 var movel: String = "criado"
+var sem_caixa: bool = false:  # móvel realista (Moveis): a gaveta de caixa fica escondida, mas abre e soa igual
+	set(v):
+		sem_caixa = v
+		if _caixa:
+			_caixa.visible = not v
 var chave: bool = false
 var aberta: bool = false:
 	set(v):

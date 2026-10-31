@@ -108,6 +108,12 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   Marcos novos (cidade.json + cidade_nossa.py): antena (já marcada), helicoptero, quarentena, posto (Blender), com
   `BauMarco_*` (loot raro) e 4 pontos de zumbi em volta; marco na altura do terreno. Enfeites: sem mato dentro de lote.
   Rede.VERSAO 37. Paredes invisíveis do vídeo: NÃO achadas (perguntar onde).
+- Móveis realistas (31/10, 0.86): `moveis.gd` (Moveis.troca(casa) no `Bairro._gavetas_e_cofres`): cada caixa de móvel
+  do Blender some e entra um modelo Poly Haven CC0 (`assets/moveis/<nome>/<nome>.gltf`, texturas size_limit 512 VRAM)
+  pelo pedaço do nome (TROCA), cabendo no chão da caixa; colisão continua a da caixa; micro-ondas no balcão, lampião no
+  criado; `visibility_range_end` LONGE, sem sombra. Gaveta `sem_caixa` (esconde a gavetinha). Quadros saíram (caíam na
+  janela). Nick do jogador vai sempre pela rede. Rede.VERSAO 38. Próximo: paredes por dentro (papel de parede, lambri,
+  azulejo), janelas com vidro/moldura, luz de abajur.
 - `progresso.gd` (Progresso; 31/10): XP (XP_ZUMBI/RAID/CHEFE no `Zumbi._morre`, XP_NOITE ao amanhecer no `Ciclo`), nível
   (`xp_para`), pontos, `hab` vigor/folego/pontaria/forca (até NIVEL_HAB), salvo em user://progresso_<nick>.cfg. Jogador:
   `prog`, `vida_max()`, `mult_espalho/mult_fogo/mult_forca`, `aprende(h)`; `_recebe("xp")`. Pausa: HABILIDADES

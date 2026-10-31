@@ -1136,6 +1136,7 @@ func _gavetas_e_cofres() -> void:
 				continue
 			var g := Gaveta.new()
 			g.movel = movel
+			g.set_meta("caixa_movel", mi)
 			g.name = "Gaveta_%d" % n
 			add_child(g)
 			g.global_transform = Transform3D(Basis(Vector3.UP, mi.global_rotation.y), mi.global_position)
@@ -1143,6 +1144,12 @@ func _gavetas_e_cofres() -> void:
 			if not por_casa.has(casa):
 				por_casa[casa] = []
 			por_casa[casa].append(g)
+	for casa: Node3D in get_tree().get_nodes_in_group("casas"):  # caixas de móvel -> modelos realistas (Moveis)
+		Moveis.troca(casa)
+	for g: Gaveta in get_tree().get_nodes_in_group("gavetas"):
+		var cx: MeshInstance3D = g.get_meta("caixa_movel")
+		if cx and not cx.visible:
+			g.sem_caixa = true  # o móvel de verdade já tem gaveta: a caixinha não aparece
 	var casas: Array = por_casa.keys().filter(func(c: Node3D) -> bool: return not c.has_meta("refugio"))
 	var sobr: Sobreviventes = get_node_or_null("Sobreviventes")
 	var feitos: int = 0

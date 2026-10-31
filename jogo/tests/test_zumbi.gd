@@ -202,6 +202,9 @@ func _chama_horda() -> void:
 	z.chance_grito = 1.0  # no jogo só GRITO_CHANCE das vezes; senão rosna baixo
 	z.global_position = Vector3(30, 0, -12)  # vê o jogador (13 m)
 	amigo.global_position = Vector3(38, 0, -4)  # 11 m do que grita (GRITO_RAIO)
+	amigo.come = true  # de cabeça baixa num corpo: não vê o jogador sozinho, só vem pelo grito
+	amigo.casa = amigo.global_position
+	amigo.alvo = null
 	longe.global_position = Vector3(60, 0, 20)  # longe demais do grito
 	await frames(25)
 	ok(z.alvo == j and z.clipe_atual() == "grito", "vê o jogador e grita (%s)" % z.clipe_atual())
@@ -268,8 +271,11 @@ func _noite() -> void:
 	z.global_position = Vector3(30, 0, -18)
 	z.velocity = Vector3.ZERO
 	z.alvo = j
-	await frames(55)  # termina o ataque anterior e acelera
-	ok(Vector2(z.velocity.x, z.velocity.z).length() > Zumbi.CORRER * z._vel * 1.05, "à noite corre mais (%.1f m/s, %s, ataque %.2f cambaleio %.2f clipe %s)" % [Vector2(z.velocity.x, z.velocity.z).length(), z.tipo, z._ataque_t, z._cambaleio, z.clipe_atual()])
+	var maxv: float = 0.0  # a maior velocidade na corrida (cada zumbi tem seu ritmo; perto ele para e bate)
+	for i in 110:
+		await physics_frame
+		maxv = maxf(maxv, Vector2(z.velocity.x, z.velocity.z).length())
+	ok(maxv > Zumbi.CORRER * z._vel * 1.05, "à noite corre mais (%.1f m/s, %s)" % [maxv, z.tipo])
 	for i in 400:
 		await physics_frame
 		if j.vida < 100:
