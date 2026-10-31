@@ -26,8 +26,7 @@ func tenta(h: float, anda: bool) -> float:
 	var muro: StaticBody3D = main.bloco(Vector3(60, h * 0.5, 63.0), Vector3(4, h, 4.0), Color.GRAY)  # largo: para em cima
 	j.global_position = Vector3(60, 0.05, 60)
 	j.velocity = Vector3.ZERO
-	j.camera.yaw = 0.0
-	j.camera.pitch = 0.0
+	j.camera.virar(PI, 0.0)  # olha para +Z; virar muda também o alvo (o yaw sozinho volta para onde olha_pro_aberto mandou)
 	await frames(20)
 	j.entrada["move"] = Vector2(0, 1) if anda else Vector2.ZERO
 	await frames(12)
