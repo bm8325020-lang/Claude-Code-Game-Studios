@@ -21,7 +21,8 @@ var _malhas: Dictionary = {}  # tipo -> [Mesh, Material, alcance]
 func monta(b: Bairro, ruas: Array, poligonos: Array) -> void:
 	_b = b
 	_rng.seed = 4242
-	_postes(ruas)
+	if not b.postes_da_planta:  # planta nova: postes de concreto com fiação vêm do JSON (Planta)
+		_postes(ruas)
 	_cacambas(ruas)
 	if Rede.servidor_sem_tela:
 		return

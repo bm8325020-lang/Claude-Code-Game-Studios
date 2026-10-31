@@ -45,6 +45,8 @@ var _lado_mapa: int = 0
 var _rio: Array = []  # [[a, b]] pedaços do rio
 const AGUA_Y: float = -0.9  # nível da água do rio (abaixo disso: dentro d'água)
 var _infos: Dictionary = {}  # ruína -> tamanho no chão
+var postes_da_planta: bool = false  # planta nova: postes de concreto e fiação da Planta (Enfeites não põe os de madeira)
+var _fechados: Dictionary = {}  # ruína -> só de fora (prédio de apartamento: marca "fechado" no modelo)
 var _poligonos: Array = [] # polígonos (PackedVector2Array) de todas as construções, para não pôr nada dentro
 
 
@@ -65,9 +67,11 @@ func _ready() -> void:
 	var casas: Array = predios.filter(_eh_casa)
 	casas.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return absf(_area(_poly(a.p))) > absf(_area(_poly(b.p))))
 	var mansoes: Array = casas.slice(0, 3)
-	# raid: a delegacia no lote do centro mais perto do meio da cidade onde ela cabe
-	var centro: Array = predios.filter(func(p: Dictionary) -> bool: return p.get("uso", "") == "centro")
+	# raid: a delegacia no lote do centro mais perto do meio da cidade onde ela cabe (planta nova: vem marcada)
+	var centro: Array = predios.filter(func(p: Dictionary) -> bool: return p.get("uso", "") == "centro" and not p.has("modelo"))
 	centro.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _centro(_poly(a.p)).length() < _centro(_poly(b.p)).length())
+	if predios.any(func(p: Dictionary) -> bool: return p.get("modelo", "") == "delegacia"):
+		centro.clear()
 	for p: Dictionary in centro:
 		if _ruina(_poly(p.p), "Delegacia", ["delegacia"], false, true):
 			predios.erase(p)
@@ -76,9 +80,25 @@ func _ready() -> void:
 			break
 	var n_casa: int = 0
 	var n_mansao: int = 0
+	var n_predio: int = 0
 	for p: Dictionary in predios:
 		var poly := _poly(p.p)
 		_poligonos.append(poly)
+		if p.has("modelo"):  # planta nova (tools/mapa/cidade_v2.py): modelo, centro e frente escolhidos lá
+			var arq: String = p.modelo
+			if RAIDS.has(arq):
+				_poe_modelo(p, RAIDS[arq][0], false)
+				_monta_raid(get_node(RAIDS[arq][0]), RAIDS[arq][1], RAIDS[arq][2])
+			elif p in mansoes:
+				_poe_modelo(p, "Mansao_%d" % n_mansao, true)
+				n_mansao += 1
+			elif _fechado(arq):
+				_poe_modelo(p, "Predio_%d" % n_predio, false)
+				n_predio += 1
+			else:
+				_poe_modelo(p, "Casa_%d" % n_casa, false)
+				n_casa += 1
+			continue
 		if p in mansoes:
 			_construcao(poly, "Mansao_%d" % n_mansao, p, true)
 			n_mansao += 1
@@ -93,6 +113,7 @@ func _ready() -> void:
 			continue  # marco ainda sem modelo
 		var mk: Node3D = (load(RUINAS % m.tipo) as PackedScene).instantiate()
 		mk.position = Vector3(m.p[0], altura(Vector2(m.p[0], m.p[1])), m.p[1])  # a antena fica no morro
+		mk.rotation.y = float(m.get("ang", 0.0))
 		add_child(mk)
 		_pinta(mk, Color.WHITE)
 		marcos_pos[String(m.tipo)] = ORIGEM + mk.position
@@ -107,6 +128,7 @@ func _ready() -> void:
 				pontos_zumbi.append(ORIGEM + mk.position + Vector3(cos(a), 0, sin(a)) * 9.0 + Vector3(0, 0.1, 0))
 	for f: Dictionary in dados.get("frestas", []):
 		_fresta(Vector2(f.a[0], f.a[1]), Vector2(f.b[0], f.b[1]), float(f.larg))
+	Planta.monta(self, dados)  # muros, árvores e peças de rua, praça, faixas, postes com fiação, carros, capital ao longe
 	_borda()
 	_tabuas_telhado()
 	for casa: Node in get_children():  # casa queimada ainda arde por dentro: coluna de fumaça que se vê de longe
@@ -121,7 +143,8 @@ func _ready() -> void:
 	sobr.name = "Sobreviventes"
 	add_child(sobr)
 	sobr.monta(self)
-	_arvores_mortas()
+	if not dados.has("props"):  # planta nova: as árvores (vivas e secas) vêm da Planta
+		_arvores_mortas()
 	_hidrantes_e_fogo()
 	_classifica()
 	_mais_carros_e_achados()
@@ -130,6 +153,8 @@ func _ready() -> void:
 	enfeites.name = "Enfeites"
 	add_child(enfeites)
 	enfeites.monta(self, _ruas, _poligonos)
+	_alcance_coisas()
+	_fecha_juntas()
 
 
 # --- chão e ruas ---
@@ -280,6 +305,8 @@ func _rua(r: Dictionary) -> void:
 	if larg == 0.0 and not pe:
 		return
 	var pts: Array = r.p
+	var corre: float = 0.0
+	var faixa_amarela: bool = r.tipo in ["primary", "secondary", "tertiary"]
 	for i in range(pts.size() - 1):
 		var a := Vector2(pts[i][0], pts[i][1])
 		var b := Vector2(pts[i + 1][0], pts[i + 1][1])
@@ -289,23 +316,90 @@ func _rua(r: Dictionary) -> void:
 			_faixa(a, b, 2.0, 0.03, _mat("calcada", 0.3))
 			continue
 		_ruas.append([a, b, larg])
+		if r.tipo == "viela":  # beco do morro: cimentado, sem calçada
+			_faixa(a, b, larg, 0.05, _mat("concreto", 0.35, Color(0.7, 0.66, 0.6)))
+			continue
 		if r.tipo != "service":
 			_faixa(a, b, larg + 3.4, 0.025, _mat("calcada", 0.3))
+			var lado: Vector2 = (b - a).normalized().orthogonal() * (larg * 0.5 + 0.1)
+			for s in [-1.0, 1.0]:  # meio-fio
+				_faixa(a + lado * s, b + lado * s, 0.22, 0.065, _mat("concreto", 0.5, Color(0.86, 0.85, 0.82)), false)
 		_faixa(a, b, larg, 0.04, _mat("asfalto", 0.15, Color(0.75, 0.75, 0.75)))
+		if faixa_amarela:  # faixa amarela tracejada no meio: 3 m pintado, 4 m não
+			var comp: float = a.distance_to(b)
+			var u: Vector2 = (b - a) / maxf(comp, 0.01)
+			var t: float = 0.0
+			while t < comp:
+				var fase: float = fmod(corre + t, 7.0)
+				var fim: float = minf(comp, t + (3.0 - fase if fase < 3.0 else 7.0 - fase))
+				if fase < 3.0 and fim - t > 0.05:
+					_faixa(a + u * t, a + u * fim, 0.14, 0.055, _cor(Color(0.62, 0.5, 0.16), 0.9), false)
+				t = fim + 0.001
+			corre += comp
 
 
-func _faixa(a: Vector2, b: Vector2, larg: float, y: float, m: Material) -> void:
-	var d: Vector2 = b - a
-	if d.length() < 0.05:
+## Faixa plana de a até b seguindo o chão (morro), juntada na malha do material (`emenda`: passa um pouco das pontas
+## para fechar as curvas).
+func _faixa(a: Vector2, b: Vector2, larg: float, y: float, m: Material, emenda: bool = true) -> void:
+	var comp: float = a.distance_to(b)
+	if comp < 0.05:
 		return
-	var mi := MeshInstance3D.new()
-	var pm := PlaneMesh.new()
-	pm.size = Vector2(larg, d.length() + larg * 0.5)  # passa um pouco da ponta: emenda nas curvas
-	mi.mesh = pm
-	mi.material_override = m
-	mi.position = Vector3((a.x + b.x) * 0.5, y, (a.y + b.y) * 0.5)
-	mi.rotation.y = atan2(d.x, d.y)
-	add_child(mi)
+	var u: Vector2 = (b - a) / comp
+	var l: Vector2 = u.orthogonal() * larg * 0.5
+	var ext: float = larg * 0.25 if emenda else 0.0
+	var a2: Vector2 = a - u * ext
+	var total: float = comp + ext * 2.0
+	var n: int = maxi(1, ceili(total / 4.0))
+	for k in n:
+		var p0: Vector2 = a2 + u * (total * k / n)
+		var p1: Vector2 = a2 + u * (total * (k + 1) / n)
+		_junta_quad([_no_chao(p0 - l, y), _no_chao(p1 - l, y), _no_chao(p1 + l, y), _no_chao(p0 + l, y)], m, Vector3.UP)
+
+
+## Ponto do chão (rua e praça por cima do morro; sobre o rio fica no nível da ponte).
+func _no_chao(p: Vector2, y: float) -> Vector3:
+	var h: float = altura(p)
+	return Vector3(p.x, (h + y + 0.06) if h > 0.05 else y, p.y)
+
+
+## Malhas juntas (celular: uma chamada de desenho por material e pedaço de 125 m, não uma por pedaço de rua/muro).
+const PEDACO_MALHA: float = 125.0
+var _juntas: Dictionary = {}  # "material|pedaço" -> [SurfaceTool, Material]
+
+
+## Quadrilátero (4 Vector3 em volta) na malha junta do material; `n`: para onde a face olha.
+func _junta_quad(q: Array, m: Material, n: Vector3) -> void:
+	if Rede.servidor_sem_tela:
+		return
+	var c: Vector3 = (q[0] + q[2]) * 0.5
+	var chave: String = "%d|%d|%d" % [m.get_instance_id(), floori(c.x / PEDACO_MALHA), floori(c.z / PEDACO_MALHA)]
+	if not _juntas.has(chave):
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		_juntas[chave] = [st, m]
+	var st: SurfaceTool = _juntas[chave][0]
+	var ordem: Array = [0, 1, 2, 0, 2, 3] if ((q[1] - q[0]).cross(q[2] - q[0])).dot(n) < 0.0 else [0, 2, 1, 0, 3, 2]
+	for k: int in ordem:
+		st.set_normal(n)
+		st.add_vertex(q[k])
+
+
+func _fecha_juntas() -> void:
+	for chave: String in _juntas_longe:
+		var ml := MeshInstance3D.new()
+		ml.name = "Longe_%d" % get_child_count()
+		ml.mesh = (_juntas_longe[chave][0] as SurfaceTool).commit()
+		ml.material_override = _juntas_longe[chave][1]
+		add_child(ml)
+	_juntas_longe.clear()
+	for chave: String in _juntas:
+		var mi := MeshInstance3D.new()
+		mi.name = "Junta_%d" % get_child_count()
+		mi.mesh = (_juntas[chave][0] as SurfaceTool).commit()
+		mi.material_override = _juntas[chave][1]
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mi)
+	_juntas.clear()
 
 
 # --- construções ---
@@ -374,7 +468,8 @@ func _recheio(no: Node3D, poly: PackedVector2Array, porta_i: int, mansao: bool, 
 	var b: Vector2 = poly[(porta_i + 1) % poly.size()]
 	var meio: Vector2 = (a + b) * 0.5
 	var fora: Vector2 = _normal_fora(poly, porta_i)
-	no.set_meta("frente", ORIGEM + Vector3(meio.x + fora.x * 2.5, 0.1, meio.y + fora.y * 2.5))
+	var fp: Vector2 = meio + fora * 2.5
+	no.set_meta("frente", ORIGEM + Vector3(fp.x, altura(fp) + 0.1, fp.y))
 	pontos_nascer.append(no.get_meta("frente"))
 	# dentro: pontos perto dos cantos (puxados para o centro), longe da porta
 	var cantos: Array = []
@@ -430,8 +525,94 @@ func _ruina(poly: PackedVector2Array, nome: String, opcoes: Array, mansao: bool,
 	return false
 
 
+## Celular: o que o jogo põe dentro das construções (baú, item, gaveta, porta, bilhete) e as peças pequenas da rua
+## (hidrante, saco de areia, carro) somem de longe; sem isso eram desenhados de qualquer distância, até atrás da parede.
+func _alcance_coisas() -> void:
+	var q: Dictionary = Config.qualidade()
+	var dentro: float = clampf(float(q.detalhe) * 1.2, 22.0, 60.0)
+	var fora: float = clampf(float(q.detalhe) * 2.2, 45.0, 160.0)
+	for n: Node in get_children():
+		var predio: bool = n.has_meta("poly")
+		var gs: Array = n.find_children("*", "GeometryInstance3D", true, false)
+		if n is GeometryInstance3D:
+			gs.append(n)
+		for g: GeometryInstance3D in gs:
+			if g.visibility_range_end > 0.0 or g is MultiMeshInstance3D or g is GPUParticles3D or g is CPUParticles3D:
+				continue
+			if not predio and g.get_aabb().size.length() > 7.0:
+				continue  # ponte, muro da borda, ônibus
+			g.visibility_range_end = fora if (not predio or g.find_parent("Porta_*") != null) else dentro
+			g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+## Construção da planta nova: modelo, centro e frente vêm do JSON (tools/mapa/cidade_v2.py).
+func _poe_modelo(p: Dictionary, nome: String, mansao: bool) -> void:
+	var arq: String = p.modelo
+	var c := Vector2(p.c[0], p.c[1])
+	var ang: float = Vector2(0, 1).angle_to(Vector2(p.frente[0], p.frente[1]))
+	var tam: Vector2 = _tam_ruina(arq)
+	var ret: PackedVector2Array = []
+	for q: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+		ret.append(c + (q * tam * 0.5).rotated(ang))
+	_poe_ruina(ret, nome, arq, ang, c, mansao, not _eh_casa(p))
+
+
+func _fechado(arq: String) -> bool:
+	_tam_ruina(arq)
+	return _fechados.get(arq, false)
+
+
+## O que se desenha de longe (celular): parede de fora, telhado e o que é grande sempre; móvel e acabamento de dentro
+## só perto; detalhe pequeno de fora (moldura, placa, caixa d'água, grade) até uma distância média. Só o grande faz
+## sombra.
+const DENTRO: Array[String] = ["acabamento", "int_", "rev_", "piso", "chao", "forro", "laje", "sofa", "cama", "criado", "mesa",
+	"estante", "balcao", "gondola", "checkout", "freezer", "carteira", "colchao", "banco_", "altar", "cruz_fundo", "quadro", "tv",
+	"geladeira", "fogao", "pia", "vaso", "banheira", "berco", "escrivaninha", "despensa", "abajur", "tapete", "guarda_roupa",
+	"armario", "poltrona", "bag", "maca", "carrinho", "caixao", "gondola", "divisoria", "cela", "grade_", "arsenal"]
+func _alcance(m: Node3D) -> void:
+	var q: Dictionary = Config.qualidade()
+	for g: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
+		var n: String = String(g.name)
+		if n == "dentro" or DENTRO.any(func(p: String) -> bool: return n.begins_with(p)):
+			g.visibility_range_end = clampf(float(q.detalhe) * 1.2, 22.0, 60.0)
+			g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		elif n == "detalhe" or (n not in ["ext", "longe"] and g.get_aabb().size.length() < 5.0):
+			g.visibility_range_end = clampf(float(q.detalhe) * 2.2, 45.0, 160.0)
+			g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+## Celular: as paredes de fora e o grande de fora ("ext" e "longe", tools/blender/ruinas.py agrupa) de todos os prédios
+## viram uma malha por material e pedaço de 125 m (poucas chamadas de desenho para a cidade inteira); no prédio ficam só
+## o detalhe, o de dentro e os móveis, que somem de longe. A colisão é de outros nós ("-colonly") e não muda.
+var _juntas_longe: Dictionary = {}  # "material|pedaço" -> [SurfaceTool, Material]
+
+
+func _junta_longe(no: Node3D, m: Node3D) -> void:
+	if Rede.servidor_sem_tela:
+		return
+	var c: Vector3 = no.position + m.position
+	var pedaco: String = "%d|%d" % [floori(c.x / PEDACO_MALHA), floori(c.z / PEDACO_MALHA)]
+	for nome: String in ["ext", "longe"]:
+		var mi := m.get_node_or_null(nome) as MeshInstance3D
+		if mi == null or mi.mesh == null or mi.get_child_count() > 0:
+			continue
+		var t: Transform3D = no.transform * m.transform * mi.transform
+		for s in mi.mesh.get_surface_count():
+			var mat: Material = mi.get_active_material(s)
+			var chave: String = "%d|%s" % [mat.get_instance_id(), pedaco]
+			if not _juntas_longe.has(chave):
+				_juntas_longe[chave] = [SurfaceTool.new(), mat]
+			(_juntas_longe[chave][0] as SurfaceTool).append_from(mi.mesh, s, t)
+		mi.free()
+
+
 ## Raid: lê os pontos marcados no modelo (zumbi_k, zumbi_arm_k, bau_k), põe baús de loot raro e viaturas na frente.
-func _monta_raid(no: Node3D, titulo: String) -> void:
+## Raids da planta nova: modelo -> [nome do nó, título do aviso, tipo dos zumbis ("" = qualquer)]
+const RAIDS: Dictionary = {"delegacia": ["Delegacia", "DELEGACIA", "zumbi_policial"], "hospital": ["Hospital", "HOSPITAL MUNICIPAL", ""],
+	"mercado": ["Mercado", "SUPERMERCADO", ""], "igreja": ["Igreja", "IGREJA MATRIZ", ""]}
+
+
+func _monta_raid(no: Node3D, titulo: String, tipo: String = "zumbi_policial") -> void:
 	var m: Node3D = no.get_child(0)
 	raids.append({"nome": titulo, "pos": no.global_position if no.is_inside_tree() else ORIGEM + no.position + m.position})
 	for e: Node in m.get_children():
@@ -440,13 +621,15 @@ func _monta_raid(no: Node3D, titulo: String) -> void:
 			continue
 		var p: Vector3 = ORIGEM + m.transform * (e as Node3D).position
 		if n.begins_with("zumbi_"):
-			pontos_raid.append({"pos": p + Vector3(0, 0.1, 0), "armado": n.begins_with("zumbi_arm_")})
+			pontos_raid.append({"pos": p + Vector3(0, 0.1 + no.position.y, 0), "armado": n.begins_with("zumbi_arm_"), "tipo": tipo})
 		elif n.begins_with("bau_"):
 			var bau := Bau.new()
 			bau.name = "Bau_raid_%s" % n.trim_prefix("bau_")
 			bau.raid = true
 			bau.position = m.transform * (e as Node3D).position
 			no.add_child(bau)
+	if titulo != "DELEGACIA":
+		return
 	var frente: Vector3 = no.get_meta("frente") - ORIGEM
 	for k in 2:  # viaturas largadas na frente
 		var v: Node3D = _veiculo("carro_r1", Color(0.08, 0.08, 0.1))
@@ -457,6 +640,7 @@ func _monta_raid(no: Node3D, titulo: String) -> void:
 func _tam_ruina(arq: String) -> Vector2:
 	if not _infos.has(arq):
 		var m: Node3D = (load(RUINAS % arq) as PackedScene).instantiate()
+		_fechados[arq] = m.has_node("fechado")
 		var cx := AABB()
 		for mi: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
 			if mi.name.begins_with("ext"):
@@ -480,7 +664,14 @@ func _poe_ruina(ret: PackedVector2Array, nome: String, arq: String, ang: float, 
 	m.rotation.y = -ang  # no plano o ângulo é anti-horário em (x, z); em 3D o giro em Y é ao contrário
 	m.position = _v3(c)
 	no.add_child(m)
+	var h: float = 0.0
+	for q: Vector2 in ret:  # no morro: piso no canto mais alto (o barraco tem alicerce para baixo)
+		h = maxf(h, altura(q))
+	if h > 0.05:
+		no.position.y = h
 	_pinta(m, [Color(0.82, 0.8, 0.76), Color(0.7, 0.74, 0.72), Color(0.8, 0.7, 0.62), Color(0.72, 0.72, 0.76)][absi(hash(nome)) % 4])
+	_alcance(m)
+	_junta_longe(no, m)
 	var marca: Node3D = m.get_node_or_null("porta")
 	if marca and absi(hash(nome)) % 3 != 0:  # 1 em 3 com a porta arrombada
 		var porta := Porta.new()
@@ -489,13 +680,17 @@ func _poe_ruina(ret: PackedVector2Array, nome: String, arq: String, ang: float, 
 		porta.position = m.transform * marca.position
 		porta.rotation.y = m.rotation.y
 		no.add_child(porta)
-	if nome != "Delegacia":  # a raid tem o recheio dela (marcado no modelo)
+	var fechado: bool = m.has_node("fechado")
+	if fechado:
+		no.remove_from_group("casas")
+	if not RAIDS.has(arq) and not fechado:  # a raid tem o recheio dela (marcado no modelo)
 		_recheio(no, ret, _lado_da_rua(ret), mansao, loja)
 	else:
 		var a: Vector2 = ret[_lado_da_rua(ret)]
 		var b2: Vector2 = ret[(_lado_da_rua(ret) + 1) % ret.size()]
 		var fora: Vector2 = _normal_fora(ret, _lado_da_rua(ret))
-		no.set_meta("frente", ORIGEM + _v3((a + b2) * 0.5 + fora * 6.0) + Vector3(0, 0.1, 0))
+		var fp: Vector2 = (a + b2) * 0.5 + fora * 6.0
+		no.set_meta("frente", ORIGEM + Vector3(fp.x, altura(fp) + 0.1, fp.y))
 
 
 ## Troca os materiais do modelo do Blender pelas texturas do jogo (tinta: parede e madeira; lataria: cor do carro).
@@ -511,6 +706,19 @@ func _pinta(m: Node3D, tinta: Color, lataria: Color = Color(0.4, 0.15, 0.12)) ->
 const TECIDOS: Dictionary = {"tecido_verde": Color(0.36, 0.45, 0.32), "tecido_vinho": Color(0.55, 0.2, 0.22),
 	"tecido_mostarda": Color(0.8, 0.62, 0.25), "tecido_azul": Color(0.28, 0.36, 0.55), "tecido_cinza": Color(0.55, 0.55, 0.57),
 	"crianca_rosa": Color(0.9, 0.58, 0.68), "crianca_azul": Color(0.5, 0.68, 0.9)}
+const CORES_CIDADE: Dictionary = {"reboco_rosa": Color(0.86, 0.6, 0.6), "reboco_verde": Color(0.62, 0.76, 0.6),
+	"reboco_laranja": Color(0.9, 0.66, 0.42), "reboco_azul": Color(0.58, 0.68, 0.82), "reboco_amarelo": Color(0.92, 0.84, 0.52),
+	"reboco_creme": Color(0.92, 0.88, 0.76), "reboco_lilas": Color(0.72, 0.65, 0.8),
+	"placa_vermelha": Color(0.62, 0.1, 0.08), "placa_azul": Color(0.1, 0.24, 0.55), "placa_amarela": Color(0.85, 0.68, 0.1),
+	"placa_verde": Color(0.1, 0.45, 0.22), "placa_branca": Color(0.8, 0.8, 0.77), "placa_laranja": Color(0.85, 0.42, 0.1),
+	"placa_preta": Color(0.07, 0.07, 0.07), "placa_rosa": Color(0.8, 0.38, 0.55), "letra_branca": Color(0.92, 0.92, 0.9),
+	"letra_preta": Color(0.05, 0.05, 0.05), "letra_vermelha": Color(0.72, 0.05, 0.05), "letra_amarela": Color(0.95, 0.78, 0.1),
+	"tinta_preta": Color(0.03, 0.03, 0.03), "tinta_vermelha": Color(0.45, 0.03, 0.03),
+	# por dentro (31/10, dono: "dentro tem que ter piso, cerâmica e cores, não só tijolo")
+	"pintura_creme": Color(0.98, 0.93, 0.8), "pintura_verde": Color(0.78, 0.92, 0.8), "pintura_azul": Color(0.76, 0.86, 0.97),
+	"pintura_rosa": Color(0.98, 0.83, 0.83), "pintura_amarela": Color(1.0, 0.92, 0.62), "pintura_branca": Color(0.97, 0.97, 0.95),
+	"barra_verde": Color(0.42, 0.6, 0.48), "barra_azul": Color(0.38, 0.5, 0.68), "barra_vinho": Color(0.58, 0.28, 0.28),
+	"ceramica_bege": Color(0.95, 0.86, 0.7), "ceramica_cinza": Color(0.8, 0.8, 0.8), "ceramica_vermelha": Color(0.78, 0.35, 0.28)}
 func _mat_ruina(n: String, tinta: Color) -> Material:
 	match n:
 		"parede": return _mat("reboco", 0.3, tinta, true)
@@ -544,6 +752,22 @@ func _mat_ruina(n: String, tinta: Color) -> Material:
 		"lata": return _cor(Color(0.55, 0.55, 0.57), 0.4)
 		"tapete": return _mat("reboco", 0.8, Color(0.5, 0.2, 0.16), true)
 		"quadro": return _cor(Color(0.3, 0.33, 0.36), 0.5)
+		# cidade nova (tools/blender/cidade.py): reboco pintado, tijolo cru, caixa d'água, porta de aço, placas e letras
+		"tijolo_cru": return _mat("tijolo", 0.4, Color(1.0, 0.8, 0.66), true)
+		"fibra_azul": return _cor(Color(0.13, 0.3, 0.55), 0.5)
+		"aco": return _cor(Color(0.48, 0.49, 0.48), 0.45)
+		"grade": return _cor(Color(0.09, 0.09, 0.09), 0.6)
+		"piso_igreja": return _mat("piso_ladrilho", 0.5, Color(0.85, 0.72, 0.62), true)
+		"terra": return _mat("terra", 0.25, Color(1, 1, 1), true)
+		"faixa": return _cor(Color(0.88, 0.88, 0.85))
+		"casca": return _mat("madeira", 0.6, Color(0.42, 0.36, 0.3), true)
+		"folha": return _mat("grama", 0.5, Color(0.5, 0.8, 0.4), true)
+		"folha_palmeira": return _mat("grama", 0.8, Color(0.55, 0.85, 0.4), true)
+		"pintura_creme", "pintura_verde", "pintura_azul", "pintura_rosa", "pintura_amarela", "pintura_branca", "barra_verde", "barra_azul", "barra_vinho":
+			return _mat("reboco", 0.6, CORES_CIDADE[n], true)
+		"ceramica_bege", "ceramica_cinza", "ceramica_vermelha": return _mat("ceramica", 0.8, CORES_CIDADE[n], true)
+	if CORES_CIDADE.has(n):
+		return _mat("reboco", 0.3, CORES_CIDADE[n], true) if n.begins_with("reboco") else _cor(CORES_CIDADE[n], 0.55)
 	if TECIDOS.has(n):  # sofá, poltrona, quarto de criança: tecido sujo com a cor sorteada no Blender
 		return _mat("reboco", 0.8, TECIDOS[n], true)
 	return _mat("concreto", 0.4, Color(0.7, 0.68, 0.64), true)
@@ -778,7 +1002,7 @@ func _telhado(no: Node3D, poly: PackedVector2Array, alt: float, m: Material) -> 
 func _carros() -> void:
 	var cores: Array[Color] = [Color(0.45, 0.12, 0.1), Color(0.18, 0.25, 0.38), Color(0.62, 0.6, 0.55), Color(0.22, 0.26, 0.2), Color(0.35, 0.33, 0.3)]
 	var n: int = 0
-	for r: Array in _espalhados(22, 0.0):
+	for r: Array in _espalhados(22, 6.0):
 		var a: Vector2 = r[0]
 		var b: Vector2 = r[1]
 		n += 1
@@ -786,7 +1010,7 @@ func _carros() -> void:
 		var p: Vector2 = a.lerp(b, _rng.randf_range(0.3, 0.7)) + Vector2(d.y, -d.x) * float(r[2]) * 0.25 * (1 if _rng.randf() < 0.5 else -1)
 		var carro: Node3D = _veiculo(VEICULOS[n % VEICULOS.size()], cores[_rng.randi() % cores.size()])
 		carro.name = "Carro_%d" % n
-		carro.position = Vector3(p.x, 0, p.y)
+		carro.position = Vector3(p.x, altura(p), p.y)
 		carro.rotation.y = atan2(d.x, d.y) + _rng.randf_range(-0.35, 0.35)
 		if VEICULOS[n % VEICULOS.size()] == "carro_r1":  # o inteiro dá para dirigir (Carro); o queimado e a van não
 			var c := Carro.new()
@@ -1066,7 +1290,7 @@ func dominavel(casa: String) -> bool:
 func casa_em(p: Vector3) -> String:
 	var l := Vector2(p.x - ORIGEM.x, p.z - ORIGEM.z)
 	for casa: Node3D in get_tree().get_nodes_in_group("casas"):
-		if p.y - ORIGEM.y < PAREDE + 0.6 and Geometry2D.is_point_in_polygon(l, casa.get_meta("poly")):
+		if p.y - ORIGEM.y - casa.position.y < PAREDE + 0.6 and Geometry2D.is_point_in_polygon(l, casa.get_meta("poly")):
 			return String(casa.name)
 	return ""
 
@@ -1107,7 +1331,7 @@ func _mais_carros_e_achados() -> void:
 		var v: Node3D = _veiculo("carro_r1", cores[rng.randi() % cores.size()])
 		v.name = "Modelo"
 		var c := Carro.new()
-		c.position = Vector3(p.x, 0, p.y)
+		c.position = Vector3(p.x, altura(p), p.y)
 		c.rotation.y = atan2(d.x, d.y) + rng.randf_range(-0.2, 0.2) + (PI if rng.randf() < 0.5 else 0.0)
 		add_child(c)
 		c.name = "CarroExtra_%d" % n

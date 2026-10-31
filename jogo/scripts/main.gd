@@ -782,8 +782,11 @@ func _poe_zumbis() -> void:
 	for p: Vector3 in bairro.pontos_zumbi:  # em bando de BANDO (dono 30/10: muito fácil)
 		for k: int in BANDO:
 			spawner_zumbis.spawn({"pos": p + Vector3(k * 1.3, 0.1, k * 0.7)})
-	for r: Dictionary in bairro.pontos_raid:  # delegacia: policiais, alguns com arma de fogo; mortos ficam mortos
-		spawner_zumbis.spawn({"pos": r.pos, "armado": r.armado, "de_raid": true, "tipo": "zumbi_policial"})
+	for r: Dictionary in bairro.pontos_raid:  # raids: delegacia (policiais), hospital, mercado, igreja; mortos ficam mortos
+		var dz := {"pos": r.pos, "armado": r.armado, "de_raid": true}
+		if String(r.get("tipo", "")) != "":
+			dz.tipo = r.tipo
+		spawner_zumbis.spawn(dz)
 	for p: Vector3 in PONTOS_ZUMBI:
 		spawner_zumbis.spawn({"pos": p})
 	for p: Vector3 in PONTOS_TOCAIA:

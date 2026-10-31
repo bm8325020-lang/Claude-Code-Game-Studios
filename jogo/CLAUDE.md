@@ -33,9 +33,27 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 - `main.gd` — pista de teste (blocos, rampas, túnel, prédio, casinha com `Porta_0`, carro), bonecos de treino, itens
   (`Item_0..3` munição, `Item_casa`, `Item_comida_k`/`Item_agua_k`), `PONTOS_ZUMBI`, `PONTOS_TOCAIA`, `PATRULHAS`, `PONTOS_CHEFE`, spawners
   (jogadores e zumbis), malha de navegação (grupo "cenario", raio 0.35), `iniciar_solo/criar_partida/entrar_partida/iniciar_servidor`.
-- `bairro.gd` (Bairro) — cidade NOSSA (30/10): `tools/mapa/cidade_nossa.py` gera `assets/mapa/cidade.json` (mesmo formato
-  do OSM + `frestas`, `bloqueios`, `marcos`): avenida curva, ruas tortas e sem saída, bairros centro/casas/industrial/
-  beira (campo `uso`). Desenho de cima: ver o script. ORIGEM (0,0,-300), TAMANHO 500 (muro do exército na borda, `_borda`).
+- `bairro.gd` (Bairro) — SÃO JORGE (31/10, mapa definitivo; dono: "cidade completamente diferente, pra sempre"):
+  `tools/mapa/cidade_v2.py` gera `assets/mapa/cidade.json` (ruas à mão + lotes por regra; usa `tools/mapa/medidas.json`
+  de `tools/mapa/mede_ruinas.gd`). Cidade de interior brasileira: Praça da Matriz (coreto, árvores, banca, orelhão) com a
+  Igreja; sobrados de comércio com letreiro (FARMÁCIA, PADARIA...) e prédios de apartamento no centro; quarteirão em
+  ruínas (loja_r1/r2, predio_r1: telhados com tábua); Morro do Urubu (favela de barracos, subida reta = linha do
+  test_relevo, antena no topo); casas com muro e portão; Escola + campinho; zona industrial; rio com 3 pontes; além do
+  rio cemitério com capela, posto, helicóptero; quarentena; pórticos "BEM-VINDOS A SÃO JORGE"; capital destruída ao
+  longe (Majadroid, só vista). Raids (`RAIDS`): Delegacia (policiais), Hospital, Supermercado, Igreja
+  (`_monta_raid(no, titulo, tipo)`; `pontos_raid[].tipo`). Prédio com modelo: `predios[].modelo/c/frente` ->
+  `_poe_modelo` (nome Casa_k / Mansao_k / Predio_k para os "fechados" = só fachada, marca "fechado"). No morro o lote sobe
+  (`no.position.y`, alicerce do barraco). `planta.gd` (Planta.monta): `areas` (praça, estacionamento, terra), `faixas`
+  (zebra), `muros` (malha junta + caixas de colisão, grade, pedaço caído), `props` (MultiMesh por modelo/pedaço:
+  árvores, túmulos, coreto, ponto de ônibus, orelhão, banca, pórtico), `postes` (concreto, fiação em linhas; Enfeites
+  não põe os de madeira: `postes_da_planta`), `veiculos`, `zumbis`, `longe`. Modelos novos: `tools/blender/cidade.py`
+  (importa ruinas.py; letreiro/pichação em 3D, interior com reboco pintado, azulejo e cerâmica `por_dentro`).
+  CELULAR (31/10): ruas/praça/muros em malhas juntas por material e pedaço de 125 m (`_faixa` segue o morro,
+  `_junta_quad`, `_fecha_juntas`); ruinas.py `agrupa` junta cada prédio em ext/longe/detalhe/dentro (móveis soltos);
+  `_junta_longe` junta ext+longe de todos os prédios por pedaço; `_alcance` e `_alcance_coisas` (baú, item, gaveta,
+  porta, hidrante, carro somem de longe). Medir: tools/foto_cidade.gd -- saida.png [vistas] [qualidade] [sombras]
+  (imprime chamadas de desenho). Centro na qualidade Média: ~1300 (a cidade velha tinha ~2100).
+  ORIGEM (0,0,-300), TAMANHO 500 (muro do exército na borda, `_borda`).
   `_fresta` (muros + Area3D grupo "frestas") -> `Jogador._acha_fresta/_entra_fresta/_esgueira/sai_fresta` (de lado,
   raio ESGUEIRA_RAIO, analógico x; câmera presa de frente para a parede; Maos some). Teste: test_fresta (7).
   `_bloqueio` (ônibus tombado ou carros), `_veiculo`, `_pinta` (materiais do Blender -> texturas).
@@ -47,8 +65,8 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   uma RUÍNA modelada no Blender (30/10, pedido do dono): `tools/blender/ruinas.py` gera `assets/ruinas/*.glb`
   (casa_r1..r6: telhado caído, queimada, 2 andares com escada; loja_r1/r2: vitrine, gôndolas; predio_r1: canto
   desabado; móveis dentro: `mobilia` com sofá, tapete, TV, quadros, estante, mesa; quarto com cama/criado/guarda-roupa
-  ou cozinha com balcão/geladeira/fogão/armário aéreo; `bagunca` (papéis sem colisão + caixas); 31/10: AO mais claro 0.42). Rodar: `~/.local/blender/blender-4.2.9-linux-x64/blender -b -P tools/blender/ruinas.py --
-  assets/ruinas` e depois `$G --headless --path . --import`; foto: `tools/blender/foto_ruinas.py -- assets/ruinas dir`.
+  ou cozinha com balcão/geladeira/fogão/armário aéreo; `bagunca` (papéis sem colisão + caixas); 31/10: AO mais claro 0.42). Rodar: `~/.local/blender/blender -b -P tools/blender/ruinas.py --
+  assets/ruinas` (e cidade.py igual) e depois `$G --headless --path . --import`; foto: `tools/blender/foto_ruinas.py -- assets/ruinas dir`.
   Colisão vem do glb (nome "-col"/"-colonly": sem parede invisível). `_ruina` escolhe pelo nome entre `RUINAS_CASA/
   LOJA/MANSAO` que cabem e não encostam na rua (senão lote vazio; mansão cai na casa em código `_construcao`),
   `_poe_ruina` (Porta no Empty "porta"), `_mat_ruina` (nome do material do Blender -> textura). As 3 maiores casas =
@@ -105,7 +123,7 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   1,2 s sem olhar), `Carro.volante` suave e GIRO_ALTA. Casas: `mobilia(w, d, paredes)` por cômodo com tema sorteado
   (`comodo`: sala/cozinha/quarto/crianca/banheiro/escritorio/despensa; `ao_longo` de costas para a parede; nomes
   "<movel>_<comodo><k>": Gaveta acha pelo começo do nome), casa_r7..r14 (r13/r14 pequenas), cores TECIDOS no Bairro.
-  Marcos novos (cidade.json + cidade_nossa.py): antena (já marcada), helicoptero, quarentena, posto (Blender), com
+  Marcos novos (cidade.json): antena (já marcada), helicoptero, quarentena, posto (Blender), com
   `BauMarco_*` (loot raro) e 4 pontos de zumbi em volta; marco na altura do terreno. Enfeites: sem mato dentro de lote.
   Rede.VERSAO 37. Paredes invisíveis do vídeo: NÃO achadas (perguntar onde).
 - Móveis realistas (31/10, 0.86): `moveis.gd` (Moveis.troca(casa) no `Bairro._gavetas_e_cofres`): cada caixa de móvel

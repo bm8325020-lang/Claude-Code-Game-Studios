@@ -32,9 +32,12 @@ func _init() -> void:
 	main.ciclo.tempo = 0.0
 	main.ciclo.set_process(false)
 	var b: Bairro = main.bairro
-	ok(b.has_node("Delegacia") and b.raids.size() == 1, "tem delegacia na cidade")
-	var armados: int = b.pontos_raid.filter(func(r: Dictionary) -> bool: return r.armado).size()
-	ok(b.pontos_raid.size() >= 10 and armados >= 3, "delegacia com %d zumbis (%d armados)" % [b.pontos_raid.size(), armados])
+	var nomes: Array = b.raids.map(func(r: Dictionary) -> String: return r.nome)
+	ok(b.has_node("Delegacia") and "DELEGACIA" in nomes, "tem delegacia na cidade (raids: %s)" % str(nomes))
+	ok(b.has_node("Hospital") and b.has_node("Mercado") and b.has_node("Igreja") and nomes.size() == 4, "hospital, supermercado e igreja também são raid")
+	var da_delegacia: Array = b.pontos_raid.filter(func(r: Dictionary) -> bool: return r.tipo == "zumbi_policial")
+	var armados: int = da_delegacia.filter(func(r: Dictionary) -> bool: return r.armado).size()
+	ok(da_delegacia.size() >= 10 and armados >= 3, "delegacia com %d zumbis (%d armados)" % [da_delegacia.size(), armados])
 	var baus: Array = b.get_node("Delegacia").find_children("Bau_raid_*", "Bau", true, false)
 	ok(baus.size() == 3 and baus.all(func(x: Bau) -> bool: return x.raid), "3 baús de raid")
 	# loot de raid: bem mais raras que o baú comum
@@ -49,7 +52,8 @@ func _init() -> void:
 			raras += int(Loot.raridade(it.tipo) == Loot.RARO)
 	ok(raras_raid > raras * 3, "baú de raid tem muito mais coisa rara (%d contra %d)" % [raras_raid, raras])
 	var raid_z: Array = main.zumbis.get_children().filter(func(z: Zumbi) -> bool: return z.de_raid)
-	ok(raid_z.size() == b.pontos_raid.size() and raid_z.all(func(z: Zumbi) -> bool: return z.tipo == "zumbi_policial"), "zumbis da raid nascem (policiais)")
+	var policiais: Array = raid_z.filter(func(z: Zumbi) -> bool: return z.tipo == "zumbi_policial")
+	ok(raid_z.size() == b.pontos_raid.size() and policiais.size() >= da_delegacia.size(), "zumbis da raid nascem (os da delegacia, policiais)")
 	# zumbi armado atira de longe, num lugar aberto da pista
 	for z in main.zumbis.get_children():
 		z.free()

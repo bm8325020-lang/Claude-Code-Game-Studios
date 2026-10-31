@@ -54,6 +54,9 @@ func _ready() -> void:
 	_liga(con, UiTema.botao("JOGAR NO MEU MAPA"), func() -> void:
 		main.nick_local = _nick.text.strip_edges()
 		main.jogar_meu_mapa())
+	var cred := UiTema.rotulo("Peças: Kenney, Poly Haven e Majadroid (CC0). Modelos pós-apocalípticos: Atomic Realm (atomicrealm.itch.io).", 14, UiTema.APAGADO)
+	cred.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # crédito pedido pela licença da Atomic Realm
+	con.add_child(cred)
 	_voltar(con)
 	_monta_criar(raiz)
 	_monta_entrar(raiz)

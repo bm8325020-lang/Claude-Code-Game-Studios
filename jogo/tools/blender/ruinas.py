@@ -542,7 +542,7 @@ def limpa():
     _mats.clear()
 
 
-def _adensa(o, passo=0.7):
+def _adensa(o, passo=1.2):
     """Corta as faces grandes em pedaços de ~passo m (a sombra dos cantos fica nos vértices)."""
     bm = bmesh.new()
     bm.from_mesh(o.data)
@@ -569,7 +569,8 @@ def assa_sombra():
             bpy.context.collection.objects.link(c)
             c.name = o.name[:-4] + "_c-colonly"
             o.name = o.name[:-4]
-        _adensa(o)
+        # parede de fora e telhado: malha mais grossa (o jogo junta as de todos os prédios e desenha de longe)
+        _adensa(o, 2.0 if o.name.startswith(("ext", "telhado", "teto", "laje", "mureta", "platibanda", "base", "piso")) else 1.2)
         if not o.data.color_attributes:
             o.data.color_attributes.new("Col", "BYTE_COLOR", "CORNER")
         vis.append(o)
@@ -596,8 +597,48 @@ def assa_sombra():
             c.color = (v, v, v, 1.0)
 
 
+# Celular (31/10): cada objeto do Blender vira um nó no jogo e cada material dele uma chamada de desenho. Nas
+# construções (as que têm parede "ext") o resto vira 4 peças: "ext" (paredes de fora: o jogo mede o lote por elas),
+# "longe" (o grande de fora: telhado, laje, mureta), "detalhe" (o pequeno de fora: moldura, placa, caixa d'água) e
+# "dentro" (acabamento, piso, forro, bagunça). Os móveis ficam soltos: o jogo troca pelo modelo e põe gaveta neles.
+MOVEIS_SOLTOS = ("sofa", "cama", "criado", "mesa", "estante", "balcao", "cadeira", "poltrona", "escrivaninha", "despensa",
+                 "guarda_roupa", "fogao", "quadro", "tv_", "geladeira", "pia", "vaso", "banheira", "berco", "abajur")
+DENTRO = ("acabamento", "int_", "rev_", "piso", "chao", "forro", "laje", "bag", "gondola", "checkout", "freezer", "carteira",
+          "colchao", "banco_", "altar", "maca", "carrinho", "caixao", "tapete", "armario", "divisoria", "cela", "arsenal",
+          "cruz_fundo", "vitral", "escada")
+
+
+def agrupa():
+    vis = [o for o in bpy.data.objects if o.type == "MESH" and not o.name.endswith(("-col", "-colonly"))]
+    if not any(o.name.startswith("ext") for o in vis):
+        return  # veículos e marcos ficam como estão
+    grupos = {"ext": [], "longe": [], "detalhe": [], "dentro": []}
+    for o in vis:
+        if not o.data.uv_layers:
+            o.data.uv_layers.new(name="UVMap")  # todas iguais: o jogo junta as malhas de muitos prédios
+        n = o.name
+        if n.startswith(MOVEIS_SOLTOS):
+            continue
+        if n.startswith("ext"):
+            grupos["ext"].append(o)
+        elif n.startswith(DENTRO) and not n.startswith("escada_incendio"):
+            grupos["dentro"].append(o)
+        elif max(o.dimensions) > 4.0:
+            grupos["longe"].append(o)
+        else:
+            grupos["detalhe"].append(o)
+    for g, objs in grupos.items():
+        if objs:
+            junta(objs, g + "_j")
+    for g in grupos:  # o nome sem sufixo (junta deixa o objeto ativo com o nome pedido)
+        o = bpy.data.objects.get(g + "_j")
+        if o:
+            o.name = g
+
+
 def exporta(nome):
     assa_sombra()
+    agrupa()
     bpy.ops.export_scene.gltf(filepath="%s/%s.glb" % (SAIDA, nome), export_format="GLB", export_apply=True,
                               export_materials="EXPORT", export_extras=False, export_yup=True,
                               export_vertex_color="ACTIVE")
@@ -847,7 +888,7 @@ def casa_real(nome, w, d, semente, varanda):
     entulho("entulho_fora", (hw + 0.8, rnd.uniform(-d / 3, d / 3), 0), 3, 0.4, "concreto")
     # celular: acabamentos (revestimentos, batentes, janelas, pisos, tapetes, bagunça) numa peça só por casa
     acab = [o for o in bpy.data.objects if o.type == "MESH" and not o.name.endswith(("-col", "-colonly"))
-            and o.name.startswith(("rev_", "batente", "jan_", "piso_", "tapete", "bag_")) and "caixa" not in o.name]
+            and o.name.startswith(("rev_", "piso_", "tapete", "bag_")) and "caixa" not in o.name]
     if acab:
         junta(acab, "acabamento")
     exporta(nome)

@@ -30,6 +30,10 @@ Leia nesta ordem: este arquivo, `jogo/CLAUDE.md` (mapa do código e comandos) e 
    prédios grandes (hospital, escola, mercado) com andares e chave, interiores que contam história, céu/luz por
    hora do dia, CLIMA (chuva, neblina, trovão), caminhos alternativos (telhado, esgoto), sons do lugar (alarme,
    cachorro, porta batendo, rádio), ruas que guiam, perigo maior longe da sala segura com loot melhor.
+- 31/10 (0.89): MAPA DEFINITIVO "São Jorge" (tools/mapa/cidade_v2.py + tools/blender/cidade.py + scripts/planta.gd):
+   praça/igreja, sobrados com letreiro, favela no morro, hospital/mercado/igreja como raid, casas com muro, cemitério,
+   capital ao longe; interiores com reboco pintado, azulejo e cerâmica; malhas juntas (celular: ~1300 chamadas de
+   desenho no centro contra ~2100 da cidade velha). Próximo: dono jogar e dizer o que mudar (é ESTE mapa pra sempre).
 - Sem convite pelo nome (não há nome fixo). GASTAR POUCO: sem loop, sem fotos, só testes do que mudou, APK só no fim.
 
 ## O que NÃO está no repositório (refazer na sessão nova se precisar)
