@@ -1569,7 +1569,7 @@ func entra_no_carro(c: Carro) -> void:
 		_alterna_agachar()
 	_toca("parado", 0.1)
 	if camera:
-		camera.virar(c.global_rotation.y + PI)  # olhando para a frente do carro
+		camera.virar(c.global_rotation.y + PI, 0.2)  # atrás do carro, olhando para a frente dele
 
 
 func sai_do_carro() -> void:
@@ -1593,9 +1593,7 @@ func _dirige(dt: float) -> void:
 		sai_do_carro()
 		return
 	var mov: Vector2 = entrada.get("move", Vector2.ZERO)
-	var giro: float = carro.dirige(mov.limit_length(1.0), dt)
-	if camera:
-		camera.virar(camera.yaw + giro)  # a cabeça vai junto quando o carro vira
+	carro.dirige(mov.limit_length(1.0), dt)  # a câmera (CameraPrimeira) segue atrás do carro sozinha
 	global_position = carro.global_transform * Carro.BANCO
 	modelo.rotation.y = carro.global_rotation.y
 	pos_rede = global_position

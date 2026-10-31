@@ -76,10 +76,16 @@ func _init() -> void:
 	# a chave está na gaveta que o bilhete aponta
 	var gc: Gaveta = cf.gaveta_chave
 	ok(gc != null and gc.chave, "a chave do cofre está numa gaveta")
+	for it in get_nodes_in_group("itens"):  # item no chão tem prioridade no USAR
+		if (it as Node3D).global_position.distance_to(gc.ponto()) < 3.0:
+			it.free()
+	for n in gavetas:  # móveis colados: abre as vizinhas para o USAR achar a certa
+		if n != gc and (n as Gaveta).ponto().distance_to(gc.ponto()) < 2.5:
+			(n as Gaveta).aberta = true
 	await poe_na_frente(gc)
 	j.entrada["pegar"] = true
 	await frames(3)
-	ok(j.mochila.tem("chave"), "revistar a gaveta certa dá a chave")
+	ok(j.mochila.tem("chave"), "revistar a gaveta certa dá a chave (perto %s, certa %s %s, j %s)" % [j.gaveta_perto(), gc.name, gc.ponto(), j.global_position])
 	var bilhete_ok: bool = false
 	for b: Node3D in get_nodes_in_group("bilhetes"):
 		if String(b.get_meta("texto")).contains("metros para o") and b.global_position.distance_to(cf.global_position) < 4.0:

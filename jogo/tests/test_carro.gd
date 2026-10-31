@@ -72,7 +72,7 @@ func _init() -> void:
 	var r0: float = c.rotation.y
 	var yaw0: float = j.camera.yaw
 	j.entrada["move"] = Vector2(1, 1)
-	await frames(60)
+	await frames(150)  # a câmera volta para trás do carro depois de 1,2 s sem olhar em volta
 	ok(absf(angle_difference(r0, c.rotation.y)) > 0.3, "o volante vira o carro")
 	ok(absf(angle_difference(yaw0, j.camera.yaw)) > 0.25, "a câmera vira junto")
 	j.entrada["move"] = Vector2.ZERO

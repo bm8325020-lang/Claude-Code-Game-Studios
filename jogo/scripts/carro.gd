@@ -9,13 +9,16 @@ extends CharacterBody3D
 const ALCANCE: float = 3.2         # m do centro do carro para o botão ENTRAR aparecer
 const TAM: Vector3 = Vector3(1.8, 1.1, 4.4)
 const VAO: float = 0.35            # altura da caixa acima do chão (as rodas seguram)
-const BANCO: Vector3 = Vector3(0.0, 0.1, -1.6)  # onde fica o jogador: olhos acima do porta-malas (o modelo é fechado por dentro)
+const BANCO: Vector3 = Vector3(0.0, 0.3, 0.0)  # onde fica o jogador (some; a câmera vai atrás do carro: CameraPrimeira)
 const VEL_MAX: float = 14.0        # m/s (~50 km/h)
 const VEL_RE: float = 4.0
 const ACEL: float = 6.0
 const FREIO: float = 16.0
 const ATRITO: float = 2.5
-const GIRO: float = 1.6            # rad/s com o volante todo
+const GIRO: float = 1.7            # rad/s com o volante todo (menos em alta: GIRO_ALTA)
+const GIRO_ALTA: float = 0.55      # parte do giro que sobra na velocidade máxima
+const VOLANTE: float = 3.5         # quão rápido o volante chega aonde o dedo manda (sem tranco)
+var volante: float = 0.0
 const GRAVIDADE: float = 24.0
 const MANDA_A_CADA: float = 0.05
 const PULO_MAX: float = 30.0       # servidor: mais que isso por pacote é trapaça/erro e é ignorado
@@ -181,7 +184,8 @@ func dirige(mov: Vector2, dt: float) -> float:
 	else:
 		vel = move_toward(vel, 0.0, ATRITO * dt)
 	# vira mais quanto mais anda (parado não gira); de ré o volante inverte, como num carro de verdade
-	var giro: float = -mov.x * GIRO * clampf(absf(vel) / 4.0, 0.0, 1.0) * signf(vel) * dt
+	volante = move_toward(volante, mov.x, VOLANTE * dt)
+	var giro: float = -volante * GIRO * lerpf(1.0, GIRO_ALTA, clampf(absf(vel) / VEL_MAX, 0.0, 1.0)) * clampf(absf(vel) / 3.0, 0.0, 1.0) * signf(vel) * dt
 	rotation.y += giro
 	var frente: Vector3 = global_basis.z
 	velocity.x = frente.x * vel

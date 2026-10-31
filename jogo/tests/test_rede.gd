@@ -50,6 +50,7 @@ func _init() -> void:
 				andou = maxf(andou, outro.global_position.distance_to(ini))
 		main.jogador.entrada["move"] = Vector2.ZERO
 		ok(andou > 3.0, "vê o outro andar (%.1f m)" % andou)
+		await espera_ate(func() -> bool: return outro.nick != "", 4000)  # o nome chega pela sincronia (pode demorar no carregamento)
 		ok(outro.clipe_rede != "" and outro.nick == ("Cliente" if papel == "servidor" else "Servidor"), "vê nome e animação do outro (nick=%s)" % outro.nick)
 		ok(not outro.local and outro.camera == null, "o outro não tem câmera aqui")
 		# zumbis: o servidor cria, o cliente recebe; um golpe do cliente vira dano no servidor
@@ -59,6 +60,8 @@ func _init() -> void:
 			if (n as Zumbi).casa.distance_to(Vector3(24, 0, 0)) < 0.1:
 				zl = n
 		ok(zl != null, "zumbi do ponto (24, 0, 0) existe aqui")
+		if zl:
+			zl.come = false  # o que está comendo um corpo quase não percebe ninguém: aqui ele precisa vir
 		if zl and papel == "cliente":
 			zl.levar_golpe(30, Vector3.FORWARD, main.jogador)
 		await espera_ate(func() -> bool: return zl == null or zl.vida != Zumbi.VIDA_MAX, 6000)
@@ -96,6 +99,10 @@ func _init() -> void:
 		var car: Carro = get_nodes_in_group("carros")[0]
 		var id_mot: int = main.multiplayer.get_unique_id() if papel == "cliente" else outro.get_multiplayer_authority()
 		var c0: Vector3 = car.global_position
+		for it in get_nodes_in_group("itens"):  # item no chão tem prioridade no USAR
+			if (it as Node3D).global_position.distance_to(car.global_position) < 6.0:
+				(it as Node3D).visible = false
+				it.remove_from_group("itens")
 		if papel == "cliente":
 			main.jogador.global_position = car.saida()
 			await espera_ms(500)

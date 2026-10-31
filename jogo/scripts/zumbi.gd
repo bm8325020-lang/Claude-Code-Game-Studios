@@ -23,14 +23,15 @@ extends CharacterBody3D
 
 const VIDA_MAX: int = 150  # dono: zumbis estavam fracos (era 100)
 const VISAO: float = 30.0          # m: vê o jogador a essa distância (se nada tapa)
-const OUVE: float = 9.0            # m: percebe mesmo sem ver (passos, barulho)
+const OUVE: float = 6.5            # m: percebe mesmo sem ver (passos, barulho); 9 ouvia longe demais
 const DESISTE: float = 50.0        # m: perde o alvo
 const ANDAR: float = 1.4           # m/s: alvo longe
-const CORRER: float = 4.6          # m/s: alvo a menos de PERTO
+const CORRER: float = 3.7          # m/s: alvo a menos de PERTO (4,6 era rápido demais: dono 31/10)
 const PERTO: float = 22.0
 const ALCANCE: float = 1.35        # m: começa o ataque
 const ALCANCE_ACERTO: float = 1.8  # m: o soco ainda pega se o alvo estiver até aqui na hora
-const DANO: int = 28  # era 22 (dono 30/10: muito fácil)
+const ALTURA_ATAQUE: float = 1.3   # m de diferença de altura: mais que isso não alcança (telhado, escada)
+const DANO: int = 20  # 28 era forte demais (dono 31/10, vídeo); 22 antes de 30/10
 const ACERTO: float = 0.45         # fração do clipe de ataque em que o soco pega
 const CAMBALEIO: float = 0.25      # s parado depois de levar golpe
 const MORTO_POR: float = 8.0       # s até levantar de novo
@@ -41,11 +42,12 @@ const ALTURA: float = 1.75
 const VAI_OUVIR: float = 2.0       # m/s indo até um barulho
 const PROCURA: float = 4.0         # s olhando em volta onde ouviu
 const VOLTA: float = 0.9           # m/s voltando para casa
-const GRITO_RAIO: float = 22.0
+const GRITO_RAIO: float = 14.0
+const GRITO_CHANCE: float = 0.3  # senão só rosna baixo (avisa quem está perto sem chamar a horda)
 const GRITO_PAUSA: float = 20.0
-const NOITE_VEL: float = 1.35       # à noite: mais rápido,
-const NOITE_DANO: float = 1.6        # bate mais forte
-const NOITE_OUVE: float = 2.0        # e ouve mais longe (as notas: "à noite ficam muito mais fortes")
+const NOITE_VEL: float = 1.15       # à noite: mais rápido,
+const NOITE_DANO: float = 1.25       # bate mais forte
+const NOITE_OUVE: float = 1.4        # e ouve mais longe (as notas: "à noite ficam muito mais fortes")
 const EMBOSCA: float = 4.0          # m: alguém passando assim perto acorda o zumbi deitado
 const ACORDA_BARULHO: float = 10.0  # m: tiro até essa distância acorda o deitado
 const VEL_LEVANTAR: float = 1.3
@@ -96,6 +98,7 @@ const NO_CHAO_T: float = 2.2
 const QUEDA_MAIS: float = 1.5
 var _no_chao_t: float = 0.0
 var come: bool = false
+var chance_grito: float = GRITO_CHANCE
 var _passo: float = 1.0           # ritmo próprio de cada um
 const BOTE_DE: float = 3.0          # m: distância mínima e máxima para o bote
 const BOTE_ATE: float = 6.5
@@ -284,6 +287,7 @@ func _ready() -> void:
 	add_child(_som)
 	_monta_sincronia()
 	if not Rede.servidor_sem_tela:
+		anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL  # avançada em _process
 		_monta_torto(rr)
 		if come:
 			_poe_corpo()
@@ -457,7 +461,7 @@ func _physics_process(dt: float) -> void:
 			desejada = d.normalized() * BOTE_VEL
 			velocity.x = desejada.x
 			velocity.z = desejada.z
-		elif d.length() < ALCANCE and _porta_na_frente(d) == null:
+		elif d.length() < ALCANCE and absf(alvo.global_position.y - global_position.y) < ALTURA_ATAQUE and _porta_na_frente(d) == null:
 			_vira_para(d, dt * 2.0)
 			_ataca()
 		else:
@@ -621,8 +625,11 @@ func _escolhe_alvo() -> void:
 		_olhando_t = 0.0
 		_voltando = false
 		_fechando = false
-		if _sem_gritar <= 0.0:
+		if _sem_gritar <= 0.0 and randf() < chance_grito:
 			_grita()
+		elif _sem_gritar <= 0.0:
+			_sem_gritar = GRITO_PAUSA
+			_rosna.rpc()
 
 
 # divide a volta do alvo entre os zumbis que estão atrás dele: ordena pelo ângulo em que cada um já está e
@@ -653,6 +660,17 @@ func _calcula_cerco() -> void:
 
 
 # para, grita e chama os zumbis em volta para o mesmo alvo
+## Rosnado baixo quando percebe alguém: avisa que tem zumbi vindo, sem chamar a horda.
+@rpc("any_peer", "call_local", "unreliable")
+func _rosna() -> void:
+	if Rede.servidor_sem_tela or _som == null:
+		return
+	_som.stream = load("res://assets/sons/amb/rosnado_%d.ogg" % randi_range(1, 16))
+	_som.pitch_scale = randf_range(0.85, 1.05)
+	_som.volume_db = -4.0
+	_som.play()
+
+
 func _grita() -> void:
 	_sem_gritar = GRITO_PAUSA
 	_grito_t = anim.get_animation("grito").length
@@ -837,9 +855,10 @@ func _atualiza_ataque(dt: float) -> void:
 			_porta_alvo = null
 		elif alvo and is_instance_valid(alvo):
 			var d: Vector3 = alvo.global_position - global_position
+			var dy: float = absf(d.y)
 			d.y = 0.0
 			var frente: Vector3 = modelo.global_basis.z
-			if d.length() < ALCANCE_ACERTO and rad_to_deg(Vector3(frente.x, 0, frente.z).angle_to(d)) < 70.0:
+			if d.length() < ALCANCE_ACERTO and dy < ALTURA_ATAQUE and rad_to_deg(Vector3(frente.x, 0, frente.z).angle_to(d)) < 70.0:
 				# o chefe empurra longe (o empurrão do jogador é proporcional ao tamanho de `dir`)
 				alvo.levar_dano(roundi((DANO_CHEFE if chefe else _dano) * Ciclo.forca_noite(get_tree(), NOITE_DANO)), d.normalized() * (2.5 if chefe else 1.0))
 				if not chefe and TIPOS[tipo].skill == "agarrao":
@@ -1100,13 +1119,37 @@ func _monta_torto(rr: RandomNumberGenerator) -> void:
 	_cabeca = _sk.find_bone("mixamorig_Head")
 	_torto_q = Quaternion(Vector3(rr.randf_range(-0.3, 0.3), rr.randf_range(-0.2, 0.2), 1.0).normalized(), rr.randf_range(-0.45, 0.45))
 	_espera = rr.randf_range(2.0, 7.0)
-	anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+
+
+## Desempenho (vídeo do dono, 31/10: travava com muitos zumbis): longe ou atrás da câmera anima menos vezes por
+## segundo; longe demais não anima nem aparece.
+const ANIMA_PERTO: float = 18.0
+const ANIMA_LONGE: float = 55.0
+var _anima_acum: float = 0.0
+var _anima_quadro: int = 0
 
 
 func _process(dt: float) -> void:
-	if _cabeca < 0 or not anim.active:
+	if anim.callback_mode_process != AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL or not anim.active:
 		return
-	anim.advance(dt)
+	_anima_acum += dt
+	_anima_quadro += 1
+	var cam := get_viewport().get_camera_3d()
+	var pulo: int = 1
+	if cam:
+		var d: Vector3 = global_position - cam.global_position
+		var dist: float = d.length()
+		modelo.visible = dist < ANIMA_LONGE * 1.6
+		if dist > ANIMA_LONGE:
+			pulo = 8
+		elif dist > ANIMA_PERTO or (dist > 6.0 and d.dot(-cam.global_basis.z) < 0.0):
+			pulo = 3
+	if _anima_quadro % pulo != 0:
+		return
+	anim.advance(_anima_acum)
+	_anima_acum = 0.0
+	if _cabeca < 0:
+		return
 	_espera -= dt
 	_espasmo = maxf(0.0, _espasmo - dt)
 	if _espera <= 0.0 and vida > 0:  # tranco de cabeça (e de novo daqui a pouco)
@@ -1120,7 +1163,7 @@ func _process(dt: float) -> void:
 
 
 func _comendo() -> bool:
-	return come and alvo == null and global_position.distance_to(casa) < 1.5
+	return come and rota.is_empty() and alvo == null and global_position.distance_to(casa) < 1.5  # quem patrulha não para para comer
 
 
 # o corpo que ele está comendo: fica no chão onde ele nasceu (não anda junto)
@@ -1187,6 +1230,7 @@ func _toca(clipe: String, mistura: float, de_novo: bool = false) -> void:
 	var real: String = _real(clipe)
 	if clipe == "grito":  # toca aqui para tocar também nos clientes (que recebem só o nome do clipe)
 		_som.stream = load(SONS_GRITO.pick_random())
+		_som.volume_db = 0.0
 		_som.pitch_scale = randf_range(0.9, 1.05)
 		_som.play()
 	if anim.has_animation(real):

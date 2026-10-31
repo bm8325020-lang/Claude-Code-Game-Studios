@@ -49,7 +49,7 @@ func _process(dt: float) -> void:
 	_era_noite = agora
 	var n: float = noite()
 	if sol:
-		sol.light_energy = lerpf(0.95, 0.3, n)  # noite de luar: escura, mas dá para jogar (pedido do dono)
+		sol.light_energy = lerpf(0.95, 0.42, n)  # noite de luar: escura, mas dá para jogar (pedido do dono)
 		sol.light_color = Color(1, 0.8, 0.6).lerp(Color(0.55, 0.6, 0.85), n)  # sol abafado pela fumaça
 	if ambiente:
 		var ceu: Color = CEU_HORIZONTE[0].lerp(CEU_HORIZONTE[1], n)
@@ -60,7 +60,7 @@ func _process(dt: float) -> void:
 			mat.set_shader_parameter("topo", CEU_TOPO[0].lerp(CEU_TOPO[1], n))
 			mat.set_shader_parameter("horizonte", ceu)
 		ambiente.ambient_light_color = Color(0.72, 0.66, 0.6).lerp(Color(0.42, 0.47, 0.62), n)
-		ambiente.ambient_light_energy = lerpf(0.6, 0.45, n)
+		ambiente.ambient_light_energy = lerpf(0.6, 0.58, n)  # 31/10: a noite estava escura demais no celular
 		ambiente.fog_density = lerpf(0.012, 0.02, n)
 
 

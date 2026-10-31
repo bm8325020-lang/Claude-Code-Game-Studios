@@ -101,6 +101,8 @@ func _solta(tipo: String, p: Vector2) -> void:
 
 
 func _poe_mato(p: Vector2) -> void:
+	if _b._poligonos.any(func(pl: PackedVector2Array) -> bool: return Geometry2D.is_point_in_polygon(p, pl)):
+		return  # nada de mato crescendo dentro de casa (dono, 31/10)
 	var h: float = _b.altura(p)
 	if h < Bairro.AGUA_Y + 0.1:
 		return  # nada de mato debaixo d'água

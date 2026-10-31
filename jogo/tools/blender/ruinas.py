@@ -29,7 +29,13 @@ CORES = {
     "branco": (0.78, 0.77, 0.72), "papelao": (0.55, 0.45, 0.32), "lataria": (0.4, 0.15, 0.12),
     "vidro": (0.05, 0.06, 0.07), "pneu": (0.04, 0.04, 0.04), "ferrugem": (0.35, 0.18, 0.08),
     "tapete": (0.38, 0.14, 0.11), "quadro": (0.3, 0.33, 0.36),
+    # 31/10: cores de tecido e de cômodo (cada casa sorteia; o Bairro troca pela textura com a mesma cor)
+    "tecido_verde": (0.22, 0.3, 0.2), "tecido_vinho": (0.35, 0.1, 0.12), "tecido_mostarda": (0.6, 0.45, 0.15),
+    "tecido_azul": (0.15, 0.22, 0.38), "tecido_cinza": (0.4, 0.4, 0.42), "azulejo": (0.75, 0.8, 0.8),
+    "crianca_rosa": (0.85, 0.5, 0.6), "crianca_azul": (0.4, 0.6, 0.85), "lata": (0.6, 0.6, 0.62),
+    "militar": (0.24, 0.27, 0.17), "lona": (0.38, 0.38, 0.27), "areia": (0.55, 0.48, 0.33), "vermelho": (0.6, 0.08, 0.06),
 }
+TECIDOS = ["tecido_verde", "tecido_vinho", "tecido_mostarda", "tecido_azul", "tecido_cinza", "pano"]
 rnd = random.Random(1)
 _mats = {}
 
@@ -273,14 +279,15 @@ def divisorias(w, d, z0, m):
         y = rnd.uniform(-0.3, 0.3) * d
     x1 = w / 2 - ESP if rnd.random() < 0.5 else -w / 2 + ESP
     parede("int_1", (x, y), (x1, y), z0, PE, [(abs(x1 - x) / 2, 1.0, 0, 2.1)], m)
+    return x, y, (1 if x1 > 0 else -1)
 
 
 # ----- móveis (encostados nas paredes de lado, na metade da frente: os cantos do fundo ficam para baú e item) -----
 
-def sofa(nome, x, y, ang):
-    p = [caixa("s", (0, 0, 0.22), (2.0, 0.85, 0.3), "pano"), caixa("s", (0, 0.33, 0.6), (2.0, 0.2, 0.6), "pano"),
-         caixa("s", (-0.92, 0, 0.45), (0.18, 0.85, 0.5), "pano"), caixa("s", (0.92, 0, 0.45), (0.18, 0.85, 0.5), "pano"),
-         caixa("s", (0.4, -0.05, 0.42), (0.7, 0.6, 0.12), "pano", (0.15, 0.1, 0.3))]  # almofada largada
+def sofa(nome, x, y, ang, t="pano"):
+    p = [caixa("s", (0, 0, 0.22), (2.0, 0.85, 0.3), t), caixa("s", (0, 0.33, 0.6), (2.0, 0.2, 0.6), t),
+         caixa("s", (-0.92, 0, 0.45), (0.18, 0.85, 0.5), t), caixa("s", (0.92, 0, 0.45), (0.18, 0.85, 0.5), t),
+         caixa("s", (0.4, -0.05, 0.42), (0.7, 0.6, 0.12), t, (0.15, 0.1, 0.3))]  # almofada largada
     _poe(junta(p, nome + "-col"), x, y, ang)
 
 
@@ -380,9 +387,9 @@ def guarda_roupa(nome, x, y, ang):
     _poe(junta(p, nome + "-col"), x, y, ang)
 
 
-def criado(nome, x, y):
+def criado(nome, x, y, ang=None):
     p = [caixa("c", (0, 0, 0.27), (0.45, 0.4, 0.54), "madeira"), caixa("c", (0.05, 0, 0.62), (0.15, 0.15, 0.16), "branco")]
-    _poe(junta(p, nome + "-col"), x, y, rnd.uniform(-0.3, 0.3))
+    _poe(junta(p, nome + "-col"), x, y, (ang if ang is not None else 0.0) + rnd.uniform(-0.2, 0.2))
 
 
 def bagunca(nome, x, y, n):
@@ -396,31 +403,132 @@ def bagunca(nome, x, y, n):
               (tam, tam * 0.8, tam), "papelao", (0, 0, rnd.uniform(0, 6.28)))
 
 
-def mobilia(w, d):
-    """Sala na esquerda (sofá, TV, tapete, estante, mesa, quadros) e quarto ou cozinha na direita, nas paredes de lado.
-    Sem móvel no meio da frente (porta) nem nos cantos do fundo (baú e item)."""
-    e, dx = -w / 2 + ESP / 2, w / 2 - ESP / 2
-    sofa("sofa", e + 0.5, -d / 4, -1.5708)
-    tapete("tapete", e + 1.9, -d / 4, 1.6, 2.2)
-    quadro("quadro_s", e + 0.13, -d / 4 + rnd.uniform(-0.4, 0.4), 1.5708)
-    if w > 7:
-        tv("tv", -w / 2 + 3.4, -d / 4 + rnd.uniform(-0.3, 0.3), 1.5708)
-    if rnd.random() < 0.6:
-        estante("estante", e + 0.25, -d / 2 + 1.2, -1.5708, caida=rnd.random() < 0.5)
-    if w > 8:
-        mesa("mesa", -w / 4, -d / 6)
-    if rnd.random() < 0.5:
-        cama("cama", dx - 0.6, -d / 4 + 0.2, 0)
-        criado("criado", dx - 0.35, -d / 4 + 1.5)
-        guarda_roupa("guarda_roupa", dx - 0.35, -d / 2 + 0.85, 1.5708)
-        quadro("quadro_q", dx - 0.13, -d / 4 + 0.2, -1.5708)
-    else:
-        balcao("balcao", dx - 0.35, -d / 4, 1.5708, min(2.2, d / 2 - 1.0))
-        geladeira("geladeira", dx - 0.45, -d / 2 + 0.7, 1.5708, rnd.random() < 0.4)
-        fogao("fogao", dx - 0.35, -d / 4 + min(2.2, d / 2 - 1.0) / 2 + 0.35, 1.5708)
-        armario_aereo("armario", dx - 0.2, -d / 4, 1.5708, min(2.0, d / 2 - 1.2))
-    bagunca("bag_s", -w / 4, -d / 4 + 0.5, 6)
-    bagunca("bag_f", rnd.uniform(-1.0, 1.0) * w / 4, d / 6, 4)
+def poltrona(nome, x, y, ang, t):
+    p = [caixa("p", (0, 0, 0.22), (0.85, 0.8, 0.3), t), caixa("p", (0, 0.32, 0.6), (0.85, 0.18, 0.6), t),
+         caixa("p", (-0.36, 0, 0.45), (0.14, 0.8, 0.45), t), caixa("p", (0.36, 0, 0.45), (0.14, 0.8, 0.45), t)]
+    _poe(junta(p, nome + "-col"), x, y, ang)
+
+
+def pia(nome, x, y, ang):
+    p = [caixa("p", (0, 0, 0.44), (1.0, 0.55, 0.88), "madeira"), caixa("p", (0, 0, 0.9), (1.05, 0.6, 0.04), "branco"),
+         caixa("p", (0, -0.02, 0.87), (0.5, 0.35, 0.06), "metal")]
+    _poe(junta(p, nome + "-col"), x, y, ang)
+
+
+def berco(nome, x, y, ang):
+    """Berço vazio com a grade quebrada (o que aconteceu aqui fica para quem vê)."""
+    p = [caixa("b", (0, 0, 0.3), (0.7, 1.25, 0.05), "branco")]
+    for sx in (-0.33, 0.33):
+        for sy in (-0.6, 0.6):
+            p.append(caixa("b", (sx, sy, 0.45), (0.05, 0.05, 0.9), "branco"))
+    for k in range(9):
+        if k != 4:
+            p.append(caixa("b", (0.33, -0.55 + k * 0.14, 0.62), (0.03, 0.03, 0.6), "branco"))
+    p.append(caixa("b", (0, 0.1, 0.36), (0.6, 0.9, 0.08), "crianca_azul"))
+    _poe(junta(p, nome + "-col"), x, y, ang)
+    for k in range(4):  # brinquedos no chão (sem colisão)
+        caixa("%s_brinq%d" % (nome, k), (x + rnd.uniform(-1, 1), y + rnd.uniform(-1, 1), 0.11), (0.14, 0.14, 0.12),
+              rnd.choice(["crianca_rosa", "crianca_azul", "tecido_mostarda"]), (0, 0, rnd.uniform(0, 6.28)))
+
+
+def vaso(nome, x, y, ang):
+    p = [caixa("v", (0, -0.05, 0.22), (0.4, 0.5, 0.44), "branco"), caixa("v", (0, 0.25, 0.6), (0.42, 0.18, 0.4), "branco")]
+    _poe(junta(p, nome + "-col"), x, y, ang)
+
+
+def banheira(nome, x, y, ang):
+    p = [caixa("b", (0, 0, 0.06 + 0.25), (0.75, 1.6, 0.06), "branco"), caixa("b", (-0.35, 0, 0.3), (0.05, 1.6, 0.55), "branco"),
+         caixa("b", (0.35, 0, 0.3), (0.05, 1.6, 0.55), "branco"), caixa("b", (0, -0.78, 0.3), (0.75, 0.05, 0.55), "branco"),
+         caixa("b", (0, 0.78, 0.3), (0.75, 0.05, 0.55), "branco"), caixa("b", (0, 0.1, 0.36), (0.6, 1.2, 0.02), "vidro")]
+    _poe(junta(p, nome + "-col"), x, y, ang)
+
+
+def escrivaninha(nome, x, y, ang):
+    p = [caixa("e", (0, 0, 0.74), (1.4, 0.7, 0.04), "madeira"), caixa("e", (-0.55, 0, 0.37), (0.3, 0.66, 0.72), "madeira"),
+         caixa("e", (0.66, 0, 0.37), (0.04, 0.66, 0.72), "madeira"), caixa("e", (0.2, 0.1, 0.9), (0.45, 0.06, 0.3), "metal")]
+    _poe(junta(p, nome + "-col"), x, y, ang)
+    for k in range(5):  # papéis espalhados na mesa e no chão
+        caixa("%s_papel%d" % (nome, k), (x + rnd.uniform(-0.7, 0.7), y + rnd.uniform(-0.7, 0.7), 0.07 if k > 1 else 0.77),
+              (0.21, 0.29, 0.004), "branco", (0, 0, rnd.uniform(0, 6.28)))
+
+
+def despensa(nome, x, y, ang):
+    """Prateleira de metal com latas (a maioria levada)."""
+    p = [caixa("d", (0, 0, 0.9), (1.2, 0.45, 0.03), "metal")]
+    for k in range(4):
+        p.append(caixa("d", (0, 0, 0.12 + k * 0.5), (1.2, 0.45, 0.03), "metal"))
+        for q in range(rnd.randint(0, 4)):
+            p.append(caixa("d", (rnd.uniform(-0.5, 0.5), 0, 0.2 + k * 0.5), (0.1, 0.1, 0.13), "lata"))
+    for sx in (-0.58, 0.58):
+        p.append(caixa("d", (sx, 0, 0.95), (0.04, 0.45, 1.9), "metal"))
+    _poe(junta(p, nome + "-col"), x, y, ang)
+
+
+def abajur(nome, x, y):
+    """Abajur de pé tombado (sem colisão)."""
+    o = junta([caixa("a", (0, 0, 0.75), (0.04, 0.04, 1.5), "metal"), caixa("a", (0, 0, 1.55), (0.38, 0.38, 0.3), "tecido_mostarda")], nome)
+    o.location = (x, y, 0.1)
+    o.rotation_euler = (1.45, 0, rnd.uniform(0, 6.28))
+
+
+# Móveis de costas para a parede de lado (`lado` -1 = esquerda, 1 = direita), de frente para o cômodo, um atrás do outro
+# entre y0 e y1. Cada item: (função(nome, x, y, ang), profundidade, largura).
+def ao_longo(w, lado, y0, y1, itens, nome):
+    ang = 1.5708 if lado < 0 else -1.5708
+    y = y0 + 0.35
+    for k, (f, prof, larg) in enumerate(itens):
+        if y + larg > y1 - 0.35:
+            break
+        x = lado * (w / 2 - ESP - prof / 2 - 0.03)
+        base = f.__name__ if f.__name__ != "<lambda>" else "movel"  # o Bairro acha as gavetas pelo começo do nome
+        f("%s_%s%d" % (base, nome, k), x, y + larg / 2, ang)
+        y += larg + rnd.uniform(0.15, 0.5)
+
+
+def comodo(tema, w, lado, x0, y0, y1, nome):
+    """Um cômodo: parede de lado em `lado`, de x0 (parede do meio) até a borda, de y0 até y1."""
+    meio_x = (x0 + lado * (w / 2 - ESP)) / 2
+    meio_y = (y0 + y1) / 2
+    tec = rnd.choice(TECIDOS)
+    if tema == "sala":
+        ao_longo(w, lado, y0, y1, [(lambda n, x, y, a: sofa(n, x, y, a, tec), 0.85, 2.0), (estante, 0.4, 1.2),
+                                   (lambda n, x, y, a: poltrona(n, x, y, a, rnd.choice(TECIDOS)), 0.8, 0.85)], nome)
+        tapete(nome + "_tapete", meio_x, meio_y, 1.6, 2.2)
+        quadro(nome + "_quadro", lado * (w / 2 - ESP - 0.03), meio_y, 1.5708 if lado < 0 else -1.5708)
+        if abs(x0 - lado * (w / 2)) > 3.2:
+            tv("tv_" + nome, meio_x + lado * -0.8, meio_y, 1.5708 if lado > 0 else -1.5708)
+        if rnd.random() < 0.5:
+            abajur(nome + "_abajur", meio_x, y0 + 0.8)
+    elif tema == "cozinha":
+        ao_longo(w, lado, y0, y1, [(balcao, 0.6, 1.8), (fogao, 0.6, 0.6), (pia, 0.6, 1.0),
+                                   (lambda n, x, y, a: geladeira(n, x, y, a, rnd.random() < 0.3), 0.7, 0.75)], nome)
+        armario_aereo("armario_" + nome, lado * (w / 2 - ESP - 0.2), (y0 + y1) / 2, 1.5708 if lado < 0 else -1.5708, min(1.8, (y1 - y0) - 1.0))
+        if abs(x0 - lado * (w / 2)) > 3.0:
+            mesa(nome + "_mesa", meio_x - lado * 0.4, meio_y)
+    elif tema == "quarto":
+        ao_longo(w, lado, y0, y1, [(criado, 0.4, 0.45), (cama, 2.0, 1.1), (guarda_roupa, 0.55, 1.2)], nome)
+        tapete(nome + "_tapete", meio_x, meio_y, 1.2, 1.6)
+        quadro(nome + "_quadro", lado * (w / 2 - ESP - 0.03), meio_y + 0.6, 1.5708 if lado < 0 else -1.5708)
+    elif tema == "crianca":
+        ao_longo(w, lado, y0, y1, [(berco, 0.7, 1.25), (criado, 0.4, 0.45), (guarda_roupa, 0.55, 1.2)], nome)
+        tapete(nome + "_tapete", meio_x, meio_y, 1.4, 1.4)
+    elif tema == "banheiro":
+        ao_longo(w, lado, y0, y1, [(vaso, 0.65, 0.5), (pia, 0.55, 1.0), (banheira, 0.75, 1.6)], nome)
+    elif tema == "escritorio":
+        ao_longo(w, lado, y0, y1, [(escrivaninha, 0.7, 1.4), (estante, 0.4, 1.2), (estante, 0.4, 1.2)], nome)
+    elif tema == "despensa":
+        ao_longo(w, lado, y0, y1, [(despensa, 0.45, 1.2), (despensa, 0.45, 1.2)], nome)
+    bagunca(nome + "_bag", meio_x, meio_y, 5)
+
+
+def mobilia(w, d, paredes):
+    """Cada cômodo da casa ganha um tema sorteado (31/10, dono: 'sempre o mesmo interior, e feio'): o lado inteiro vira
+    sala; o lado dividido vira frente (cozinha/escritório/quarto) e fundo (quarto/criança/banheiro/despensa)."""
+    x, y, lado_div = paredes
+    inteiro = -lado_div
+    comodo("sala", w, inteiro, x, -d / 2 + ESP, d / 2 - ESP - 1.2, "sala")  # o canto do fundo fica para o baú
+    comodo(rnd.choice(["cozinha", "cozinha", "escritorio", "quarto"]), w, lado_div, x, -d / 2 + ESP, y - ESP, "frente")
+    comodo(rnd.choice(["quarto", "quarto", "crianca", "banheiro", "despensa"]), w, lado_div, x, y + ESP, d / 2 - ESP - 1.2, "fundo")
 
 
 def limpa():
@@ -504,9 +612,9 @@ def casa(nome, w, d, semente, tipo):
         caixa_paredes(w, d, k * PE, PE, m, k == 0, 2 if w > 8 else 1, q, 0.45 if k == 0 else 0.2,
                       nome="ext%d" % k)
     piso("chao", -w / 2, -d / 2, w / 2, d / 2, 0.06, "madeira" if tipo != "queimada" else "concreto", 0.06)
-    divisorias(w, d, 0, m if tipo != "queimada" else "queimado")
+    paredes = divisorias(w, d, 0, m if tipo != "queimada" else "queimado")
     if tipo != "queimada":
-        mobilia(w, d)
+        mobilia(w, d, paredes)
     if tipo == "dois":
         bx = (w / 2 - 1.5, d / 2 - 4.2, w / 2 - ESP, d / 2 - ESP)
         piso("laje1", -w / 2, -d / 2, w / 2, d / 2, PE, "concreto", buraco=bx)
@@ -600,8 +708,7 @@ def predio(nome, w, d, semente):
         caixa_paredes(w, d, k * PE, PE, m, k == 0, 4, [0, 1, 1, 1] if k == 0 else [1, 1, 2, 1], 0.35 if k == 0 else 0.1,
                       k == 0, "ext%d" % k)
     piso("chao", -w / 2, -d / 2, w / 2, d / 2, 0.06, "concreto", 0.06)
-    divisorias(w, d, 0, m)
-    mobilia(w, d)
+    mobilia(w, d, divisorias(w, d, 0, m))
     bx = (w / 2 - 1.5, d / 2 - 4.2, w / 2 - ESP, d / 2 - ESP)
     for k in (1, 2):
         piso("laje%d" % k, -w / 2, -d / 2, w / 2, d / 2, k * PE, "concreto", buraco=bx)
@@ -727,6 +834,120 @@ def caixa_dagua(nome):
     c.data.materials.append(mat("ferrugem"))
     morde(t, (3.4, 0, 21.5), 1.2)  # rombo
     escada("escadinha", 2.15, -0.5, 0.5, 0, 0.1, 0.4)  # só o pé da escada (enfeite)
+    exporta(nome)
+
+
+# ----- marcos que se veem de longe (31/10, dono: "referência de grandes jogos de zumbi no mapa") -----
+
+def antena(nome):
+    """Torre de rádio de treliça (~36 m) com luz vermelha no topo e a casinha do transmissor arrombada."""
+    limpa()
+    rnd.seed(61)
+    alt = 36.0
+    p = []
+    for k in range(12):  # 12 lances, afinando
+        z0 = k * 3.0
+        a = 1.6 - k * 0.1
+        b = 1.6 - (k + 1) * 0.1
+        for sx in (-1, 1):
+            for sy in (-1, 1):
+                p.append(caixa("m", (sx * (a + b) / 2, sy * (a + b) / 2, z0 + 1.5), (0.12, 0.12, 3.05), "ferrugem"))
+        for sx in (-1, 1):
+            p.append(caixa("x", (sx * a, 0, z0 + 1.5), (0.06, 2 * a * 1.4, 0.06), "ferrugem", (0.75, 0, 0)))
+            p.append(caixa("x", (0, sx * a, z0 + 1.5), (2 * a * 1.4, 0.06, 0.06), "ferrugem", (0, 0.75, 0)))
+    junta(p, nome + "_torre")
+    caixa(nome + "_pe-col", (0, 0, 1.5), (3.4, 3.4, 3.0), "ferrugem")  # o pé (não dá para atravessar a treliça)
+    caixa(nome + "_luz", (0, 0, alt + 0.4), (0.4, 0.4, 0.5), "vermelho")
+    caixa(nome + "_prato", (0.9, 0, alt - 6), (0.1, 1.4, 1.4), "branco", (0, 0.3, 0))
+    cas = [caixa("c", (6, 0, 1.4), (4.0, 3.0, 2.8), "concreto"), caixa("c", (6, 0, 2.9), (4.4, 3.4, 0.2), "metal")]
+    junta(cas, nome + "_casinha-col")
+    for k in range(6):  # cabos e entulho em volta
+        caixa("%s_cabo%d" % (nome, k), (rnd.uniform(-5, 9), rnd.uniform(-5, 5), 0.08), (rnd.uniform(1, 3), 0.05, 0.05), "pneu",
+              (0, 0, rnd.uniform(0, 6.28)))
+    exporta(nome)
+
+
+def helicoptero(nome):
+    """Helicóptero militar caído de lado, cauda quebrada, pás tortas, caixas espalhadas."""
+    limpa()
+    rnd.seed(62)
+    corpo = [caixa("h", (0, 0, 1.3), (2.4, 6.0, 2.4), "militar"), caixa("h", (0, -3.4, 1.0), (2.0, 1.2, 1.8), "vidro", (0.3, 0, 0)),
+             caixa("h", (0, 1.2, 2.7), (1.4, 2.4, 0.7), "militar")]
+    o = junta(corpo, nome + "_corpo-col")
+    o.rotation_euler = (0, 1.2, 0.2)  # tombado de lado
+    o.location = (0, 0, 0.3)
+    cauda = junta([caixa("c", (0, 0, 0), (0.6, 5.0, 0.6), "militar"), caixa("c", (0, 2.4, 0.8), (0.15, 1.0, 1.6), "militar")], nome + "_cauda-col")
+    cauda.location = (2.5, 7.5, 0.4)
+    cauda.rotation_euler = (0, 0.3, 0.6)
+    for k in range(4):  # pás tortas no chão
+        caixa("%s_pa%d" % (nome, k), (rnd.uniform(-6, 6), rnd.uniform(-6, 8), 0.1), (0.35, 6.0, 0.08), "metal",
+              (rnd.uniform(-0.2, 0.2), 0, rnd.uniform(0, 6.28)))
+    for k in range(5):  # caixas de suprimento que voaram
+        caixa("%s_caixa%d-col" % (nome, k), (rnd.uniform(-5, 5), rnd.uniform(-6, 6), 0.35), (0.9, 0.6, 0.6), "militar",
+              (0, 0, rnd.uniform(0, 6.28)))
+    entulho(nome + "_ent", (0, 2, 0), 10, 0.5, "queimado")
+    exporta(nome)
+
+
+def quarentena(nome):
+    """Posto de quarentena do exército abandonado: cerca com portão, tendas, sacos de areia, guarita e caminhão."""
+    limpa()
+    rnd.seed(63)
+    lado = 22.0
+    for k, (a, b) in enumerate([((-lado / 2, -lado / 2), (lado / 2, -lado / 2)), ((lado / 2, -lado / 2), (lado / 2, lado / 2)),
+                                ((lado / 2, lado / 2), (-lado / 2, lado / 2)), ((-lado / 2, lado / 2), (-lado / 2, -lado / 2))]):
+        n = int(lado / 2.5)
+        for i in range(n + 1):
+            if k == 0 and abs(i - n / 2) < 1.6:
+                continue  # portão aberto na frente
+            x = a[0] + (b[0] - a[0]) * i / n
+            y = a[1] + (b[1] - a[1]) * i / n
+            caixa("%s_poste%d_%d" % (nome, k, i), (x, y, 1.25), (0.08, 0.08, 2.5), "metal")
+        caixa("%s_tela%d-col" % (nome, k), ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, 1.2),
+              (abs(b[0] - a[0]) + 0.05 if a[1] == b[1] else 0.04, abs(b[1] - a[1]) + 0.05 if a[0] == b[0] else 0.04, 2.4), "metal")
+    for i, t in enumerate([(-6, 3), (0, 5), (6, 3), (-5, -4)]):  # tendas de lona
+        tenda = [caixa("t", (0, 0, 1.0), (4.0, 3.0, 2.0), "lona"), caixa("t", (0, 0, 2.2), (4.2, 3.2, 0.4), "lona")]
+        o = junta(tenda, "%s_tenda%d-col" % (nome, i))
+        o.location = (t[0], t[1], 0)
+        o.rotation_euler = (0, 0, rnd.uniform(-0.2, 0.2))
+    for i in range(10):  # sacos de areia no portão
+        caixa("%s_saco%d-col" % (nome, i), (-3.5 + i * 0.8 if i < 5 else 0.5 + (i - 5) * 0.8, -lado / 2 - 1.0, 0.25 + (i % 2) * 0.3),
+              (0.75, 0.45, 0.3), "areia")
+    caixa(nome + "_guarita-col", (lado / 2 - 2, -lado / 2 + 2, 1.3), (2.2, 2.2, 2.6), "militar")
+    cam = [caixa("k", (0, 0, 1.0), (2.4, 6.5, 1.4), "militar"), caixa("k", (0, -2.6, 1.9), (2.3, 1.6, 1.0), "militar"),
+           caixa("k", (0, 1.0, 2.2), (2.5, 4.4, 0.2), "lona")]
+    o = junta(cam + rodas((-1.1, 1.1), (-2.4, 2.2), 0.45, 0.35), nome + "_caminhao-col")
+    o.location = (7, -5, 0)
+    o.rotation_euler = (0, 0, 0.4)
+    for k in range(6):  # macas e caixas de remédio largadas
+        caixa("%s_maca%d" % (nome, k), (rnd.uniform(-8, 8), rnd.uniform(-8, 8), 0.45), (0.7, 1.9, 0.08), "branco", (0, 0, rnd.uniform(0, 6.28)))
+    exporta(nome)
+
+
+def posto(nome):
+    """Posto de gasolina abandonado: cobertura com luminoso caído, bombas, lojinha com vitrine tapada e um carro largado."""
+    limpa()
+    rnd.seed(64)
+    junta([caixa("c", (0, 0, 5.2), (12.0, 8.0, 0.6), "branco"), caixa("c", (0, -4.05, 5.2), (12.0, 0.1, 0.7), "vermelho")],
+          nome + "_cobertura")
+    for sx in (-4, 4):
+        caixa("%s_pilar%d-col" % (nome, sx), (sx, 0, 2.5), (0.5, 0.5, 5.0), "branco")
+    for sx in (-2.5, 2.5):
+        for sy in (-1.5, 1.5):
+            bomba = [caixa("b", (0, 0, 0.8), (0.6, 0.4, 1.6), "vermelho"), caixa("b", (0, -0.21, 1.2), (0.4, 0.02, 0.3), "vidro")]
+            o = junta(bomba, "%s_bomba%d%d-col" % (nome, int(sx), int(sy)))
+            o.location = (sx, sy, 0)
+    caixa(nome + "_ilha-col", (0, 0, 0.1), (7.0, 4.5, 0.2), "concreto")
+    loja = [caixa("l", (0, 9.5, 1.6), (9.0, 5.0, 3.2), "parede"), caixa("l", (0, 6.99, 1.3), (6.0, 0.05, 1.8), "vidro"),
+            caixa("l", (0, 9.5, 3.3), (9.4, 5.4, 0.2), "concreto")]
+    junta(loja, nome + "_loja-col")
+    for k in range(5):
+        caixa("%s_tabua%d" % (nome, k), (rnd.uniform(-2.8, 2.8), 6.95, rnd.uniform(0.6, 2.0)), (1.6, 0.04, 0.18), "tabua",
+              (0, rnd.uniform(-0.4, 0.4), 0))
+    lum = [caixa("p", (0, 0, 3.5), (0.3, 0.3, 7.0), "metal"), caixa("p", (0, 0, 7.4), (2.2, 0.3, 1.6), "vermelho")]
+    o = junta(lum, nome + "_luminoso")
+    o.location = (-7.5, -6.0, 0)
+    o.rotation_euler = (0.25, 0.1, 0)  # torto
     exporta(nome)
 
 
@@ -918,6 +1139,15 @@ if __name__ == "__main__":
         ("casa_r4", lambda: casa("casa_r4", 10.0, 8.0, 14, "queimada")),
         ("casa_r5", lambda: casa("casa_r5", 12.5, 9.0, 15, "inteira")),
         ("casa_r6", lambda: casa("casa_r6", 8.0, 6.5, 16, "queimada")),
+        # 31/10: mais casas (cada uma com cômodos sorteados), para não repetir tanto
+        ("casa_r7", lambda: casa("casa_r7", 9.5, 7.5, 17, "inteira")),
+        ("casa_r8", lambda: casa("casa_r8", 10.5, 8.5, 18, "inteira")),
+        ("casa_r9", lambda: casa("casa_r9", 8.5, 7.0, 19, "inteira")),
+        ("casa_r10", lambda: casa("casa_r10", 11.5, 9.0, 20, "dois")),
+        ("casa_r11", lambda: casa("casa_r11", 13.0, 9.5, 23, "inteira")),
+        ("casa_r12", lambda: casa("casa_r12", 8.0, 7.5, 24, "dois")),
+        ("casa_r13", lambda: casa("casa_r13", 7.5, 6.5, 25, "inteira")),  # pequenas: lotes que só cabiam a queimada
+        ("casa_r14", lambda: casa("casa_r14", 7.0, 6.0, 26, "inteira")),
         ("loja_r1", lambda: loja("loja_r1", 12.0, 10.0, 21, 1)),
         ("loja_r2", lambda: loja("loja_r2", 16.0, 12.0, 22, 2)),
         ("predio_r1", lambda: predio("predio_r1", 18.0, 12.0, 31)),
@@ -928,6 +1158,10 @@ if __name__ == "__main__":
         ("van_r1", lambda: van("van_r1", 53)),
         ("onibus_r1", lambda: onibus("onibus_r1", 54)),
         ("caixa_dagua", lambda: caixa_dagua("caixa_dagua")),
+        ("antena", lambda: antena("antena")),
+        ("helicoptero", lambda: helicoptero("helicoptero")),
+        ("quarentena", lambda: quarentena("quarentena")),
+        ("posto", lambda: posto("posto")),
         ("barricada_sobr", lambda: barricada_sobr("barricada_sobr", 71)),
         ("delegacia", lambda: delegacia("delegacia", 18.0, 13.0, 61)),
     ]

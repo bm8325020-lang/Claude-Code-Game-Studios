@@ -152,8 +152,8 @@ func _ouve_tiro() -> void:
 	j.velocity = Vector3.ZERO
 	j.global_position = Vector3(-12, 0.1, 4.5)
 	z.alvo = null
-	z.global_position = Vector3(-12, 0, 30)
-	z.casa = Vector3(-12, 0, 30)
+	z.global_position = Vector3(-12, 0, 20)  # dentro do raio do tiro (Pistola.BARULHO)
+	z.casa = Vector3(-12, 0, 20)
 	await frames(30)
 	ok(z.alvo == null and z.velocity.length() < 0.1, "sem ver nem ouvir, fica parado")
 	main.zumbis.add_child(Zumbi.new())  # um segundo zumbi longe demais para ouvir
@@ -198,12 +198,14 @@ func _chama_horda() -> void:
 	z._voltando = false
 	z._olhando_t = 0.0
 	z._sem_gritar = 0.0
+	z.come = false
+	z.chance_grito = 1.0  # no jogo só GRITO_CHANCE das vezes; senão rosna baixo
 	z.global_position = Vector3(30, 0, -12)  # vê o jogador (13 m)
-	amigo.global_position = Vector3(30, 0, 6)  # 18 m do que grita, 31 m do jogador: não vê nem ouve sozinho
+	amigo.global_position = Vector3(38, 0, -4)  # 11 m do que grita (GRITO_RAIO)
 	longe.global_position = Vector3(60, 0, 20)  # longe demais do grito
 	await frames(25)
 	ok(z.alvo == j and z.clipe_atual() == "grito", "vê o jogador e grita (%s)" % z.clipe_atual())
-	ok(amigo.alvo == j, "o grito chama o zumbi a 20 m para o mesmo alvo")
+	ok(amigo.alvo == j, "o grito chama o zumbi a 11 m para o mesmo alvo")
 	ok(longe.alvo == null, "zumbi a mais de %d m não ouve o grito" % int(Zumbi.GRITO_RAIO))
 	ok(z.velocity.length() < 0.3, "gritando fica parado")
 	await frames(int(Zumbi.GRITO_PAUSA * 0.5 * 60))
@@ -253,7 +255,7 @@ func _noite() -> void:
 	main.ciclo.tempo = Ciclo.DIA + 60.0
 	main.ciclo._process(0.0)
 	ok(main.ciclo.e_noite() and is_equal_approx(main.ciclo.noite(), 1.0), "relógio na noite fechada")
-	ok(main.ciclo.sol.light_energy < 0.4 and main.ciclo.ambiente.background_color.v < 0.2, "escurece o sol e o céu")
+	ok(main.ciclo.sol.light_energy < 0.5 and main.ciclo.ambiente.background_color.v < 0.2, "escurece o sol e o céu")
 	await process_frame
 	await process_frame
 	ok(j._lanterna.visible and j._lanterna.light_energy > 1.0 and j._lanterna_mao.visible, "lanterna na mão liga sozinha no escuro")
@@ -267,7 +269,7 @@ func _noite() -> void:
 	z.velocity = Vector3.ZERO
 	z.alvo = j
 	await frames(55)  # termina o ataque anterior e acelera
-	ok(Vector2(z.velocity.x, z.velocity.z).length() > Zumbi.CORRER * z._vel * 1.15, "à noite corre mais (%.1f m/s, %s)" % [Vector2(z.velocity.x, z.velocity.z).length(), z.tipo])
+	ok(Vector2(z.velocity.x, z.velocity.z).length() > Zumbi.CORRER * z._vel * 1.05, "à noite corre mais (%.1f m/s, %s, ataque %.2f cambaleio %.2f clipe %s)" % [Vector2(z.velocity.x, z.velocity.z).length(), z.tipo, z._ataque_t, z._cambaleio, z.clipe_atual()])
 	for i in 400:
 		await physics_frame
 		if j.vida < 100:
@@ -392,7 +394,7 @@ func _patrulha() -> void:
 	ok(passou.size() == rota.size(), "patrulha passa por todos os pontos (%s)" % str(passou))
 	ok(plano(p.global_position, rota[0]) < 1.5, "e volta ao começo da rota")
 	# vê alguém: sai da rota e persegue
-	j.global_position = p.global_position + Vector3(0, 0.1, 8)
+	j.global_position = p.global_position + Vector3(0, 0.1, 5)  # dentro do OUVE (vale de costas também)
 	j.vida = 100000
 	await frames(40)
 	ok(p.alvo == j, "sai da patrulha quando vê alguém")

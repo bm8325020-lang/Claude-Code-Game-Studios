@@ -223,7 +223,9 @@ for r in ruas:
 
 # ---- marcos que se veem de longe ----
 marcos = [{"tipo": "caixa_dagua", "p": [-30, 110]}, {"tipo": "caixa_dagua", "p": [190, -40]},
-          {"tipo": "antena", "p": [-200, -150]}]
+          {"tipo": "antena", "p": [-200, -150]},
+          # 31/10: marcos de longe (helicóptero caído, quarentena do exército, posto de gasolina)
+          {"tipo": "helicoptero", "p": [188, -220]}, {"tipo": "quarentena", "p": [188, 218]}, {"tipo": "posto", "p": [-184, 206]}]
 
 out = {"origem": "cidade nossa (tools/mapa/cidade_nossa.py)", "ruas": ruas, "predios": predios, "frestas": frestas,
        "bloqueios": bloqueios, "marcos": marcos,

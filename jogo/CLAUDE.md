@@ -98,6 +98,16 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   4.7). Clipes novos em Anims.CLIPES_ZUMBI (tirados do exclude_filter do APK). Carro: `dispara_alarme` (tiro da
   Pistola acerta Carro -> rpc `_toca_alarme`, `assets/sons/alarme.wav` feito aqui, Zumbi.barulho ALARME_RAIO).
   Teste: test_zumbi_jeitos (13). Rede.VERSAO 36.
+- Vídeo do dono (31/10, 0.85): desempenho `Zumbi._process` (anima de 3 em 3 quadros longe/atrás, de 8 em 8 além de
+  ANIMA_LONGE e some além; anim em modo manual em todo cliente). Equilíbrio: DANO 20, CORRER 3.7, OUVE 6.5, NOITE_* menores,
+  Pistola.BARULHO 20, GRITO_RAIO 14, GRITO_CHANCE (senão `_rosna` rpc), ALTURA_ATAQUE (não bate de baixo no telhado).
+  Noite mais clara (Ciclo). Carro: câmera de 3ª pessoa (`CameraPrimeira._atras_do_carro`, volta atrás do carro após
+  1,2 s sem olhar), `Carro.volante` suave e GIRO_ALTA. Casas: `mobilia(w, d, paredes)` por cômodo com tema sorteado
+  (`comodo`: sala/cozinha/quarto/crianca/banheiro/escritorio/despensa; `ao_longo` de costas para a parede; nomes
+  "<movel>_<comodo><k>": Gaveta acha pelo começo do nome), casa_r7..r14 (r13/r14 pequenas), cores TECIDOS no Bairro.
+  Marcos novos (cidade.json + cidade_nossa.py): antena (já marcada), helicoptero, quarentena, posto (Blender), com
+  `BauMarco_*` (loot raro) e 4 pontos de zumbi em volta; marco na altura do terreno. Enfeites: sem mato dentro de lote.
+  Rede.VERSAO 37. Paredes invisíveis do vídeo: NÃO achadas (perguntar onde).
 - `progresso.gd` (Progresso; 31/10): XP (XP_ZUMBI/RAID/CHEFE no `Zumbi._morre`, XP_NOITE ao amanhecer no `Ciclo`), nível
   (`xp_para`), pontos, `hab` vigor/folego/pontaria/forca (até NIVEL_HAB), salvo em user://progresso_<nick>.cfg. Jogador:
   `prog`, `vida_max()`, `mult_espalho/mult_fogo/mult_forca`, `aprende(h)`; `_recebe("xp")`. Pausa: HABILIDADES

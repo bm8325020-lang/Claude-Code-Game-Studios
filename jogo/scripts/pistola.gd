@@ -15,7 +15,7 @@ const DISPERSAO_MIRA: float = 0.4     # graus mirando
 const DISPERSAO_QUADRIL: float = 3.0  # graus sem mirar
 const DISPERSAO_POR_TIRO: float = 1.2 # cresce a cada tiro e volta sozinha
 const COICE: float = 1.3              # graus que a câmera sobe por tiro
-const BARULHO: float = 35.0           # m: zumbis a essa distância ouvem o tiro e vão ver
+const BARULHO: float = 20.0           # m: zumbis a essa distância ouvem o tiro e vão ver (35 chamava horda demais)
 
 ## Tipo de arma de fogo (FOGO): "pistola" ou "smg" — escolher antes de pôr na árvore.
 var tipo: String = "pistola"

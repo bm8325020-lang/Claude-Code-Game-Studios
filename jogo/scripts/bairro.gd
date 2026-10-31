@@ -15,8 +15,9 @@ const MAPA: String = "res://assets/mapa/cidade.json"  # tools/mapa/cidade_nossa.
 const TEX: String = "res://assets/texturas/%s_%s.jpg"
 ## Ruínas modeladas no Blender (tools/blender/ruinas.py), do maior para o menor
 const RUINAS := "res://assets/ruinas/%s.glb"
-const RUINAS_CASA: Array[String] = ["casa_r5", "casa_r2", "casa_r4", "casa_r1", "casa_r3", "casa_r6"]
-const RUINAS_MANSAO: Array[String] = ["casa_r5", "casa_r2", "casa_r3"]
+const RUINAS_CASA: Array[String] = ["casa_r11", "casa_r5", "casa_r10", "casa_r2", "casa_r8", "casa_r4", "casa_r7", "casa_r1",
+	"casa_r3", "casa_r9", "casa_r12", "casa_r6", "casa_r13", "casa_r14"]
+const RUINAS_MANSAO: Array[String] = ["casa_r11", "casa_r5", "casa_r10", "casa_r2", "casa_r3"]
 const RUINAS_LOJA: Array[String] = ["predio_r1", "loja_r2", "loja_r1"]
 const RUINAS_GALPAO: Array[String] = ["galpao_r1", "galpao_r2"]
 const VEICULOS: Array[String] = ["carro_r1", "carro_r1", "van_r1", "carro_r2"]  # carro_r2 = queimado
@@ -88,9 +89,18 @@ func _ready() -> void:
 		if not ResourceLoader.exists(RUINAS % m.tipo):
 			continue  # marco ainda sem modelo
 		var mk: Node3D = (load(RUINAS % m.tipo) as PackedScene).instantiate()
-		mk.position = Vector3(m.p[0], 0, m.p[1])
+		mk.position = Vector3(m.p[0], altura(Vector2(m.p[0], m.p[1])), m.p[1])  # a antena fica no morro
 		add_child(mk)
 		_pinta(mk, Color.WHITE)
+		if m.tipo in ["helicoptero", "quarentena", "posto"]:  # longe e perigoso: baú de loot raro e zumbis em volta
+			var bm := Bau.new()
+			bm.name = "BauMarco_%s" % m.tipo
+			bm.raid = true
+			bm.position = mk.position + Vector3(3.0, 0.0, -2.0)
+			add_child(bm)
+			for k in 4:
+				var a: float = TAU * k / 4.0
+				pontos_zumbi.append(ORIGEM + mk.position + Vector3(cos(a), 0, sin(a)) * 9.0 + Vector3(0, 0.1, 0))
 	for f: Dictionary in dados.get("frestas", []):
 		_fresta(Vector2(f.a[0], f.a[1]), Vector2(f.b[0], f.b[1]), float(f.larg))
 	_borda()
@@ -494,6 +504,9 @@ func _pinta(m: Node3D, tinta: Color, lataria: Color = Color(0.4, 0.15, 0.12)) ->
 
 
 ## Textura do jogo para o material do Blender (só o nome vem do modelo).
+const TECIDOS: Dictionary = {"tecido_verde": Color(0.36, 0.45, 0.32), "tecido_vinho": Color(0.55, 0.2, 0.22),
+	"tecido_mostarda": Color(0.8, 0.62, 0.25), "tecido_azul": Color(0.28, 0.36, 0.55), "tecido_cinza": Color(0.55, 0.55, 0.57),
+	"crianca_rosa": Color(0.9, 0.58, 0.68), "crianca_azul": Color(0.5, 0.68, 0.9)}
 func _mat_ruina(n: String, tinta: Color) -> Material:
 	match n:
 		"parede": return _mat("reboco", 0.3, tinta, true)
@@ -509,6 +522,16 @@ func _mat_ruina(n: String, tinta: Color) -> Material:
 		"vidro": return _cor(Color(0.05, 0.06, 0.07), 0.15)
 		"pneu": return _cor(Color(0.04, 0.04, 0.04))
 		"ferrugem": return _mat("concreto", 0.6, Color(0.5, 0.28, 0.14), true)
+		"azulejo": return _cor(Color(0.72, 0.78, 0.78), 0.3)
+		"militar": return _mat("concreto", 0.5, Color(0.42, 0.46, 0.3), true)
+		"lona": return _mat("reboco", 0.7, Color(0.62, 0.6, 0.45), true)
+		"areia": return _mat("reboco", 0.6, Color(0.8, 0.72, 0.52), true)
+		"vermelho": return _cor(Color(0.62, 0.1, 0.08), 0.5)
+		"lata": return _cor(Color(0.55, 0.55, 0.57), 0.4)
+		"tapete": return _mat("reboco", 0.8, Color(0.5, 0.2, 0.16), true)
+		"quadro": return _cor(Color(0.3, 0.33, 0.36), 0.5)
+	if TECIDOS.has(n):  # sofá, poltrona, quarto de criança: tecido sujo com a cor sorteada no Blender
+		return _mat("reboco", 0.8, TECIDOS[n], true)
 	return _mat("concreto", 0.4, Color(0.7, 0.68, 0.64), true)
 
 func _coisas_da_faccao(no: Node3D, cantos: Array, c: Vector2) -> void:
@@ -1105,8 +1128,11 @@ func _gavetas_e_cofres() -> void:
 	var por_casa: Dictionary = {}  # casa -> [Gaveta]
 	for casa: Node3D in get_tree().get_nodes_in_group("casas"):
 		for mi: MeshInstance3D in casa.find_children("*", "MeshInstance3D", true, false):
-			var movel: String = String(mi.name)
-			if not Gaveta.MOVEIS.has(movel):
+			var movel: String = ""
+			for k: String in Gaveta.MOVEIS:  # pelo começo do nome ("criado_frente1", "estante_sala1"...)
+				if String(mi.name).begins_with(k):
+					movel = k
+			if movel == "":
 				continue
 			var g := Gaveta.new()
 			g.movel = movel
