@@ -37,12 +37,14 @@ def faz(args):
     texto = tarefa["pedido"]
     for arq in tarefa.get("arquivos", []):
         texto += "\n\n=== %s ===\n%s" % (arq, open(arq, encoding="utf-8").read())
-    try:
-        r = chama("/chat/completions", {"model": modelo, "messages": [{"role": "system", "content": SISTEMA},
-                                                                      {"role": "user", "content": texto}]})
-        resposta = r["choices"][0]["message"]["content"]
-    except Exception as e:  # um modelo fora do ar não derruba os outros
-        resposta = "ERRO: %s" % e
+    for tentativa in range(3):  # túnel do celular cai de vez em quando (502/408)
+        try:
+            r = chama("/chat/completions", {"model": modelo, "messages": [{"role": "system", "content": SISTEMA},
+                                                                          {"role": "user", "content": texto}]})
+            resposta = r["choices"][0]["message"]["content"]
+            break
+        except Exception as e:  # um modelo fora do ar não derruba os outros
+            resposta = "ERRO: %s" % e
     nome = os.path.join(saida, "%02d_%s.md" % (n, "".join(c if c.isalnum() else "_" for c in tarefa["titulo"])[:40]))
     open(nome, "w", encoding="utf-8").write("# %s\nmodelo: %s\n\n%s\n" % (tarefa["titulo"], modelo, resposta))
     return nome, modelo, resposta.startswith("ERRO")
