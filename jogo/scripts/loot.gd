@@ -49,6 +49,19 @@ const CHEFE_ROLAGENS: Vector2i = Vector2i(2, 3)  # chefe sempre larga, mais cois
 const CHEFE_RARO: float = 3.0  # e as raras ficam 3x mais prováveis
 ## cidade inicial: mais comida e água (mais fácil para quem acabou de nascer)
 const FACIL: Dictionary = {"comida": 1.6, "agua": 1.6}
+## Loot pelo lugar (05/11, engenharia reversa: Project Zomboid e Cataclysm sorteiam pelo cômodo/lugar): multiplicadores
+## por cima da tabela. Cômodo da casa (pelo nome do móvel) ou tipo da loja (pelo modelo do sobrado).
+const LUGAR: Dictionary = {
+	"cozinha": {"comida": 4.0, "agua": 4.0, "faca": 2.0},
+	"banheiro": {"antibiotico": 6.0, "agua": 1.5},
+	"quarto": {"municao": 1.5, "lanterna": 3.0, "faca": 1.5},
+	"sala": {"mola": 2.0, "gatilho": 2.0, "cano": 2.0, "receita_pistola": 2.0},
+	"farmacia": {"antibiotico": 10.0, "agua": 2.0},
+	"comida": {"comida": 5.0, "agua": 5.0},
+	"caca": {"municao": 4.0, "faca": 3.0, "receita_pistola": 3.0, "lanterna": 2.0},
+	"oficina": {"mola": 3.0, "gatilho": 3.0, "cano": 3.0, "cabo": 3.0, "ferrolho": 3.0, "machado": 3.0},
+	"hospital": {"antibiotico": 8.0},
+}
 const RAID_RARO: float = 4.0  # baú de raid (delegacia): raras 4x mais prováveis
 const ITENS_MIN: int = 2
 const ITENS_MAX: int = 4
@@ -67,6 +80,13 @@ static func sorteia(rng: RandomNumberGenerator, facil: bool = false, raid: bool 
 	if raid:  # baú de raid: mais coisas e as raras bem mais prováveis
 		return _rola(TABELA, rng, rng.randi_range(ITENS_MIN + 2, ITENS_MAX + 3), {}, RAID_RARO)
 	return _rola(TABELA, rng, rng.randi_range(ITENS_MIN, ITENS_MAX), FACIL if facil else {}, 1.0)
+
+
+## Um achado de gaveta/móvel no `lugar` (Loot.LUGAR; sem lugar = baú fácil).
+static func sorteia_lugar(rng: RandomNumberGenerator, lugar: String) -> Array:
+	var mult: Dictionary = FACIL.duplicate()
+	mult.merge(LUGAR.get(lugar, {}), true)
+	return _rola(TABELA, rng, 1, mult, 1.0)
 
 
 ## O que um zumbi morto larga (lista vazia = nada). O chefe sempre larga, mais e mais raro.

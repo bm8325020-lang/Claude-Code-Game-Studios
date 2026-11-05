@@ -1367,6 +1367,24 @@ var marcos_pos: Dictionary = {}
 ## modo construção "do zero" (MapaCustom): a cidade não é montada
 static var vazio: bool = false
 const COFRES: int = 10
+## Tipo de loja de cada sobrado (ordem de LOJAS em tools/blender/cidade.py) para o loot (Loot.LUGAR)
+const LOJA_DO_SOBRADO: Dictionary = {"sobrado_1": "farmacia", "sobrado_2": "comida", "sobrado_3": "comida", "sobrado_4": "comida",
+	"sobrado_6": "comida", "sobrado_8": "comida", "sobrado_9": "oficina", "sobrado_10": "caca", "sobrado_13": "oficina",
+	"sobrado_16": "oficina"}
+
+
+## Lugar do móvel para o loot: cômodo pelo nome ("balcao_cozinha0"), loja pelo modelo, hospital pelo modelo.
+static func lugar_de(movel: String, modelo: String) -> String:
+	if modelo == "hospital":
+		return "hospital"
+	if LOJA_DO_SOBRADO.has(modelo):
+		return LOJA_DO_SOBRADO[modelo]
+	for c: String in ["cozinha", "despensa", "banheiro", "quarto", "crianca", "sala", "escritorio"]:
+		if movel.contains(c):
+			return {"despensa": "cozinha", "crianca": "quarto", "escritorio": "sala"}.get(c, c)
+	return ""
+
+
 const LUGAR_CHAVE: Dictionary = {"criado": "criado-mudo", "balcao": "balcão da cozinha", "estante": "estante",
 	"guarda_roupa": "guarda-roupa", "tv": "rack da TV"}
 func _gavetas_e_cofres() -> void:
@@ -1384,6 +1402,7 @@ func _gavetas_e_cofres() -> void:
 				continue
 			var g := Gaveta.new()
 			g.movel = movel
+			g.lugar = lugar_de(String(mi.name), String(casa.get_meta("modelo", "")))
 			g.set_meta("caixa_movel", mi)
 			g.name = "Gaveta_%d" % n
 			add_child(g)

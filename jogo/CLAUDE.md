@@ -108,6 +108,8 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   Sala segura: refúgio (Sobreviventes) com lampião (OmniLight); `Jogador.segura` (`_passa_segura`, todos os aparelhos,
   CURA_SEGURA), Zumbi ignora/desiste de `segura`. controles: folha de papel `_mostra_papel` (bilhete), avisos
   vazio/trancado/destrancou/sala segura. Teste: test_gavetas (15). Rede.VERSAO 35.
+  Loot pelo lugar (05/11, engenharia reversa PZ/Cataclysm): `Gaveta.lugar` = `Bairro.lugar_de(nome do móvel, modelo)`
+  (cômodo pelo nome; loja pelo sobrado: LOJA_DO_SOBRADO; hospital) -> `Loot.sorteia_lugar` com `Loot.LUGAR`. Teste: test_loot_lugar (5).
 - Zumbis com jeitos (31/10, 0.84): `Zumbi.VARIANTES` (parado/andar/correr fixos por nome; ataque/dano sorteados), `_real`
   (lógico -> animação; o lógico vai pela rede), `_passo` (ritmo próprio), RASTEJANTE (tipo "zumbi_rastejante": colisor
   baixo, rastejar/rastejar_rapido, `altura_cabeca` 0.45), `come` + `_comendo()` (ajoelhado no corpo `_poe_corpo`, ouve

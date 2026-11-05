@@ -15,6 +15,7 @@ const MOVEIS: Dictionary = {
 }
 
 var movel: String = "criado"
+var lugar: String = ""  # cômodo ou tipo de loja (Loot.LUGAR); o Bairro põe pelo nome do móvel e pelo modelo
 var sem_caixa: bool = false:  # móvel realista (Moveis): a gaveta de caixa fica escondida, mas abre e soa igual
 	set(v):
 		sem_caixa = v
@@ -113,7 +114,7 @@ func revista_por(j: Jogador) -> void:
 	if _rng.randf() < CHANCE_VAZIA:
 		j.ganhar("vazio", 0)
 		return
-	var achado: Array = Loot.sorteia(_rng, true)
+	var achado: Array = Loot.sorteia_lugar(_rng, lugar)
 	if achado.is_empty():
 		j.ganhar("vazio", 0)
 		return
