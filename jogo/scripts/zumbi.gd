@@ -139,6 +139,7 @@ var imune: bool = false  # líder com outro membro vivo: não toma dano (servido
 const ESCALA_LIDER: float = 1.2
 const VIDA_LIDER: int = 400
 const CORPO_HORDA: float = 30.0  # s até o corpo de um zumbi de horda sumir
+const DO_MORTO: int = -1  # horda: zumbi que levantou de um jogador morto (deitado; morto de novo, some)
 var _preso_t: float = 0.0
 var _desvio_t: float = 0.0
 var _desvio_lado: float = 1.0

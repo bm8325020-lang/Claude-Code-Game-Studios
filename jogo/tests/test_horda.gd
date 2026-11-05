@@ -1,5 +1,6 @@
 # Testes da horda andarilha (05/11, mods de zumbi do GTA V): nasce longe do jogador com um líder maior, marcha para
-# cima dele, o líder não toma dano enquanto houver outro vivo, e corpo de horda some (não levanta).
+# cima dele, o líder não toma dano enquanto houver outro vivo, e corpo de horda some (não levanta). Quem morre
+# levanta zumbi deitado do lado do saco.
 # Rodar: godot --headless --path . --fixed-fps 60 -s res://tests/test_horda.gd
 extends SceneTree
 
@@ -79,6 +80,10 @@ func _init() -> void:
 	ok(lider.vida < antes, "e toma dano")
 	await frames(int(60 * (Zumbi.CORPO_HORDA + 2.0)))
 	ok(not is_instance_valid(outro), "corpo de horda some (não levanta)")
+	main.solta_saco([{"tipo": "comida", "qtd": 1}], j.global_position)
+	await frames(2)
+	var do_morto: Array = main.zumbis.get_children().filter(func(z: Zumbi) -> bool: return z.horda == Zumbi.DO_MORTO)
+	ok(do_morto.size() == 1 and (do_morto[0] as Zumbi).tocaia, "quem morre levanta zumbi deitado do lado do saco")
 	ok(Horda.lado(Vector3(0, 0, -1)) == "NORTE" and Horda.lado(Vector3(1, 0, 0)) == "LESTE", "nome do lado")
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)

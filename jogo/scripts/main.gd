@@ -750,6 +750,9 @@ func solta_saco(tudo: Array, pos: Vector3) -> void:
 		spawner_itens.spawn(d)
 	else:
 		soltos.add_child(_cria_item_solto(d))
+	# quem morre levanta zumbi deitado do lado do saco (Project Zomboid, Simple Zombies): acorda quando alguém chega
+	if not em_pvp() and (not multiplayer.has_multiplayer_peer() or multiplayer.is_server()):
+		spawner_zumbis.spawn({"pos": pos + Vector3(0.9, 0.1, 0.0), "horda": Zumbi.DO_MORTO, "tocaia": true})
 
 
 # quem manda nos zumbis (sozinho ou servidor): faz a malha de navegação e cria os zumbis
