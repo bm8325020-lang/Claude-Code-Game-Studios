@@ -677,6 +677,16 @@ func _poe_ruina(ret: PackedVector2Array, nome: String, arq: String, ang: float, 
 		no.position.y = h
 	_pinta(m, [Color(0.82, 0.8, 0.76), Color(0.7, 0.74, 0.72), Color(0.8, 0.7, 0.62), Color(0.72, 0.72, 0.76)][absi(hash(nome)) % 4])
 	_alcance(m)
+	if arq.begins_with("sobrado_"):  # laje plana (sem telha de fibrocimento): dá para andar no teto (tábuas e escada)
+		var ext := m.get_node_or_null("ext") as MeshInstance3D
+		var longe := m.get_node_or_null("longe") as MeshInstance3D
+		var plano: bool = ext != null and longe != null
+		if longe:
+			for k in longe.mesh.get_surface_count():
+				var mm: Material = longe.mesh.surface_get_material(k)
+				plano = plano and not (mm and mm.resource_name == "telhado")
+		if plano:
+			no.set_meta("teto", (ext.transform * ext.get_aabb()).end.y + 0.6)  # em cima da mureta de 0,6 m
 	_junta_longe(no, m)
 	var marca: Node3D = m.get_node_or_null("porta")
 	if marca and absi(hash(nome)) % 3 != 0:  # 1 em 3 com a porta arrombada
@@ -1091,15 +1101,18 @@ const TETO_MURETA: Dictionary = {"loja_r1": 3.8, "loja_r2": 6.8, "predio_r1": 9.
 ## Telhados ligados (31/10): tábua grossa de um teto ao vizinho da mesma altura (até 8 m de vão), apoiada nas muretas.
 ## Estreita demais para o zumbi (a malha de navegação não passa nela): rota de fuga por cima.
 func _tabuas_telhado() -> void:
-	var tetos: Array = get_children().filter(func(n: Node) -> bool: return n.has_meta("modelo") and TETO_MURETA.has(n.get_meta("modelo")))
+	var tetos: Array = get_children().filter(func(n: Node) -> bool: return _teto_de(n) > 0.0)
 	var madeira := _mat("madeira", 0.5, Color(0.55, 0.45, 0.35))
 	var n: int = 0
+	var liga: Dictionary = {}  # teto -> tetos ligados (tábua ou colados na mesma altura)
+	for t0: Node in tetos:
+		liga[t0] = [t0]
 	for i in tetos.size():
 		for k in range(i + 1, tetos.size()):
 			var a: Node3D = tetos[i]
 			var b: Node3D = tetos[k]
-			var h: float = TETO_MURETA[a.get_meta("modelo")]
-			if not is_equal_approx(h, TETO_MURETA[b.get_meta("modelo")]):
+			var h: float = _teto_de(a)
+			if not is_equal_approx(h, _teto_de(b)):
 				continue
 			var pa: PackedVector2Array = a.get_meta("poly")
 			var pb: PackedVector2Array = b.get_meta("poly")
@@ -1112,18 +1125,124 @@ func _tabuas_telhado() -> void:
 			if sai == null or entra == null:
 				continue
 			var vao: float = (sai as Vector2).distance_to(entra)
+			if vao < 0.3:  # colados: passa por cima da mureta
+				liga[a].append(b)
+				liga[b].append(a)
 			if vao < 0.3 or vao > 8.0:
 				continue
+			liga[a].append(b)
+			liga[b].append(a)
 			var d: Vector2 = (cb - ca).normalized()
 			var de: Vector2 = (sai as Vector2) - d * 0.5
 			var ate: Vector2 = (entra as Vector2) + d * 0.5
 			var t := StaticBody3D.new()
 			n += 1
 			t.name = "TabuaTeto_%d" % n
-			t.position = Vector3((de.x + ate.x) * 0.5, h + 0.04, (de.y + ate.y) * 0.5)
+			t.position = Vector3((de.x + ate.x) * 0.5, h + a.position.y + 0.04, (de.y + ate.y) * 0.5)
 			t.rotation.y = atan2(d.x, d.y) + _rng.randf_range(-0.04, 0.04)
 			add_child(t)
 			_caixa(t, Vector3(0.45, 0.07, de.distance_to(ate)), madeira)
+	# subida (05/11, engenharia reversa Dying Light 2: telhado é o 2º nível da cidade): cada grupo de tetos ligados que
+	# não tem escada de incêndio ganha uma escada de metal nos fundos de um dos sobrados
+	var visto: Dictionary = {}
+	for t0: Node3D in tetos:
+		if visto.has(t0):
+			continue
+		var grupo: Array = []
+		var fila: Array = [t0]
+		while not fila.is_empty():
+			var x: Node3D = fila.pop_back()
+			if visto.has(x):
+				continue
+			visto[x] = true
+			grupo.append(x)
+			fila.append_array(liga[x])
+		if grupo.any(func(g: Node) -> bool: return TETO_MURETA.has(g.get_meta("modelo", ""))):
+			continue  # loja/prédio em ruínas: já sobe pela escada de incêndio do modelo
+		for g: Node3D in grupo:
+			if _escada_fundos(g):
+				break
+
+
+## Altura do teto andável (em cima da mureta) da construção, ou -1.
+func _teto_de(n: Node) -> float:
+	if n.has_meta("teto"):
+		return float(n.get_meta("teto"))
+	return float(TETO_MURETA.get(n.get_meta("modelo", ""), -1.0))
+
+
+## Escada de metal em zigue-zague nos fundos do sobrado até o teto (rampa de colisão em cada lance, patamar em cada
+## andar). false se não cabe (outro lote ou rua atrás).
+func _escada_fundos(no: Node3D) -> bool:
+	var m: Node3D = no.get_child(0)
+	var tam: Vector2 = _tam_ruina(String(no.get_meta("modelo")))
+	var hw: float = tam.x * 0.5
+	var hd: float = tam.y * 0.5
+	var topo: float = float(no.get_meta("teto")) - 0.7  # patamar 0,7 m abaixo do alto da mureta: agarra e sobe
+	if hw < 3.0:
+		return false
+	var t2: Transform3D = Transform3D(Basis(Vector3.UP, m.rotation.y), Vector3(m.position.x, 0, m.position.z))
+	for q: Vector3 in [Vector3(-hw + 0.2, 0, -hd - 0.1), Vector3(-hw + 6.0, 0, -hd - 0.1), Vector3(-hw + 0.2, 0, -hd - 2.6), Vector3(-hw + 6.0, 0, -hd - 2.6)]:
+		var g: Vector3 = t2 * q
+		var p := Vector2(g.x, g.z)
+		if _perto_de_rua(p, 0.3) or _poligonos.any(func(pl: PackedVector2Array) -> bool: return pl != no.get_meta("poly") and Geometry2D.is_point_in_polygon(p, pl)):
+			return false
+	var n: int = maxi(1, roundi(topo / PAREDE))
+	var xa: float = -hw + 0.6
+	var xb: float = -hw + 5.2
+	var filas: Array[float] = [-hd - 0.75, -hd - 1.85]
+	var corpo := StaticBody3D.new()
+	corpo.name = "EscadaFundos"
+	m.add_child(corpo)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for k in n:
+		var z: float = filas[k % 2]
+		var x0: float = xa if k % 2 == 0 else xb
+		var x1: float = xb if k % 2 == 0 else xa
+		var y0: float = topo * k / n
+		var y1: float = topo * (k + 1) / n
+		var ang: float = atan2(y1 - y0, absf(x1 - x0)) * signf(x1 - x0)
+		var comp: float = Vector2(x1 - x0, y1 - y0).length()
+		var meio := Vector3((x0 + x1) * 0.5, (y0 + y1) * 0.5, z)
+		_forma(corpo, Transform3D(Basis(Vector3.BACK, ang), meio - Vector3(0, 0.05, 0)), Vector3(comp, 0.1, 1.0))
+		for d in 15:  # degraus de chapa
+			var f: float = (d + 0.5) / 15.0
+			_caixa_st(st, Transform3D(Basis(), Vector3(lerpf(x0, x1, f), lerpf(y0, y1, f), z)), Vector3(0.28, 0.04, 1.0))
+		for lado in [-0.52, 0.52]:  # corrimão
+			_caixa_st(st, Transform3D(Basis(Vector3.BACK, ang), meio + Vector3(0, 0.9, lado)), Vector3(comp, 0.04, 0.04))
+			_caixa_st(st, Transform3D(Basis(Vector3.BACK, ang), meio + Vector3(0, 0, lado)), Vector3(comp, 0.16, 0.05))
+		var pat := Vector3(x1 + (0.55 if k % 2 == 0 else -0.55), y1 - 0.05, -hd - 1.3)
+		_forma(corpo, Transform3D(Basis(), pat), Vector3(1.3, 0.1, 2.4))
+		_caixa_st(st, Transform3D(Basis(), pat), Vector3(1.3, 0.08, 2.4))
+	if not Rede.servidor_sem_tela:
+		var mi := MeshInstance3D.new()
+		st.generate_normals()
+		mi.mesh = st.commit()
+		mi.material_override = _mat("concreto", 0.6, Color(0.5, 0.28, 0.14), false)  # ferro enferrujado
+		mi.visibility_range_end = clampf(float(Config.qualidade().detalhe) * 1.7, 35.0, 120.0)
+		m.add_child(mi)
+	return true
+
+
+func _forma(corpo: StaticBody3D, t: Transform3D, tam: Vector3) -> void:
+	var cs := CollisionShape3D.new()
+	var bx := BoxShape3D.new()
+	bx.size = tam
+	cs.shape = bx
+	cs.transform = t
+	corpo.add_child(cs)
+
+
+## Caixa (6 faces) na SurfaceTool, girada/posta por `t`.
+static func _caixa_st(st: SurfaceTool, t: Transform3D, tam: Vector3) -> void:
+	var h: Vector3 = tam * 0.5
+	var c: Array[Vector3] = []
+	for i in 8:
+		c.append(t * Vector3(h.x * (1 if i & 1 else -1), h.y * (1 if i & 2 else -1), h.z * (1 if i & 4 else -1)))
+	for f: Array in [[0, 1, 3, 2], [4, 6, 7, 5], [0, 4, 5, 1], [2, 3, 7, 6], [0, 2, 6, 4], [1, 5, 7, 3]]:
+		for k: int in [0, 1, 2, 0, 2, 3]:
+			st.add_vertex(c[f[k]])
 
 
 ## Onde o segmento de `de` até `ate` sai do polígono.
