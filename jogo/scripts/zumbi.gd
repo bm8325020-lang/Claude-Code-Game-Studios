@@ -48,6 +48,10 @@ const GRITO_PAUSA: float = 20.0
 const NOITE_VEL: float = 1.15       # à noite: mais rápido,
 const NOITE_DANO: float = 1.25       # bate mais forte
 const NOITE_OUVE: float = 1.4        # e ouve mais longe (as notas: "à noite ficam muito mais fortes")
+# barulho de quem se mexe (mods de zumbi do GTA V, 05/11: correr e carro chamam de longe, agachado quase não)
+const OUVE_CORRENDO: float = 2.0     # x OUVE: 13 m de dia
+const OUVE_AGACHADO: float = 0.5     # x OUVE: 3,3 m de dia
+const OUVE_CARRO: float = 15.0       # m: motor ligado (jogador dentro do carro)
 const EMBOSCA: float = 4.0          # m: alguém passando assim perto acorda o zumbi deitado
 const ACORDA_BARULHO: float = 10.0  # m: tiro até essa distância acorda o deitado
 const VEL_LEVANTAR: float = 1.3
@@ -560,6 +564,18 @@ static func _plano(v: Vector3) -> float:
 	return Vector2(v.x, v.z).length()
 
 
+## Raio em que um zumbi percebe `j` sem ver, a partir do `base` (já com noite e "comendo"): correr dobra,
+## agachar corta pela metade, dentro do carro vale o motor.
+static func ouve_de(j: Jogador, base: float) -> float:
+	if j.no_carro:
+		return maxf(base, OUVE_CARRO)
+	if j.agachado:
+		return base * OUVE_AGACHADO
+	if j.correndo:
+		return base * OUVE_CORRENDO
+	return base
+
+
 ## Um barulho em `ponto`: os zumbis vivos a até `raio` metros, sem alvo, vão ver o que foi. Só no servidor.
 static func barulho(arvore: SceneTree, ponto: Vector3, raio: float) -> void:
 	for n: Node in arvore.get_nodes_in_group("zumbis"):
@@ -617,7 +633,7 @@ func _escolhe_alvo() -> void:
 		if j == null or j.vida <= 0 or j.segura:
 			continue
 		var dist: float = j.global_position.distance_to(global_position)
-		if dist < melhor and (dist < ouve or (dist < visao and _ve(j))):
+		if dist < melhor and (dist < Zumbi.ouve_de(j, ouve) or (dist < visao and _ve(j))):
 			melhor = dist
 			alvo = j
 	if alvo:

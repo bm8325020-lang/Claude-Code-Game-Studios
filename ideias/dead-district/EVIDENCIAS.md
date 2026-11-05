@@ -25,3 +25,7 @@
 | E24 | TLOU (2013) | PS3 | luz | WebSearch | history.siggraph.org Iwanicki 2013 | — | lightmap ambiente + direção dominante; oclusão por esferas | FATO | média | sem os slides |
 | E25 | TWD Saints & Sinners | PC/VR | casas/loot | WebFetch + busca | FONTES/tlou_twd_gta.txt | — | kit de fachada + cor/grunge por material; formas simples; lixo desmonta em material | FATO | média | portfólios via busca |
 | E26 | GTA V mods (Zombimod etc.) | PC | saque/sobrevivência | WebFetch | gta5-mods zombimod-ldracarys_ | — | saque em loja/carro, sem interior de casa; números de fome/sede/mochila | FATO | média | qual mod o dono quis: não confirmado |
+| E27 | GTAZ-ZombieMod (MIT) | PC, GTA V | IA zumbi, hordas, orçamento | git clone + leitura | FONTES/gta_mods.txt | — | tipos com visão/audição/ritmo; destrava; histerese; 120 vagas + fila; horda atravessa o jogador | FATO | alta | — |
+| E28 | Simple Zombies (descompilado por terceiro) | PC, GTA V | ouvir, corredor, saque | idem | FONTES/gta_mods.txt | — | corre 25 m, silenciador 15 m, por trás 5 m; corredor 5,5% dia / 40-50% noite; prateleira 1 vez | FATO | alta | sem licença: só ideias |
+| E29 | fivem-zsr | FiveM | spawn, saque | idem | FONTES/gta_mods.txt | — | 15 por jogador, 428 pontos de busca, revistar 5 s, superzumbi | FATO | alta | sem licença |
+| E30 | zombieoutbreak (GPL-3.0) | FiveM | percepção, ambiente | idem | FONTES/gta_mods.txt | — | barulho: tiro +100, correr +20, carro +60; 40% carros quebrados | FATO | alta | — |

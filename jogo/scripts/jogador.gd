@@ -268,13 +268,13 @@ func _ready() -> void:
 		collision_layer = 4  # os outros jogadores: não empurram a sua física local por enquanto
 
 
-# o que vai pela rede: posição e giro sempre (30x/s), animação, agachado e nome quando mudam
+# o que vai pela rede: posição e giro sempre (30x/s), animação, agachado, correndo e nome quando mudam
 func _monta_sincronia() -> void:
 	var cfg := SceneReplicationConfig.new()
 	for p: String in [".:pos_rede", ".:rot_rede", ".:nick"]:  # nick sempre: só na mudança às vezes se perdia ao entrar
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
-	for p: String in [".:clipe_rede", ".:agachado", ".:arma", ".:cima_rede", ".:vida", ".:tem_lanterna", ".:mira_travada", ".:no_carro"]:
+	for p: String in [".:clipe_rede", ".:agachado", ".:correndo", ".:arma", ".:cima_rede", ".:vida", ".:tem_lanterna", ".:mira_travada", ".:no_carro"]:
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	var sync := MultiplayerSynchronizer.new()

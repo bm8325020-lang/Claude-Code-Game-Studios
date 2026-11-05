@@ -1,0 +1,44 @@
+Mods de zumbi do GTA V com código no GitHub, clonados em 05/11 (git clone --depth 1, blobs até 300 KB) em /root/ext/gta.
+Referências arquivo:linha do commit clonado. Números lidos pelo chefe. Nada copiado para o jogo.
+
+McThizzin/GTAZ-ZombieMod (MIT)
+- DOCS/02-Systems-Reference.md: PedBudgetManager 120 vagas, reserva antes de criar, PeriodicRescore; SpawnRequestQueue
+  3 por passada, TTL 8 s; ambiente 2-4 por vez, alvo 80, raio 200 m, mínimo 75 m; estados Idle/Wandering/Chasing/
+  Attacking/Fleeing; hordas (destino do outro lado do jogador, re-empurra a cada ~5 s ~140 m à frente, puxa >25 m solta
+  15 m, Horder invulnerável enquanto houver outro membro); escada bloqueada (flag 146).
+- DOCS/04-Config-Reference.md: TargetZombieCount 80, MaxZombies 120, ZombieSpawnRadius 200, ZombieDespawnRadius 300,
+  MinSpawnDistance 80, NightRunnerChance 0.4, ZombieHealth 100, ZombieDamage 10, HordeEventIntervalMinutes 15,
+  WanderingHordeSize 20, HordeNightSize 40, HordeNightChance 0.5, HordeSpawnDistance 100-220, HordeRunnerChance 0.15.
+- GTAZ/AI/ZombieAI.cs:36-49 (VisionRange 50, HearingRange 30, AttackRange 2 padrão), :83-85 (som 45 m, ~10 s, 40%),
+  :343-345 e :426-431 (destrava se Speed < 0.5 por 30 ciclos), :468-478 (histerese +1 m, pausa 30 quadros), :493 (ouve
+  o jogador com HearingRange * 2).
+- GTAZ/AI/Perception.cs: ver = distância + HAS_ENTITY_CLEAR_LOS_TO_ENTITY; CanSeeTarget com cone 120 graus (não usado
+  em ZombieAI); ouvir = só distância.
+- GTAZ/AI/ZombieTypes/WalkerAI.cs:12-19 (40/25/1.8/0.8/25/6), RunnerAI.cs:12-19 (60/40/2.5/1.8/40/3),
+  HorderAI.cs:24-31 (55/35/2.8/1.3/20/5) = visão/audição/ataque/velocidade/vagar/intervalo.
+- DOCS/08-Lessons-Learned.md: 59 lições (ex. 4 GET_SAFE_COORD_FOR_PED, 37 alvo morto, 50 perseguição parada,
+  52 horda "vazia" no 1º quadro, 54 histerese).
+
+ParisRP/GTAV-Simple-Zombies.NET (sem licença; descompilado do Simple Zombies de sollaholla publicado por terceiro)
+- Zombies/ZombiePed.cs:14-22: dano 15, SensingRange 120, silenciador 15 m, por trás 5 m, correndo 25 m, ataque 1.2,
+  visão 35, vagar 100, update a cada 5. :152-157 infecta NPC com vida <= 1/4. :198-218 regras de ouvir.
+- Scripts/ZombieCreator.cs:42-49: corredor 5,5% de dia, 50% ao anoitecer, 40% das 20h às 3h.
+- Scripts/Loot247.cs: prateleiras v_ret_247shelves01-05, 1,5 m, saqueia uma vez, 70% "Packaged Food".
+- Scripts/ZombieVehicleSpawner.cs:75-135: carros fora da tela, motor 0, sujeira 14, 1-2 vidros quebrados, 20% porta aberta.
+- PlayerManagement/PlayerStats.cs: fome/sede com tempo "sustentado" depois de comer e dano por intervalo ao zerar.
+
+n0yzcl/fivem-zsr (sem licença)
+- Zombies/client/zombiespawner.lua:43-46 (15 por jogador, mínimo 35 m, some 225 m), :115-124 (visão 10, audição 1000,
+  combate corpo a corpo), :141-152 (andar sorteado, velocidade sorteada).
+- Zombies/client/superzombiespawner.lua:36-38,122-163 (vida 1000, colete 100, dano x4, visual atropelado).
+- Zombies/loot/client/lootcoords.lua: 428 pontos de busca à mão; mochila sorteada; :534 revistar = 5 s.
+- Zombies/client/itemspawner.lua:194-228: itens num raio de 250 m, nunca < 60 m do jogador, +-12 m de altura.
+
+Dislaik/zombieoutbreak (GPL-3.0)
+- Modules/Core/Plague/Client/Main.lua: base DistanceTarget; tiro +100, correndo +20, carro +60, aeronave +100;
+  grunhido de alerta 1 vez; ataque a 1,3 m. Data/Config.lua: DistanceTarget 20, vida 300, dano 10, headshot mata,
+  tiro não derruba; loot do corpo 15% roupa, 85% nada.
+- Modules/Core/Environment: 40% dos carros quebrados/queimados (PercentageVehiclesUndriveable), zonas seguras com raio,
+  aeronaves suprimidas.
+
+Nacorpio/GTA-Z (sem licença): GTAZ/Vehicles/AbandonedVehicle.cs (não anda, porta-malas e capô com menus), Inventory.cs.

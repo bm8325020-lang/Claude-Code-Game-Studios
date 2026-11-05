@@ -6,3 +6,4 @@
 - 05/11: APLICADO no jogo: loot por cômodo/loja (Loot.LUGAR). Próximo: telhados ligados + ajudantes de subida.
 - 05/11: casas investigadas em todos os jogos da lista (CASAS_ANALISADAS.md). Cidade nova = kit pequeno no grid + gerador "estilo + cômodos" (PZ) + estados de janela/porta (CDDA) + vidro falso de longe + City Builder com passada à mão (DL2). Primeiro 1 casa de prova para o dono aprovar.
 - 05/11: dados do DayZ (ADPL-SA) só como números agregados; nada copiado.
+- 05/11: mods de zumbi do GTA V desmontados (RELATORIOS/gta_mods.md). APLICADO: zumbi ouve pelo jeito de andar (correr x2, agachado x0,5, carro 15 m). Próximos: corredor à noite, horda andarilha com líder, NPC vira zumbi, carro abandonado revistável.

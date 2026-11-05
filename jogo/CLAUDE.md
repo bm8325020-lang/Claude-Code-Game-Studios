@@ -119,6 +119,9 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   cabeça torta + espasmos (`_monta_torto`, anim em modo manual avançada em `_process`; SkeletonModifier3D não roda na
   4.7). Clipes novos em Anims.CLIPES_ZUMBI (tirados do exclude_filter do APK). Carro: `dispara_alarme` (tiro da
   Pistola acerta Carro -> rpc `_toca_alarme`, `assets/sons/alarme.wav` feito aqui, Zumbi.barulho ALARME_RAIO).
+- Barulho de quem se mexe (05/11, mods de zumbi do GTA V): `Zumbi.ouve_de(j, base)` — correndo x2 (OUVE_CORRENDO),
+  agachado x0,5, no carro >= 15 m (motor). `correndo` vai pela sincronia; Rede.VERSAO 42. Teste: test_ouvir (4).
+  Relatório: `ideias/dead-district/RELATORIOS/gta_mods.md`.
   Teste: test_zumbi_jeitos (13). Rede.VERSAO 36.
 - Vídeo do dono (31/10, 0.85): desempenho `Zumbi._process` (anima de 3 em 3 quadros longe/atrás, de 8 em 8 além de
   ANIMA_LONGE e some além; anim em modo manual em todo cliente). Equilíbrio: DANO 20, CORRER 3.0 (ANDAR 1.2, corredora x1.25), OUVE 6.5, NOITE_* menores,
