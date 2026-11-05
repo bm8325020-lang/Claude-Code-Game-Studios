@@ -29,7 +29,8 @@ func _init() -> void:
 	ok(mansoes.all(func(m: Node) -> bool: return b.dominavel(String(m.name)) and b.bau_da(String(m.name)) != null) and not b.dominavel("Casa_0") and b.bau_da("Casa_0") == null, "só as mansões são domináveis (com baú da facção)")
 	var j: Jogador = main.jogador
 	ok(b.pontos_nascer.any(func(p: Vector3) -> bool: return p.distance_to(j.global_position) < 1.5) and j.is_on_floor(), "nasce no bairro, em pé na frente de uma porta")
-	var casa: Node3D = casas.filter(func(c: Node) -> bool: return c.find_children("Porta_*", "Porta", true, false).is_empty() and c.has_meta("frente"))[0]  # arrombada
+	var casa: Node3D = casas.filter(func(c: Node) -> bool: return c.find_children("Porta_*", "Porta", true, false).is_empty() and c.has_meta("frente") \
+		and String(c.get_meta("modelo", "")).begins_with("casa"))[0]  # arrombada (casa de morar, não capela/loja)
 	var poly: PackedVector2Array = casa.get_meta("poly")
 	var c2 := Vector2.ZERO
 	for p: Vector2 in poly:
