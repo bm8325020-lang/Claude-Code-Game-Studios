@@ -735,6 +735,20 @@ const CORES_CIDADE: Dictionary = {"reboco_rosa": Color(0.86, 0.6, 0.6), "reboco_
 	"pintura_rosa": Color(0.98, 0.83, 0.83), "pintura_amarela": Color(1.0, 0.92, 0.62), "pintura_branca": Color(0.97, 0.97, 0.95),
 	"barra_verde": Color(0.42, 0.6, 0.48), "barra_azul": Color(0.38, 0.5, 0.68), "barra_vinho": Color(0.58, 0.28, 0.28),
 	"ceramica_bege": Color(0.95, 0.86, 0.7), "ceramica_cinza": Color(0.8, 0.8, 0.8), "ceramica_vermelha": Color(0.78, 0.35, 0.28)}
+## Cores da casa americana (tinta por cima das texturas claras).
+const CORES_US: Dictionary = {
+	"siding_branco": Color(0.92, 0.92, 0.9), "siding_azul": Color(0.58, 0.7, 0.82), "siding_amarelo": Color(0.95, 0.86, 0.6),
+	"siding_cinza": Color(0.66, 0.68, 0.68), "siding_verde": Color(0.64, 0.74, 0.62), "siding_bege": Color(0.88, 0.82, 0.7),
+	"siding_vermelho": Color(0.66, 0.3, 0.26),
+	"shingle_cinza": Color(0.62, 0.62, 0.63), "shingle_marrom": Color(0.6, 0.45, 0.36), "shingle_preto": Color(0.36, 0.36, 0.38),
+	"shingle_verde": Color(0.42, 0.52, 0.44),
+	"carpete_bege": Color(0.92, 0.85, 0.74), "carpete_cinza": Color(0.72, 0.72, 0.72), "carpete_azul": Color(0.5, 0.6, 0.75),
+	"carpete_vinho": Color(0.62, 0.3, 0.3),
+	"shutter_preto": Color(0.1, 0.1, 0.1), "shutter_verde": Color(0.15, 0.3, 0.2), "shutter_azul": Color(0.15, 0.22, 0.4),
+	"shutter_vinho": Color(0.4, 0.12, 0.12),
+}
+
+
 func _mat_ruina(n: String, tinta: Color) -> Material:
 	match n:
 		"parede": return _mat("reboco", 0.3, tinta, true)
@@ -760,6 +774,16 @@ func _mat_ruina(n: String, tinta: Color) -> Material:
 		"fachada_amarela", "fachada_azul", "fachada_tijolo", "fachada_madeira", "fachada_vermelha": return _mat(n, 0.35, Color(0.92, 0.9, 0.88), true)
 		"batente": return _mat("madeira", 0.6, Color(0.92, 0.9, 0.85), true)
 		"telha": return _mat("telhado", 0.5, Color(0.9, 0.55, 0.42), true)
+		# casa americana (RAVEN CREEK, 05/11): texturas de tools/texturas/gera_americanas.py, cor pela tinta
+		"siding_branco", "siding_azul", "siding_amarelo", "siding_cinza", "siding_verde", "siding_bege", "siding_vermelho":
+			return _mat("siding", 0.7, CORES_US[n], true)
+		"shingle_cinza", "shingle_marrom", "shingle_preto", "shingle_verde": return _mat("shingle", 0.7, CORES_US[n], true)
+		"carpete_bege", "carpete_cinza", "carpete_azul", "carpete_vinho": return _mat("carpete", 0.6, CORES_US[n], true)
+		"linoleo": return _mat("linoleo", 0.85, Color(0.95, 0.93, 0.9), true)
+		"garagem": return _mat("garagem", 0.45, Color(0.92, 0.92, 0.9), true)
+		"fundacao": return _mat("concreto", 0.5, Color(0.62, 0.62, 0.6), true)
+		"deck": return _mat("madeira", 0.5, Color(0.62, 0.5, 0.38), true)
+		"shutter_preto", "shutter_verde", "shutter_azul", "shutter_vinho": return _cor(CORES_US[n], 0.6)
 		"vidro_janela": return _vidro_janela()
 		"militar": return _mat("concreto", 0.5, Color(0.42, 0.46, 0.3), true)
 		"lona": return _mat("reboco", 0.7, Color(0.62, 0.6, 0.45), true)

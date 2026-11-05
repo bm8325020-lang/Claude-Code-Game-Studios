@@ -157,6 +157,20 @@ class Compositor:
         x, y = self.c.ponto(p, t, prof / 2 + FOLGA_PAREDE)
         return self.poe(tipo, x, y, ang_de(Comodo.frente(p)), nome=nome)
 
+    def tira(self, it):
+        if it in self.itens:
+            self.itens.remove(it)
+
+    def candidatos(self, tipo, p):
+        larg = MOVEIS[tipo][0]
+        out = []
+        for (a, b) in self.trechos(p):
+            t = a + larg / 2 + 0.05
+            while t <= b - larg / 2 - 0.05 + 1e-6:
+                out.append(t)
+                t += 0.1
+        return out
+
     def trechos(self, p):
         """Trechos livres da parede p (fora das portas), [(t0, t1)]."""
         cortes = sorted((t - lg / 2 - 0.1, t + lg / 2 + 0.1) for (q, t, lg) in self.c.portas if q == p)
@@ -262,25 +276,31 @@ class Compositor:
 def _sala(k):
     c = k.c
     porta = k.parede_da_porta()
-    tvp = k.parede_maior(evita=(porta,)) if k.rng.random() < 0.8 else k.parede_maior()
-    sofp = (tvp + 2) % 4
-    tv = k.ao_longo("tv", tvp, preferir=c.comp(tvp) / 2)
-    if not tv:
-        return
-    f = Comodo.frente(tvp)
-    prof = c.comp((tvp + 1) % 4)                  # distância entre a parede da TV e a oposta
-    d_sofa = min(max(prof - 0.47, 2.9), 3.4)     # encosta na parede de trás se a sala for rasa; senão flutua
-    cx, cy = tv["x"] + f[0] * (d_sofa - MOVEIS["tv"][1] / 2), tv["y"] + f[1] * (d_sofa - MOVEIS["tv"][1] / 2)
-    sofa = None
-    for dt in (0.0, 0.3, -0.3, 0.6, -0.6):        # sofa virado para a TV
-        lado = (-f[1], f[0])
-        sofa = k.poe("sofa", cx + lado[0] * dt, cy + lado[1] * dt, ang_de((-f[0], -f[1])))
+    paredes = sorted(range(4), key=lambda p: (p == porta, -max([b - a for (a, b) in k.trechos(p)] or [0]), k.rng.random()))
+    tv = sofa = None
+    for tvp in paredes:                           # a TV só fica onde o sofá também couber de frente para ela
+        f = Comodo.frente(tvp)
+        prof = c.comp((tvp + 1) % 4)              # distância entre a parede da TV e a oposta
+        d_sofa = min(max(prof - 0.47, 2.9), 3.4)  # encosta na parede de trás se a sala for rasa; senão flutua
+        meio = c.comp(tvp) / 2
+        for t in sorted(k.candidatos("tv", tvp), key=lambda t: abs(t - meio)):
+            tv = k.encosta("tv", tvp, t)
+            if not tv:
+                continue
+            cx, cy = tv["x"] + f[0] * (d_sofa - MOVEIS["tv"][1] / 2), tv["y"] + f[1] * (d_sofa - MOVEIS["tv"][1] / 2)
+            lado = (-f[1], f[0])
+            for dt in (0.0, 0.3, -0.3, 0.6, -0.6):
+                sofa = k.poe("sofa", cx + lado[0] * dt, cy + lado[1] * dt, ang_de((-f[0], -f[1])))
+                if sofa:
+                    break
+            if sofa:
+                break
+            k.tira(tv)
+            tv = None
         if sofa:
             break
     if not sofa:
-        sofa = k.ao_longo("sofa", sofp)
-        if not sofa:
-            return
+        return
     sx, sy = sofa["x"], sofa["y"]
     mx, my = sx - f[0] * 1.17, sy - f[1] * 1.17        # mesa de centro a 42 cm da frente do sofá
     k.poe("mesa_centro", mx, my, sofa["ang"])
@@ -347,10 +367,14 @@ def _cozinha(k):
                 break
             t += s * w
     tem = {i["tipo"] for i in k.itens}
-    for tipo in ("fogao", "geladeira"):  # não coube na linha: na mesma parede ou na do lado (cozinha em L)
+    linha = [i for i in k.itens if i["tipo"] in ("pia", "balcao", "fogao", "geladeira")]
+    rx = sum(i["x"] for i in linha) / len(linha)
+    ry = sum(i["y"] for i in linha) / len(linha)
+    for tipo in ("fogao", "geladeira"):  # não coube na linha: o mais perto da bancada, na mesma parede ou na do lado (L)
         if tipo not in tem:
             for p in (pp, (pp + 1) % 4, (pp + 3) % 4):
-                if k.ao_longo(tipo, p):
+                alvo = (rx - c.x0) if p % 2 == 0 else (ry - c.y0)
+                if k.ao_longo(tipo, p, preferir=alvo):
                     break
     mx, my = (c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2  # mesa no meio, longe da bancada
     f = Comodo.frente(pp)
