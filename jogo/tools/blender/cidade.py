@@ -199,15 +199,15 @@ def sai(nome):
 
 
 # ----- sobrado de comércio -----
-LOJAS = [  # nome, placa, letra
-    ("FARMÁCIA", "placa_verde", "letra_branca"), ("PADARIA", "placa_amarela", "letra_vermelha"),
-    ("AÇOUGUE", "placa_vermelha", "letra_branca"), ("BAR DO ZÉ", "placa_azul", "letra_amarela"),
-    ("LOTÉRICA", "placa_azul", "letra_branca"), ("MERCADINHO", "placa_vermelha", "letra_amarela"),
-    ("ÓTICA", "placa_branca", "letra_preta"), ("LANCHONETE", "placa_laranja", "letra_branca"),
-    ("AUTO PEÇAS", "placa_amarela", "letra_preta"), ("CAÇA E PESCA", "placa_verde", "letra_amarela"),
-    ("SALÃO", "placa_rosa", "letra_branca"), ("CELULARES", "placa_preta", "letra_amarela"),
-    ("MAT. CONSTRUÇÃO", "placa_laranja", "letra_preta"), ("PAPELARIA", "placa_branca", "letra_vermelha"),
-    ("PET SHOP", "placa_azul", "letra_branca"), ("BORRACHARIA", "placa_amarela", "letra_preta"),
+LOJAS = [  # nome, placa, letra (RAVEN CREEK, 05/11: em inglês; a ordem é a mesma do loot por loja no Bairro)
+    ("PHARMACY", "placa_verde", "letra_branca"), ("BAKERY", "placa_amarela", "letra_vermelha"),
+    ("BUTCHER", "placa_vermelha", "letra_branca"), ("JOE'S BAR", "placa_azul", "letra_amarela"),
+    ("PAWN SHOP", "placa_azul", "letra_branca"), ("MINI MART", "placa_vermelha", "letra_amarela"),
+    ("OPTICIAN", "placa_branca", "letra_preta"), ("DINER", "placa_laranja", "letra_branca"),
+    ("AUTO PARTS", "placa_amarela", "letra_preta"), ("GUNS & AMMO", "placa_verde", "letra_amarela"),
+    ("BARBER", "placa_rosa", "letra_branca"), ("CELL PHONES", "placa_preta", "letra_amarela"),
+    ("HARDWARE", "placa_laranja", "letra_preta"), ("BOOKSTORE", "placa_branca", "letra_vermelha"),
+    ("PET SHOP", "placa_azul", "letra_branca"), ("TIRES", "placa_amarela", "letra_preta"),
 ]
 
 
@@ -217,7 +217,7 @@ def sobrado(nome, w, d, semente, loja, andares=2, porta="aberta", varanda=True):
     limpa()
     rnd.seed(semente)
     texto, placa, letra = loja
-    cor = rnd.choice(REBOCOS)
+    cor = rnd.choice(["tijolo", "tijolo", "tijolo", "reboco_creme", "reboco_azul", "reboco_verde"])  # Main Street: tijolo
     hw, hd = w / 2, d / 2
     alt = PE * andares
     vao = w - 1.0
@@ -293,7 +293,7 @@ def predio_apto(nome, w, d, andares, semente, placa):
     for s in (-1, 1):
         gradil("portaria_lado%d" % s, (s * w * 0.35, -hd - 1.6), (s * w * 0.35, -hd - 0.2), 0, 2.0, True)
     caixa("porta_predio", (0, -hd - 0.18, 1.2), (1.8, 0.06, 2.4), "vidro")
-    letreiro("nome_predio", "EDIFÍCIO " + placa, (0, -hd - 0.17, 3.2), w * 0.5, 0.4, "letra_branca")
+    letreiro("nome_predio", placa + " APARTMENTS", (0, -hd - 0.17, 3.2), w * 0.5, 0.4, "letra_branca")
     for k in range(1, andares):
         z = k * PE + 1.4
         caixa("friso_%d" % k, (0, -hd - 0.08, k * PE), (w + 0.1, 0.25, 0.12), "concreto")
@@ -480,7 +480,7 @@ def hospital(nome):
     caixa("marquise", (0, -hd - 1.6, PE - 0.1), (8.0, 3.2, 0.18), "concreto")
     for s in (-1, 1):
         cilindro("pilar_%d-col" % (s + 1), (s * 3.6, -hd - 3.0, 0), 0.15, PE - 0.1, "branco", 8)
-    letreiro("nome", "HOSPITAL MUNICIPAL", (0, -hd - 0.2, alt + 0.45), 14.0, 0.8, "letra_vermelha", 0, 0.1)
+    letreiro("nome", "RAVEN CREEK HOSPITAL", (0, -hd - 0.2, alt + 0.45), 14.0, 0.8, "letra_vermelha", 0, 0.1)
     caixa("cruz_a", (-9.8, -hd - 0.2, alt + 0.45), (1.2, 0.12, 0.35), "letra_vermelha")
     caixa("cruz_b", (-9.8, -hd - 0.2, alt + 0.45), (0.35, 0.12, 1.2), "letra_vermelha")
     picha("picho_1", "NÃO TEM CURA", (-hw, -hd), (hw, -hd), 6.0, 1.5, 1, 3.0)
@@ -524,7 +524,7 @@ def mercado(nome):
         caixa("vidro_%d-col" % k, (x, -hd, 1.7), (2.5, 0.03, 3.4), "vidro_janela")
     caixa("vidro_chao", (2.0, -hd - 1.0, 0.07), (3.0, 1.5, 0.01), "vidro_janela", (0, 0, 0.3))
     caixa("fachada_placa", (0, -hd - 0.2, alt + 0.6), (w + 0.2, 0.3, 2.4), "placa_vermelha")
-    letreiro("nome", "SUPERMERCADO BOM PREÇO", (0, -hd - 0.38, alt + 0.6), w - 4.0, 1.4, "letra_amarela", 0, 0.12)
+    letreiro("nome", "FOOD MART", (0, -hd - 0.38, alt + 0.6), w - 4.0, 1.4, "letra_amarela", 0, 0.12)
     piso("chao", -hw, -hd, hw, hd, 0.06, "concreto", 0.06)
     por_dentro("merc", w, d, [[(hw, w - 4.0, 0.0, 3.4)], [], [(6.0, 3.0, 0, 3.2), (w - 4.0, PORTA_L, 0, PORTA_A)], []],
                "pintura_branca", "barra_verde", "ceramica_bege", False, 1.4)
@@ -643,7 +643,7 @@ def ponto_onibus(nome):
     caixa("fundo", (0, 0.55, 1.4), (3.4, 0.03, 1.4), "vidro_janela")
     caixa("banco-col", (0, 0.3, 0.45), (3.0, 0.4, 0.06), "madeira")
     caixa("placa", (1.9, -0.3, 2.4), (0.5, 0.03, 0.5), "placa_azul")
-    letreiro("bus", "ÔNIBUS", (1.9, -0.32, 2.4), 0.45, 0.15, "letra_branca", 0, 0.01)
+    letreiro("bus", "BUS", (1.9, -0.32, 2.4), 0.45, 0.15, "letra_branca", 0, 0.01)
     sai(nome)
 
 
@@ -667,7 +667,7 @@ def banca(nome):
     caixa("ext_banca-col", (0, 0, 1.25), (3.0, 2.0, 2.5), "placa_verde")
     caixa("toldo", (0, -1.4, 2.4), (3.2, 1.0, 0.05), "placa_vermelha", (0.3, 0, 0))
     caixa("porta_aco", (0, -1.02, 1.3), (2.6, 0.04, 2.0), "aco")
-    letreiro("nome", "BANCA", (0, -1.04, 2.7), 2.0, 0.3, "letra_amarela", 0, 0.02)
+    letreiro("nome", "NEWS", (0, -1.04, 2.7), 2.0, 0.3, "letra_amarela", 0, 0.02)
     for k in range(5):
         caixa("revista_%d" % k, (rnd.uniform(-1.5, 1.5), rnd.uniform(-2.5, -1.2), 0.02), (0.22, 0.3, 0.01),
               rnd.choice(["placa_branca", "placa_vermelha", "placa_azul"]), (0, 0, rnd.uniform(0, 6.28)))
@@ -697,12 +697,12 @@ def coreto(nome):
 
 
 def portico(nome):
-    """Pórtico da entrada da cidade: BEM-VINDOS A SÃO JORGE."""
+    """Pórtico da entrada da cidade: WELCOME TO RAVEN CREEK."""
     limpa()
     for s in (-1, 1):
         caixa("pilar_%d-col" % (s + 1), (s * 8.5, 0, 3.5), (1.2, 1.2, 7.0), "reboco_creme")
     caixa("viga", (0, 0, 7.4), (18.2, 1.0, 1.6), "reboco_creme")
-    letreiro("nome", "BEM-VINDOS A SÃO JORGE", (0, -0.52, 7.4), 15.0, 0.9, "placa_azul", 0, 0.08)
+    letreiro("nome", "WELCOME TO RAVEN CREEK", (0, -0.52, 7.4), 15.0, 0.9, "placa_azul", 0, 0.08)
     picha("picho", "VOLTEM", (-9.1, 0.5), (9.1, 0.5), 9.1, 7.4, -1, 3.0, 0.012)
     sai(nome)
 
@@ -761,7 +761,7 @@ def escola(nome):
     for x in (-7.0, 7.0):  # salas do meio viraram dormitório do abrigo
         for k in range(3):
             caixa("colchao_%d_%d" % (int(x), k), (x - 1.5 + k * 1.5, rnd.uniform(-2, 2), 0.12), (0.8, 1.9, 0.12), rnd.choice(["pano", "tecido_azul"]), (0, 0, rnd.uniform(-0.3, 0.3)))
-    letreiro("nome", "ESCOLA ESTADUAL", (0, -hd - 0.14, PE + 0.15), 10.0, 0.55, "letra_branca")
+    letreiro("nome", "RAVEN CREEK HIGH", (0, -hd - 0.14, PE + 0.15), 10.0, 0.55, "letra_branca")
     picha("picho", "ABRIGO CAIU", (-hw, -hd), (hw, -hd), 8.0, 1.5, 1, 3.0)
     for k in range(6):  # sacos de areia na entrada
         caixa("saco_%d-col" % k, (-2.0 + k * 0.8, -hd - 1.6, 0.2 + (k % 2) * 0.3), (0.75, 0.4, 0.3), "areia", (0, 0, rnd.uniform(-0.2, 0.2)))
@@ -882,7 +882,7 @@ if __name__ == "__main__":
         w, d, a = tamanhos[k]
         porta = ["aberta", "aberta", "fechada", "arrombada"][k % 4]
         TODOS.append(("sobrado_%d" % (k + 1), lambda k=k, loja=loja, w=w, d=d, a=a, porta=porta: sobrado("sobrado_%d" % (k + 1), w, d, 100 + k, loja, a, porta)))
-    for k, (w, d, an, pl) in enumerate([(16, 14, 7, "SOLAR"), (14, 12, 5, "AURORA"), (18, 14, 9, "IPÊ"), (15, 13, 6, "PRIMAVERA")]):
+    for k, (w, d, an, pl) in enumerate([(16, 14, 7, "MAPLE"), (14, 12, 5, "AURORA"), (18, 14, 9, "OAKWOOD"), (15, 13, 6, "SPRINGFIELD")]):
         TODOS.append(("apto_%d" % (k + 1), lambda k=k, w=w, d=d, an=an, pl=pl: predio_apto("apto_%d" % (k + 1), w, d, an, 200 + k, pl)))
     for k, (w, d, a) in enumerate([(5, 6, 1), (6, 5, 2), (4.5, 5.5, 1), (5.5, 6.5, 2), (6, 6, 1), (5, 5, 2), (4.5, 6, 1), (6.5, 5.5, 2)]):
         TODOS.append(("barraco_%d" % (k + 1), lambda k=k, w=w, d=d, a=a: barraco("barraco_%d" % (k + 1), w, d, 300 + k, a)))

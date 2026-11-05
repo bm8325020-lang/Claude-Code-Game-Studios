@@ -774,16 +774,25 @@ func _poe_zumbis() -> void:
 	add_child(navegacao)
 	add_to_group("cenario")
 	_assa(navegacao, "pista")
-	# o bairro tem a malha dele (outra região, só a área dele)
-	var nav_b := NavigationRegion3D.new()
-	var mb: NavigationMesh = malha.duplicate()
-	mb.cell_size = 0.25  # área grande: célula um pouco maior para assar rápido
-	mb.agent_radius = 0.25  # múltiplo da célula; 0,35 arredondava para 0,5 e fechava o vão da porta
+	# a cidade tem a malha dela em pedaços de NAV_PEDACO (1 km² de uma vez estoura o Recast, 05/11): cada pedaço assa a
+	# sua caixa com uma borda (border_size) e os vizinhos se ligam pela beira
 	var meio: float = Bairro.TAMANHO * 0.5
-	mb.filter_baking_aabb = AABB(Bairro.ORIGEM - Vector3(meio, 4, meio), Vector3(meio * 2.0, 18, meio * 2.0))  # rio e morro
-	nav_b.navigation_mesh = mb
-	add_child(nav_b)
-	_assa(nav_b, "bairro")
+	var n: int = ceili(Bairro.TAMANHO / NAV_PEDACO)
+	var pedacos: Array = []
+	for i in n:
+		for j in n:
+			var nav_b := NavigationRegion3D.new()
+			var mb: NavigationMesh = malha.duplicate()
+			mb.cell_size = 0.25  # área grande: célula um pouco maior para assar rápido
+			mb.agent_radius = 0.25  # múltiplo da célula; 0,35 arredondava para 0,5 e fechava o vão da porta
+			mb.border_size = 1.0  # a borda fica dentro da caixa: a caixa cresce 1 m para a malha acabar na linha do vizinho
+			var canto: Vector3 = Bairro.ORIGEM - Vector3(meio + 1.0, 4, meio + 1.0) + Vector3(i * NAV_PEDACO, 0, j * NAV_PEDACO)
+			mb.filter_baking_aabb = AABB(canto, Vector3(NAV_PEDACO + 2.0, 18, NAV_PEDACO + 2.0))  # rio e morro
+			nav_b.navigation_mesh = mb
+			add_child(nav_b)
+			_assa(nav_b, "bairro_%d_%d" % [i, j])
+			pedacos.append(nav_b)
+	_liga_pedacos(pedacos, n)
 	for p: Vector3 in bairro.pontos_zumbi:  # em bando de BANDO (dono 30/10: muito fácil)
 		for k: int in BANDO:
 			spawner_zumbis.spawn({"pos": p + Vector3(k * 1.3, 0.1, k * 0.7)})
@@ -1340,7 +1349,8 @@ func _divide_peso(dt: float) -> void:
 
 # --- malha de navegação pronta (31/10: assar a cidade levava ~5 s no PC e bem mais no celular ao criar a sala) ---
 const NAV_PRONTA := "res://assets/mapa/nav_%s.res"
-const NAV_VERSAO: int = 3  # subir ao mudar a pista ou o jeito de assar (3: escadas nos fundos dos sobrados)
+const NAV_PEDACO: float = 250.0  # lado de cada pedaço da malha da cidade
+const NAV_VERSAO: int = 5  # subir ao mudar a pista ou o jeito de assar (3: escadas nos fundos dos sobrados)
 
 
 ## Usa a malha que vem pronta no APK se o mapa e as ruínas são os mesmos de quando foi assada; senão assa aqui.
@@ -1360,6 +1370,92 @@ func _assa(regiao: NavigationRegion3D, nome: String) -> void:
 	if OS.get_cmdline_user_args().has("salva_nav"):
 		regiao.navigation_mesh.set_meta("chave", chave)
 		ResourceSaver.save(regiao.navigation_mesh, caminho)
+
+
+## Liga os pedaços vizinhos da malha da cidade com NavigationLink3D nas beiras. A ligação automática do Godot compara
+## toda beira solta com toda beira solta de todas as regiões: com 1 km² o mapa levava ~45 s para ficar pronto.
+## As ligações ficam salvas na malha do pedaço 0_0 (meta "ligacoes", mesma chave da malha).
+func _liga_pedacos(pedacos: Array, n: int) -> void:
+	var primeira: NavigationMesh = (pedacos[0] as NavigationRegion3D).navigation_mesh
+	var chave: String = chave_nav()
+	var ligs: PackedVector3Array
+	if not _nav_forcar and String(primeira.get_meta("ligacoes_chave", "")) == chave:
+		ligs = primeira.get_meta("ligacoes")
+	else:
+		ligs = _calcula_ligacoes(pedacos, n)
+		if not _nav_forcar and OS.get_cmdline_user_args().has("salva_nav"):
+			primeira.set_meta("ligacoes", ligs)
+			primeira.set_meta("ligacoes_chave", chave)
+			ResourceSaver.save(primeira, NAV_PRONTA % "bairro_0_0")
+	for r: NavigationRegion3D in pedacos:
+		r.use_edge_connections = false
+	if navegacao:
+		navegacao.use_edge_connections = false
+	for k in range(0, ligs.size() - 1, 2):
+		var l := NavigationLink3D.new()
+		l.bidirectional = true
+		l.start_position = ligs[k]
+		l.end_position = ligs[k + 1]
+		add_child(l)
+
+
+## Beiras dos pedaços que coincidem com a do vizinho (mesma linha, trechos que se cobrem, alturas parecidas): uma
+## ligação (2 pontos) a cada LIGA_PASSO metros de beira andável.
+const LIGA_PASSO: float = 3.0
+static func _calcula_ligacoes(pedacos: Array, n: int) -> PackedVector3Array:
+	var meio: float = Bairro.TAMANHO * 0.5
+	var base: Vector3 = Bairro.ORIGEM - Vector3(meio, 0, meio)
+	var beiras: Dictionary = {}  # "x<linha>_<j>" / "z<i>_<linha>" -> [[lado 0 (depois da linha) | 1 (antes)], ...]
+	for idx in pedacos.size():
+		var i: int = idx / n
+		var j: int = idx % n
+		var nm: NavigationMesh = (pedacos[idx] as NavigationRegion3D).navigation_mesh
+		var v: PackedVector3Array = nm.get_vertices()
+		var xa: float = base.x + i * NAV_PEDACO
+		var za: float = base.z + j * NAV_PEDACO
+		for p in nm.get_polygon_count():
+			var pol: PackedInt32Array = nm.get_polygon(p)
+			for e in pol.size():
+				var a: Vector3 = v[pol[e]]
+				var b: Vector3 = v[pol[(e + 1) % pol.size()]]
+				for lado in 2:
+					var xl: float = xa + lado * NAV_PEDACO
+					if absf(a.x - xl) < 0.15 and absf(b.x - xl) < 0.15:
+						var k: String = "x%d_%d" % [i + lado, j]
+						if not beiras.has(k):
+							beiras[k] = [[], []]
+						beiras[k][1 - lado].append([minf(a.z, b.z), maxf(a.z, b.z), (a.y + b.y) * 0.5, xl])
+					var zl: float = za + lado * NAV_PEDACO
+					if absf(a.z - zl) < 0.15 and absf(b.z - zl) < 0.15:
+						var k2: String = "z%d_%d" % [i, j + lado]
+						if not beiras.has(k2):
+							beiras[k2] = [[], []]
+						beiras[k2][1 - lado].append([minf(a.x, b.x), maxf(a.x, b.x), (a.y + b.y) * 0.5, zl])
+	var out := PackedVector3Array()
+	for k: String in beiras:
+		var antes: Array = beiras[k][1]
+		var depois: Array = beiras[k][0]
+		var marcas: Array[float] = []
+		for e1: Array in antes:
+			for e0: Array in depois:
+				var lo: float = maxf(e1[0], e0[0])
+				var hi: float = minf(e1[1], e0[1])
+				if hi - lo < 0.4 or absf(float(e1[2]) - float(e0[2])) > 0.5:
+					continue
+				var m: float = lo + 0.2
+				while m <= hi - 0.2:
+					if marcas.all(func(q: float) -> bool: return absf(q - m) > LIGA_PASSO):
+						marcas.append(m)
+						var y: float = (float(e1[2]) + float(e0[2])) * 0.5
+						var l: float = e1[3]
+						if k.begins_with("x"):
+							out.append(Vector3(l - 0.35, y, m))
+							out.append(Vector3(l + 0.35, y, m))
+						else:
+							out.append(Vector3(m, y, l - 0.35))
+							out.append(Vector3(m, y, l + 0.35))
+					m += LIGA_PASSO
+	return out
 
 
 ## Muda quando o mapa ou qualquer ruína do Blender muda (aí a malha pronta não serve mais).

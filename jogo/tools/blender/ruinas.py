@@ -1415,7 +1415,7 @@ def delegacia(nome, w, d, semente):
     caixa("placa", (0, -hd - 0.12, PE + 0.15), (6.0, 0.1, 0.7), "metal")
     bpy.ops.object.text_add(location=(0, -hd - 0.18, PE + 0.15), rotation=(1.5708, 0, 0))
     t = bpy.context.object
-    t.data.body = "DELEGACIA"
+    t.data.body = "POLICE"
     t.data.size = 0.55
     t.data.align_x = "CENTER"
     t.data.align_y = "CENTER"

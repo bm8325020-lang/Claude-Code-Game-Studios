@@ -9,5 +9,5 @@ func _init() -> void:
 	root.add_child(main)
 	for i in 3: await process_frame
 	main.iniciar_solo("Assa")
-	print("NAV salva: ", ResourceLoader.exists("res://assets/mapa/nav_bairro.res"))
+	print("NAV salva: ", ResourceLoader.exists("res://assets/mapa/nav_pista.res") and ResourceLoader.exists("res://assets/mapa/nav_bairro_0_0.res"))
 	quit()

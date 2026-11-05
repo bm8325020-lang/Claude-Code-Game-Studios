@@ -17,3 +17,8 @@ Ambiente: Ubuntu 24.04 x86_64, 4 núcleos, 15 GB RAM, disco ~2,4 GB livres (APER
 | RDEN | NÃO IDENTIFICADO | — | pedir ao dono o link do projeto |
 | OmniRoute (equipe de IAs) | funcionando | — | tools/ia/equipe.py; túnel loca.lt no celular do dono |
 Observação: a máquina é temporária; o que foi instalado em /root/.local some quando ela for reciclada (reinstalar daqui).
+
+## 05/11 — RAVEN CREEK
+- Blender 5.2.3 LTS em ~/.local/blender (headless). Skills blender-* (EL4CTEO/blender-skills, MIT) em ~/.claude/skills.
+- Python 3 + Pillow 12 + numpy 2 (texturas procedurais: tools/texturas/gera_americanas.py).
+- Pipeline do mapa: jogo/tools/pipeline_mapa.sh. Fotos: tools/foto_modelos.gd (modos :planta e :ver=móvel), tools/foto_cidade.gd.

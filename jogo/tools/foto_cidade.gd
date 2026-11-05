@@ -1,24 +1,24 @@
-# Fotos da cidade (planta nova, tools/mapa/cidade_v2.py): vistas da rua e de cima, 2 por linha.
+# Fotos da cidade (RAVEN CREEK, tools/mapa/raven_creek.py): vistas da rua e de cima, 2 por linha.
 #   xvfb-run -a -s "-screen 0 1280x720x24" $G --path . --rendering-driver opengl3 -s res://tools/foto_cidade.gd -- saida.png [lista]
 # lista: números das vistas separados por vírgula (padrão: todas). Cada vista: [de (x, z, altura acima do chão), para (x, z, y)].
 # Depois da lista, opcional: qualidade (0 Batata .. 3 Ultra) e sombras (0/1), para medir o peso como no celular.
 extends SceneTree
 
-const VISTAS: Array = [
-	[Vector3(62, -14, 1.7), Vector3(38, -90, 9)],         # 0 praça e igreja
-	[Vector3(-60, -3, 1.7), Vector3(60, -4, 3)],          # 1 avenida no centro
-	[Vector3(2, 45, 1.7), Vector3(0, -60, 4)],            # 2 rua central para o norte (delegacia à esquerda)
-	[Vector3(-62, -127, 1.7), Vector3(-168, -152, 12)],   # 3 morro do urubu visto de baixo
-	[Vector3(-112, -134, 1.7), Vector3(-160, -150, 13)],  # 4 subindo o morro
-	[Vector3(40, -205, 1.7), Vector3(120, -186, 2)],      # 5 rua de casas (ipês)
-	[Vector3(126, -70, 1.7), Vector3(126, -97, 6)],       # 6 hospital
-	[Vector3(-100, -9, 1.7), Vector3(-121, -41, 4)],      # 7 supermercado e estacionamento
-	[Vector3(-112, 212, 1.7), Vector3(-175, 212, 1)],     # 8 cemitério
-	[Vector3(-60, 70, 70), Vector3(30, -50, 0)],          # 9 centro de cima
-	[Vector3(0, -205, 1.7), Vector3(0, -400, 45)],        # 10 a capital destruída ao longe (norte)
-	[Vector3(170, 40, 1.7), Vector3(210, 80, 4)],         # 11 zona industrial
-	[Vector3(-64.7, 3.0, 1.6), Vector3(-65.5, 14.0, 1.4)],    # 12 dentro da farmácia (sobrado_1)
-	[Vector3(-132.2, -147.7, 2.4), Vector3(-130.8, -152.0, 2.6)],  # 13 dentro de um barraco
+const VISTAS: Array = [  # RAVEN CREEK (tools/mapa/raven_creek.py)
+	[Vector3(28, -30, 1.7), Vector3(0, -142, 9)],          # 0 Town Square e a igreja
+	[Vector3(-80, -36, 1.7), Vector3(120, -40, 3)],        # 1 Main Street no centro
+	[Vector3(34, 60, 1.7), Vector3(30, -100, 4)],          # 2 Center St para o norte
+	[Vector3(-250, -250, 1.7), Vector3(-370, -360, 12)],   # 3 Raven Hill visto de baixo
+	[Vector3(200, -246, 1.7), Vector3(350, -250, 2)],      # 4 rua de casas no bairro norte
+	[Vector3(-300, 34, 1.7), Vector3(-420, 30, 2)],        # 5 rua de casas no bairro oeste
+	[Vector3(122, -100, 1.7), Vector3(122, -142, 6)],      # 6 hospital
+	[Vector3(-160, 4, 1.7), Vector3(-230, 0, 4)],          # 7 Food Mart e estacionamento
+	[Vector3(-320, 393, 1.7), Vector3(-420, 393, 1)],      # 8 cemitério
+	[Vector3(-120, 120, 90), Vector3(30, -60, 0)],         # 9 centro de cima
+	[Vector3(30, -440, 1.7), Vector3(30, -700, 45)],       # 10 a capital destruída ao longe (norte)
+	[Vector3(300, 140, 1.7), Vector3(420, 200, 4)],        # 11 zona industrial
+	[Vector3(30, 220, 1.7), Vector3(30, 290, 2)],          # 12 ponte sobre o Raven Creek
+	[Vector3(-300, -300, 160), Vector3(60, -40, 0)],       # 13 a cidade inteira de cima
 ]
 
 

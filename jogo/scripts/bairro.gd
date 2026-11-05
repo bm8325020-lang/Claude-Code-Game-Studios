@@ -8,8 +8,8 @@
 class_name Bairro
 extends Node3D
 
-const ORIGEM := Vector3(0, 0, -300)   # centro do recorte (a pista de teste fica ao norte, em z > -30)
-const TAMANHO: float = 500.0          # lado da área usada (o resto do recorte fica de fora)
+const ORIGEM := Vector3(0, 0, -550)   # centro de RAVEN CREEK (a pista de teste fica fora, em z > -30)
+const TAMANHO: float = 1000.0         # lado da cidade: 1 x 1 km (05/11, prompt MAP MASTER)
 const PAREDE: float = 3.0             # pé-direito de um andar
 const MAPA: String = "res://assets/mapa/cidade.json"  # tools/mapa/cidade_nossa.py
 const TEX: String = "res://assets/texturas/%s_%s.jpg"
@@ -1607,7 +1607,7 @@ func _gavetas_e_cofres() -> void:
 		Moveis.troca(casa)
 	_porta_malas(n)
 	for g: Gaveta in get_tree().get_nodes_in_group("gavetas"):
-		var cx: MeshInstance3D = g.get_meta("caixa_movel", null)
+		var cx: MeshInstance3D = g.get_meta("caixa_movel") if g.has_meta("caixa_movel") else null
 		if cx and not cx.visible:
 			g.sem_caixa = true  # o móvel de verdade já tem gaveta: a caixinha não aparece
 	var casas: Array = por_casa.keys().filter(func(c: Node3D) -> bool: return not c.has_meta("refugio"))
