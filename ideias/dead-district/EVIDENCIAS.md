@@ -9,3 +9,7 @@
 | E8 | Dying Light 2 | PC | mapa | idem | FONTES/dl_techland.txt, dl_80lv.txt, dl_gamedev.txt | — | papel/gray box, City Builder, telhados, parkour helpers | FATO (33/41 exatas; resto pontuação) | alta | entrevistas dos devs |
 | E9 | The Last of Us Part I | PC | prédios | idem | FONTES/tlou_tiles.txt, tlou_wire.txt | — | peças modulares; prédios compartilham instâncias | FATO (13/14) | alta | artigos curtos |
 | E10 | Days Gone | PC | mundo | idem | FONTES/dg_team.txt | — | equipe de 5-6 no design do mundo | FATO | alta | — |
+| E11 | Cataclysm DDA | PC aberto | objetos da cidade | script (contagem) | FONTES/cdda_inventario.txt | — | 1849 tipos; frequência em 464 casas e 18 lojas | FATO | alta (contagem) | paletas citam sem colocar |
+| E12 | Days Gone | PC | assets/otimização | WebFetch | 80.lv developing-content-huge-worlds-for-days-gone | — | kits no grid, tiling+vert blend, 2 barris, prefabs de ferragem, LOD/streaming | FATO | alta | — |
+| E13 | Dying Light 2 | PC | assets | WebFetch | 80.lv the-development-process-behind-dying-light-2-s-environments | — | centenas de peças modulares, 4 biomas de telhado, scans, loot islands | FATO | alta | — |
+| E14 | State of Decay 2 | PC | loot/zumbis | WebFetch | gamedeveloper.com procedurally-generating-...-state-of-decay-2 | — | recipientes à mão, loot por baralho, garantias, zumbi sem ponto fixo | FATO | alta | — |
