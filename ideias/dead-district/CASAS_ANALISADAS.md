@@ -213,3 +213,13 @@ Medir draw calls por vista antes e depois (vistas 0-13 de `tools/foto_cidade.gd`
 3. Janelas/portas com estados + vidro de perto; shader de vidro falso de longe.
 4. City builder v3 (quarteirão -> lote -> casa) + passada à mão nos lugares importantes.
 5. Navmesh, testes, medida de desempenho, fotos, APK.
+
+## 6. Aplicado no jogo (05/11)
+- Casas do bairro (casa_r1..r3, r5, r7..r14, `tools/blender/ruinas.py` `casa_real`): reboco colorido na fachada com barrado
+  de cimento; dentro cerâmica com rodapé dela (taco nos quartos de casa velha), parede pintada com cor própria por quarto
+  (PZ), azulejo 1,6 m na cozinha e 1,8 m no banheiro, basculante e box no banheiro, grade em 40% das janelas, tanque,
+  calha e cano. Mesmas plantas e tamanhos (a cidade não mudou de lugar).
+- Carros: porta-malas revistável e cacos de vidro no chão (mods do GTA V).
+- Falta: vidro falso nos prédios de longe (interior mapping), janela que quebra no jogo, sujeira por cor de vértice,
+  kit de peças novo para sobrados/aptos, City Builder com passada à mão.
+

@@ -121,7 +121,7 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   Pistola acerta Carro -> rpc `_toca_alarme`, `assets/sons/alarme.wav` feito aqui, Zumbi.barulho ALARME_RAIO).
 - Barulho de quem se mexe (05/11, mods de zumbi do GTA V): `Zumbi.ouve_de(j, base)` — correndo x2 (OUVE_CORRENDO),
   agachado x0,5, no carro >= 15 m (motor). `correndo` vai pela sincronia; Rede.VERSAO 42. `noturno` (CORREDOR_NOITE 40%:
-  de noite corre de longe), empacado anda de lado (PRESO/DESVIO). Teste: test_ouvir (6).
+  de noite corre de longe). Teste: test_ouvir (6). ("Passo de lado" do empacado saiu: atrapalhava contornar prédio.)
   Horda andarilha: `horda.gd` (Horda, servidor; main.horda.passa): PRIMEIRA 600 s, INTERVALO 420 s, 8 (+líder; noite 12),
   nasce a NASCE_LONGE fora da vista, marcha (`Zumbi.marcha`) atravessando o jogador, líder (`lider`, `imune`, VIDA_LIDER),
   corpo some (CORPO_HORDA), fica no servidor (`_divide_peso`). Quem morre (fora do PvP) levanta zumbi deitado do lado do
@@ -151,6 +151,10 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   sem porta com `batente`, `revestimento` por cômodo (lambri/azulejo embaixo + papel em cima, com as aberturas da parede:
   `aberturas_em`), piso por cômodo (piso_tabua/piso_ladrilho), forro, fachada sorteada (fachada_*), `janela_real`
   (moldura, peitoril, vidro inteiro/caco/sem, cortina), varanda com colunas, telhado de telha; móveis `comodo_real`.
+  05/11 CASA BRASILEIRA (engenharia reversa das casas): `casa_real` agora usa REBOCOS_BR na fachada + barrado de cimento,
+  cerâmica com rodapé dela, parede pintada (PINTURAS_BR; cada quarto com a sua), azulejo 1,6 m cozinha / 1,8 m banheiro,
+  taco em casa velha, `basculante` no banheiro, grade em 40% das janelas (`janela_real`), `box_banho` no lugar da banheira,
+  tanque na cozinha, calha e cano. Cores das tintas/rebocos/cerâmica agora em ruinas.py (CORES.update).
   Texturas Poly Haven CC0 novas em assets/texturas (papel_1..3, lambri, piso_*, azulejo, forro, fachada_*; 512 px) e
   `Bairro._mat_ruina` para cada nome (+ `_vidro`). Céu: Ciclo CEU_* cinza-azulado (saiu o laranja), CEU com fumaça
   cinza e sol mais nítido, névoa menor. Tela: `tarefas.gd` (Tarefas: ROTEIRO de aprendizado + DEPOIS sorteadas, XP;

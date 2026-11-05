@@ -16,21 +16,7 @@ from ruinas import (bpy, math, Vector, rnd, mat, caixa, junta, morde, parede, pi
                     JAN_BASE, JAN_TOPO, JAN_L, CORES)
 
 SAIDA = ruinas.SAIDA
-CORES.update({
-    "reboco_rosa": (0.8, 0.55, 0.55), "reboco_verde": (0.55, 0.7, 0.55), "reboco_laranja": (0.85, 0.6, 0.35),
-    "reboco_azul": (0.5, 0.62, 0.78), "reboco_amarelo": (0.88, 0.78, 0.45), "reboco_creme": (0.85, 0.8, 0.68),
-    "reboco_lilas": (0.65, 0.58, 0.75), "tijolo_cru": (0.7, 0.42, 0.28), "fibra_azul": (0.12, 0.3, 0.6),
-    "aco": (0.55, 0.56, 0.56), "placa_vermelha": (0.7, 0.1, 0.08), "placa_azul": (0.1, 0.25, 0.6),
-    "placa_amarela": (0.9, 0.75, 0.1), "placa_verde": (0.1, 0.5, 0.25), "placa_branca": (0.85, 0.85, 0.82),
-    "placa_laranja": (0.9, 0.45, 0.1), "placa_preta": (0.08, 0.08, 0.08), "placa_rosa": (0.85, 0.4, 0.6),
-    "letra_branca": (0.95, 0.95, 0.92), "letra_preta": (0.05, 0.05, 0.05), "letra_vermelha": (0.75, 0.05, 0.05),
-    "letra_amarela": (0.95, 0.8, 0.1), "tinta_preta": (0.04, 0.04, 0.04), "tinta_vermelha": (0.5, 0.03, 0.03),
-    "pintura_creme": (0.93, 0.88, 0.75), "pintura_verde": (0.72, 0.85, 0.75), "pintura_azul": (0.7, 0.8, 0.9),
-    "pintura_rosa": (0.92, 0.78, 0.78), "pintura_amarela": (0.95, 0.88, 0.6), "pintura_branca": (0.92, 0.92, 0.9),
-    "barra_verde": (0.45, 0.6, 0.5), "barra_azul": (0.4, 0.5, 0.65), "barra_vinho": (0.55, 0.3, 0.3),
-    "ceramica_bege": (0.85, 0.78, 0.65), "ceramica_cinza": (0.7, 0.7, 0.7), "ceramica_vermelha": (0.65, 0.3, 0.25),
-    "grade": (0.12, 0.12, 0.12), "casca": (0.25, 0.2, 0.15), "folha": (0.2, 0.32, 0.15), "folha_palmeira": (0.3, 0.42, 0.2), "piso_igreja": (0.6, 0.55, 0.5), "terra": (0.4, 0.3, 0.2), "faixa": (0.9, 0.9, 0.88),
-})
+# (cores das tintas, rebocos, cerâmicas, aço e grade: em ruinas.py, que as casas também usam)
 REBOCOS = ["reboco_rosa", "reboco_verde", "reboco_laranja", "reboco_azul", "reboco_amarelo", "reboco_creme", "reboco_lilas",
            "parede"]
 PINTURAS = ["pintura_creme", "pintura_verde", "pintura_azul", "pintura_rosa", "pintura_amarela", "pintura_branca"]

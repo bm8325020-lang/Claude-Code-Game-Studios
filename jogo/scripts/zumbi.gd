@@ -52,10 +52,8 @@ const NOITE_OUVE: float = 1.4        # e ouve mais longe (as notas: "à noite fi
 const OUVE_CORRENDO: float = 2.0     # x OUVE: 13 m de dia
 const OUVE_AGACHADO: float = 0.5     # x OUVE: 3,3 m de dia
 const OUVE_CARRO: float = 15.0       # m: motor ligado (jogador dentro do carro)
-# mods do GTA V (05/11): de noite parte dos zumbis corre de longe; zumbi empacado dá um passo de lado
+# mods do GTA V (05/11): de noite parte dos zumbis corre de longe
 const CORREDOR_NOITE: float = 0.4    # chance do zumbi ser "noturno": de noite corre atrás do alvo a qualquer distância
-const PRESO: float = 1.0             # s querendo andar e quase parado = empacou
-const DESVIO: float = 0.7            # s andando de lado para sair
 const EMBOSCA: float = 4.0          # m: alguém passando assim perto acorda o zumbi deitado
 const ACORDA_BARULHO: float = 10.0  # m: tiro até essa distância acorda o deitado
 const VEL_LEVANTAR: float = 1.3
@@ -140,9 +138,6 @@ const ESCALA_LIDER: float = 1.2
 const VIDA_LIDER: int = 400
 const CORPO_HORDA: float = 30.0  # s até o corpo de um zumbi de horda sumir
 const DO_MORTO: int = -1  # horda: zumbi que levantou de um jogador morto (deitado; morto de novo, some)
-var _preso_t: float = 0.0
-var _desvio_t: float = 0.0
-var _desvio_lado: float = 1.0
 var _skill_t: float = 2.0
 var _mordendo: float = -1.0  # servidor: s até morder (agarrado no jogador)
 var _mordida_cd: float = 0.0
@@ -551,18 +546,10 @@ func _physics_process(dt: float) -> void:
 		_vira_para(porta.centro() - global_position, dt * 2.0)
 		_porta_alvo = porta
 		_ataca()
-	if _desvio_t > 0.0 and desejada.length() > 0.01:  # empacado: anda de lado um pouco
-		_desvio_t -= dt
-		desejada = (desejada + Vector3(desejada.z, 0, -desejada.x) * _desvio_lado).normalized() * desejada.length()
 	var plano := Vector3(velocity.x, 0, velocity.z).move_toward(desejada, 18.0 * dt)
 	velocity.x = plano.x
 	velocity.z = plano.z
 	move_and_slide()
-	_preso_t = _preso_t + dt if desejada.length() > 0.5 and Vector2(velocity.x, velocity.z).length() < 0.3 else 0.0
-	if _preso_t > PRESO:
-		_preso_t = 0.0
-		_desvio_t = DESVIO
-		_desvio_lado = 1.0 if randf() < 0.5 else -1.0
 	if _ataque_t < 0.0 and _cambaleio <= 0.0 and _grito_t < 0.0 and _levantando < 0.0:
 		var v: float = plano.length()
 		var nomes: Dictionary = {"andar": "andar", "correr": "correr"} if chefe else TIPOS[tipo]

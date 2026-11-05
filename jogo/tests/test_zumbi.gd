@@ -137,6 +137,9 @@ func _jogador_cai() -> void:
 			break
 	ok(j.vida == 0 and j.clipe_atual() == "morte", "jogador cai com a vida zerada (%s)" % j.clipe_atual())
 	ok(j.mochila.tem("facao") and j.mochila.conta(j.arma) == 1 and not j.mochila.tem("lanterna"), "caído: o facão e a arma da mão ficam (o resto vai no saco)")
+	for q in main.zumbis.get_children():  # o zumbi que levanta do lado do saco (test_horda): aqui só o z
+		if q.horda == Zumbi.DO_MORTO:
+			q.free()
 	await frames(int(Jogador.RENASCE * 60) + 10)
 	ok(j.vida == Jogador.VIDA_MAX and plano(j.global_position, j.inicio) < 0.5, "volta no início com a vida cheia")
 

@@ -40,7 +40,27 @@ CORES = {
     "vidro_janela": (0.35, 0.45, 0.5),
     "militar": (0.24, 0.27, 0.17), "lona": (0.38, 0.38, 0.27), "areia": (0.55, 0.48, 0.33), "vermelho": (0.6, 0.08, 0.06),
 }
+# casa brasileira (05/11, engenharia reversa das casas: PZ estilo + cômodos; rodapé, azulejo, cerâmica, quarto com cor própria)
+REBOCOS_BR = ["reboco_rosa", "reboco_verde", "reboco_laranja", "reboco_azul", "reboco_amarelo", "reboco_creme", "reboco_lilas",
+              "parede", "fachada_tijolo"]
+PINTURAS_BR = ["pintura_creme", "pintura_verde", "pintura_azul", "pintura_rosa", "pintura_amarela", "pintura_branca"]
+CERAMICAS_BR = ["ceramica_bege", "ceramica_cinza", "ceramica_vermelha"]
 TECIDOS = ["tecido_verde", "tecido_vinho", "tecido_mostarda", "tecido_azul", "tecido_cinza", "pano"]
+CORES.update({
+    "reboco_rosa": (0.8, 0.55, 0.55), "reboco_verde": (0.55, 0.7, 0.55), "reboco_laranja": (0.85, 0.6, 0.35),
+    "reboco_azul": (0.5, 0.62, 0.78), "reboco_amarelo": (0.88, 0.78, 0.45), "reboco_creme": (0.85, 0.8, 0.68),
+    "reboco_lilas": (0.65, 0.58, 0.75), "tijolo_cru": (0.7, 0.42, 0.28), "fibra_azul": (0.12, 0.3, 0.6),
+    "aco": (0.55, 0.56, 0.56), "placa_vermelha": (0.7, 0.1, 0.08), "placa_azul": (0.1, 0.25, 0.6),
+    "placa_amarela": (0.9, 0.75, 0.1), "placa_verde": (0.1, 0.5, 0.25), "placa_branca": (0.85, 0.85, 0.82),
+    "placa_laranja": (0.9, 0.45, 0.1), "placa_preta": (0.08, 0.08, 0.08), "placa_rosa": (0.85, 0.4, 0.6),
+    "letra_branca": (0.95, 0.95, 0.92), "letra_preta": (0.05, 0.05, 0.05), "letra_vermelha": (0.75, 0.05, 0.05),
+    "letra_amarela": (0.95, 0.8, 0.1), "tinta_preta": (0.04, 0.04, 0.04), "tinta_vermelha": (0.5, 0.03, 0.03),
+    "pintura_creme": (0.93, 0.88, 0.75), "pintura_verde": (0.72, 0.85, 0.75), "pintura_azul": (0.7, 0.8, 0.9),
+    "pintura_rosa": (0.92, 0.78, 0.78), "pintura_amarela": (0.95, 0.88, 0.6), "pintura_branca": (0.92, 0.92, 0.9),
+    "barra_verde": (0.45, 0.6, 0.5), "barra_azul": (0.4, 0.5, 0.65), "barra_vinho": (0.55, 0.3, 0.3),
+    "ceramica_bege": (0.85, 0.78, 0.65), "ceramica_cinza": (0.7, 0.7, 0.7), "ceramica_vermelha": (0.65, 0.3, 0.25),
+    "grade": (0.12, 0.12, 0.12), "casca": (0.25, 0.2, 0.15), "folha": (0.2, 0.32, 0.15), "folha_palmeira": (0.3, 0.42, 0.2), "piso_igreja": (0.6, 0.55, 0.5), "terra": (0.4, 0.3, 0.2), "faixa": (0.9, 0.9, 0.88),
+})
 rnd = random.Random(1)
 _mats = {}
 
@@ -727,6 +747,12 @@ def janela_real(nome, a, b, tc, z0, dentro_sinal, tec):
     junta(pc, nome + "_moldura")
     fora = c - n * (ESP / 2 + 0.08)
     caixa(nome + "_peitoril", (fora.x, fora.y, z0 + JAN_BASE - 0.1), (JAN_L + 0.3, 0.2, 0.06), "concreto", (0, 0, ang))
+    if rnd.random() < 0.4:  # grade de ferro por fora (casa brasileira)
+        g = c - n * (ESP / 2 + 0.03)
+        barras = [caixa("g", ((g + u * (k * 0.13)).x, (g + u * (k * 0.13)).y, zc), (0.02, 0.02, h + 0.1), "grade", (0, 0, ang))
+                  for k in range(-int(JAN_L / 0.26), int(JAN_L / 0.26) + 1)]
+        barras += [caixa("g", (g.x, g.y, zc + s2 * h * 0.45), (JAN_L + 0.05, 0.02, 0.025), "grade", (0, 0, ang)) for s2 in (-1, 1)]
+        junta(barras, nome + "_grade")
     r = rnd.random()
     if r < 0.55:  # vidro inteiro
         caixa(nome + "_vidro", (c.x, c.y, zc), (JAN_L, 0.015, h), "vidro_janela", (0, 0, ang))
@@ -735,6 +761,30 @@ def janela_real(nome, a, b, tc, z0, dentro_sinal, tec):
     if rnd.random() < 0.6:  # cortina por dentro, puxada para um lado
         cdn = c + n * (ESP / 2 + 0.06) + u * rnd.choice((-1, 1)) * JAN_L * 0.35
         caixa(nome + "_cortina", (cdn.x, cdn.y, zc + 0.1), (JAN_L * 0.45, 0.04, h + 0.4), tec, (0, 0, ang))
+
+
+def basculante(nome, a, b, tc, base, topo, lg):
+    """Janelinha alta de banheiro: moldura e vidro canelado meio aberto."""
+    a, b = Vector((a[0], a[1], 0)), Vector((b[0], b[1], 0))
+    u = (b - a).normalized()
+    ang = math.atan2(u.y, u.x)
+    c = a + u * tc
+    zc = (base + topo) / 2
+    h = topo - base
+    pc = [caixa("m", (c.x, c.y, topo + 0.03), (lg + 0.1, ESP + 0.03, 0.06), "batente", (0, 0, ang)),
+          caixa("m", (c.x, c.y, base - 0.03), (lg + 0.1, ESP + 0.03, 0.06), "batente", (0, 0, ang))]
+    junta(pc, nome + "_moldura")
+    caixa(nome + "_vidro", (c.x, c.y, zc), (lg, 0.015, h), "vidro_janela", (0.35, 0, ang))
+
+
+def box_banho(nome, x, y, ang):
+    """Box de chuveiro: vidro de um lado, chuveiro na parede, ralo."""
+    pc = [caixa("v", (0.45, 0.0, 1.0), (0.02, 0.9, 1.9), "vidro_janela"),
+          caixa("c", (-0.4, 0.0, 2.05), (0.12, 0.12, 0.1), "aco"),
+          caixa("c", (-0.47, 0.0, 2.15), (0.02, 0.02, 0.25), "aco"),
+          caixa("r", (0.0, 0.0, 0.1), (0.1, 0.1, 0.01), "aco")]
+    o = junta(pc, nome)
+    _poe(o, x, y, ang)
 
 
 def revestimento(nome, a, b, aberturas, dentro, mat_baixo, mat_cima, alt_baixo=1.0):
@@ -786,14 +836,14 @@ def comodo_real(tema, nome, x0, x1, y0, y1, encosto, tec):
         guarda_roupa("guarda_roupa_" + nome, x0 + x1 - xw + lado * 0.33, cy, 1.5708 if lado > 0 else -1.5708)
     elif tema == "banheiro":
         linha([("vaso", vaso, 0.65, 0.5), ("pia", pia, 0.55, 1.0)], y0, y1)
-        banheira("banheira_" + nome, x0 + x1 - xw + lado * 0.42, cy, 1.5708 if lado > 0 else -1.5708)
+        box_banho("box_" + nome, x0 + x1 - xw + lado * 0.5, cy, 1.5708 if lado > 0 else -1.5708)
     bagunca("bag_" + nome, cx, cy, 4)
 
 
 def casa_real(nome, w, d, semente, varanda):
     limpa()
     rnd.seed(semente)
-    fachada = rnd.choice(["fachada_amarela", "fachada_azul", "fachada_tijolo", "fachada_madeira", "fachada_vermelha", "parede"])
+    fachada = rnd.choice(REBOCOS_BR)
     tec = rnd.choice(TECIDOS)
     vr = 1.8 if varanda else 0.0           # varanda dentro do lote, na frente
     fy, by = -d / 2 + vr, d / 2            # frente e fundo do corpo da casa
@@ -810,7 +860,8 @@ def casa_real(nome, w, d, semente, varanda):
     ext = {}
     jan_f = [(t, JAN_L, JAN_BASE, JAN_TOPO) for t in [(xb + hw) / 2 - (-hw)] if t > 0]
     ext["frente"] = ((-hw, fy), (hw, fy), [(pf, PORTA_L, 0, PORTA_A)] + jan_f)
-    ext["dir"] = ((hw, fy), (hw, by), [((q1 - fy) / 2, JAN_L, JAN_BASE, JAN_TOPO), ((q2 + by) / 2 - fy, JAN_L, JAN_BASE, JAN_TOPO)])
+    ext["dir"] = ((hw, fy), (hw, by), [((q1 - fy) / 2, JAN_L, JAN_BASE, JAN_TOPO), ((q1 + q2) / 2 - fy, 0.6, 1.55, 2.15),
+                                       ((q2 + by) / 2 - fy, JAN_L, JAN_BASE, JAN_TOPO)])  # basculante no banheiro
     ext["fundo"] = ((hw, by), (-hw, by), [(hw - (xa + xb) / 2, PORTA_I, 0, PORTA_A), (hw - (-hw + xa) / 2, JAN_L, JAN_BASE + 0.25, JAN_TOPO)])
     ext["esq"] = ((-hw, by), (-hw, fy), [((by - ym) / 2, JAN_L, JAN_BASE, JAN_TOPO), (by - (fy + ym) / 2, JAN_L, JAN_BASE, JAN_TOPO)])
     for k, (a, b, ab) in ext.items():
@@ -819,10 +870,18 @@ def casa_real(nome, w, d, semente, varanda):
     for k, (a, b, ab) in ext.items():  # janelas com moldura (a porta da frente o jogo põe; a dos fundos fica só o batente)
         sinal = 1  # parede percorrida no sentido horário: dentro fica à esquerda
         for (t, lg, base, topo) in ab:
-            if base > 0.5:
+            if base > 0.5 and lg < 0.8:
+                basculante("jan_%s_%d" % (k, int(t * 10)), a, b, t, base, topo, lg)
+            elif base > 0.5:
                 janela_real("jan_%s_%d" % (k, int(t * 10)), a, b, t, 0, sinal, tec)
             elif k == "fundo":
                 batente("batente_fundo", a, b, t, lg, topo, ESP)
+    # barrado de cimento na base de fora (casa brasileira: segura a umidade e o respingo da chuva)
+    for k, (a, b, ab) in ext.items():
+        u = Vector((b[0] - a[0], b[1] - a[1], 0)).normalized()
+        fora = Vector((u.y, -u.x, 0)) * (ESP / 2 + 0.016)
+        parede("barrado_" + k, (a[0] + fora.x, a[1] + fora.y), (b[0] + fora.x, b[1] + fora.y), 0, 0.55,
+               [(t, lg, 0, 0.6) for (t, lg, base, topo) in ab if base < 0.5], "concreto", esp=0.03)
     # paredes de dentro (com a passagem e o batente)
     intern = {
         "a_meio": ((-hw, ym), (xa, ym), [((xa + hw) / 2, PORTA_I, 0, PORTA_A)]),          # sala | cozinha
@@ -837,14 +896,21 @@ def casa_real(nome, w, d, semente, varanda):
         for (t, lg, base, topo) in ab:
             batente("batente_%s_%d" % (k, int(t * 10)), a, b, t, lg, topo, ESP_I)
     # cômodos: (nome, tema, x0, x1, y0, y1, pisos, revest. de baixo, de cima)
-    papel = rnd.choice(["papel_1", "papel_2", "papel_3"])
+    # casa brasileira: cerâmica no chão com rodapé dela, parede pintada (cada quarto com a sua cor), azulejo até 1,6 m na
+    # cozinha e 1,8 m no banheiro; casa velha tem taco nos quartos
     temas_q = ["quarto", rnd.choice(["quarto", "crianca"])]
-    comodos = [("sala", "sala", -hw, xa, fy, ym, "piso_tabua", "lambri", papel),
-               ("cozinha", "cozinha", -hw, xa, ym, by, "piso_ladrilho", "azulejo", "papel_2"),
-               ("corredor", "", xa, xb, fy, by, "piso_tabua", "lambri", papel),
-               ("quarto1", temas_q[0], xb, hw, fy, q1, "piso_tabua", "lambri", rnd.choice(["papel_1", "papel_3"])),
-               ("banheiro", "banheiro", xb, hw, q1, q2, "piso_ladrilho", "azulejo", "azulejo"),
-               ("quarto2", temas_q[1], xb, hw, q2, by, "piso_tabua", "lambri", rnd.choice(["papel_1", "papel_2"]))]
+    cer = rnd.choice(CERAMICAS_BR)
+    sala_cor = rnd.choice(PINTURAS_BR)
+    q_cores = rnd.sample([c for c in PINTURAS_BR if c != sala_cor], 2)
+    piso_q = "piso_tabua" if rnd.random() < 0.35 else cer
+    rod_q = "batente" if piso_q == "piso_tabua" else cer
+    # (nome, tema, x0, x1, y0, y1, piso, de baixo, de cima, altura de baixo)
+    comodos = [("sala", "sala", -hw, xa, fy, ym, cer, cer, sala_cor, 0.1),
+               ("cozinha", "cozinha", -hw, xa, ym, by, rnd.choice(CERAMICAS_BR), "azulejo", "pintura_branca", 1.6),
+               ("corredor", "", xa, xb, fy, by, cer, cer, sala_cor, 0.1),
+               ("quarto1", temas_q[0], xb, hw, fy, q1, piso_q, rod_q, q_cores[0], 0.1),
+               ("banheiro", "banheiro", xb, hw, q1, q2, "ceramica_cinza", "azulejo", "pintura_branca", 1.8),
+               ("quarto2", temas_q[1], xb, hw, q2, by, piso_q, rod_q, q_cores[1], 0.1)]
     # paredes com aberturas, para o revestimento de cada cômodo achar as suas (linha: x=const ou y=const)
     linhas = [(a, b, ab, ESP) for (a, b, ab) in ext.values()] + [(a, b, ab, ESP_I) for (a, b, ab) in intern.values()]
     def aberturas_em(p0, p1):
@@ -865,14 +931,13 @@ def casa_real(nome, w, d, semente, varanda):
                     return [(t1 - t0 - t, lg, ba, to) for (t, lg, ba, to) in _corte(ab, t0, t1)], e
                 return _corte(ab, t0, t1), e
         return [], ESP
-    for (cn, tema, x0, x1, y0, y1, pi, mb, mc) in comodos:
+    for (cn, tema, x0, x1, y0, y1, pi, mb, mc, alt_b) in comodos:
         caixa("piso_" + cn, ((x0 + x1) / 2, (y0 + y1) / 2, 0.075), (x1 - x0, y1 - y0, 0.03), pi)
         lados = [((x0, y0), (x1, y0), Vector((0, 1, 0))), ((x1, y0), (x1, y1), Vector((-1, 0, 0))),
                  ((x1, y1), (x0, y1), Vector((0, -1, 0))), ((x0, y1), (x0, y0), Vector((1, 0, 0)))]
         for i, (p0, p1, n) in enumerate(lados):
             ab, e = aberturas_em(p0, p1)
-            alt_b = 1.6 if mb == "azulejo" else 1.0
-            revestimento("rev_%s_%d" % (cn, i), p0, p1, ab, n * (e / 2 + 0.011), mb, mc if mc != "azulejo" else "azulejo", alt_b)
+            revestimento("rev_%s_%d" % (cn, i), p0, p1, ab, n * (e / 2 + 0.011), mb, mc, alt_b)
         if tema:
             # encosta na parede de lado sem passagem (coluna A: parede de fora à esquerda; coluna B: à direita)
             comodo_real(tema, cn, x0 + 0.1, x1 - 0.1, y0 + 0.1, y1 - 0.1, "esq" if x0 < xa else "dir", tec)
@@ -885,6 +950,11 @@ def casa_real(nome, w, d, semente, varanda):
             caixa("coluna_%d-col" % int(x * 10), (x, -d / 2 + 0.3, PE / 2), (0.2, 0.2, PE), "batente")
         caixa("degrau-col", (-hw + pf, -d / 2 + 0.25, 0.08), (1.6, 0.5, 0.16), "concreto")
         caixa("piso_varanda", (0, -d / 2 + vr / 2, 0.08), (w, vr, 0.04), "piso_ladrilho")
+    # tanque de lavar roupa encostado no fundo da cozinha (lavanderia), calha na beira do telhado e cano descendo
+    caixa("tanque-col", ((-hw + xa) / 2 + 0.3, by - ESP / 2 - 0.3, 0.45), (0.6, 0.55, 0.9), "concreto")
+    for s in (-1, 1):
+        caixa("calha_%d" % (s + 1), (0, s * (d / 2 + 0.42), PE - 0.02), (w + 0.6, 0.12, 0.1), "aco")
+    caixa("cano", (hw + 0.2, -d / 2 - 0.4, PE / 2), (0.08, 0.08, PE), "aco")
     entulho("entulho_fora", (hw + 0.8, rnd.uniform(-d / 3, d / 3), 0), 3, 0.4, "concreto")
     # celular: acabamentos (revestimentos, batentes, janelas, pisos, tapetes, bagunça) numa peça só por casa
     acab = [o for o in bpy.data.objects if o.type == "MESH" and not o.name.endswith(("-col", "-colonly"))

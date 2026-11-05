@@ -95,7 +95,7 @@ Fonte com arquivo:linha: `FONTES/gta_mods.txt`.
 | Tiro chama zumbi | sim (20 m) | já temos |
 | Corredor mais comum à noite | noite deixa mais rápido/forte | ADAPTAR: chance de corredor à noite (próximo) |
 | Ritmo de pensar por tipo/distância | zumbi longe (60 m) e quieto dorme; animação some de longe | já temos parecido |
-| Destravar zumbi parado | — | INVESTIGAR com vídeo do dono |
+| Destravar zumbi parado | — | DESCARTAR: testado (passo de lado) e atrapalhou contornar prédio; no Godot a rota é refeita todo quadro |
 | Orçamento + fila de nascimento | zumbis fixos por ponto | ADAPTAR quando a cidade nova tiver mais zumbis |
 | Horda andarilha que atravessa o jogador, com líder | grito chama os de perto | ADAPTAR (evento novo, combina com o raid) |
 | NPC morto vira zumbi | — | ADAPTAR nas facções |
