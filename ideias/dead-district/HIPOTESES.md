@@ -1,0 +1,2 @@
+# Hipóteses (a confirmar)
+(vazio)

@@ -1,0 +1,2 @@
+# Mapas analisados
+(vazio)
