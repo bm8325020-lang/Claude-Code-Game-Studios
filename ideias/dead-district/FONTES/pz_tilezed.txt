@@ -1,0 +1,24 @@
+FONTE: TileZed (editor de mapas do Project Zomboid, fork do Tiled, GPL) github.com/Unjammer/TileZed, arquivos
+BuildingTemplates.txt, BuildingTiles.txt, BuildingFurniture.txt, RoomTone.txt. Lido em 05/11. Resumo do chefe, sem copiar dados.
+
+COMO UMA CASA É DESCRITA NO BuildingEd
+Template (estilo da casa):
+  ExteriorWall, ExteriorWallTrim, Door, DoorFrame, Window, Curtains, Shutters, Stairs, RoofCap, RoofSlope, RoofTop, GrimeWall
+  + lista de Room. Cada Room: Name, Color (cor no editor), InternalName (tipo usado pelo jogo), InteriorWall, InteriorWallTrim, Floor, GrimeFloor, GrimeWall.
+Templates que vêm de exemplo: Old Suburban, Suburban 1, Suburban 2, Wooden Shack, Trailer, Spiffo's, Seahorse.
+Cômodos nos templates (contagem): Kitchen 6, Bathroom 6, Living Room 5, Hall 5, Dining Room 4, Bedroom1/2/3 4 cada, Foyer 3.
+Observação: no Old Suburban os quartos usam outra parede interna (27) que o resto da casa (28); o piso é o mesmo (23).
+
+PEÇAS (categorias de tile no BuildingTiles.txt)
+exterior_walls (com variante janela e porta embutida, e peças de canto NorthWest/SouthEast), exterior_wall_trim, interior_walls,
+interior_wall_trim, floors, doors (fechada e aberta, por direção West/North), door_frames, windows, curtains (4 direções), shutters,
+stairs, roof_caps, roof_slopes, roof_tops, grime_wall, grime_floor.
+Sujeira = camada por cima (overlay_grime_floor_01_*), com peça por direção e por canto (8 variantes), igual um decal de borda.
+
+MÓVEIS (BuildingFurniture.txt, 18752 linhas): agrupados por rótulo, ex. "Furniture - Seating - Indoor", "Furniture - Storage",
+"Furniture - Shelving", "Furniture - Tables - Low/High", "Lighting - Indoor/Outdoor", "Walls - Decoration/Detailing/Graffiti",
+"Trash", "Vegetation - Indoor", e conjuntos por lugar: "Location - Shop - Grocery", "Location - Community - Police/Medical/School/Church",
+"Location - Restaurant - Diner/Bar/Pizza", "Location - Business - Bank/Office".
+RoomTone.txt: lista de tipos de prédio/cômodo para o som ambiente (Generic, Bakery, Bank, Barn, BasementHouse ...).
+
+REGRA DO JOGO (community manager, já citada em MAPAS_ANALISADOS): 4 paredes + teto = cômodo; o móvel diz o tipo (geladeira = cozinha).

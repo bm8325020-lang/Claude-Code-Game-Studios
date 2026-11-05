@@ -10,4 +10,6 @@
 | 7 | 7 Days to Die | PC (pago) | crafting, construção, loot | B (configs XML documentados pela comunidade) | MÉDIA | |
 | 8 | DayZ | PC (pago) | sobrevivência, loot, mapa | B (docs de modding) | MÉDIA | |
 | 9 | Mission EVO | Android | referência mobile | C só com APK tirado do celular do dono (adb); senão B | MÉDIA | |
-| 10 | The Walking Dead | ? | ? | — | PENDENTE | dono precisa dizer QUAL título |
+| 10 | The Walking Dead: Saints & Sinners | PC/VR | fases, interiores | B (artigos) | BAIXA | decidido pelo chefe (dono deixou as decisões) |
+
+Casas (peças, cômodos, vidro, textura) de todos os jogos: ver `CASAS_ANALISADAS.md` (05/11).

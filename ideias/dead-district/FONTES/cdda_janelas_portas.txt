@@ -1,0 +1,25 @@
+FONTE: Cataclysm DDA master, data/json/furniture_and_terrain/terrain-windows.json e terrain-doors.json (CC BY-SA 3.0).
+Extraído por script do chefe em 05/11. Só os campos open/close/curtain_transform/bash/flags.
+
+JANELAS (estado -> o que acontece)
+t_window_domestic  | vidro + cortina, TRANSPARENT, abre por dentro | abrir -> t_window_open | fechar cortina -> t_curtains | tirar cortina -> t_window_no_curtains | quebrar (força 3-6) -> t_window_frame, solta glass_shard, sheet, stick, string_36
+t_window_open      | aberta, MOUNTABLE, SMALL_PASSAGE, PERMEABLE (passa ar/cheiro) | fechar -> t_window_domestic | quebrar -> t_window_frame
+t_window_no_curtains | sem cortina | abrir -> t_window_no_curtains_open | quebrar -> t_window_frame
+t_window_taped     | fita: NÃO é transparente, REDUCE_SCENT | quebrar (força 6-12) -> t_window_frame
+t_window_boarded   | tábuas: não transparente, REDUCE_SCENT, BLOCK_WIND | quebrar (força 3-30) -> t_window_frame, solta splinter + glass_shard
+t_window_bars      | grade: TRANSPARENT, THIN_OBSTACLE | quebrar vidro -> t_window_bars_noglass (grade continua)
+t_window_frame     | moldura com cacos: SHARP (corta), SMALL_PASSAGE, MOUNTABLE | quebrar (força 1) -> t_window_empty
+Todas: WINDOW, SUPPORTS_ROOF, BARRICADABLE_WINDOW (aceitam tábuas).
+
+PORTAS
+t_door_c (fechada)  | abrir -> t_door_o | quebrar (8-80) -> t_door_b
+t_door_o (aberta)   | TRANSPARENT | quebrar (5-80) -> t_door_frame
+t_door_locked       | LOCKED, PICKABLE, abre por dentro | gazua -> t_door_c | quebrar (8-80) -> t_door_b
+t_door_locked_interior | LOCKED, PICKABLE | gazua -> t_door_c
+t_door_b (quebrada) | TRANSPARENT | quebrar (5-70) -> t_door_frame
+t_door_frame        | só batente | quebrar (6-25) -> nada
+t_door_glass_c      | porta de vidro, TRANSPARENT | quebrar (6-20) -> t_door_frame
+t_door_boarded      | tábuas | quebrar (15-80) -> t_door_b
+t_door_metal_locked | LOCKED | quebrar (80-250) -> t_mdoor_frame
+
+PISOS INTERNOS: 106 tipos em terrain-floors-indoor.json. Família tapete existe em 4 cores x 9 bases (madeira, concreto, metal, linóleo...).

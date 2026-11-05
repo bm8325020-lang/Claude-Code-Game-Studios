@@ -1,0 +1,64 @@
+Resumos de páginas lidas pelo chefe em 05/11 (WebFetch). Citações entre aspas são do texto da página.
+
+DAYZ - stardz-team.github.io/DayZ-Modding-Wiki/en/04-file-formats/08-building-modeling
+- LODs do prédio: Resolution (visual), Geometry (colisão, class="house"), Fire Geometry (tiro), View Geometry (visão e mira das ações),
+  Memory (eixos, pontos de ação, som), Roadway (onde se anda). Nomes das seleções iguais em todos os LODs.
+- "Vanilla doors are 120 x 220 cm". Porta modelada fechada e animada abrindo. Eixo = 2 vértices no Memory LOD.
+- angle1 = 1.4 rad (~80 graus); porta dupla: uma folha +, outra -. initOpened = 0.5 (50% de chance de nascer aberta).
+- Porta com 1000 de vida; dano de projétil 2, corpo a corpo 2.5. Porta de correr = translation.
+
+DAYS GONE - 80.lv/articles/developing-content-huge-worlds-for-days-gone
+- Kits no grid "with straight pieces, corners, ramps, and stairs, sized in metric units"; kits pequenos, apoiados em
+  "tiling materials, vert blends, and weighted normals". Kit grande vira fardo; problema vira peça única.
+- Ferragens (puxador, dobradiça) num texture set compartilhado + prefab: muda a cor da madeira em todos de uma vez.
+- 4 caçambas únicas viraram uma; mais de 6 barris viraram no máximo 2 (variedade por cor/material).
+- Paredes de tábua com fresta deixavam ver o forte por dentro; selar as frestas melhorou muito o desempenho.
+- Corte global: menos assets, menos texturas únicas, menos geometria de mato, menos overdraw de cartas transparentes.
+- Portfólios (busca): kit modular de Cloverdale e da faculdade; Camp Pioneer feito de peças do kit + layout de interior com design.
+
+DYING LIGHT 2 - techland.net blog e 80.lv
+- "hundreds of modular pieces of architecture" montadas pelo City Builder "as a starting point"; depois peças únicas à mão.
+- City Builder: "combine pre-prepared prefabs into complete buildings and arrange them on the map"; quarteirões poligonais entre ruas;
+  aparência configurável por prédio; no fim a geração foi congelada e acabada à mão.
+- Interiores foram ACRESCENTADOS em prédios "where there were none before" para o jogador cortar caminho.
+- "four different roof biomes"; telhados pontudos viraram planos para controlar o parkour; peças de parkour em amarelo.
+- Rua: cantos duros embaixo, formas redondas em cima; rua menos saturada. Texturas: Substance Designer, Quixel Mixer, scans -> tiling.
+- Cidade dividida em quarteirões/regiões para LOD e streaming sem tela de carregamento.
+DYING LIGHT 1 - 80.lv technology-behind-dying-light-the-following: Chrome Engine 6; mapa principal dividido em dois por limite do console antigo.
+
+THE LAST OF US PART II - 80.lv how-naughty-dog-created-the-immersive-world-of-the-last-of-us-part-ii
+- Espaços grandes decididos no blockmesh (o que dá para desenhar na tela).
+- Interior: sol e céu bloqueados; luz de área colocada FORA das janelas e portas.
+- Props contam quem morava ("all his guitars, vinyl music, wood carvings").
+- Vidro quebrável novo: ferramenta "constructs breakable glass shards from a texture"; shader de vidro fractal; vidro como quebra-cabeça.
+- Até ~1000 objetos de física vivos é aceitável. Iluminação quase toda pré-calculada (baked). LOD automático (Simplygon).
+- Biblioteca de props com palavras-chave e prévia.
+THE LAST OF US PART I - 80.lv a-closer-look-at-the-last-of-us-part-i-s-environments: Bill's Town por "a small team";
+  tarefas: "architectural concept design, modeling, tileset, props, set dressing, collision, UVs". (busca: vidro em camadas,
+  molhado, detail map, tiling, normais por peso de face - páginas do ArtStation bloqueadas, NÃO CONFIRMADO no texto).
+
+7 DAYS TO DIE - 7d2dmodding.wiki.gg/wiki/Prefab_Editor_Basics (wiki 3.0)
+- Lotes padrão (em blocos de 1 m): 25x25, 42x42, 60x60, 100x100, 150x150. Frente virada para o norte como referência.
+- Pintura (textura por face de bloco) é a parte mais frágil; pintar por último.
+- Exporta: dados dos blocos, foto JPG, malha "imposter" para ver de longe, XML de metadados. Registro em rwgmixer.xml.
+- Busca: zumbis dormentes (sleeper volume) acordam a 8 blocos na horizontal; bloco "loot helper" sorteia o recipiente;
+  placas Sign-Tech 1x1, 2x2, 3x3. Versão 1.0 trouxe 162 formatos novos de bloco.
+
+TWD SAINTS & SINNERS - 80.lv technical-challenges-behind-walking-dead-saints-sinners
+- Nova Orleans; tamanho das fases pela velocidade confortável de andar em VR; fases verticais.
+- Medição por planilhas, gráficos de FPS e mapas de calor de polígonos; corrige o pior primeiro.
+
+STATE OF DECAY 2 - busca (guias): busca silenciosa x rápida (rápida faz barulho); local revistado fica riscado no mapa;
+  contagem de suprimentos do local no canto da tela. Créditos com "World Builder" (IGDB). Sem artigo de arte das casas.
+
+MISSION EVO - busca (sites de notícia): Unreal Engine 5 no celular; ilha infestada; coletar, construir abrigo do zero ou invadir;
+  NPCs armados nas ruínas; chefes. Sem APK, sem dado de casa. Classe D.
+
+VIDRO FALSO (interior mapping)
+- van Dongen, CGI 2008 (80.lv interior-mapping-rendering-real-rooms-without-geometry): o shader faz raio contra planos de
+  piso/teto/parede repetidos a cada X metros; só 3 planos por pixel; sala é uma caixa com textura; varia a distância das
+  paredes e sorteia textura de um atlas. SimCity (2013) usou um atlas e salas de fundo variado. UE4 tem InteriorCubeMap.
+- Dagor Engine (Gaijin, documentação aberta) rendinst_interior_mapping: fadeout=50,100 (interior) 100,200 (exterior);
+  room_depth; tile (3º valor = rotação aleatória por sala); room_size (proporção da janela); tile_space (vão entre janelas);
+  room_selfillum=0.4; illum_random=3 estados de luz; illum_only_at_night=1; convexity_slope (vidro meio torto, reflexo variado);
+  a luz some devagar: mínimo 0.2 sempre fica.

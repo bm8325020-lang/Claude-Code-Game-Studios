@@ -1,0 +1,17 @@
+FONTE: github.com/BohemiaInteractive/DayZ-Central-Economy, dayzOffline.chernarusplus/mapgroupproto.xml e cfglimitsdefinition.xml.
+Licença ADPL-SA: NÃO comercial e "Arma e DayZ apenas" -> não copiar nem adaptar os dados. Aqui só números agregados (fatos) contados pelo chefe em 05/11.
+
+ESTRUTURA: cada prédio (group, nome do modelo Land_*) tem usage (Town, Village, Industrial, Farm, Police, Medic...), lootmax,
+e containers. Cada container tem categorias (tools, containers, clothes, food, weapons, books, explosives), tags (floor, shelves, ground)
+e pontos de loot: posição no prédio + range (raio) + height (altura livre). Padrão: grupo lootmax 6, container lootmax 4.
+436 grupos no total. Prefixos mais comuns: Wreck 114, Mil 38, House 29, HouseBlock 20, Ruin 19, Shed 13, City 11.
+
+CASAS (Land_House* e Land_HouseBlock*, 49 modelos):
+- lootmax médio 6.4 (6 a 10).
+- pontos de loot por casa: média 25.7, mediana 24, máximo 62. Ou seja: muitos pontos, poucos itens de cada vez (6 de 24).
+- 3 containers em TODAS: lootFloor (chão: ferramentas, recipientes, roupa), lootshelves (prateleira: + comida e livros), lootweapons (armas, explosivos).
+  Pontos: prateleira 600, chão 334, armas 327 no total.
+- usage: Village 29, Town 21.
+NOMES DOS MODELOS (padrão): House_1W01 = 1 andar, W, nº 01; House_2B02 = 2 andares, B (INFERÊNCIA: W = madeira, B = tijolo; não confirmado).
+Variante de cor com o MESMO modelo: House_1W05_Yellow, 1W08_Brown, 2W04_Yellow...
+Casas de rua: HouseBlock_1F1..4, 2F1..9, 3F1..2, 5F, mais peças de esquina (1F_Corner, 2F_Corner, 3F_Corner1/2).

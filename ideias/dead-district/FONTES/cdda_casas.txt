@@ -1,0 +1,44 @@
+FONTE: Cataclysm DDA master, mapgen/house + paletas (resolvidas em cascata); contagem por script do chefe. 1 quadrado = 1 m.
+Casas (térreo) analisadas: 249
+
+JANELAS (em quantas casas | média por casa):
+window_domestic 19|16.5, window_no_curtains 19|16.5, window_open 19|16.5, window_no_curtains_open 19|16.5, window_boarded 8|7.9, window_boarded_noglass 3|5.7, window_domestic_taped 2|15.0, window_bars_domestic 1|16.0, window_bars 1|5.0, window_stained_blue 1|2.0, window_reinforced 1|4.0, window_bars_curtains 1|9.0
+
+PORTAS (em quantas casas | média por casa):
+door_c 41|5.6, door_locked_interior 40|5.0, door_metal_locked 38|7.2, door_glass_c 34|1.3, door_o 33|6.8, door_locked_peep 25|1.8, door_locked_alarm 25|1.8, screen_door_c 22|1.5, door_locked 19|2.3, door_elocked_peep 16|2.1, door_elocked_alarm 16|2.1, door_elocked 16|2.1, door_metal_pickable 8|2.4, door_boarded 4|1.0, door_metal_corrugated_c 3|1.0, door_boarded_damaged 2|1.0, door_frame 1|7.0, door_curtain_c 1|2.0, door_b_peep 1|1.0, door_boarded_damaged_peep 1|1.0
+
+PAREDES (em quantas casas | média por casa):
+brick_wall 159|62.9, wall_w 155|36.7, concrete 127|96.8, wall_glass 16|5.4, concrete_wall 6|156.8, brick_wall_halfway 4|101.8, adobe_brick_wall_halfway 4|26.5, wall_half 4|26.5, wall_metal_corrugated 3|9.0, concrete_railing 3|11.0, wall_r 2|14.0, rock_wall 1|139.0, wall_log 1|4.0
+
+PISOS (em quantas casas | média por casa):
+linoleum_gray 146|22.7, thconc_floor 89|67.7, linoleum_white 26|41.2, floor_noroof 22|30.0, carpet_red 18|17.9, carpet_yellow 18|17.4, dirtmound 15|19.1, carpet_green 14|27.6, floor 13|163.4, carpet_purple 13|26.7, dirt 3|18.7, dirtfloor 2|95.0, dirtmoundfloor 1|15.0, carpet_concrete_red 1|149.0, floor_waxed 1|2.0
+
+MÓVEIS (em quantas casas | média por casa):
+region_flower 84|9.9, table 57|6.1, indoor_plant_y 38|4.3, indoor_plant 37|4.4, counter 37|5.0, chair 37|4.8, region_weed 36|9.6, sink 29|2.6, sofa 28|4.6, rack 28|2.5, cupboard 25|4.9, rack_wood 25|3.2, stool 25|2.0, bed 24|9.2, dresser 24|3.0, floor_lamp 24|1.8, wardrobe 23|1.9, desk 22|4.5, entertainment_center 22|2.4, bigmirror 22|1.5, oven 22|1.1, gas_oven_microwave_combo 22|1.1, fridge 22|1.2, rack_coat 21|1.2, utility_shelf 20|3.0, armchair 20|2.4, mailbox 19|1.1, bathtub 19|3.2, coffee_table 18|2.5, roof_turbine_vent 17|1.1, TV_antenna 17|1.1, vent_pipe 16|1.2, bench 15|3.8, washer 14|1.2, dryer 14|1.2, tourist_table 14|2.1, trashcan 13|1.5, small_satellite_dish 13|1.1, deckchair 11|2.5, camp_chair 11|3.1, shower 10|1.0, cardboard_box 9|3.1, dumpster 9|2.7, beaded_door 8|1.5, workbench 7|2.3, chimney 7|1.0, treadmill 7|1.0, glass_cabinet 7|2.0, null 7|14.6, fireplace 6|1.2, rotary_clothesline 6|1.0, clothing_rail 6|1.7, exercise 6|1.0, gun_safe_el 5|1.0, safe_l 5|1.0, filing_cabinet 5|1.6, piano 5|1.0, water_heater 5|1.6, water_heater_family 5|1.6, crate_c 5|5.0, dishwasher 4|1.5, home_furnace 4|1.8, crate_o 4|4.8, pallet_brick 4|24.0, pallet_cement 4|36.0, pallet_brick_adobe 4|16.0, stack_plank 4|16.0, rebar_stack_short 4|4.0, rebar_stack_mid 4|4.0, rebar_stack_tall 4|4.0
+
+LOOT POR MÓVEL (móvel: grupos de itens mais comuns):
+table: dishes_dining, tea_dishes, baked_goods, groce_condiment, dining, consumer_electronics
+counter: kitchen_counters, SUS_hair_drawer, SUS_bathroom_cabinet, SUS_bathroom_medicine, harddrugs_residential, liquor_and_spirits
+rack: camping, tools_home, cleaning, mechanics, tools_survival, clothing_outdoor_shoes
+bed: bed
+cupboard: SUS_dishes, SUS_silverware, SUS_cookware, SUS_utensils, SUS_knife_drawer, SUS_junk_drawer
+rack_wood: SUS_pantry, cannedfood, shower, cleaning, bed, wines_worthy
+desk: SUS_office_desk, SUS_desks_bedroom_unisex
+dresser: SUS_dresser_mens, SUS_dresser_womens
+sink: SUS_bathroom_sink, SUS_bathroom_medicine, SUS_kitchen_sink
+utility_shelf: home_hw, cleaning, camping
+coffee_table: elecsto_persele, livingroom, cat_hoarder
+wardrobe: SUS_wardrobe_mens, SUS_wardrobe_womens
+tourist_table: power_tools, tools_construction, tools_carpentry, tools_earthworking, hardware_plumbing, paint
+bathtub: shower
+camp_chair: clothing_work_hat, clothing_work_gloves, magazines, misc_smoking
+entertainment_center: consumer_electronics, cat_hoarder
+workbench: tools_common, hardware, cleaning
+cardboard_box: allsporting, chem_home, child_items, stash_drugs, maps
+crate_c: hardware_bulk, plumbing_bulk
+gun_safe_el: art, art_all, home_display_case, harddrugs_residential, maps, guns_pistol_common
+fridge: SUS_fridge
+rack_coat: unisex_coat_rack
+oven: SUS_oven
+chest: toy_box, games, allsporting
+mailbox: mail
