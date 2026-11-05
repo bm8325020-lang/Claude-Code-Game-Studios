@@ -1,0 +1,81 @@
+FONTE: https://80.lv/articles/designing-dying-light-2-s-environments-and-levels/
+
+Designing Dying Light 2 Stay Human's Environments and Levels
+
+0
+Save
+
+Copy Link
+Share
+
+Katarzyna Zielińska
+
+Senior Concept Artist
+
+Interviewed by
+
+Arti Sergeev
+
+19 April 2022
+
+Techland's Lead Environment Concept Artist Kasia Zielińska has told us how the world of Dying Light 2 Stay Human was built, talked about creating environments that would support the gameplay, and explained how various regions of the map were designed. 
+
+Introduction
+My name is Kasia Zielińska and I am the Lead Environment Concept Artist at Techland. My team was responsible for designing the visual side of environments in Dying Light 2 Stay Human. We design everything from buildings, interiors, and skylines to small items such as books and posters.
+I’ve been involved in the game industry for the past 12 years. I started as a first-year architecture student in a small indie project. So far I was lucky to grow as an artist and lead across a variety of projects – from casual and F2P games, board and card games (Magic: The Gathering, This War Of Mine The Board Game) to AAA titles such as Dying Light 2: Stay Human. It’s been a blast so far!
+
+Worldbuilding in Dying Light 2
+When you start a new project you need to set a high-level idea that will influence every aspect of the game. For Dying Light 2 Stay Human it was the modern dark ages. Modern civilization has fallen after the spread of the Harran virus. You were able to experience what happened in Harran in the first Dying Light game.
+
+After the outbreak people needed to find a new way of living. We were working closely with the Story Team to provide visual solutions fitting this narrative. On the other hand, one of our main visual inspirations for the game was European cities. We looked very closely at their urban structures and architecture. As Concept Artists, we spend countless hours analyzing references. That let us build a strong visual foundation for the project.
+
+First Steps
+There were a few aspects that we kept in mind when designing different districts in Dying Light 2 Stay Human. As I already mentioned, we wanted to create a believable city by following real-life references. Secondly, we wanted to provide a rich parkour experience for players.
+
+Verticality was an important aspect. We knew from the very beginning that different heights of buildings have a big potential for an interesting parkour experience. We also took into consideration everything that we learned from the development of the first game.
+
+Working With the Game's Story
+We believe that creating great games requires teamwork and good communication between different departments. The shorter the distance between the Story Team and artists the better. Keeping documentation up to date is one thing but taking feedback and guidance directly from writers and directors is key. That’s why Concept Artists talk with them on a daily basis. Such conversations help to share feedback both ways, exchange ideas, and keep everyone in the decision loop.
+
+Old Villedor, the first district that you encounter as a player, is a great example of that. We used many processes and ideas that we established working on them in other areas later. From the story and visual points of view, we had to answer many questions: What people would do when the world they knew fell down? How would they defend their lives? Or fulfill their basic needs, produce food, communicate? Is there a place for anything else in this world beyond survival? On top of that – how does it all work with parkour gameplay and where’s the line between realism and stylization?
+
+Rooftops became the new ground and place where people seek shelter and safety. One of my favorite examples where the story meets environment design is man-made rooftop settlements. To give the feeling of actual living people these structures had to first and foremost be tender to fulfill basic human needs. That’s why there are farms, small fields, and bakeries to produce food.
+
+Another aspect is the makeshift approach to their construction. Resources in this world are limited and sometimes people have to use objects in an unexpected way. The old laundry basket may turn out to be a great pot or a base for a lamp. Pieces of tarp billboard can be used to build a tent to provide shelter. There are many many examples such as these in Dying Light 2 Stay Human.
+
+Designing Skyscrapers
+Central Loop is a very different district in terms of architecture and pre-apo function. It's a modern area full of offices, shops, and apartments. From an urban design point of view, we needed to design believable city structures. We have people with an architecture background on the team to keep an eye on it. It’s the first layer of design that helps players understand the space they’re surrounded by on a subconscious level. I also have to mention that we put a lot of effort to provide clear points of interest on the skyline for the same reason.
+The second layer, that comes along with the first one, is level design work. Every building that you see in the game was created in cooperation with the Level Design Team to make sure climbing and running on the rooftops is fun and satisfying. It was a big challenge for the Concept Art Team to design buildings that not only follow the art direction but also stick to very strict dimensions that comes with parkour. Doing it for huge skyscrapers is another level of difficulty. We often had to visually justify parkour helpers placed in unexpected (at the first glance) places. 
+
+Gameplay
+As I already mentioned, our concept art team works closely with level designers. We participate in their creative process literally from the gray box phase. When designing buildings and other environmental assets we were provided with prototypes with set dimensions that needed visual solutions. These prototypes were tested gameplay-wise before we got them.
+
+That may sound simple but in fact, it required a lot of cooperation between people to build a world that feels and plays so well. It’s not only about having ledges to climb but also a specific rhythm of them and a clear visual representation of the environment.
+
+Favorite Regions and Places
+It’s really hard to point out just a few things. We poured our hearts into this game and I’m super proud of everything we made. If I had to choose one element, I would like to talk about something that’s not so obvious at the first glance – murals.
+
+You can see them across different places in Villedor. We had full artistic freedom and coming up with ideas for them was super fun. Some of them criticize modern society, others illustrate our own pets or are winks to the first game. There’s a lot to explore if you look closely. Moreover, figuring out how weathered spray paint can be translated into a digital medium was a satisfying process. 
+
+We also came up with three different art collectives that were responsible for making them in Villedor. You can see small tags on murals that tell you which group created it. One of the groups was named after our Environment Concept Art Team and is called “Szybko Betonki”. It’s the internal nickname of the team in Techland. 
+
+Dark Zones
+Every Dark Zone in the game has a very specific mood. They are full of infected during the day but almost empty during the night. Going there comes with a challenge but also the possibility of great reward.
+
+From the art side, we wanted to convey this feeling of danger and mystery. While designing assets and interiors we knew that there won’t be any natural light. The biggest challenge was to make sure that the player would understand the space with only a flashlight in hand. We also decided to use small light points to help with navigation.
+
+Katarzyna Zielińska, Lead Environment Concept Artist at Techland
+Interview conducted by Arti Burton
+
+Built for the Game & Digital Art Industry
+Get Our Media Kit
+
+Comments 
+0
+
+Type your comment here
+
+Leave Comment
+
+Built for the Game & Digital Art Industry
+Get Our Media Kit

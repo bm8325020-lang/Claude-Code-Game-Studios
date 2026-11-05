@@ -1,0 +1,116 @@
+FONTE: https://wiki.7d2d.net/guides/advanced-rwg-configuration.html
+
+Advanced RWG Configuration :: 7 Days To Die Wiki
+
+7 Days To Die Wiki > Guides > Advanced Rwg Configuration
+
+Advanced RWG Configuration
+
+7 Days to Die ships with a Random World Generator (RWG) that builds a complete map - terrain, biomes, roads, towns, traders, wilderness POIs - from a seed string. The in-game UI exposes a few options (size, seed, biome ratio sliders), but the rule set the generator obeys is in XML on disk. Editing it lets you change biome weighting, town density, road style, and prefab placement rules. This guide covers the file you'd touch, the UI lever to use first, and where third-party tooling fits.
+
+Start With the In-Game UI
+
+Before touching XML, exhaust the built-in options. From the new-game / dedicated-server-config flow:
+
+World size - controls map dimensions. The corresponding server setting is WorldGenSize in serverconfig.xml (range 2048 - 16384, default 4096). Larger maps take exponentially longer to generate and to render in client view-distance terms.
+
+Seed - a string that deterministically reproduces the map. WorldGenSeed in serverconfig.xml (default asdf). Same seed + same size = same map.
+
+Biome ratio sliders (in the UI) - quick adjustments to biome weighting without touching files.
+
+If a UI slider gets you what you want, stop there. The XML edits below are for cases the UI can't express.
+
+The Real File: rwgmixer.xml
+
+The generator's rules live in Data/Config/rwgmixer.xml in the game install. (A copy ships with the dedicated server install too.) The wiki's RWG entry confirms this is the file that controls cell-size and the surrounding generation rule structure: cell rules, hub rules, wilderness rules, and prefab rules. Editing this file changes the generation behavior for every world built afterward.
+
+Don't edit the shipped file directly. Patches break, mods conflict, and you lose your changes on a Steam validate. The right pattern is a modlet - a small mod folder under Mods/ that contains a Config/rwgmixer.xml using XML-patch syntax to override specific elements without replacing the whole file.
+
+A minimal modlet looks like:
+
+Mods/
+  YourRWGTweaks/
+    ModInfo.xml
+    Config/
+      rwgmixer.xml      <!-- contains <append> / <set> / <remove> XPath patches -->
+The patches use elements like <set xpath="..."> to change values, <append xpath="..."> to add new rules, and <remove xpath="..."> to delete rules. The same pattern applies to all Data/Config/*.xml files in the game.
+
+What's in rwgmixer.xml
+
+The file is organized into rule categories. Knowing the structure helps you target XPath patches correctly:
+
+Cell rules - the map is broken into cells; these rules define what each cell can contain. Cell size is configured here too.
+
+Hub rules - towns and city placements: how many, how big, how far apart, what kinds of POIs live in them.
+
+Wilderness rules - POIs that spawn outside towns (gas stations, farmhouses, churches, traders).
+
+Prefab rules - which prefabs (POI definitions) are eligible for which biome and which slot type.
+
+Biome definitions - the set of biomes the generator can pick (Forest, Desert, Snow, Wasteland).
+
+Road generation - how main roads, dirt roads, and trails are laid out between hubs.
+
+The exact element names and attribute keys vary between game versions. Always open the live Data/Config/rwgmixer.xml from your current install and read the structure before patching - V3.0 reworked world generation, with V3.1, V3.2.0 and V3.3.0 following (3.3 ships the same rwgmixer.xml as 3.2), so recent releases may have introduced or renamed elements that older guides describe.
+
+Common Tweaks
+
+Conceptually, here's what people most often try to change. The exact XPath depends on your version's file structure - open rwgmixer.xml first and locate the matching elements before patching.
+
+More towns / closer towns - increase the count or relax the spacing in the hub rules. Very small spacing produces a "city map" feel but increases server load (more POIs to load near players).
+
+Heavier biome bias - modify the biome weights so a specific biome dominates. Easier route: use the in-UI sliders first.
+
+Bigger / smaller cities - change the size constraints in hub rules.
+
+Custom prefab pool - drop in your own POIs (or remove vanilla ones) by editing the prefab rules.
+
+Specific biome layouts - rare-biome arrangements like snow-only or desert-only worlds usually need both a biome-weight change AND road/hub rule adjustment to look right.
+
+RWG Output Is Cached After First Generation
+
+Important detail: when the server first generates a world from a seed + size + rwgmixer ruleset, the result is written to GeneratedWorlds/<world-name>/. After that, the server loads from that folder rather than regenerating. So:
+
+If you change rwgmixer.xml after the world has been generated, the existing world doesn't update - it's already on disk.
+
+To apply changes, delete the relevant folder under GeneratedWorlds/ (or change the seed/size, which produces a new world name) and let the server regenerate.
+
+This is also how you transfer a generated map between machines - see Save Migration: Local to Dedicated.
+
+Third-Party Tools
+
+Several community tools build on or replace the built-in RWG. The landscape moves fast and tool maintenance is patchy after each major game update - verify any tool you choose has been updated for V3.1 before relying on it. Names you'll encounter in community guides:
+
+KingGen - historically popular standalone RWG-replacement that reads its own config and outputs a folder you drop into GeneratedWorlds/. It is unmaintained for the V3.x line; treat it as legacy.
+
+Teragon is the community-developed map generator with the finest terrain control available. Release 0.52.30, from September 2026, is compatible with V3.2, so the old advice to check whether it supports your build no longer applies. It is distributed through its own Discord and it asks for 16 GB of RAM.
+
+xegen generates a scored world in the browser in about a minute with nothing to install, if you want the result rather than the control. The generators compared.
+
+NitroGen - older predecessor to KingGen; mostly historical interest now.
+
+If you use any of these, verify the tool's current compatibility against your installed game version. A map generated for an older version may have biome or POI references that the new version no longer ships with, and the world will fail to load with errors in the log (see Log Masterclass).
+
+Testing a Modified Ruleset
+
+Create your modlet under Mods/ with the rwgmixer patches.
+
+On a test save folder (not your main one), set a fresh WorldGenSeed in serverconfig.xml so the world generates with your patches applied.
+
+Start the server and watch the log for "Loading world" / "Generating world". Generation takes minutes for size 4096, longer for bigger sizes.
+
+Connect, fly around in debugmenu mode (see Admin Command Deep Dive), check whether the rule changes had the visible effect you wanted.
+
+If not, edit the modlet, delete the test world from GeneratedWorlds/, restart, and regenerate.
+
+Iteration is slow because each test requires a full world regen. Keep test worlds small (2048) while iterating on rules; only scale up to your real size once the rules behave as you want.
+
+Related Pages
+
+XML Settings reference - WorldGenSeed, WorldGenSize, GameWorld
+
+Save Migration - moving a generated world between machines
+
+Installing Mods - how to drop a modlet under Mods/
+
+Server Log Masterclass - debugging RWG generation failures

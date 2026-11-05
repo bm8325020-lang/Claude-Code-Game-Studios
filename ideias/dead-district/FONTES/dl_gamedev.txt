@@ -1,0 +1,126 @@
+FONTE: https://www.gamedeveloper.com/design/here-s-why-dying-light-2-s-open-world-is-hypnotic-to-navigate
+
+Here's why Dying Light 2's open world is hypnotic to navigate                                        
+
+Design
+Case Studies
+Here's why Dying Light 2's open world is hypnotic to navigate
+Dying Light 2 lead level designer Piotr Pawlaczyk discusses Techland's process for open world level design.
+
+Bryant Francis,Senior Editor,GameDeveloper.comFebruary 10, 2022
+
+schedule9 Min Read
+
+Open world level design is a weird beast, especially when developers are crafting environments meant to evoke familiar modern settings. Dying Light 2 Stay Human's city of Villedor for instance, is both meant to represent the apocalyptic wasteland of a European city and also be quickly navigable using the game's parkour-inspired traversal system.
+That means instead of prioritizing roadways and public transit, the level designers need to emphasize travel by way of rooftops, narrow streets, and more. And in a huge open world filled with zombies (that behave differently depending on time of day), there are a lot of dependencies to account for in order to make a world that's fun to navigate.
+Dying Light 2's open world thankfully isn't just fun, it's sometimes hypnotic. The details of Villedor fade away as you focus on what path you'll take to get to your next objective. Its fluid movement systems pair nicely with an environment that keeps the player progressing (and also punishes them for their mistakes. Sometimes that hypnotic fluidity gives way to the *splat* of dropping three stories to the ground).
+What were Techland's level designers thinking about when designing the city of Villedor? Lead level designer Piotr Pawlaczyk was willing to chat with us and share some insight on the company's design process.
+This interview has been lightly edited for clarity.
+Game Developer: What were some of your big ideas for Dying Light 2’s open world? What did you think you could do better than in the first game?
+
+Pawlaczyk: When we started working on Dying Light 2 Stay Human, we defined the main pillars of the game on which we wanted to build the whole: "Melee Combat," "Natural Movement," "Day and Night Cycle," and "Choices & Consequences"—which was also connected with a storyline that is more mature and has deeper and stronger characters than what we achieved in Dying Light 1. We decided to take each of the pillars that appeared in Dying Light 1 to the next level, adding more depth and meaning to the game.
+We wanted to make a large open-world game, but the ambition was not to race with other developers to see who could make the biggest map in the history of video games, but to build "deep exploration.” Each of the activities in the game support these pillars and raise their importance in the Dying Light 2 Stay Human world: you can find windmills which are a parkour challenge, but they are also connected to the Choices & Consequences pillar.
+You will find places rich in valuable loot, but require you use either the right strategy (going out at night, focusing on stealth, proper preparation) or preparing an appropriate arsenal and summoning friends in co-op to deal with the infected force. It's hard to get bored in our game’s world, and I think that what we did should satisfy every type of player, from brawlers to ninjas and quiet explorers.
+In 2019 [Dying Light 2 lead game designer] Tymone Smektala and I discussed City Builder, and how it let your team build the open world out of prefabricated elements. How did this tool work out for you in the end?
+
+Yes, to build the world of Dying Light 2 Stay Human, we used the "City Builder" tool. It can generate kilometers of map in a procedural way. The success of the development and usefulness of such a solution depends on constant cooperation between all teams (programming, level design, level art, 3D modeling, etc.), because without that, it won’t work properly. The tool evolved along with the creation of new elements, and each new element was immediately tested and corrected if necessary.
+While using a tool such as City Builder, we needed to be careful and not create repetitive, generic spaces. In my opinion we did well and we introduced many individual locations to expand and evolve the parkour paths leading between the main and side quest points.
+What did you find you had to go back and tweak by hand in order to make it not feel repetitive?
+
+As I mentioned above, we wanted the Dying Light 2 Stay Human world to have "our soul" and support gameplay with all paths between quest points and activities. Every individual location, environmental storytelling, all the combat featured in quests, side quests or activities… every stealth moment and other essential pieces were either built from scratch, or significantly modified.
+
+How did the branching narrative—and the changing areas—influence your work on level design?
+
+That's a great question. It was a challenge for us indeed, and quite new for us, but we were ultra excited. So we started with “paper,” because it's safe, fast… and we also have a proverb in the industry, “paper will accept anything,” so you can invent and do more on paper than during production. So it was a great beginning.
+Then one of our main level designers, Piotr Mistygacz, had a brilliant idea to build a quick miniature of the entire map and put a story sketch and open-world activities on it with all the changes to the story and the world. We let in one of our very meticulous QA testers, who was running on this miniature already in the game.
+He tested all dependencies, and we took his observations into account. This was also the moment when the story evolved, and working on such a simplified and "small" layout allowed for quick changes and tests. When the whole thing was stable, we started to transfer it to the target geometry. Thanks to the fact that the whole thing was on the same map and operated by the same logic, it took...one day. Super fast!
+When working on a new console generation, you’ve got more memory available to make interesting spaces, but also you have to make sure spaces are good areas to explore. Were there any challenges that came with this territory?
+
+Our first challenge was that most of the locations and paths were supposed to support our main pillars and thus give different types of players a great experience (i.e. support smart and smooth movement, support the fight with space and additional helpers, give space to explore and collect the right loot, let you play stealth or lose the chase at night, and tell the story with geometry). So at the beginning, regardless of the console generation, we set goals quite high.
+
+I remember when, at the very beginning, we were flooded with a cold sweat when we realized how much content to implement there was. But we have people on board who wouldn't let the game go without that final touch, so we set the commitment to 120 percent. I think believing in the project and ourselves made so much possible.
+This game has way more “stealth” sections than the previous title. How did designing places where the players is supposed to go slower go?
+
+This is another thing that was quite new for us. In Dying Light 1, such real stealth did not exist. The infected had senses, it was possible to avoid them, and you could hide or surprise a human opponent. And here, looking at the expansion of the pillar that is combat, we wanted to push stealth further and give some form to the Choices & Consequences pillar as well.
+
+There are many places, lik Metro Stations, Dark Hollows, GRE Laboratorie, and others, where if the player decides to sneak and does so cleverly, they are able to go all the way without losing too much of their resources. By spending more time finding paths and patrol windows, you can go through the whole area cleverly without triggering alarms or losing resources and gain a nice piece of loot or unlock new functionality. Of course, that does not change the fact that if the player prefers to wreak destruction and havoc, he can still choose this path :) It will be faster, but more difficult and more expensive :) ... choices and consequences… :)
+In making this game, the team obviously knew going in that the parkour system would let players go almost anywhere in the map. (Compared with Dying Light 1, where that knowledge came with iteration). How did that process compare, knowing you had to fill out every nook and cranny players could get to?
+
+It was exactly as you write—we started with this knowledge from the beginning :) This time we explored how to make the player's development broaden their exploration. That’s how stamina and the grappling hook came to be.
+Some people are quite against stamina, but if you play for a while, you will find a few inhibitors and can develop your stamina or health. The exploration will continue to deepen, opening new heights to which you can climb or allowing you to go deeper into dark places. Each of these things can also be temporarily overwritten with boosters, which increase one of the parameters for the player for a given time, allowing the player to get to more difficult places without the appropriate stat progression.
+What do you think is something level designers should know about spacing content in open worlds? Are there any patterns you observed that fell out of playtesting?
+
+As developers, but also as players, we are tired of open worlds that give "empty exploration,” so we really wanted to fill as many nooks as possible. In addition to a number of activities, environment narrative beats, and hundreds of collectibles, the first thing I would think about when making any open-world game is, ‘How big should it be?’ Sometimes, it's better to choose less to give players more. 
+
+Without level designers, there is no open world and cool gameplay without space. Some of the companies make a mistake [by] forgetting about this and treat level designers as mindless scriptwriters, like building a beautiful space with art and then hoping that level design will place all the gameplay there. The most important thing is communication and cooperation from the very first moments of thinking about space. It is important to collect all the departments that have an impact on this space, such as level design, design, level art, world design, 3D, etc.
+This of course depends on the size of the company, how extensive the structure is, and what assumptions the project has. You need to create an environment in which design can feed level design with mechanics, solutions, and assumptions, and at the same time, see how these elements work in the target geometry. Level design must work with level art so that the space created is playable but also beautiful and fits the visual lore of the game. Very often, the level design department is a crucial link between these departments (of course, it depends on the company's structure).
+Despite already being 15 years deep in the industry, thanks to this cooperation in the company, I am constantly faced with challenges that develop me—it's worth it.
+Read more about the making of Dying Light 2 by checking out Game Developer's interviews on Dying Light 2's Parkour system and the ins-and-outs of designing the game's divergent paths.
+
+About the Author
+
+Bryant Francis
+
+Senior Editor, GameDeveloper.com
+
+Bryant Francis is a writer, journalist, and narrative designer based in Boston, MA. He currently writes for Game Developer, a leading B2B publication for the video game industry. His credits include Proxy Studios' 4X strategy game Zephon, Iron Anchor Studios' Down With The Ship, and Amplitude Studio's 2017 game Endless Space 2.
+
+See more from Bryant Francischevron_right
+
+Daily news, dev blogs, and stories from Game Developer straight to your inbox
+
+Stay Updated
+
+Latest News
+More Newschevron_right
+
+BusinessTripwire Interactive expands publishing business to focus on smaller developers and gamesTripwire Interactive expands publishing business to focus on smaller developers and gamesbyImran Khan
+
+Nov 4, 20261 Min Read
+
+More News
+
+Keep up with the latest News, Interviews, and Talk Coverage from GDC Festival of Gaming right here on Game Developer
+
+READ ON
+
+podcasts
+Latest Podcasts
+GDC Side Quest - An anti-cheat primer with Lucia Suarez
+Oct 30, 2026
+
+Busting myths in game writing ft. Bruno Dias, Aysha Farah, & Andrea Saravia Perez
+Oct 9, 2026
+
+Why it's still worth making immersive sims ft. Harvey Smith & Ben Horne
+Oct 5, 2026
+
+GDC Side Quest - Exploring co-development opportunities with Sam Carlisle
+Sep 25, 2026
+
+How toolmakers like ARM work with devs, ft. Peter Hodges
+Sep 18, 2026
+
+See allchevron_right
+
+Game Developer Collective
+Morechevron_right
+
+BusinessGames that sell DLC and in-app purchases appear to benefit most from subscription servicesGames that sell DLC and in-app purchases appear to benefit most from subscription servicesbyBryant Francis
+
+Jan 27, 20263 Min Read
+
+BusinessDevs are more worried than ever that generative AI will lower the quality of gamesDevs are more worried than ever that generative AI will lower the quality of gamesbyBryant Francis
+
+Sep 16, 20254 Min Read
+
+More
+
+Game Design & Marketing Highlights
+See Morechevron_right
+
+DesignWhat Rami Ismail learned with his return to game developmentWhat Rami Ismail learned with his return to game development
+
+ProductionZelda producer: Ocarina of Time remake helps junior staff learn classic insightsZelda producer: Ocarina of Time remake helps junior staff learn classic insights
+
+See More

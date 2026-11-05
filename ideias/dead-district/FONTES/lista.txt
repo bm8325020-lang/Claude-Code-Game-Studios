@@ -1,0 +1,11 @@
+7d_rwg https://wiki.7d2d.net/guides/advanced-rwg-configuration.html
+7d_mixer https://7d2dmodding.wiki.gg/wiki/Rwgmixer.xml
+dl_80lv https://80.lv/articles/designing-dying-light-2-s-environments-and-levels/
+dl_techland https://techland.net/blog/the-development-process-behind-dying-light-2s-environments-and-buildings
+dl_gamedev https://www.gamedeveloper.com/design/here-s-why-dying-light-2-s-open-world-is-hypnotic-to-navigate
+tlou_tiles https://80.lv/articles/modular-tilesets-created-for-the-last-of-us-part-i
+tlou_wire https://80.lv/articles/a-behind-the-scenes-look-at-building-wireframes-in-the-last-of-us-part-i
+sod2_zine https://www.stateofdecay.com/wp-content/uploads/2023/12/Undead-Labs-Zine.pdf
+sod2_maps https://techraptor.net/content/state-of-decay-2-dev-talks-game-maps
+dg_team https://gamingbolt.com/days-gones-entire-open-world-was-designed-by-just-6-people
+pz_guide https://brainbound.blog/pz-editor-mapping-guide

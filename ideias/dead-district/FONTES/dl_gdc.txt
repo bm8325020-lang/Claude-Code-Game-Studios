@@ -1,0 +1,78 @@
+FONTE: https://gamedeveloper.com/design/video-how-techland-built-i-dying-light-i-s-remarkable-parkour-system
+
+Video: How Techland built Dying Light's remarkable parkour system                                        
+
+Design
+News
+Video: How Techland built Dying Light's remarkable parkour system
+In this 2018 GDC session, Techland's Bartosz Kulon shares the colorful story of how movement, running, and climbing was implemented in Dying Light.
+
+November 13, 2019
+
+schedule1 Min Read
+
+In this 2018 GDC session, Techland's Bartosz Kulon shares the colorful story of how movement, running, and climbing was implemented in Dying Light.
+Kulon peppered his talk with practical examples of problems he encountered and how Techland wound up solving them. It was a great introduction to the art of creating a first-person game with parkour-like movement, as well as an interesting behind-the-scenes look at the design of Dying Light.
+If you didn't have a chance to catch it live, good news: Kulon's GDC 2018 talk is now free to watch over on the official GDC YouTube channel!
+About the GDC Vault
+In addition to this presentation, the GDC Vault and its accompanying YouTube channel offers numerous other free videos, audio recordings, and slides from many of the recent Game Developers Conference events, and the service offers even more members-only content for GDC Vault subscribers.
+
+Those who purchased All Access passes to recent events like GDC or VRDC already have full access to GDC Vault, and interested parties can apply for the individual subscription via a GDC Vault subscription page. Group subscriptions are also available: game-related schools and development studios who sign up for GDC Vault Studio Subscriptions can receive access for their entire office or company by contacting staff via the GDC Vault group subscription page.
+
+Daily news, dev blogs, and stories from Game Developer straight to your inbox
+
+Stay Updated
+
+Latest News
+More Newschevron_right
+
+BusinessTripwire Interactive expands publishing business to focus on smaller developers and gamesTripwire Interactive expands publishing business to focus on smaller developers and gamesbyImran Khan
+
+Nov 4, 20261 Min Read
+
+More News
+
+Keep up with the latest News, Interviews, and Talk Coverage from GDC Festival of Gaming right here on Game Developer
+
+READ ON
+
+podcasts
+Latest Podcasts
+GDC Side Quest - An anti-cheat primer with Lucia Suarez
+Oct 30, 2026
+
+Busting myths in game writing ft. Bruno Dias, Aysha Farah, & Andrea Saravia Perez
+Oct 9, 2026
+
+Why it's still worth making immersive sims ft. Harvey Smith & Ben Horne
+Oct 5, 2026
+
+GDC Side Quest - Exploring co-development opportunities with Sam Carlisle
+Sep 25, 2026
+
+How toolmakers like ARM work with devs, ft. Peter Hodges
+Sep 18, 2026
+
+See allchevron_right
+
+Game Developer Collective
+Morechevron_right
+
+BusinessGames that sell DLC and in-app purchases appear to benefit most from subscription servicesGames that sell DLC and in-app purchases appear to benefit most from subscription servicesbyBryant Francis
+
+Jan 27, 20263 Min Read
+
+BusinessDevs are more worried than ever that generative AI will lower the quality of gamesDevs are more worried than ever that generative AI will lower the quality of gamesbyBryant Francis
+
+Sep 16, 20254 Min Read
+
+More
+
+Game Design & Marketing Highlights
+See Morechevron_right
+
+DesignWhat Rami Ismail learned with his return to game developmentWhat Rami Ismail learned with his return to game development
+
+ProductionZelda producer: Ocarina of Time remake helps junior staff learn classic insightsZelda producer: Ocarina of Time remake helps junior staff learn classic insights
+
+See More

@@ -1,0 +1,48 @@
+FONTE: https://80.lv/articles/a-behind-the-scenes-look-at-building-wireframes-in-the-last-of-us-part-i
+
+A Behind-the-Scenes Look at Building Wireframes in TLOU Part I
+
+1
+Save
+
+Copy Link
+Share
+
+Ana Kessler
+
+Media & Events Coordinator
+
+18 October 2022
+
+Naughty Dog's Senior Environment Modeler Edgar A. Martinez has shared a behind-the-scenes look at the game's town-building wireframes.
+
+Naughty Dog's Senior Environment Modeler and Layout Artist Edgar A. Martinez, who was responsible for the first section of "Bill's Town" in The Last of Us Part I as well as worked on the architectural concept design, level modeling, props, set dressing, collision, and UVs for the game, has shared a behind-the-scenes look at wireframes for buildings in the remake.
+
+The artist said that during the early stages of The Last of Us remake's production, he together with a small team of artists, worked on the game's vertical slice (a fully-playable portion of a game that is complete with assets that represent the final quality and have the game's key features and systems that are all working together properly).
+
+Martinez shared that it was a challenge for him to "embrace" the environment artwork created by the artist who worked on the original The Last of Us along with their style and design, however, together with the team he managed to recreate the buildings from scratch re-envisioning them and giving them a more realistic visual style.
+
+The artist also revealed that all the buildings in the game share many instances and the geometry on the renders he has published represents the highest level of detail.
+
+You can find more behind-the-scenes looks at the recently-released The Last of Us remake by visiting Edgar A. Martinez's ArtStation page.
+Also, don't forget to join our Reddit page and our Telegram channel, follow us on Instagram and Twitter, where we share breakdowns, the latest news, awesome artworks, and more. 
+
+Built for the Game & Digital Art Industry
+Get Our Media Kit
+
+Comments 
+1
+
+Type your comment here
+
+Anonymous user
+4 years ago
+
+Reply
+
+1
+
+Leave Comment
+
+Built for the Game & Digital Art Industry
+Get Our Media Kit
