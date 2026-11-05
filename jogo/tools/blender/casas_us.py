@@ -61,18 +61,24 @@ def janela_us(nome, a, b, tc, dentro_sinal, cor_veneziana, quebrada):
         caixa(nome + "_vidro", (c.x, c.y, zc), (JL, 0.015, h), "vidro_janela", (0, 0, ang))
 
 
-def telhado_us(nome, x0, x1, y0, y1, z, cor, alt=2.2):
+def telhado_us(nome, x0, x1, y0, y1, z, cor, alt=2.2, caido=False):
     """Duas águas com a cumeeira em x, beiral nos 4 lados, testeira branca e oitão de siding (o oitão fica com a
     cor da casa: siding_*)."""
     w, d = x1 - x0, y1 - y0
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
     agua = math.hypot(d / 2 + BEIRAL, alt)
     ang = math.atan2(alt, d / 2 + BEIRAL)
-    pl = []
+    pl, vg = [], []
     for s in (-1, 1):
         yc = cy + s * (d / 2 + BEIRAL) / 2
+        if caido and s < 0:  # incêndio: a água da frente caiu, sobraram os caibros queimados
+            for k in range(int((w + 2 * BEIRAL) / 0.8)):
+                vg.append(caixa("v", (x0 - BEIRAL + 0.4 + k * 0.8, yc, z + alt / 2), (0.1, agua, 0.14), "queimado", (s * -ang, 0, 0)))
+            continue
         pl.append(caixa("t", (cx, yc, z + alt / 2), (w + 2 * BEIRAL, agua, 0.12), cor, (s * -ang, 0, 0)))
     junta(pl, nome + "-col")
+    if vg:
+        junta(vg, nome + "_caibros")
     tes = []
     for s in (-1, 1):  # testeira (fascia) na beira das águas
         tes.append(caixa("f", (cx, cy + s * (d / 2 + BEIRAL), z - 0.08), (w + 2 * BEIRAL, 0.04, 0.22), "batente"))
@@ -205,12 +211,14 @@ def mobilia(tipo, nome, c, semente):
     return itens
 
 
-def casa_us(nome, w, d, semente, garagem=True, quartos=2, varanda=True):
+def casa_us(nome, w, d, semente, garagem=True, quartos=2, varanda=True, queimada=False):
     """Térrea americana. Corpo w x d (frente em y = -d/2), garagem de 3,8 x 6,5 encostada à esquerda (fora de w),
     varanda de 2,2 m na frente (fora de d)."""
     limpa()
     rnd.seed(semente)
     sid, tel, ven = rnd.choice(SIDINGS), rnd.choice(SHINGLES), rnd.choice(SHUTTERS)
+    if queimada:  # casa que pegou fogo: tudo preto, vidro estourado, sem forro, a água da frente do telhado caída
+        sid, tel, ven = "queimado", "queimado", "queimado"
     hw, hd = w / 2, d / 2
     fy, by = -hd, hd
     corr = 1.2
@@ -252,7 +260,7 @@ def casa_us(nome, w, d, semente, garagem=True, quartos=2, varanda=True):
                [(t, lg, 0, 0.5) for (t, lg, base, topo) in ab if base < 0.5], "fundacao", esp=0.04)
         for (t, lg, base, topo) in ab:
             if base > 0.5 and lg > 0.8:
-                janela_us("jan_%s_%d" % (k, int(t * 10)), a, b, t, 1, ven, rnd.random() < 0.3)
+                janela_us("jan_%s_%d" % (k, int(t * 10)), a, b, t, 1, ven, queimada or rnd.random() < 0.3)
             elif base > 0.5:
                 q = Vector((a[0], a[1], (base + topo) / 2)) + u * t
                 caixa("jan_%s_%d_vidro" % (k, int(t * 10)), (q.x, q.y, q.z), (lg, 0.02, topo - base), "vidro_janela",
@@ -314,7 +322,9 @@ def casa_us(nome, w, d, semente, garagem=True, quartos=2, varanda=True):
                     portas.append((i, tt, lg))
                 else:
                     janelas.append((i, tt, lg, base))
-        if tipo != "corredor":
+        if queimada:
+            ruinas.entulho("entulho_" + cn, ((x0 + x1) / 2, (y0 + y1) / 2, 0), 5, 1.1, "queimado")
+        elif tipo != "corredor":
             portas.sort(key=lambda p: -p[2])
             mobilia(tipo, cn, I.Comodo(x0, y0, x1, y1, portas, janelas), semente * 31 + len(cn))
     # ---- garagem anexa à esquerda ----
@@ -356,8 +366,9 @@ def casa_us(nome, w, d, semente, garagem=True, quartos=2, varanda=True):
         caixa("caixa_correio_poste", (-hw + pf_t + 2.5, vy0 - 3.5, 0.45), (0.06, 0.06, 0.9), "madeira")
     # ---- teto, telhado, chaminé ----
     piso("chao", -hw, fy, hw, by, 0.06, "concreto", 0.06)
-    piso("forro", -hw, fy, hw, by, PE, "forro", 0.05, col=False)
-    alt = telhado_us("telhado", -hw, hw, fy, by, PE, tel)
+    if not queimada:
+        piso("forro", -hw, fy, hw, by, PE, "forro", 0.05, col=False)
+    alt = telhado_us("telhado", -hw, hw, fy, by, PE, tel, caido=queimada)
     for x in (-hw, hw):
         oitao("ext_oitao%d" % (1 if x > 0 else 0), x, fy, by, PE, alt, sid)
     if rnd.random() < 0.6:
@@ -400,7 +411,8 @@ if __name__ == "__main__":
     TODOS = [("casa_us_%d" % (k + 1), (w, d, s, g, q, v)) for k, (w, d, s, g, q, v) in enumerate([
         (13.0, 10.0, 701, True, 2, True), (14.5, 12.0, 702, True, 3, True), (12.0, 10.0, 703, False, 2, True),
         (15.0, 12.0, 704, True, 3, False), (12.5, 10.0, 705, True, 2, True), (13.5, 11.5, 706, False, 3, True)])]
+    TODOS += [("casa_us_q1", (13.0, 10.0, 721, True, 2, True)), ("casa_us_q2", (12.0, 10.0, 722, False, 2, True))]
     for nome, (w, d, s, g, q, v) in TODOS:
         if not SO or nome in SO:
-            casa_us(nome, w, d, s, g, q, v)
+            casa_us(nome, w, d, s, g, q, v, queimada=nome.startswith("casa_us_q"))
     print("CASAS_US_OK")

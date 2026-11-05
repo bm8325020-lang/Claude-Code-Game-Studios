@@ -30,6 +30,19 @@ Espera de rede em teste = tempo real (`OS.delay_msec(16)`); `process_frame` cheg
 Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 
 ## Arquivos (scripts/)
+- RAVEN CREEK (05/11, substitui São Jorge; prompt do dono "DEAD DISTRICT MAP MASTER" + compositor de móveis): cidade
+  americana 1 x 1 km. Planta: `tools/mapa/raven_creek.py` (grade: Route 9, Main Street, centro com Town Square, igreja,
+  POLICE, hospital, Food Mart, posto; bairros de `casa_us_*` com gramado/cerca; 7% `casa_us_q*` queimadas (ardem:
+  `Bairro.queimada`); riacho com pontes; indústria; cemitério; Raven Hill). Bairro TAMANHO 1000, ORIGEM (0,0,-550).
+  Casas: `tools/blender/casas_us.py` (siding, telha asfáltica, varanda, garagem, venezianas; interior por
+  `tools/blender/interiores.py`: regras por cômodo + validação; teste `python3 -I tools/blender/test_interiores.py`).
+  Texturas: `tools/texturas/gera_americanas.py` (siding, shingle, carpete, linoleo, garagem; `Bairro.CORES_US`).
+  Malha de navegação em pedaços de NAV_PEDACO 250 m (`nav_bairro_i_j.res`; caixa +1 m por causa do border_size) ligados
+  por NavigationLink3D (`main._liga_pedacos`, salvos na meta "ligacoes" do 0_0): sem isso o mapa levava ~45 s para juntar.
+  Caminho longo (>~4000 polígonos) para no meio: limite do Godot, não é rua cortada. Regerar tudo: `bash tools/pipeline_mapa.sh
+  [sem_modelos]` (SAIDA=pasta do resumo). Fotos: foto_cidade.gd (vistas de Raven Creek), foto_modelos.gd `:planta`, `:ver=movel,dist`.
+  Docs: `ideias/dead-district/` (PROJECT_STATUS, ARCHITECTURE, MAP_PLAN, CITY_LAYOUT, ASSET/INTERIOR_CATALOG, TASKS, CHANGELOG).
+  O texto abaixo sobre São Jorge vale para o que não mudou (Bairro/Planta são os mesmos; São Jorge: tools/mapa/cidade_v2.py).
 - `main.gd` — pista de teste (blocos, rampas, túnel, prédio, casinha com `Porta_0`, carro), bonecos de treino, itens
   (`Item_0..3` munição, `Item_casa`, `Item_comida_k`/`Item_agua_k`), `PONTOS_ZUMBI`, `PONTOS_TOCAIA`, `PATRULHAS`, `PONTOS_CHEFE`, spawners
   (jogadores e zumbis), malha de navegação (grupo "cenario", raio 0.35), `iniciar_solo/criar_partida/entrar_partida/iniciar_servidor`.

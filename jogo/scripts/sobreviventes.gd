@@ -38,7 +38,7 @@ func monta(b: Bairro) -> void:
 	for k in mini(N_REFUGIOS, casas.size()):
 		_refugio(casas[k])
 	# casas queimadas não: a parede da frente caiu e a pichação ficaria no ar
-	var fachadas: Array = b.get_children().filter(func(n: Node) -> bool: return n.has_meta("poly") and n.has_meta("frente") and n.get_meta("modelo", "") not in ["casa_r4", "casa_r6"])
+	var fachadas: Array = b.get_children().filter(func(n: Node) -> bool: return n.has_meta("poly") and n.has_meta("frente") and not Bairro.queimada(String(n.get_meta("modelo", ""))))
 	for k in fachadas.size():
 		if hash(String(fachadas[k].name) + "pixo") % 4 == 0:
 			_picha(fachadas[k], PICHACOES[k % PICHACOES.size()])

@@ -254,6 +254,8 @@ APTOS = [k for k in MED if k.startswith("apto_")]
 CASA_US = {"casa_us_1": (13.0, 10.0, True, True), "casa_us_2": (14.5, 12.0, True, True), "casa_us_3": (12.0, 10.0, False, True),
            "casa_us_4": (15.0, 12.0, True, False), "casa_us_5": (12.5, 10.0, True, True), "casa_us_6": (13.5, 11.5, False, True)}
 CASAS = list(CASA_US)
+QUEIMADAS = ["casa_us_q1", "casa_us_q2"]  # pegaram fogo (ainda ardem no jogo): 7% dos lotes
+CASA_US.update({"casa_us_q1": (13.0, 10.0, True, True), "casa_us_q2": (12.0, 10.0, False, True)})
 RUINA_BLOCO = ["loja_r1", "loja_r1", "loja_r2", "loja_r2", "predio_r1"]
 n_sobrado = 0
 ruina_feita = False
@@ -346,7 +348,7 @@ def enche(pts, lado, zona_ok=None):
                         prop(R.choice(["arvore_1", "arvore_2", "arvore_3"]), q[0], q[1], R.uniform(0, 6.28))
                 t += 18.0
                 continue
-            modelo = R.choice(CASAS)
+            modelo = R.choice(QUEIMADAS) if R.random() < 0.07 else R.choice(CASAS)
             recuo, vao = R.uniform(7.5, 9.0), 0.0
         w, d = tam(modelo)
         casa = modelo in CASA_US

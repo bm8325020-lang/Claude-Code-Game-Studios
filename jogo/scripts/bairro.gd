@@ -132,7 +132,7 @@ func _ready() -> void:
 	_borda()
 	_tabuas_telhado()
 	for casa: Node in get_children():  # casa queimada ainda arde por dentro: coluna de fumaça que se vê de longe
-		if casa.get_meta("modelo", "") in ["casa_r4", "casa_r6"] and hash(String(casa.name)) % 2 == 0:
+		if Bairro.queimada(String(casa.get_meta("modelo", ""))) and hash(String(casa.name)) % 2 == 0:
 			var f := Fogo.new()
 			f.tamanho = 1.2
 			f.coluna = true
@@ -735,6 +735,11 @@ const CORES_CIDADE: Dictionary = {"reboco_rosa": Color(0.86, 0.6, 0.6), "reboco_
 	"pintura_rosa": Color(0.98, 0.83, 0.83), "pintura_amarela": Color(1.0, 0.92, 0.62), "pintura_branca": Color(0.97, 0.97, 0.95),
 	"barra_verde": Color(0.42, 0.6, 0.48), "barra_azul": Color(0.38, 0.5, 0.68), "barra_vinho": Color(0.58, 0.28, 0.28),
 	"ceramica_bege": Color(0.95, 0.86, 0.7), "ceramica_cinza": Color(0.8, 0.8, 0.8), "ceramica_vermelha": Color(0.78, 0.35, 0.28)}
+## Casa que pegou fogo (ainda arde: coluna de fumaça; refúgio não usa).
+static func queimada(modelo: String) -> bool:
+	return modelo in ["casa_r4", "casa_r6"] or modelo.begins_with("casa_us_q")
+
+
 ## Cores da casa americana (tinta por cima das texturas claras).
 const CORES_US: Dictionary = {
 	"siding_branco": Color(0.92, 0.92, 0.9), "siding_azul": Color(0.58, 0.7, 0.82), "siding_amarelo": Color(0.95, 0.86, 0.6),
