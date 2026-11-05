@@ -52,6 +52,10 @@ const NOITE_OUVE: float = 1.4        # e ouve mais longe (as notas: "à noite fi
 const OUVE_CORRENDO: float = 2.0     # x OUVE: 13 m de dia
 const OUVE_AGACHADO: float = 0.5     # x OUVE: 3,3 m de dia
 const OUVE_CARRO: float = 15.0       # m: motor ligado (jogador dentro do carro)
+# mods do GTA V (05/11): de noite parte dos zumbis corre de longe; zumbi empacado dá um passo de lado
+const CORREDOR_NOITE: float = 0.4    # chance do zumbi ser "noturno": de noite corre atrás do alvo a qualquer distância
+const PRESO: float = 1.0             # s querendo andar e quase parado = empacou
+const DESVIO: float = 0.7            # s andando de lado para sair
 const EMBOSCA: float = 4.0          # m: alguém passando assim perto acorda o zumbi deitado
 const ACORDA_BARULHO: float = 10.0  # m: tiro até essa distância acorda o deitado
 const VEL_LEVANTAR: float = 1.3
@@ -126,6 +130,10 @@ var raid: int = 0
 static var tipo_fixo: String = ""
 var _dano: int = DANO
 var _vel: float = 1.0
+var noturno: bool = false  # sorteado no _ready (CORREDOR_NOITE); só vale de noite
+var _preso_t: float = 0.0
+var _desvio_t: float = 0.0
+var _desvio_lado: float = 1.0
 var _skill_t: float = 2.0
 var _mordendo: float = -1.0  # servidor: s até morder (agarrado no jogador)
 var _mordida_cd: float = 0.0
@@ -225,6 +233,7 @@ var _mat_pele: StandardMaterial3D
 
 
 func _ready() -> void:
+	noturno = randf() < CORREDOR_NOITE
 	add_to_group("golpeavel")
 	add_to_group("zumbis")
 	collision_layer = 8
@@ -478,7 +487,7 @@ func _physics_process(dt: float) -> void:
 					_fechando = true
 				else:
 					destino = lado
-			var vel: float = CORRER if d.length() < PERTO else ANDAR
+			var vel: float = CORRER if d.length() < PERTO or (noturno and Ciclo.noite_de(get_tree()) > 0.5) else ANDAR
 			if armado and d.length() < TIRO_ATE and d.length() > TIRO_DE:
 				vel = ANDAR * 0.6  # armado não corre para cima: chega devagar atirando
 			if global_position.y < Bairro.AGUA_Y + 0.3:
@@ -522,10 +531,18 @@ func _physics_process(dt: float) -> void:
 		_vira_para(porta.centro() - global_position, dt * 2.0)
 		_porta_alvo = porta
 		_ataca()
+	if _desvio_t > 0.0 and desejada.length() > 0.01:  # empacado: anda de lado um pouco
+		_desvio_t -= dt
+		desejada = (desejada + Vector3(desejada.z, 0, -desejada.x) * _desvio_lado).normalized() * desejada.length()
 	var plano := Vector3(velocity.x, 0, velocity.z).move_toward(desejada, 18.0 * dt)
 	velocity.x = plano.x
 	velocity.z = plano.z
 	move_and_slide()
+	_preso_t = _preso_t + dt if desejada.length() > 0.5 and Vector2(velocity.x, velocity.z).length() < 0.3 else 0.0
+	if _preso_t > PRESO:
+		_preso_t = 0.0
+		_desvio_t = DESVIO
+		_desvio_lado = 1.0 if randf() < 0.5 else -1.0
 	if _ataque_t < 0.0 and _cambaleio <= 0.0 and _grito_t < 0.0 and _levantando < 0.0:
 		var v: float = plano.length()
 		var nomes: Dictionary = {"andar": "andar", "correr": "correr"} if chefe else TIPOS[tipo]

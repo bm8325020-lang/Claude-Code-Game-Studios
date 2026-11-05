@@ -103,6 +103,12 @@ func falta() -> float:
 	return (DIA - tempo) if tempo < DIA else (DIA + NOITE - tempo)
 
 
+## Quanto é noite agora (0 dia, 1 noite fechada); sem ciclo na cena, 0.
+static func noite_de(arvore: SceneTree) -> float:
+	var c := arvore.get_first_node_in_group("ciclo") as Ciclo
+	return c.noite() if c else 0.0
+
+
 ## Multiplicador da força dos zumbis agora (1 de dia; MAIS_FORTE com a noite fechada).
 static func forca_noite(arvore: SceneTree, mais_forte: float) -> float:
 	var c := arvore.get_first_node_in_group("ciclo") as Ciclo
