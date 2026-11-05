@@ -120,7 +120,11 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   4.7). Clipes novos em Anims.CLIPES_ZUMBI (tirados do exclude_filter do APK). Carro: `dispara_alarme` (tiro da
   Pistola acerta Carro -> rpc `_toca_alarme`, `assets/sons/alarme.wav` feito aqui, Zumbi.barulho ALARME_RAIO).
 - Barulho de quem se mexe (05/11, mods de zumbi do GTA V): `Zumbi.ouve_de(j, base)` — correndo x2 (OUVE_CORRENDO),
-  agachado x0,5, no carro >= 15 m (motor). `correndo` vai pela sincronia; Rede.VERSAO 42. Teste: test_ouvir (4).
+  agachado x0,5, no carro >= 15 m (motor). `correndo` vai pela sincronia; Rede.VERSAO 42. `noturno` (CORREDOR_NOITE 40%:
+  de noite corre de longe), empacado anda de lado (PRESO/DESVIO). Teste: test_ouvir (6).
+  Horda andarilha: `horda.gd` (Horda, servidor; main.horda.passa): PRIMEIRA 600 s, INTERVALO 420 s, 8 (+líder; noite 12),
+  nasce a NASCE_LONGE fora da vista, marcha (`Zumbi.marcha`) atravessando o jogador, líder (`lider`, `imune`, VIDA_LIDER),
+  corpo some (CORPO_HORDA), fica no servidor (`_divide_peso`). Teste: test_horda (13; espera a malha da cidade carregar).
   Relatório: `ideias/dead-district/RELATORIOS/gta_mods.md`.
   Teste: test_zumbi_jeitos (13). Rede.VERSAO 36.
 - Vídeo do dono (31/10, 0.85): desempenho `Zumbi._process` (anima de 3 em 3 quadros longe/atrás, de 8 em 8 além de

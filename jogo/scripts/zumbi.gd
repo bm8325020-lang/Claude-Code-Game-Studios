@@ -131,6 +131,14 @@ static var tipo_fixo: String = ""
 var _dano: int = DANO
 var _vel: float = 1.0
 var noturno: bool = false  # sorteado no _ready (CORREDOR_NOITE); só vale de noite
+## horda andarilha (Horda, mods do GTA V): id da horda (0 = não é), líder, ponto para onde marcha (INF = nenhum)
+var horda: int = 0
+var lider: bool = false
+var marcha: Vector3 = Vector3.INF
+var imune: bool = false  # líder com outro membro vivo: não toma dano (servidor decide)
+const ESCALA_LIDER: float = 1.2
+const VIDA_LIDER: int = 400
+const CORPO_HORDA: float = 30.0  # s até o corpo de um zumbi de horda sumir
 var _preso_t: float = 0.0
 var _desvio_t: float = 0.0
 var _desvio_lado: float = 1.0
@@ -146,7 +154,7 @@ var _dorme_t: float = 0.0
 
 # nada para fazer: sem alvo, sem patrulha, sem barulho para ir ver, sem procurar nem voltar, sem raid
 func _quieto() -> bool:
-	return alvo == null and raid == 0 and rota.is_empty() and not _indo_ouvir and _olhando_t <= 0.0 and not _voltando \
+	return alvo == null and raid == 0 and horda == 0 and rota.is_empty() and not _indo_ouvir and _olhando_t <= 0.0 and not _voltando \
 		and _foge_t <= 0.0 and _ataque_t < 0.0
 
 
@@ -239,7 +247,7 @@ func _ready() -> void:
 	collision_layer = 8
 	collision_mask = 1 | 8 | Porta.CAMADA
 	floor_snap_length = 0.4
-	var k: float = ESCALA_CHEFE if chefe else 1.0
+	var k: float = ESCALA_CHEFE if chefe else (ESCALA_LIDER if lider else 1.0)
 	if chefe:
 		_vida_max = VIDA_CHEFE
 		vida = VIDA_CHEFE
@@ -255,6 +263,10 @@ func _ready() -> void:
 	# o nome é o mesmo em todos os aparelhos: todos veem o mesmo zumbi
 	if not chefe:
 		aplica_tipo(tipo_fixo if tipo_fixo != "" else (tipo_pedido if tipo_pedido != "" else Anims.ZUMBIS[hash(String(name)) % Anims.ZUMBIS.size()]))
+	if lider:
+		_vida_max = VIDA_LIDER
+		vida = VIDA_LIDER
+		altura_cabeca *= k
 	if not chefe and TIPOS[tipo].skill == "baixo":
 		cap.height = 0.75  # deitado se arrastando: colisor baixo (o tiro passa por cima de quem não mira)
 		cap.radius = RAIO
@@ -391,6 +403,9 @@ func _physics_process(dt: float) -> void:
 	if vida <= 0:
 		_morto_t -= dt
 		if _morto_t <= 0.0 and _manda():  # só o servidor ressuscita (a vida é dele)
+			if horda != 0:
+				queue_free()
+				return
 			global_position = casa
 			vida = _vida_max
 		velocity.x = 0.0
@@ -509,6 +524,10 @@ func _physics_process(dt: float) -> void:
 			_olhando_t = PROCURA
 		else:
 			desejada = _caminho(_ouvido, VAI_OUVIR * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
+	elif marcha.is_finite():  # horda: anda em bloco até o ponto que a Horda manda
+		_voltando = false
+		if _plano(marcha - global_position) > 1.5:
+			desejada = _caminho(marcha, ANDAR * _vel * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
 	elif not rota.is_empty():
 		_voltando = false
 		desejada = _patrulha(dt)
@@ -1023,6 +1042,8 @@ func _pede_golpe(dano: int, dir: Vector3) -> void:
 
 
 func _aplica(dano: int, dir: Vector3) -> void:
+	if imune:
+		return  # líder da horda: só morre depois dos outros
 	if _deitado and _no_chao_t > 0.0:
 		dano = roundi(dano * QUEDA_MAIS)  # caído: acabe com ele
 	elif _deitado:
@@ -1074,7 +1095,7 @@ func _morre() -> void:
 	_indo_ouvir = false
 	_olhando_t = 0.0
 	_voltando = false
-	_morto_t = MORTO_RAID if de_raid else MORTO_POR
+	_morto_t = MORTO_RAID if de_raid else (CORPO_HORDA if horda != 0 else MORTO_POR)  # horda não levanta: o corpo some
 	if _manda() and pensa != 1 and multiplayer.has_multiplayer_peer():
 		muda_pensa.rpc(1)  # morto volta para o servidor (ele ressuscita e solta o loot)
 	_mirando = -1.0

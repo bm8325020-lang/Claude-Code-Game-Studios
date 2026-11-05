@@ -30,6 +30,7 @@ var bairro: Bairro
 ## nasce no bairro (o jogo); os testes que medem a pista desligam
 static var nascer_no_bairro: bool = true
 var grupos := Grupos.new()  # servidor: quem está com quem
+var horda := Horda.new()  # servidor: horda andarilha (mods de zumbi do GTA V)
 var faccoes := Faccoes.new()  # servidor: facções e domínios em andamento
 var _faccoes_cli: Dictionary = {"f": {}, "t": {}}  # todos: cópia que o servidor manda
 var _faccao_tick: float = 0.0
@@ -367,6 +368,7 @@ func _process(dt: float) -> void:
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		_divide_peso(dt)
 		grupos.passa(dt)
+		horda.passa(self, dt)
 		_passa_raids(dt)
 		_passa_dominio(dt)
 		_passa_salas(dt)
@@ -808,6 +810,8 @@ func _cria_zumbi(dados: Dictionary) -> Node:
 	z.armado = bool(dados.get("armado", false))
 	z.de_raid = bool(dados.get("de_raid", false))
 	z.tipo_pedido = String(dados.get("tipo", ""))
+	z.horda = int(dados.get("horda", 0))
+	z.lider = bool(dados.get("lider", false))
 	return z
 
 
@@ -1313,7 +1317,7 @@ func _divide_peso(dt: float) -> void:
 	_peso_t = PESO_A_CADA
 	var vivos: Array = jogadores.get_children().filter(func(j: Jogador) -> bool: return j.vida > 0)
 	for z: Zumbi in zumbis.get_children():
-		if z.chefe or z.armado or z.vida <= 0 or z._deitado or z._mordendo > 0.0:
+		if z.chefe or z.armado or z.horda != 0 or z.vida <= 0 or z._deitado or z._mordendo > 0.0:
 			continue
 		var melhor: Jogador = null
 		var d_melhor: float = PESO_RAIO
