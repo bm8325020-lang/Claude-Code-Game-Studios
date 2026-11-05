@@ -28,6 +28,26 @@ def chama(caminho, corpo=None, tempo=600):
         return json.load(r)
 
 
+def conversa(modelo, mensagens, tempo=900):
+    """Resposta em pedaços (stream): o túnel do celular derruba conexão parada esperando resposta longa."""
+    corpo = {"model": modelo, "messages": mensagens, "stream": True}
+    req = urllib.request.Request(URL + "/chat/completions", data=json.dumps(corpo).encode(),
+                                 headers={"Authorization": "Bearer " + KEY, "Content-Type": "application/json",
+                                          "bypass-tunnel-reminder": "1"})
+    partes = []
+    with urllib.request.urlopen(req, timeout=tempo) as r:
+        for linha in r:
+            linha = linha.decode("utf-8", "replace").strip()
+            if not linha.startswith("data:") or linha.endswith("[DONE]"):
+                continue
+            try:
+                d = json.loads(linha[5:])
+                partes.append((d["choices"][0].get("delta") or {}).get("content") or "")
+            except (ValueError, KeyError, IndexError):
+                pass
+    return "".join(partes)
+
+
 def modelos():
     return [m["id"] for m in chama("/models").get("data", [])]
 
@@ -39,10 +59,10 @@ def faz(args):
         texto += "\n\n=== %s ===\n%s" % (arq, open(arq, encoding="utf-8").read())
     for tentativa in range(3):  # túnel do celular cai de vez em quando (502/408)
         try:
-            r = chama("/chat/completions", {"model": modelo, "messages": [{"role": "system", "content": SISTEMA},
-                                                                          {"role": "user", "content": texto}]})
-            resposta = r["choices"][0]["message"]["content"]
-            break
+            resposta = conversa(modelo, [{"role": "system", "content": SISTEMA}, {"role": "user", "content": texto}])
+            if resposta.strip():
+                break
+            resposta = "ERRO: resposta vazia"
         except Exception as e:  # um modelo fora do ar não derruba os outros
             resposta = "ERRO: %s" % e
     nome = os.path.join(saida, "%02d_%s.md" % (n, "".join(c if c.isalnum() else "_" for c in tarefa["titulo"])[:40]))
