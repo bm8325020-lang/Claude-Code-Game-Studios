@@ -1,0 +1,35 @@
+Resumos lidos pelo chefe em 05/11 (WebSearch/WebFetch). ArtStation e unrealengine.com dão 403 no fetch: o que vem
+deles é RESUMO DE BUSCA (marcar como confiança média).
+
+TLOU PART I
+- artstation.com/artwork/PervD3 e eJnEW3 (Edgar A. Martinez, resumo de busca): ruas da 1ª parte de Bill's Town com
+  vertex blend em quase tudo; ajudou o artista de textura a misturar outros assets; arquitetura, tileset, props, set
+  dressing, colisão, UVs; remake "from the ground up" com guia de estilo mais realista.
+- artstation.com/artwork/Evvgl4 (Chris Hodgson / Jonny Chen, resumo de busca): texturas e materiais da biblioteca
+  compartilhada da Naughty Dog.
+- theloadout.com/the-last-of-us-remake/part-1-review: interiores (checkpoint de Pittsburgh) melhorados; placa impressa no
+  lugar de parede de madeira; paredes, vitrines e interiores com material de mundo real.
+- history.siggraph.org (Iwanicki 2013, "Lighting technology of The Last of Us", resumo de busca): lightmaps "old lightmaps -
+  new tricks"; ambiente + luz direcional por texel; oclusão analítica por esferas. Doghramachi 2020 (Part II): ambiente
+  pré-calculado melhor, 30 fps e memória limitada.
+- 80.lv see-how-level-design-lighting-helped-make-the-last-of-us-more-immersive: "the cold light of searchlights and lamps
+  highlights danger zones, while darker areas read as safe paths"; "directed lighting is used to illuminate a passage or an
+  important object"; amarelo e vermelho marcam interação e direção.
+
+TWD SAINTS & SINNERS
+- artstation.com/artwork/L2NR0k (Giovani Magana, resumo de busca): casas de Bywater de um kit modular de peças de fachada;
+  variação por dressing e cor + grunge por material.
+- n8studios.artstation.com/projects/1ny2No (Nathan Lange, resumo de busca): equipe de ambiente Tom Nguyen, Dana Klaren,
+  Brett Lo, Bryant Koshu, Giovani Magana. Dana Klaren: prédios da fase The Ward.
+- amandakieferart.com/walkingdead: "Because this is a VR title, I kept simple shapes"; "semi-realistic style with occasional
+  sharp edges to the forms"; "a simplified stylized texture style".
+- theouterhaven.net review (resumo de busca): loot físico bom; iluminação ruim dentro dos prédios.
+- gameplay.tips/guides/6423: prioridade de loot; Box of Stuff por cor; desmontar itens em material (ex. relógio = 2 bindings,
+  1 nuts & bolts, 3 wood); tábua = 4 wood + 1 metal; remédio "almost entirely gone by day 5".
+
+GTA V (mods de zumbi; "GTA V Zomboid" não achado com esse nome)
+- gta5-mods.com/scripts/zombimod-ldracarys_ (Zombimod): saque em lojas e corredores de mercado; loot de natureza por chance;
+  carro conserta ou desmonta; avião caído; bolso 5 espaços pilha 3; mochila 5 níveis; baú com nível; construção solta/grade;
+  andador/corredor/chefe; fome ~40 min, sede ~30 min; até 3 eventos; sobrevivente a cada 7 min; porta abre/fecha.
+- Busca: Simple Zombies Reborn (spawn e streaming refeitos), Zombie Enhanced Edition (zumbis preferem ruas e cruzamentos;
+  saque de corpos), Left 4 Santos (2016), The Dead Among Us (conversão do mapa).

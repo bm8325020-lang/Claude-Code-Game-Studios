@@ -66,7 +66,9 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   (casa_r1..r6: telhado caído, queimada, 2 andares com escada; loja_r1/r2: vitrine, gôndolas; predio_r1: canto
   desabado; móveis dentro: `mobilia` com sofá, tapete, TV, quadros, estante, mesa; quarto com cama/criado/guarda-roupa
   ou cozinha com balcão/geladeira/fogão/armário aéreo; `bagunca` (papéis sem colisão + caixas); 31/10: AO mais claro 0.42). Rodar: `~/.local/blender/blender -b -P tools/blender/ruinas.py --
-  assets/ruinas` (e cidade.py igual) e depois `$G --headless --path . --import`; foto: `tools/blender/foto_ruinas.py -- assets/ruinas dir`.
+  assets/ruinas` (e cidade.py igual) e depois `$G --headless --path . --import`; Blender agora é 5.2.3 (05/11; scripts
+  escritos na 4.2: conferir na 1ª rodada). Skills blender-* (EL4CTEO/blender-skills, MIT) em ~/.claude/skills: carregar só ao usar;
+  container novo: `git clone --depth 1 https://github.com/EL4CTEO/blender-skills /root/ext/bs/EL4CTEO && cp -R /root/ext/bs/EL4CTEO/skills/. ~/.claude/skills/`; foto: `tools/blender/foto_ruinas.py -- assets/ruinas dir`.
   Colisão vem do glb (nome "-col"/"-colonly": sem parede invisível). `_ruina` escolhe pelo nome entre `RUINAS_CASA/
   LOJA/MANSAO` que cabem e não encostam na rua (senão lote vazio; mansão cai na casa em código `_construcao`),
   `_poe_ruina` (Porta no Empty "porta"), `_mat_ruina` (nome do material do Blender -> textura). As 3 maiores casas =

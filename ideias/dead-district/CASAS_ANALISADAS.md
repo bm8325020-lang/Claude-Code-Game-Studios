@@ -75,19 +75,49 @@ Fonte: `FONTES/dayz_ce.txt` (licença proíbe usar os dados fora de Arma/DayZ: s
 - Cidade dividida em quarteirões/regiões para LOD e streaming. DL1: mapa dividido em dois pelo limite do console.
 - Decisão: **APROVEITAR** a ideia do City Builder (gerar e depois acabar à mão). Já fizemos telhados andáveis.
 
-### The Last of Us Part I e II (artigos, tipo B) — FATO, confiança alta (II), média (I)
-- O que se vê é decidido no **blockmesh** (caixa cinza) antes da arte.
-- **Interior:** sol e céu bloqueados; luz posta **fora** das janelas e portas. Iluminação quase toda pré-calculada.
-- Props contam quem morava (violões, discos, entalhes). Biblioteca de props com palavras-chave.
-- **Vidro quebrável** (II): cacos gerados de uma textura; shader de vidro fractal; vidro como quebra-cabeça.
-- Part I: Bill's Town por equipe pequena; tileset + props + set dressing. Vidro em camadas / molhado / detail map:
-  NÃO CONFIRMADO (páginas do ArtStation bloqueadas, só resumo de busca).
-- Decisão: **ADAPTAR** luz por fora das janelas (no celular: cor de vértice/ambiente mais clara perto da janela).
+### The Last of Us Part I e II (artigos, portfólios, SIGGRAPH; tipo B) — FATO, confiança alta (II), média (I)
+Fontes: `FONTES/web_casas.txt`, `FONTES/tlou_twd_gta.txt`.
+- **Part I (Bill's Town, remake 2022):** refeito "from the ground up" com guia de estilo mais realista (arquitetura,
+  assets, set dressing, vegetação). O artista fez arquitetura, tileset, props, colisão e UVs, e **pintou mistura por
+  vértice (vertex blend) em quase todas as ruas** e em outros assets. Texturas e materiais vêm de uma **biblioteca
+  compartilhada do estúdio**. Interiores: paredes, vitrines e lojas ganharam material de mundo real; placa impressa no
+  lugar de parede de madeira (análise do remake).
+- **Luz (SIGGRAPH 2013, Iwanicki, "old lightmaps - new tricks"):** luz pré-calculada em lightmap com termo ambiente +
+  **direção dominante** por texel (o interior sem sol não fica chapado). Oclusão dos personagens calculada por
+  esferas (barato). Part II (SIGGRAPH 2020): melhoraram o ambiente pré-calculado mantendo 30 fps e memória limitada.
+- **Part II:** o que se vê é decidido no **blockmesh**; interior com sol/céu bloqueados e luz de área **fora** das
+  janelas e portas; props contam quem morava; vidro quebrável gerado de textura + shader fractal; ~1000 objetos de
+  física vivos no máximo; LOD automático (Simplygon); biblioteca de props com palavras-chave.
+- **Guiar com luz:** luz fria de holofote = perigo, escuro = caminho seguro; luz dirigida ilumina passagem ou objeto;
+  amarelo e vermelho marcam o que se usa e para onde ir.
+- Decisão: **ADAPTAR** vertex blend nas ruas e paredes, luz de janela, e amarelo nas coisas de usar.
+  **DESCARTAR** lightmap de verdade (pesa no celular); no lugar: cor de vértice pré-calculada (já temos AO por vértice).
 
-### The Walking Dead: Saints & Sinners (artigo, tipo B) — FATO, confiança média (pouco detalhe)
-- Tamanho das fases medido pela velocidade de andar; fases verticais. Desempenho medido com mapa de calor de polígonos.
-- "Cada cômodo conta uma história" (título de matéria): NÃO CONFIRMADO no texto.
-- Decisão: **APROVEITAR** medir antes de cortar (já fazemos com draw calls por vista).
+### The Walking Dead: Saints & Sinners (portfólios, artigos, guias; tipo B) — FATO, confiança média
+- **Casas do bairro Bywater:** feitas de um **kit modular de peças de fachada**; cada casa varia por dressing e por
+  **cor e sujeira (grunge) por material**. Equipe de ambiente com 5-6 nomes no portfólio; prédios do French Quarter estilizados.
+- **Estilo (concept artist):** "simple shapes", semi-realista com quinas duras de vez em quando, "simplified stylized
+  texture style" por causa do VR. Unreal Engine 4.
+- Fases do tamanho da caminhada confortável, verticais; mapa de calor de polígonos para cortar o pior primeiro.
+- **Loot físico:** pega com a mão, mochila limitada; muito lixo de pouco valor que vira material ao desmontar
+  (relógio, abajur, garrafa, travesseiro...). "Box of Stuff" por cor = pacote de materiais. Remédio some até o dia 5.
+  Abertura com tábuas quebra com qualquer arma; cada tábua vira 4 madeira + 1 metal. Interior escuro demais
+  foi criticado (análise).
+- Decisão: **APROVEITAR** kit de fachada + cor/sujeira por casa (igual DayZ). **ADAPTAR** "lixo que desmonta em
+  material" (combina com o nosso modo construção). Cuidado com interior escuro demais no celular.
+
+### Mods de zumbi do GTA V ("GTA V Zomboid") — FATO sobre o que achamos; qual mod o dono quis: NÃO CONFIRMADO
+Não existe mod com o nome exato "Zomboid" na busca. Os mais próximos:
+- **Zombimod (Dracarys, gta5-mods):** saque em lojas (conveniência, armas, garagem, roupa), corredores de mercado,
+  loot na natureza por chance do ambiente, carro quebrado conserta ou desmonta, avião caído com caixa rara.
+  Bolso de 5 espaços (pilha 3), mochila em 5 níveis, baú com nível. Construção solta ou na grade, com reembolso.
+  Zumbis: andador, corredor, chefe, cada um com audição/visão/velocidade. Fome esvazia em ~40 min, sede ~30 min.
+  Até 3 eventos ao mesmo tempo; sobrevivente a cada 7 min; porta de casa abre e fecha.
+  **Não fala de saquear casa por dentro**: o GTA V quase não tem interior aberto.
+- **Simple Zombies (Reborn), Zombie Enhanced Edition, Left 4 Santos, The Dead Among Us:** fome/sede/estamina,
+  zumbi preferindo ruas e cruzamentos, saque de corpos, conversão do mapa.
+- Lição: cidade enorme e linda **sem interior** vira saque em loja e carro. Nosso diferencial é entrar nas casas.
+- Decisão: **ADAPTAR** carro quebrado = desmontar para peças; "zumbi anda pelas ruas e cruzamentos". **DESCARTAR** o resto.
 
 ### State of Decay 2 (guias e artigo de loot, tipo B) — FATO, confiança média
 - Toda casa entra; busca silenciosa x rápida (rápida faz barulho); local revistado fica riscado no mapa e mostra
@@ -167,7 +197,12 @@ Variação: mesmo modelo com cor de instância (MultiMesh tem cor por instância
 **Montagem da cidade (formato DL2):** gerador põe quarteirões e lotes por zona; depois passada à mão
 (praça, igreja, POIs, histórias em cômodos, carros batidos). Centro com sobrados geminados e peça de esquina (DayZ).
 
-**Desempenho (meta 1 GB, celular):** um material/atlas para todas as casas; peças repetidas em MultiMesh;
+**Orçamento de 1 GB (decisão do chefe, pedido do dono):** o APK pode ir de 400 MB a 1 GB. O espaço extra vai para
+o que mais aparece: texturas da cidade em 2048 (atlas de fachada, pisos, azulejo, telhado, trim, sujeira; ~3 MB cada
+comprimida no celular), mais variações de casa e móvel, sons de ambiente. Tamanho do APK não é memória: a memória no
+celular fica medida à parte e a qualidade Batata usa texturas menores.
+
+**Desempenho (celular):** um material/atlas para todas as casas; peças repetidas em MultiMesh;
 interior só perto (já temos "dentro" até 18-45 m); casa vira "longe" (imposter) de longe; nenhuma fresta para dentro.
 Medir draw calls por vista antes e depois (vistas 0-13 de `tools/foto_cidade.gd`): não pode passar do atual (~1300 Média).
 

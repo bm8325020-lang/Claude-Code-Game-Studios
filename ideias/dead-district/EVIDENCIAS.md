@@ -21,3 +21,7 @@
 | E20 | TLOU Part II | PS4 | interiores/vidro | WebFetch | FONTES/web_casas.txt (80.lv) | — | luz fora das janelas, vidro quebrável de textura, blockmesh decide o que se vê, ~1000 objetos de física | FATO | alta | — |
 | E21 | 7DTD (wiki 3.0) | PC | POIs | WebFetch | FONTES/web_casas.txt | — | lotes 25/42/60/100/150, imposter por prédio, pintura por face | FATO | média | wiki de comunidade |
 | E22 | Interior mapping (van Dongen 2008; Dagor docs) | — | vidro falso | WebFetch | FONTES/web_casas.txt | — | raio contra planos repetidos, atlas, fade 50-100 m, luz só à noite | FATO | alta | — |
+| E23 | TLOU Part I | PS5/PC | casas/ruas | WebSearch (ArtStation 403) | FONTES/tlou_twd_gta.txt | — | vertex blend nas ruas, biblioteca compartilhada, remake do zero | FATO | média | resumo de busca |
+| E24 | TLOU (2013) | PS3 | luz | WebSearch | history.siggraph.org Iwanicki 2013 | — | lightmap ambiente + direção dominante; oclusão por esferas | FATO | média | sem os slides |
+| E25 | TWD Saints & Sinners | PC/VR | casas/loot | WebFetch + busca | FONTES/tlou_twd_gta.txt | — | kit de fachada + cor/grunge por material; formas simples; lixo desmonta em material | FATO | média | portfólios via busca |
+| E26 | GTA V mods (Zombimod etc.) | PC | saque/sobrevivência | WebFetch | gta5-mods zombimod-ldracarys_ | — | saque em loja/carro, sem interior de casa; números de fome/sede/mochila | FATO | média | qual mod o dono quis: não confirmado |
