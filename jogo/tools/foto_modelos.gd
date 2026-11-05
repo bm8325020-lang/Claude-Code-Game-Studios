@@ -44,9 +44,11 @@ func _init() -> void:
 	for k in n:
 		var nome: String = args[k + 1].get_slice(":", 0)
 		var modo: String = args[k + 1].get_slice(":", 1) if args[k + 1].contains(":") else ""
-		var m: Node3D = (load(Bairro.RUINAS % nome) as PackedScene).instantiate()
+		var arq: String = ("res://assets/%s.glb" % nome) if nome.contains("/") else (Bairro.RUINAS % nome)  # "mundo/..." = asset pronto
+		var m: Node3D = (load(arq) as PackedScene).instantiate()
 		cena.add_child(m)
-		b._pinta(m, Color(0.82, 0.8, 0.76))
+		if not nome.contains("/"):  # asset pronto fica com as texturas dele
+			b._pinta(m, Color(0.82, 0.8, 0.76))
 		var forros: Array = []
 		if modo == "planta":
 			for mi: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
