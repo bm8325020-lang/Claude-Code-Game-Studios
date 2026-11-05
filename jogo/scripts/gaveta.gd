@@ -12,6 +12,7 @@ const CHANCE_VAZIA: float = 0.35
 const MOVEIS: Dictionary = {
 	"criado": [0.42, 0.2, "gaveta"], "balcao": [0.7, 0.3, "gaveta"], "estante": [0.5, 0.2, "gaveta"],
 	"guarda_roupa": [0.45, 0.28, "armário"], "tv": [0.3, 0.23, "gaveta"],
+	"porta_malas": [0.95, 0.0, "porta-malas"],  # carro (05/11, mods do GTA V): +Z = traseira; a tampa levanta
 }
 
 var movel: String = "criado"
@@ -43,22 +44,25 @@ func _ready() -> void:
 	var metal := StandardMaterial3D.new()
 	metal.albedo_color = Color(0.55, 0.5, 0.4)
 	metal.metallic = 0.6
-	_caixa = Node3D.new()
-	_caixa.position = Vector3(0, float(m[0]), float(m[1]) - 0.16)
-	add_child(_caixa)
-	var frente := MeshInstance3D.new()
-	var b := BoxMesh.new()
-	b.size = Vector3(0.4, 0.13, 0.33)
-	frente.mesh = b
-	frente.material_override = madeira
-	_caixa.add_child(frente)
-	var puxador := MeshInstance3D.new()
-	var p := BoxMesh.new()
-	p.size = Vector3(0.12, 0.025, 0.025)
-	puxador.mesh = p
-	puxador.material_override = metal
-	puxador.position = Vector3(0, 0, 0.18)
-	_caixa.add_child(puxador)
+	if movel == "porta_malas":
+		_caixa = _tampa()
+	else:
+		_caixa = Node3D.new()
+		_caixa.position = Vector3(0, float(m[0]), float(m[1]) - 0.16)
+		add_child(_caixa)
+		var frente := MeshInstance3D.new()
+		var b := BoxMesh.new()
+		b.size = Vector3(0.4, 0.13, 0.33)
+		frente.mesh = b
+		frente.material_override = madeira
+		_caixa.add_child(frente)
+		var puxador := MeshInstance3D.new()
+		var p := BoxMesh.new()
+		p.size = Vector3(0.12, 0.025, 0.025)
+		puxador.mesh = p
+		puxador.material_override = metal
+		puxador.position = Vector3(0, 0, 0.18)
+		_caixa.add_child(puxador)
 	if not Rede.servidor_sem_tela:
 		_som = AudioStreamPlayer3D.new()
 		_som.stream = load("res://assets/sons/amb/rangido.ogg")
@@ -81,7 +85,26 @@ func acao() -> String:
 
 
 func ponto() -> Vector3:
-	return _caixa.global_position
+	return to_global(Vector3(0, 0.8, 0)) if movel == "porta_malas" else _caixa.global_position
+
+
+# tampa do porta-malas: dobradiça na beira de cima (para dentro do carro, -Z), some fechada (a lataria já tem a forma)
+func _tampa() -> Node3D:
+	var piv := Node3D.new()
+	piv.position = Vector3(0, float(MOVEIS[movel][0]), -0.85)
+	piv.visible = false
+	add_child(piv)
+	var t := MeshInstance3D.new()
+	var b := BoxMesh.new()
+	b.size = Vector3(1.5, 0.05, 0.85)
+	t.mesh = b
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.16, 0.16, 0.17)
+	m.roughness = 0.7
+	t.material_override = m
+	t.position = Vector3(0, 0, 0.42)
+	piv.add_child(t)
+	return piv
 
 
 ## A gaveta fechada mais perto de `pos` a até ALCANCE (null se nenhuma).
@@ -131,8 +154,15 @@ func _process(dt: float) -> void:
 func _anima() -> void:
 	if _caixa == null:
 		return
-	var z: float = float(MOVEIS[movel][1]) - 0.16 + (0.26 if aberta else 0.0)
-	create_tween().tween_property(_caixa, "position:z", z, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	if movel == "porta_malas":
+		_caixa.visible = true
+		var tw := create_tween()
+		tw.tween_property(_caixa, "rotation:x", -1.15 if aberta else 0.0, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		if not aberta:
+			tw.tween_callback(_caixa.hide)
+	else:
+		var z: float = float(MOVEIS[movel][1]) - 0.16 + (0.26 if aberta else 0.0)
+		create_tween().tween_property(_caixa, "position:z", z, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	if _som and aberta:
 		_som.pitch_scale = _rng.randf_range(1.2, 1.6)
 		_som.play()

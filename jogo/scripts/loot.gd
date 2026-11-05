@@ -61,6 +61,7 @@ const LUGAR: Dictionary = {
 	"caca": {"municao": 4.0, "faca": 3.0, "receita_pistola": 3.0, "lanterna": 2.0},
 	"oficina": {"mola": 3.0, "gatilho": 3.0, "cano": 3.0, "cabo": 3.0, "ferrolho": 3.0, "machado": 3.0},
 	"hospital": {"antibiotico": 8.0},
+	"carro": {"municao": 2.0, "lanterna": 2.5, "agua": 2.0, "cabo": 3.0, "mola": 2.0, "carregador": 2.0},  # porta-malas
 }
 const RAID_RARO: float = 4.0  # baú de raid (delegacia): raras 4x mais prováveis
 const ITENS_MIN: int = 2

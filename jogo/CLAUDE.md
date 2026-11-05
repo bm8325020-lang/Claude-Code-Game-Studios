@@ -126,6 +126,8 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   nasce a NASCE_LONGE fora da vista, marcha (`Zumbi.marcha`) atravessando o jogador, líder (`lider`, `imune`, VIDA_LIDER),
   corpo some (CORPO_HORDA), fica no servidor (`_divide_peso`). Quem morre (fora do PvP) levanta zumbi deitado do lado do
   saco (`main.solta_saco`, horda = Zumbi.DO_MORTO, tocaia). Teste: test_horda (14; espera a malha da cidade carregar).
+  Carros: `Bairro._porta_malas` (Gaveta "porta_malas" filha de cada Carro, atrás; tampa `_tampa` levanta; Loot.LUGAR "carro")
+  e cacos de vidro no chão em metade (`_malha_cacos`). Teste: test_porta_malas (7).
   Relatório: `ideias/dead-district/RELATORIOS/gta_mods.md`.
   Teste: test_zumbi_jeitos (13). Rede.VERSAO 36.
 - Vídeo do dono (31/10, 0.85): desempenho `Zumbi._process` (anima de 3 em 3 quadros longe/atrás, de 8 em 8 além de

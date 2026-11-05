@@ -1506,6 +1506,55 @@ static func lugar_de(movel: String, modelo: String) -> String:
 
 const LUGAR_CHAVE: Dictionary = {"criado": "criado-mudo", "balcao": "balcão da cozinha", "estante": "estante",
 	"guarda_roupa": "guarda-roupa", "tv": "rack da TV"}
+## Carros (05/11, mods de zumbi do GTA V): porta-malas revistável (Gaveta "porta_malas", Loot "carro") em cada carro
+## que anda e, em metade, cacos de vidro no chão do lado (janela estourada). rng próprio: igual em todo aparelho.
+func _porta_malas(n: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5151
+	var cacos: Mesh = null if Rede.servidor_sem_tela else _malha_cacos()
+	for c: Node in get_tree().get_nodes_in_group("carros"):
+		var car := c as Node3D
+		var g := Gaveta.new()
+		g.movel = "porta_malas"
+		g.lugar = "carro"
+		g.name = "Gaveta_%d" % n
+		n += 1
+		car.add_child(g)
+		g.position = Vector3(0, 0, -2.25)
+		g.rotation.y = PI
+		if cacos and rng.randf() < 0.5:
+			var mi := MeshInstance3D.new()
+			mi.mesh = cacos
+			mi.visibility_range_end = 30.0
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			add_child(mi)
+			mi.global_position = car.to_global(Vector3(1.05 * (1.0 if rng.randf() < 0.5 else -1.0), 0.03, rng.randf_range(-0.8, 0.6)))
+
+
+# cacos de vidro espalhados no chão (uma malha só para todos os carros)
+static func _malha_cacos() -> Mesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var r := RandomNumberGenerator.new()
+	r.seed = 77
+	st.set_normal(Vector3.UP)
+	for k in 16:
+		var c := Vector3(r.randf_range(-0.45, 0.45), 0, r.randf_range(-0.6, 0.6))
+		var t: float = r.randf_range(0.03, 0.09)
+		var a: float = r.randf() * TAU
+		for q in 3:
+			var ang: float = a + q * TAU / 3.0 + r.randf_range(-0.4, 0.4)
+			st.add_vertex(c + Vector3(cos(ang), 0, sin(ang)) * t)
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.75, 0.85, 0.9, 0.55)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.roughness = 0.05
+	m.metallic = 0.3
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	st.set_material(m)
+	return st.commit()
+
+
 func _gavetas_e_cofres() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 4242
@@ -1532,8 +1581,9 @@ func _gavetas_e_cofres() -> void:
 			por_casa[casa].append(g)
 	for casa: Node3D in get_tree().get_nodes_in_group("casas"):  # caixas de móvel -> modelos realistas (Moveis)
 		Moveis.troca(casa)
+	_porta_malas(n)
 	for g: Gaveta in get_tree().get_nodes_in_group("gavetas"):
-		var cx: MeshInstance3D = g.get_meta("caixa_movel")
+		var cx: MeshInstance3D = g.get_meta("caixa_movel", null)
 		if cx and not cx.visible:
 			g.sem_caixa = true  # o móvel de verdade já tem gaveta: a caixinha não aparece
 	var casas: Array = por_casa.keys().filter(func(c: Node3D) -> bool: return not c.has_meta("refugio"))
