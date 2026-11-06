@@ -24,6 +24,7 @@ MUNDO (vegetação, construções)
 • "Low Poly Mosin Sniper" — samanthacford (CC Attribution) — sketchfab.com/3d-models/low-poly-mosin-sniper-5472b7415ce14468bd19443422e30e08
 • "Low Poly Shotgun Shells" — mapleaber (CC Attribution) — sketchfab.com/3d-models/low-poly-shotgun-shells-7090d59effb14bd987eda7369a3da54a
 • "Medium sized sedan" — MaG80 (CC Attribution) — sketchfab.com/3d-models/medium-sized-sedan-cb8fdecbc30d4618a6109d1de0e30a9e
+• "Abandoned Generic Sedan 2 - Game Ready" — Rashad Ibrahimli (CC Attribution) — sketchfab.com/3d-models/abandoned-generic-sedan-2-game-ready-db2df46c49f9441286c84c66208ef7ac
 
 ARMAS E OBJETOS
 Kenney (kenney.nl) — CC0: assets/sons/*.ogg

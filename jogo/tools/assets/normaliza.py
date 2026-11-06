@@ -20,6 +20,7 @@ MODELOS = {
     "samambaia_capim": ("vegetation/plants/fern_grass_02.glb", "vegetation/plants", 0.45, False, 450),
     "samambaia": ("vegetation/plants/realistic_beech_fern_plant_games_film.glb", "vegetation/plants", 0.6, False, 500),
     "moita": ("vegetation/plants/grass_bushes_game_ready_asset.glb", "vegetation/plants", 0.8, False),
+    "carcaca": ("veiculos/abandoned_generic_sedan_2_game_ready.glb", "veiculos", 1.45, False, 6000),  # carro abandonado
     "capim_seco": ("vegetation/plants/dry_realistic_grass_lods_1.glb", "vegetation/plants", 0.6, False, 500),
 }
 # recusados na foto (05/11): carvalho e carvalho_torto (folha de desenho animado), samambaia_moita (planta tropical),

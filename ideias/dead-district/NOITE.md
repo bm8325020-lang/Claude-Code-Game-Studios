@@ -14,7 +14,8 @@
 ## B. Cidade nova com cara de terror
 - [x] B1 Dia 420 s cinza de chumbo, noite 360 s quase preta (sol 0,16, ambiente 0,26), névoa 0,02-0,04, lanterna mais forte
   e trêmula (pilha velha). Foto: de noite só se vê o que a lanterna pega.
-- [ ] B2 Cidade abandonada de verdade: carros batidos atravessados, cercas caídas, barricadas, sangue, corpos, fogo.
+- [x] B2 26 acidentes (2-3 carros atravessados: carcaça pronta do Sketchfab, queimado, van) com zumbi em volta; 1 em
+  3 queimados ainda arde; 110 sacos de corpo (eram 40).
 - [ ] B3 Luzes que piscam (postes queimando), rádio chiando, sons de terror ao longe (grito, porta batendo).
 - [ ] B4 Lugares de medo: hospital escuro, igreja com velas, porão; menos casas, mais vazio e silêncio.
 - [ ] B5 Sobreviventes inimigos (saqueadores "Os Corvos" no mercado).

@@ -1119,6 +1119,22 @@ func _carros() -> void:
 
 
 func _veiculo(arq: String, cor: Color) -> Node3D:
+	if arq.begins_with("mundo:"):  # carro pronto baixado (normaliza.py): carcaça abandonada, frente no +X do arquivo
+		var nome: String = arq.substr(6)
+		var raiz := Node3D.new()
+		add_child(raiz)
+		var m: Node3D = (load("res://assets/mundo/veiculos/%s/%s.gltf" % [nome, nome]) as PackedScene).instantiate()
+		m.rotation.y = PI * 0.5
+		raiz.add_child(m)
+		var corpo := StaticBody3D.new()
+		var cs := CollisionShape3D.new()
+		var bx := BoxShape3D.new()
+		bx.size = Vector3(1.8, 1.4, 4.2)
+		cs.shape = bx
+		cs.position.y = 0.7
+		corpo.add_child(cs)
+		raiz.add_child(corpo)
+		return raiz
 	var v: Node3D = (load(RUINAS % arq) as PackedScene).instantiate()
 	add_child(v)
 	_pinta(v, Color.WHITE, cor)

@@ -62,7 +62,7 @@ func monta(b: Bairro, ruas: Array, poligonos: Array) -> void:
 		if not _b._perto_de_rua(p, 1.0):
 			for q in 6:
 				_poe_mato(p + Vector2(_rng.randf_range(-2.5, 2.5), _rng.randf_range(-2.5, 2.5)))
-	for k in 40:  # sacos de corpo na rua, com a mancha embaixo
+	for k in 110:  # sacos de corpo na rua, com a mancha embaixo (terror 06/11: eram 40)
 		var r: Array = ruas[_rng.randi() % ruas.size()]
 		var p: Vector2 = (r[0] as Vector2).lerp(r[1], _rng.randf())
 		_solta("corpo", p)

@@ -617,6 +617,28 @@ for a, b in zip(rio, rio[1:]):
                                                    "arbusto", "pedras_2"]),
                           "p": [round(q[0], 2), round(q[1], 2)], "r": round(RV.uniform(0, 6.28), 3)})
 
+# acidentes (06/11, noite de terror): nos cruzamentos e no meio das ruas, 2-3 carros batidos atravessados (carcaça pronta,
+# queimado, van), com zumbi em volta; a fuga da cidade parou aqui
+RA = random.Random(1666)
+acid = 0
+for tent in range(400):
+    if acid >= 26:
+        break
+    r = RA.choice([r for r in ruas if r["tipo"] in ("tertiary", "residential", "secondary", "primary")])
+    L = comprimento(r["p"])
+    if L < 40:
+        continue
+    p, a = ponto_em(r["p"], RA.uniform(15, L - 15))
+    if p is None or math.dist(p, ENTRADA) < RURAL + 20 or any(math.dist(p, v["p"]) < 25 for v in veiculos):
+        continue
+    acid += 1
+    for k in range(RA.randint(2, 3)):
+        ang = a + RA.choice([0.0, math.pi]) + RA.uniform(-1.1, 1.1)
+        q = (p[0] + math.cos(a) * (k * 3.2 - 3) + RA.uniform(-1, 1), p[1] + math.sin(a) * (k * 3.2 - 3) + RA.uniform(-1, 1))
+        veiculos.append({"m": RA.choice(["mundo:carcaca", "mundo:carcaca", "carro_r2", "van_r1"]), "p": [round(q[0], 2), round(q[1], 2)],
+                         "r": round(math.pi / 2 - ang, 3), "cor": [round(RA.uniform(0.1, 0.5), 2), round(RA.uniform(0.1, 0.4), 2), round(RA.uniform(0.1, 0.4), 2)]})
+    zumbis.append([round(p[0] + RA.uniform(-4, 4), 2), round(p[1] + RA.uniform(-4, 4), 2)])
+
 # estrada da entrada: árvores e mato dos dois lados, a placa e o carro de quem chega
 for k in range(60):
     t = RV.uniform(5, RURAL - 10)
