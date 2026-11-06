@@ -14,6 +14,8 @@ const LARGURA: float = 1.3
 const ALTURA: float = 2.15
 ## Largura desta porta (a das casas de modelo segue o vão do modelo).
 var largura: float = LARGURA
+## Cor da folha (madeira; o portão da quarentena é grade de metal escura).
+var cor: Color = Color(0.36, 0.25, 0.16)
 
 var aberta: bool = false:
 	set(v):
@@ -24,7 +26,7 @@ var vida: int = VIDA_MAX:
 		vida = v
 		set_process(v <= 0)  # anti-travamento: só conta o conserto quando está arrombada
 		if _mat:
-			_mat.albedo_color = Color(0.36, 0.25, 0.16).lerp(Color(0.2, 0.14, 0.09), 1.0 - float(v) / VIDA_MAX)
+			_mat.albedo_color = cor.lerp(cor * 0.55, 1.0 - float(v) / VIDA_MAX)
 var _folha: AnimatableBody3D
 var _mat: StandardMaterial3D
 var _conserto_t: float = 0.0
@@ -47,7 +49,7 @@ func _ready() -> void:
 	cs.position = Vector3(largura * 0.5, ALTURA * 0.5, 0)
 	_folha.add_child(cs)
 	_mat = StandardMaterial3D.new()
-	_mat.albedo_color = Color(0.36, 0.25, 0.16)
+	_mat.albedo_color = cor
 	_mat.roughness = 0.9
 	var mi := MeshInstance3D.new()
 	var m := BoxMesh.new()

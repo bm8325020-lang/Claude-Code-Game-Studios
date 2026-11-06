@@ -738,10 +738,55 @@ if vala:
                 props.append({"m": RE.choice(["tumulo_1", "tumulo_2", "tumulo_3"]), "p": [round(x, 2), round(z - 1.4, 2)], "r": 0.0})
     for k in range(4):
         zumbis.append([round(vala[0] + RE.uniform(-12, 12), 2), round(vala[1] + RE.uniform(-7, 7), 2)])
+# 5) (E4) quarentena militar: muro de contêineres cortando a cidade em QZ (hospital e mercado ficam do lado de dentro, ao
+# norte); um portão com checkpoint na rua mais central; tendas, baús militares e soldados do lado de dentro
+QZ = 380.0
+cruza_q = []
+for r in ruas:
+    for a1, b1 in zip(r["p"], r["p"][1:]):
+        if (a1[1] - QZ) * (b1[1] - QZ) < 0:
+            cruza_q.append(a1[0] + (b1[0] - a1[0]) * (QZ - a1[1]) / (b1[1] - a1[1]))
+portao_x = min(cruza_q, key=abs) if cruza_q else 0.0
+quarentena = {"portao": [round(portao_x, 2), QZ], "vao": 14.0, "baus": [], "soldados": []}
+x = -LIM + 4.0
+nq = 0
+while x < LIM - 4.0:
+    if abs(x - portao_x) < 7.0:
+        x = portao_x + 7.0
+        continue
+    m, w = ("mundo:conteiner", 13.2) if nq % 3 != 2 else ("mundo:conteiner_azul", 6.9)
+    novo = (x + w / 2, QZ, 0.0, w, 2.6)
+    if not any(sobrepoe(novo, o, 0.0) for o in ocupado if math.dist(o[:2], novo[:2]) < 30) and abs(x + w - portao_x) > 6.5:
+        props.append({"m": m, "p": [round(x + w / 2, 2), QZ], "r": 0.0})
+        reserva(x + w / 2, QZ, w, 2.6)
+        nq += 1
+        x += w
+    else:
+        x += 1.0
+g = (portao_x, QZ)
+for dx, m, r in ((-5.5, "mundo:guarita", 0.0), (-9.0, "mundo:holofote", 0.0), (9.0, "mundo:holofote", math.pi)):
+    props.append({"m": m, "p": [round(g[0] + dx, 2), round(g[1] - 3.0, 2)], "r": r})
+for dx in (-4.0, 4.0):  # sacos de areia em L dos dois lados do portão, do lado de fora
+    props.append({"m": "mundo:sacos_areia", "p": [round(g[0] + dx, 2), round(g[1] - 6.0, 2)], "r": math.pi / 2})
+for dx in (-12.0, 12.0):
+    props.append({"m": "mundo:torre_vigia", "p": [round(g[0] + dx, 2), round(g[1] + 5.0, 2)], "r": 0.0})
+tendas = 0
+for tent in range(200):
+    if tendas >= 4:
+        break
+    q = (g[0] + RE.uniform(-60, 60), g[1] + RE.uniform(14, 60))
+    if livre(q[0], q[1], 0.0, 10.5, 10.0):
+        reserva(q[0], q[1], 10.5, 10.0)
+        props.append({"m": "mundo:tenda", "p": [round(q[0], 2), round(q[1], 2)], "r": round(RE.choice([0.0, math.pi / 2, math.pi]), 3)})
+        quarentena["baus"].append([round(q[0] + 1.5, 2), round(q[1] + 1.0, 2)])
+        for k in range(2):
+            quarentena["soldados"].append([round(q[0] + RE.uniform(-7, 7), 2), round(q[1] + RE.uniform(-7, 7), 2)])
+        tendas += 1
+print("E4: contêineres", nq, "| portão x", round(portao_x, 1), "| tendas", tendas)
 print("E3: casas incendiadas", incendio, "| entulho", bomba, "| fila na rodovia", fila, "| vala comum", vala)
 print("casas prontas:", sum(1 for pp in predios if pp["modelo"].startswith("casa_p")))
 out = {"origem": "Senoia, GA (OpenStreetMap, ODbL; tools/mapa/raven_creek.py CIDADE=senoia)" if SENOIA else "Raven Creek (tools/mapa/raven_creek.py)", "ruas": ruas, "predios": predios, "frestas": frestas, "bloqueios": bloqueios,
-       "marcos": marcos, "muros": muros, "props": props, "areas": areas, "faixas": faixas, "postes": postes, "veiculos": veiculos,
+       "quarentena": quarentena, "marcos": marcos, "muros": muros, "props": props, "areas": areas, "faixas": faixas, "postes": postes, "veiculos": veiculos,
        "zumbis": zumbis, "longe": longe, "entrada": entrada,
        "terreno": {"rio": {"p": rio, "larg": RIO_LARG, "fundo": 2.2, "agua": 1.5}, "morros": [MORRO]}}
 json.dump(out, open(sys.argv[1] if len(sys.argv) > 1 else "assets/mapa/cidade.json", "w"))

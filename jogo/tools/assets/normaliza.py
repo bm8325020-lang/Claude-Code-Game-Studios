@@ -31,6 +31,14 @@ MODELOS = {
     "entulho": ("props/rubble_pile_game_ready_2k_pbr.glb", "props", 1.2, False),
     "tijolos": ("props/red_brick_pile_rubble_debris.glb", "props", 0.9, False, 2000),
     "saco_corpo": ("props/body_bag01.glb", "props", 0.35, False),
+    # 07/11 (E4): quarentena militar
+    "conteiner": ("props/shipping_container.glb", "props", 2.6, False),
+    "conteiner_azul": ("props/shipping_container_low_poly.glb", "props", 2.6, False),
+    "sacos_areia": ("props/sandbag_wall_05.glb", "props", 1.1, False),
+    "tenda": ("props/military_tent.glb", "props", 3.2, False),
+    "torre_vigia": ("props/military_guard_tower_watchtower.glb", "props", 7.0, False),
+    "guarita": ("props/small_guard_booth.glb", "props", 2.6, False),
+    "holofote": ("props/low_poly_military_floodlight.glb", "props", 4.0, False),
     # 07/11 (E2b): casas prontas (fechadas: só por fora); tools/blender/casa_pronta.py vira ruína do jogo (assets/ruinas)
     "casa_p1": ("casas/suburban_shabby_house_low_poly.glb", "casas", 8.5, False, 7000),
     "casa_p2": ("casas/suburban_house.glb", "casas", 7.5, False, 7000),

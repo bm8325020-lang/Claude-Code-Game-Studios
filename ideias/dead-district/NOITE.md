@@ -82,7 +82,12 @@ Ordem pensada: primeiro a cara e o pronto (muda o jogo inteiro), depois estrutur
   tri (abaixo do anterior); CPU 6,2 ms. test_bairro/nascer/carro/horda ok. Sem cratera pronta (não achei CC).
   Era: ESTRUTURA (regra 1): centro bombardeado (prédios desabados prontos, crateras, entulho), bairro incendiado,
   rodovia de entrada engarrafada, parque virado vala comum. Planta + minimapa + malha.
-- [ ] E4 QUARENTENA MILITAR (regras 1/4): muro de contêineres cortando a cidade, checkpoint (sacos de areia, guarita,
+- [x] E4 (07/11 10:00, adiantado pelo dono) Muro de 46 contêineres prontos (Sketchfab CC BY) cortando a cidade em
+  z=380 (hospital e mercado do lado de dentro), checkpoint na rua mais central com guarita, sacos de areia, holofotes e
+  2 torres de vigia; PORTÃO (pedido do dono) = 4 folhas de grade (Porta: USAR abre/fecha, zumbi soca); 4 tendas
+  militares com baú de loot raro e 8 zumbis soldados (pontos_raid). Planta: "quarentena" no JSON. Malha refeita.
+  Render Média 367 chamadas, 313 mil tri. test_bairro/raid/nascer/portas ok.
+  Era: QUARENTENA MILITAR (regras 1/4): muro de contêineres cortando a cidade, checkpoint (sacos de areia, guarita,
   holofote), tendas médicas com loot militar e zumbis soldados — modelos prontos.
 - [ ] E5 CONSTRUÇÕES NOVAS (regra 4): posto de gasolina com loja, escola barricada, torre de água (subir e ver longe),
   ferro-velho — prontos, com motivo para entrar.

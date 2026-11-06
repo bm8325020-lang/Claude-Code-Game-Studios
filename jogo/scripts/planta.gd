@@ -216,7 +216,8 @@ static func _lote(b: Bairro, modelo: String, pedacos: Dictionary) -> void:
 		cena.free()
 		if cx.size.y > 0.5:  # o que é baixo (saco) não trava ninguém
 			var bx := BoxShape3D.new()
-			bx.size = cx.size * Vector3(0.8, 1.0, 0.8)
+			var f: float = 1.0 if maxf(cx.size.x, cx.size.z) > 4.0 else 0.8  # muro de contêiner não pode ter fresta
+			bx.size = cx.size * Vector3(f, 1.0, f)
 			formas.append([bx, Transform3D(Basis(), cx.get_center())])
 		pequena = true
 	elif ResourceLoader.exists(Bairro.RUINAS % modelo):

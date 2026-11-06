@@ -37,6 +37,13 @@ MUNDO (vegetação, construções)
 • "Rubble Pile (Game Ready / 2K PBR)" — Meerschaum Digital (CC Attribution) — sketchfab.com/3d-models/rubble-pile-game-ready-2k-pbr-0e6f85da3433468db226866bd43a43e7
 • "Red Brick Pile Rubble Debris" — 3DWALKABOUT (CC Attribution) — sketchfab.com/3d-models/red-brick-pile-rubble-debris-a61ea99ff8da40c8998741afb8a57a84
 • "Body Bag01" — AaronJC (CC Attribution) — sketchfab.com/3d-models/body-bag01-b29baa9d4ef54b5c96a32c6ce0584ea0
+• "Shipping container" — Evan (CC Attribution) — sketchfab.com/3d-models/shipping-container-5c26a86ff20c4df689b5fbd760337845
+• "Shipping container (low poly)" — ehsan.avard (CC Attribution) — sketchfab.com/3d-models/shipping-container-low-poly-e3e3d65dd11a4d568892f63f36228ee7
+• "Sandbag Wall 05" — Pypunk (CC Attribution) — sketchfab.com/3d-models/sandbag-wall-05-b5994d5a6a2648e59cf86ea1951bacaf
+• "Military Tent" — Reinaw13 (CC Attribution) — sketchfab.com/3d-models/military-tent-d95296298b2a4caca8a5c3ce4450bb15
+• "Military Guard Tower / Watchtower" — BogDo (CC Attribution) — sketchfab.com/3d-models/military-guard-tower-watchtower-77a6527379494b269442a317a1cc6564
+• "Small Guard Booth" — Arsen Ismailov (CC Attribution) — sketchfab.com/3d-models/small-guard-booth-422ec83e0bd64687a0026c67abb6bc07
+• "Low Poly Military Floodlight" — DGS (CC Attribution) — sketchfab.com/3d-models/low-poly-military-floodlight-0615acfee17b47599fc1c6ac91c53cbf
 
 ARMAS E OBJETOS
 Kenney (kenney.nl) — CC0: assets/sons/*.ogg
