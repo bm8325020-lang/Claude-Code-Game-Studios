@@ -34,6 +34,7 @@ var vidro_quebrado: bool = false:
 			_estoura()
 		vidro_quebrado = v
 var _vidros: Array[MeshInstance3D] = []
+var _rodas_base: Array[Basis] = []
 var _rodas: Array[Node3D] = []  # FL, FR, RL, RR (as da frente esterçam)
 var _giro_roda: float = 0.0
 var _pintura: Color = Color(0.45, 0.12, 0.1)
@@ -83,6 +84,7 @@ func monta(visual: Node3D) -> void:
 		var r: Node3D = modelo.find_child(n, true, false)
 		if r:
 			_rodas.append(r)
+			_rodas_base.append(r.transform.basis)  # 06/11 (dono: "roda torta"): o giro vai por cima do jeito original
 	if vidro_quebrado:
 		for v: MeshInstance3D in _vidros:
 			v.visible = false
@@ -466,4 +468,4 @@ func _gira_rodas(dt: float) -> void:
 	_giro_roda += vel * dt / RAIO_RODA
 	for k in 4:
 		var esterco: float = -volante * 0.5 if k < 2 else 0.0
-		_rodas[k].rotation = Vector3(_giro_roda, esterco, 0)
+		_rodas[k].transform.basis = _rodas_base[k] * Basis(Vector3.UP, esterco) * Basis(Vector3.RIGHT, _giro_roda)
