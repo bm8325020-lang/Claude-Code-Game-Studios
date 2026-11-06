@@ -68,7 +68,7 @@ func _process(dt: float) -> void:
 		_clima.passa(clima, dt)
 		flash = _clima.flash
 	if sol:
-		sol.light_energy = lerpf(0.95, 0.42, n) * float(c[3]) + flash * 2.5  # noite de luar: escura, mas dá para jogar (pedido do dono)
+		sol.light_energy = lerpf(0.78, 0.42, n) * float(c[3]) + flash * 2.5  # noite de luar: escura, mas dá para jogar (pedido do dono)
 		sol.light_color = Color(1.0, 0.95, 0.88).lerp(Color(0.55, 0.6, 0.85), n)  # sol de dia nublado; luar azulado
 	if ambiente:
 		var ceu: Color = CEU_HORIZONTE[0].lerp(CEU_HORIZONTE[1], n)
@@ -79,7 +79,7 @@ func _process(dt: float) -> void:
 			mat.set_shader_parameter("topo", CEU_TOPO[0].lerp(CEU_TOPO[1], n))
 			mat.set_shader_parameter("horizonte", ceu)
 		ambiente.ambient_light_color = Color(0.7, 0.72, 0.75).lerp(Color(0.42, 0.47, 0.62), n)
-		ambiente.ambient_light_energy = lerpf(0.6, 0.58, n)  # 31/10: a noite estava escura demais no celular
+		ambiente.ambient_light_energy = lerpf(0.42, 0.52, n)  # 06/11: dia escurecido (dono: "muito claro"); a noite segue jogável
 		ambiente.fog_density = lerpf(0.007, 0.018, n) * float(c[2])  # menos poeira de dia: a cidade aparece de longe
 
 

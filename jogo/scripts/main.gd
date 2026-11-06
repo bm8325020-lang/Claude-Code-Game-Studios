@@ -940,9 +940,9 @@ func _luz() -> void:
 	env.background_mode = Environment.BG_SKY
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.7, 0.72, 0.75)
-	env.ambient_light_energy = 0.6
+	env.ambient_light_energy = 0.42
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 0.9
+	env.tonemap_exposure = 0.72  # 06/11: jogo claro demais (dono)
 	# 31/10: filtro de cor (LUT), brilho (glow) e ajuste de saturação/contraste deixavam a tela toda rosa no celular
 	# (pós-processamento do renderizador de compatibilidade): saíram
 	env.fog_enabled = true
