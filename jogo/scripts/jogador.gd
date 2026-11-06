@@ -555,7 +555,13 @@ func mirando_em(ponto: Vector3, graus: float) -> bool:
 signal acertou_alvo(forte: bool)
 
 
+## "Em combate" = bateu/atirou em alguém há menos de COMBATE_T s (botão de voltar ao início fica travado).
+const COMBATE_T: float = 20.0
+var bateu_ms: int = -100000
+
+
 func _confirma_acerto(forte: bool, cabeca: bool) -> void:
+	bateu_ms = Time.get_ticks_msec()
 	acertou_alvo.emit(forte)
 	_som.stream = _sons.get("impactPunch_heavy_000" if cabeca else "impactPunch_heavy_001")
 	_som.pitch_scale = 0.75 if cabeca else randf_range(1.2, 1.35)

@@ -713,6 +713,24 @@ func _monta_pausa() -> void:
 	var cont := UiTema.botao("CONTINUAR", true)
 	cont.pressed.connect(func() -> void: pausa(false))
 	col.add_child(cont)
+	var desprende := UiTema.botao("PRESO? VOLTAR AO INÍCIO")  # 06/11 (dono): preso na parede; não vale se bateu em zumbi há pouco
+	desprende.pressed.connect(func() -> void:
+		var j: Jogador = jogador
+		if j == null or j.vida <= 0 or j.carro:
+			return
+		var falta: float = Jogador.COMBATE_T - (Time.get_ticks_msec() - j.bateu_ms) / 1000.0
+		if falta > 0.0:
+			aviso("EM COMBATE: ESPERE %d s SEM BATER EM ZUMBI" % ceili(falta), Color(1.0, 0.4, 0.3), 2.5)
+			return
+		var principal := get_tree().get_first_node_in_group("principal")
+		var p: Vector3 = j.inicio
+		if principal and principal.nascer_no_bairro and principal.bairro:
+			p = principal.ponto_nascer(j.nick)
+		j.global_position = p
+		j.velocity = Vector3.ZERO
+		j.reset_physics_interpolation()
+		pausa(false))
+	col.add_child(desprende)
 	var cfg := UiTema.botao("CONFIGURAÇÕES")
 	col.add_child(cfg)
 	var col_cfg := UiTema.painel_central(_pausa, 760.0)
