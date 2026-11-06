@@ -22,6 +22,12 @@ const BILHETES: Array[String] = [
 	"Os do uniforme amarelo aguentam mais bala. Mira na cabeça.",
 	"Não durma na rua. Achei uma cama inteira numa das casas grandes.",
 	"Fiz barricada com o sofá. Aguentou duas noites. Não sei se aguenta a terceira.",
+	"O caminhão da Hollis Feed passou de madrugada sem faróis. No outro dia a padaria fechou e o padeiro sumiu.",
+	"Vi a enfermeira Mia carregando caixas de remédio pro hospital. Ela disse pra eu não comer nada feito com milho.",
+	"Os Corvos cobram uma lata por pessoa pra passar pela rua do mercado. Quem não paga vira isca.",
+	"A jornalista da TV gritou no megafone que era tudo culpa da Halverson. Os soldados quebraram a câmera dela.",
+	"Meu filho tossiu a noite toda. De manhã ele não me reconhecia mais. Que Deus me perdoe.",
+	"Lote 7. Era isso que estava escrito nos sacos de milho do armazém. Lote 7.",
 ]
 const ARAME_DANO: int = 3
 const ARAME_A_CADA: float = 0.5  # s

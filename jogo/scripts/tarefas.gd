@@ -112,6 +112,10 @@ const LORE: Array = [
 	"Se achar algum documento da Halverson, guarde. Cada papel conta.",
 	"O Exército passou por aqui na terceira noite. Atiraram em quem tossia. Em todo mundo que tossia.",
 	"Às vezes eu pego rádio de outras cidades. Depois, só chiado.",
+	"A Mia salvou meu sobrinho no primeiro dia. Ela não merecia isso.",
+	"O Wade trabalhava na Hollis Feed. Foi ele quem dirigiu os caminhões do lote 7.",
+	"O sargento Mercer prometeu evacuar a cidade. Depois trancaram o portão por fora.",
+	"Escuta: se o helicóptero vier, você sobe primeiro com a Mia. Eu sou só a mensageira.",
 	"Promete uma coisa: se eu não sair daqui, conta a história por mim.",
 ]
 const CORVOS_RADIO: Array = [
