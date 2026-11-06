@@ -11,6 +11,8 @@ const PEDACO: float = 64.0
 ## quantidade por nível de qualidade (Batata, Média, Alta, Ultra)
 const DENSIDADE: Array[float] = [0.35, 0.6, 1.0, 1.4]
 const POSTE_A_CADA: float = 30.0
+## mato de verdade (Vegetacao): o que nasce na beira da calçada, no pé da parede e no terreno
+const MATOS: Array[String] = ["capim_seco", "capim_seco", "capim", "samambaia_baixa", "moita"]
 
 var _b: Bairro
 var _rng := RandomNumberGenerator.new()
@@ -116,8 +118,17 @@ func _poe_mato(p: Vector2) -> void:
 	var h: float = _b.altura(p)
 	if h < Bairro.AGUA_Y + 0.1:
 		return  # nada de mato debaixo d'água
-	var t := Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * _rng.randf_range(0.6, 1.4)), Vector3(p.x, h, p.y))
-	_guarda("mato", t, Color(0.55, 0.5, 0.3).lerp(Color(0.35, 0.38, 0.2), _rng.randf()))
+	# 06/11 (dono: "tirar esses matos saindo do chão, colocar mato de verdade"): capim/samambaia/moita prontos
+	# (Vegetacao, Sketchfab CC BY) no lugar dos tufos desenhados, menos e maiores; musgo de verdade (textura
+	# fotografada ambientCG CC0) espalhado no chão junto
+	if _rng.randf() < 0.3:
+		var m := Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * _rng.randf_range(0.8, 2.6)), Vector3(p.x, h + 0.03, p.y))
+		_guarda("musgo", m, Color(_rng.randf(), _rng.randf(), 0, 1))
+	if _rng.randf() > 0.4:
+		return
+	var esp: String = MATOS[_rng.randi() % MATOS.size()]
+	var t := Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * _rng.randf_range(0.7, 1.25)), Vector3(p.x, h, p.y))
+	_guarda("veg:" + esp, t, Color(0.95, 0.9, 0.78).lerp(Color(0.8, 0.85, 0.7), _rng.randf()))
 
 
 func _mancha(p: Vector2, tipo: String) -> void:
@@ -150,7 +161,8 @@ func _fecha_lotes() -> void:
 		var mi := MultiMeshInstance3D.new()
 		mi.name = "Lote_" + chave.replace("|", "_").replace(",", "_").replace("-", "m")
 		mi.multimesh = mm
-		mi.material_override = info[1]
+		if info[1]:
+			mi.material_override = info[1]
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mi.visibility_range_end = float(info[2]) * fator + PEDACO * 0.7
 		add_child(mi)
@@ -210,6 +222,16 @@ func _prepara_malhas() -> void:
 	_malhas = {"papel": [papel, cor, 25.0], "lata": [lata, cor, 18.0], "garrafa": [garrafa, cor, 18.0],
 		"saco": [saco, cor, 45.0], "tabua": [tabua, cor, 35.0], "corpo": [deitado, cor, 60.0],
 		"mancha": [mancha, m_mancha, 35.0], "mato": [_tufo(), m_mato, 30.0]}
+	for esp: String in MATOS:  # cada malha já vem com o material de vento dela (sem material_override)
+		var ms: Array = Vegetacao.malhas(esp)
+		if not ms.is_empty():
+			_malhas["veg:" + esp] = [ms[0][0], null, 28.0]
+	var m_musgo := ShaderMaterial.new()
+	m_musgo.shader = Shader.new()
+	m_musgo.shader.code = MUSGO
+	m_musgo.set_shader_parameter("cor", load("res://assets/texturas/musgo_cor.jpg"))
+	m_musgo.set_shader_parameter("nrm", load("res://assets/texturas/musgo_normal.jpg"))
+	_malhas["musgo"] = [mancha, m_musgo, 40.0]
 
 
 ## Tufo de mato: 3 folhas cruzadas (o shader recorta as lâminas e balança com o vento).
@@ -245,6 +267,28 @@ void fragment() {
 	if (topo > alto || lamina > 0.8 * (1.0 - topo / alto)) discard;
 	ALBEDO = COLOR.rgb * (0.55 + 0.45 * topo);
 	ROUGHNESS = 0.9;
+}"""
+
+## Musgo no chão: textura de musgo de verdade (ambientCG Moss002, CC0) em coordenadas do mundo, borda irregular.
+const MUSGO := """shader_type spatial;
+render_mode blend_mix, depth_draw_never, cull_disabled;
+uniform sampler2D cor : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D nrm : hint_normal, filter_linear_mipmap, repeat_enable;
+varying vec3 w;
+void vertex() {
+	w = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+void fragment() {
+	vec2 c = UV - 0.5;
+	float ang = atan(c.y, c.x);
+	float borda = 0.34 + 0.08 * sin(ang * 5.0 + COLOR.r * 40.0) + 0.05 * sin(ang * 13.0 + COLOR.g * 20.0);
+	float d = length(c);
+	if (d > borda) discard;
+	vec2 uv = w.xz * 0.45;
+	ALBEDO = texture(cor, uv).rgb * 0.75;
+	NORMAL_MAP = texture(nrm, uv).rgb;
+	ROUGHNESS = 0.95;
+	ALPHA = smoothstep(borda, borda - 0.18, d) * 0.92;
 }"""
 
 const MANCHA := """shader_type spatial;

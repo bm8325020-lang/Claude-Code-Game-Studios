@@ -1797,6 +1797,10 @@ func _plano(pai: Node3D, p: Vector3, tam: Vector2, m: Material) -> void:
 
 # material com textura realista (cor + relevo) projetada pelo mundo: emenda sozinha entre peças
 ## sombra = usa a sombra de canto assada nas cores dos vértices (ruínas do Blender)
+## blocos mais escuros (06/11, dono: "diminuir a claridade dos blocos")
+const ESCURO: float = 0.72
+
+
 func _mat(nome: String, escala: float, tinta: Color = Color(0.82, 0.8, 0.76), sombra: bool = false) -> Material:
 	var chave: String = "%s_%s_%s_%s" % [nome, escala, tinta, sombra]
 	if not _mats.has(chave):
@@ -1804,12 +1808,17 @@ func _mat(nome: String, escala: float, tinta: Color = Color(0.82, 0.8, 0.76), so
 		m.albedo_texture = load(TEX % [nome, "cor"])
 		m.normal_enabled = true
 		m.normal_texture = load(TEX % [nome, "normal"])
-		m.albedo_color = tinta  # um pouco mais escuro e sujo
+		m.albedo_color = Color(tinta.r * ESCURO, tinta.g * ESCURO, tinta.b * ESCURO, tinta.a)  # 06/11: blocos mais escuros (dono)
 		m.uv1_triplanar = true
 		m.uv1_world_triplanar = true
 		m.uv1_scale = Vector3.ONE * escala
 		m.roughness = 0.95
 		m.vertex_color_use_as_albedo = sombra
+		# manchas grandes de sujeira por cima (foto de chão ambientCG CC0, só escurece): parede deixa de ser lisa
+		m.detail_enabled = true
+		m.detail_albedo = load("res://assets/texturas/sujeira.jpg")
+		m.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MUL
+		m.detail_uv_layer = BaseMaterial3D.DETAIL_UV_1
 		_mats[chave] = m
 	return _mats[chave]
 
@@ -1830,7 +1839,7 @@ func _cor(cor: Color, rug: float = 0.9) -> Material:
 	var chave: String = "c_%s_%s" % [cor, rug]
 	if not _mats.has(chave):
 		var m := StandardMaterial3D.new()
-		m.albedo_color = cor
+		m.albedo_color = Color(cor.r * ESCURO, cor.g * ESCURO, cor.b * ESCURO, cor.a)
 		m.roughness = rug
 		_mats[chave] = m
 	return _mats[chave]

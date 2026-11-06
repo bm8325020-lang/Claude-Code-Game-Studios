@@ -80,7 +80,10 @@ func _process(dt: float) -> void:
 			mat.set_shader_parameter("horizonte", ceu)
 		ambiente.ambient_light_color = Color(0.7, 0.72, 0.75).lerp(Color(0.42, 0.47, 0.62), n)
 		ambiente.ambient_light_energy = lerpf(0.42, 0.52, n)  # 06/11: dia escurecido (dono: "muito claro"); a noite segue jogável
-		ambiente.fog_density = lerpf(0.007, 0.018, n) * float(c[2])  # menos poeira de dia: a cidade aparece de longe
+		# 06/11 (dono: "bastante atmosfera"): névoa mais grossa e cerração rente ao chão
+		ambiente.fog_density = lerpf(0.014, 0.026, n) * float(c[2])
+		ambiente.fog_height = 3.0
+		ambiente.fog_height_density = lerpf(0.06, 0.12, n)
 
 
 ## 0 = dia claro, 1 = noite fechada (sobe no anoitecer e desce no amanhecer).

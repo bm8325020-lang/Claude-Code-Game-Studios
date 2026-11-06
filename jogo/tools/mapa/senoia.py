@@ -108,7 +108,7 @@ MORRO = {"p": [-370, -360], "raio": 100.0, "alt": 14.0}
 # Os prédios que o OSM tem entram no lugar e do tamanho deles (o modelo nosso que mais se parece); o resto dos lotes
 # das ruas residenciais é preenchido pelas regras de sempre (casas americanas).
 import os
-SENOIA = os.environ.get("CIDADE", "") == "senoia"
+SENOIA = True  # Raven Creek foi apagada (06/11, dono)
 OSM_LAT0, OSM_LON0 = 33.3030, -84.5541
 if SENOIA:
     rio = [[-600.0, 2000.0], [600.0, 2000.0]]  # Senoia não tem riacho no quadrado: o rio fica fora do mapa
@@ -231,36 +231,7 @@ def zona(x, z):
 
 
 # ---------------- ruas (grade americana) ----------------
-if not SENOIA:
-    ROUTE9 = rua([(-160, -488), (-158, -300), (-162, -100), (-158, -40), (-160, 150), (-150, 300), (-156, 488)], "primary")
-    MAIN = rua([(-488, -40), (-300, -42), (-158, -40), (0, -40), (150, -40), (300, -38), (488, -40)], "primary")
-    CENTER = rua([(30, -488), (30, -175), (30, 95), (30, 250), (30, 488)], "secondary", False)
-    GRADE_NS = [rua([(x, -175), (x, 95)], "tertiary", False) for x in (-90, 90, 150)]
-    GRADE_NS.append(rua([(-30, -175), (-30, -110)], "tertiary", False))
-    GRADE_NS.append(rua([(-30, -40), (-30, 95)], "tertiary", False))
-    GRADE_EW = [rua([(-158, z), (300, z)], "tertiary", False) for z in (-175, 25)]
-    GRADE_EW.append(rua([(-158, -110), (-30, -110)], "tertiary", False))
-    GRADE_EW.append(rua([(30, -110), (300, -110)], "tertiary", False))
-    GRADE_EW.append(rua([(-158, 95), (300, 95)], "residential", False))
-    NORTE = [rua([(-250, z), (470, z)], "residential", False) for z in (-250, -320, -390)]
-    NORTE.append(rua([(-250, -455), (470, -455)], "residential", False))
-    for x in (-90, 150, 270, 390):
-        NORTE.append(rua([(x, -455), (x, -175)], "residential", False))
-    NORTE.append(rua([(-250, -455), (-250, -175)], "residential", False))
-    OESTE = [rua([(-470, z), (-160, z)], "residential", False) for z in (-170, -100, 30, 110, 190)]
-    OESTE += [rua([(x, -240), (x, 230)], "residential", False) for x in (-400, -290)]
-    LESTE = [rua([(300, z), (470, z)], "residential", False) for z in (-110, 25)]
-    LESTE += [rua([(x, -175), (x, 60)], "residential", False) for x in (390,)]
-    LESTE.append(rua([(300, -175), (300, 95)], "residential", False))
-    SUL = [rua([(-470, z), (470, z)], "residential", False) for z in (350, 430)]
-    SUL.append(rua([(250, 280), (250, 470)], "tertiary", False))
-    IND = [rua([(255, z), (470, z)], "service", False) for z in (140, 210)]
-    # ruas curvas sem saída (cul-de-sac) nos bairros
-    rua([(-90, -320), (-130, -340), (-150, -372), (-140, -390)], "residential")
-    rua([(270, -390), (320, -410), (340, -440)], "residential")
-    rua([(-400, 110), (-440, 140), (-450, 170)], "residential")
-else:
-    ruas_osm()
+ruas_osm()
 
 
 # ---------------- lugares marcados (reservam o chão) ----------------
@@ -326,78 +297,6 @@ def area(poly, m):
 
 def ret(x0, z0, x1, z1):
     return [(x0, z0), (x1, z0), (x1, z1), (x0, z1)]
-
-
-if not SENOIA:
-    # Town Square: praça do centro com coreto (gazebo), gramado, árvores e bancos
-    PX0, PZ0, PX1, PZ1 = -22.0, -102.0, 22.0, -48.0
-    reserva((PX0 + PX1) / 2, (PZ0 + PZ1) / 2, PX1 - PX0, PZ1 - PZ0)
-    area(ret(PX0, PZ0, PX1, PZ1), "praca")
-    pcx, pcz = (PX0 + PX1) / 2, (PZ0 + PZ1) / 2
-    for (x0, z0, x1, z1) in ((PX0 + 2, PZ0 + 2, pcx - 2.5, pcz - 2.5), (pcx + 2.5, PZ0 + 2, PX1 - 2, pcz - 2.5),
-                             (PX0 + 2, pcz + 2.5, pcx - 2.5, PZ1 - 2), (pcx + 2.5, pcz + 2.5, PX1 - 2, PZ1 - 2)):
-        area(ret(x0, z0, x1, z1), "grama")
-        for k in range(4):
-            tx, tz = R.uniform(x0 + 3, x1 - 3), R.uniform(z0 + 3, z1 - 3)
-            if math.dist((tx, tz), (pcx, pcz)) > 9:
-                prop(R.choice(["arvore_1", "arvore_2", "arvore_1", "arvore_3"]), tx, tz, R.uniform(0, 6.28))
-    prop("coreto", pcx, pcz, 0.0)
-    for k in range(8):
-        a = k * math.pi / 4 + math.pi / 8
-        prop("banco_praca", pcx + math.cos(a) * 10.5, pcz + math.sin(a) * 10.5, math.atan2(-math.cos(a), -math.sin(a)))
-    zumbis += [[pcx + 6, pcz + 4], [pcx - 10, pcz - 12]]
-    # Igreja (First Church) ao norte da praça; delegacia (Police) a oeste; hospital a leste; escola no bairro norte
-    predio("igreja", 0.0, -142.0, (0, 1), "centro")
-    predio("delegacia", -62.0, -75.0, (1, 0), "centro")
-    predio("hospital", 122.0, -142.0, (0, 1), "centro")
-    veiculos += [{"m": "van_r1", "p": [112.0, -124.0], "r": 1.2, "cor": [0.85, 0.85, 0.82]},
-                 {"m": "van_r1", "p": [130.0, -123.5], "r": 1.9, "cor": [0.85, 0.85, 0.82]}]
-    predio("escola", 90.0, -290.0, (0, 1), "casas")
-    prop("traves", 210.0, -290.0, 0.0)
-    reserva(210.0, -290.0, 23, 37)
-    zumbis += [[210, -285]]
-    # Food Mart com estacionamento grande na Route 9
-    predio("mercado", -230.0, 0.0, (1, 0), "centro")
-    area(ret(-212.0, -22.0, -168.0, 30.0), "asfalto")
-    for k in range(9):
-        veiculos.append({"m": R.choice(["carro_r1", "carro_r1", "carro_r2"]), "p": [-202.0 + (k % 3) * 12.0, round(-14.0 + (k // 3) * 16.0, 2)],
-                         "r": round(math.pi / 2 + R.uniform(-0.2, 0.2), 3)})
-    reserva(-190.0, 4.0, 44, 52)
-    # Cemitério do outro lado do riacho, a oeste: muro baixo, capela, túmulos em fileira
-    CX0, CZ0, CX1, CZ1 = -460.0, 320.0, -330.0, 470.0
-    reserva((CX0 + CX1) / 2, (CZ0 + CZ1) / 2, CX1 - CX0, CZ1 - CZ0)
-    area(ret(CX0, CZ0, CX1, CZ1), "grama")
-    for (a, b) in (((CX0, CZ0), (CX1, CZ0)), ((CX1, CZ1), (CX0, CZ1)), ((CX0, CZ1), (CX0, CZ0)), ((CX1, CZ0), (CX1, 390.0)), ((CX1, 396.0), (CX1, CZ1))):
-        muros.append({"a": list(a), "b": list(b), "alt": 1.2, "cor": 3})
-    predio("capela", -342.0, 380.0, (1, 0), "casas")
-    for x in range(int(CX0) + 6, int(CX1) - 22, 4):
-        for z in range(int(CZ0) + 6, int(CZ1) - 4, 4):
-            if abs(z - 393) < 3:
-                continue
-            if R.random() < 0.85:
-                prop(R.choice(["tumulo_1", "tumulo_2", "tumulo_3"]), x + R.uniform(-0.2, 0.2), z, (0 if R.random() < 0.9 else R.uniform(-0.4, 0.4)))
-    zumbis += [[-400, 390], [-370, 340], [-430, 450]]
-
-
-    # ---------------- marcos ----------------
-    def marco(tipo, x, z, ang=0.0, w=None, d=None):
-        marcos.append({"tipo": tipo, "p": [x, z], "ang": ang})
-        if w:
-            reserva(x, z, w, d, ang)
-
-
-    marco("antena", MORRO["p"][0], MORRO["p"][1], 0.0, 11, 11)
-    marco("caixa_dagua", 380.0, 175.0, 0.0, 9, 9)
-    marco("caixa_dagua", 330.0, -430.0, 0.0, 9, 9)
-    marco("posto", -120.0, -10.0, math.pi, 16, 21)        # posto de gasolina na Main Street, olhando para ela (norte)
-    marco("quarentena", -118.0, -440.0, 0.0, 24, 25)     # bloqueio do exército na entrada norte da Route 9
-    marco("helicoptero", 160.0, 390.0, 0.6, 17, 17)
-    prop("portico", -160.0, -470.0, 0.0)
-    prop("portico", 470.0, -40.0, math.pi / 2)
-    bloqueios.append({"p": [-470.0, -40.0], "ang": round(math.pi / 2, 3), "larg": 13.4})   # Main Street fechada no oeste
-    for pts, f in ((NORTE[1], 0.35), (OESTE[2], 0.6), (SUL[0], 0.3), (LESTE[0], 0.5)):
-        p, a = ponto_em(pts, comprimento(pts) * f)
-        bloqueios.append({"p": [round(p[0], 2), round(p[1], 2)], "ang": round(a + math.pi / 2, 3), "larg": 9.9})
 
 
 # ---------------- lotes ao longo das ruas ----------------

@@ -35,6 +35,7 @@ func _ready() -> void:
 		for k in POR_BANDO:
 			corvos.append(_corvo())
 		_bandos.append({"centro": Vector3.INF, "raio": 10.0, "alto": 24.0, "vel": 0.4, "corvos": corvos})
+	_poeira = _monta_poeira()
 	for k in NO_CHAO:
 		_chao.append({"no": _corvo(), "voando": false, "vel": Vector3.ZERO, "t": 0.0, "pos": Vector3.INF})
 	var papel := StandardMaterial3D.new()
@@ -89,6 +90,39 @@ func _corvo() -> Node3D:
 	return c
 
 
+## Poeira e cinza boiando no ar em volta de quem joga (06/11, "bastante atmosfera"): pontinhos cinza que descem devagar
+## com o vento; de longe somem na névoa.
+var _poeira: CPUParticles3D
+
+
+func _monta_poeira() -> CPUParticles3D:
+	var c := CPUParticles3D.new()
+	c.amount = 90
+	c.lifetime = 9.0
+	c.preprocess = 9.0
+	c.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	c.emission_box_extents = Vector3(14, 5, 14)
+	c.direction = VENTO.normalized()
+	c.spread = 25.0
+	c.gravity = Vector3(0, -0.05, 0)
+	c.initial_velocity_min = 0.2
+	c.initial_velocity_max = 0.7
+	c.scale_amount_min = 0.5
+	c.scale_amount_max = 1.4
+	c.local_coords = false
+	var q := QuadMesh.new()
+	q.size = Vector2(0.03, 0.03)
+	var m := StandardMaterial3D.new()
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = Color(0.75, 0.73, 0.7, 0.55)
+	q.material = m
+	c.mesh = q
+	add_child(c)
+	return c
+
+
 func _process(dt: float) -> void:
 	var j: Jogador = principal.jogador if principal else null
 	if j == null or not is_instance_valid(j) or not j.is_inside_tree():
@@ -98,6 +132,8 @@ func _process(dt: float) -> void:
 	_voa_bandos(p, dt)
 	_corvos_do_chao(p, dt)
 	_papel(p, dt)
+	if _poeira:
+		_poeira.global_position = p + Vector3(0, 2.0, 0)
 
 
 func _bate(c: Node3D, rapido: float) -> void:
