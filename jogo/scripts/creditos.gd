@@ -34,6 +34,9 @@ MUNDO (vegetação, construções)
 • "Abandoned House Low Poly" — Karthik Naidu (CC Attribution) — sketchfab.com/3d-models/abandoned-house-low-poly-9d4146728c4948efb378c02449eb6aea
 • "Abandoned bus" — godonsmile505 (CC Attribution) — sketchfab.com/3d-models/abandoned-bus-62a7b558381042978f38877974aacf35
 • "Concrete barricade" — ejtamovic (CC Attribution) — sketchfab.com/3d-models/concrete-barricade-280db7c2ee6648898a944a07b93f31d7
+• "Rubble Pile (Game Ready / 2K PBR)" — Meerschaum Digital (CC Attribution) — sketchfab.com/3d-models/rubble-pile-game-ready-2k-pbr-0e6f85da3433468db226866bd43a43e7
+• "Red Brick Pile Rubble Debris" — 3DWALKABOUT (CC Attribution) — sketchfab.com/3d-models/red-brick-pile-rubble-debris-a61ea99ff8da40c8998741afb8a57a84
+• "Body Bag01" — AaronJC (CC Attribution) — sketchfab.com/3d-models/body-bag01-b29baa9d4ef54b5c96a32c6ce0584ea0
 
 ARMAS E OBJETOS
 Kenney (kenney.nl) — CC0: assets/sons/*.ogg

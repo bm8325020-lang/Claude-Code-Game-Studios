@@ -75,7 +75,12 @@ Ordem pensada: primeiro a cara e o pronto (muda o jogo inteiro), depois estrutur
   interior atual, mantendo os nomes de móvel que as gavetas usam); ônibus e barricadas prontos.
   Era: PRONTO NO LUGAR DO FEITO À MÃO (regra 7): levantar o que é feito à mão (casas_us, ruinas, cidade.py, porão,
   postes, barricadas); trocar os mais vistos por modelos prontos CC0/CC BY (começar pelas casas e lojas do centro).
-- [ ] E3 ESTRUTURA (regra 1): centro bombardeado (prédios desabados prontos, crateras, entulho), bairro incendiado,
+- [x] E3 (07/11 9:31) senoia.py com sorteio próprio (resto da cidade igual): bairro incendiado (10 casas viram as
+  queimadas que ardem), centro bombardeado (45 pilhas de entulho/tijolo prontas + carros queimados), rodovia de entrada
+  engarrafada (18 carros na pista de saída; a de quem chega livre), vala comum (28 sacos de corpo prontos + cruzes, 4
+  zumbis). Planta aceita enfeite pronto "mundo:" (assets/mundo/props). Malha refeita. Render Média 344 chamadas, 288 mil
+  tri (abaixo do anterior); CPU 6,2 ms. test_bairro/nascer/carro/horda ok. Sem cratera pronta (não achei CC).
+  Era: ESTRUTURA (regra 1): centro bombardeado (prédios desabados prontos, crateras, entulho), bairro incendiado,
   rodovia de entrada engarrafada, parque virado vala comum. Planta + minimapa + malha.
 - [ ] E4 QUARENTENA MILITAR (regras 1/4): muro de contêineres cortando a cidade, checkpoint (sacos de areia, guarita,
   holofote), tendas médicas com loot militar e zumbis soldados — modelos prontos.

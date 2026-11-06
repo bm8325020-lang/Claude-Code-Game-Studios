@@ -674,6 +674,71 @@ for pp in predios:
             pp["modelo"] = PRONTAS[(n_casa // 3) % len(PRONTAS)]
             q = pp["p"]
             pp["c"] = [round(sum(v[0] for v in q) / len(q), 2), round(sum(v[1] for v in q) / len(q), 2)]
+# ---------------- 07/11 (E3, regra 1): estrutura nova da cidade (sorteio próprio: o resto da cidade não muda) ----------------
+RE = random.Random(3107)
+CENTRO_C = (-15.0, 225.0)
+# 1) bairro incendiado: o aglomerado de casas mais longe do centro e da entrada pega fogo (mesmo tamanho -> versão queimada)
+QUEIMA = {"casa_us_1": "casa_us_q1", "casa_us_2": "casa_us_q1", "casa_us_5": "casa_us_q1", "casa_us_3": "casa_us_q2",
+          "casa_us_4": "casa_us_q2", "casa_us_6": "casa_us_q2"}  # a queimada cabe no lote da original (mesma origem)
+cands = [pp for pp in predios if pp["modelo"] in CASA_US and math.dist(pp["c"], CENTRO_C) > 220 and math.dist(pp["c"], ENTRADA) > 260]
+foco = max(cands, key=lambda pp: sum(1 for o in cands if math.dist(o["c"], pp["c"]) < 70)) if cands else None
+incendio = 0
+if foco:
+    for pp in predios:
+        if pp["modelo"] in QUEIMA and math.dist(pp["c"], foco["c"]) < 95:
+            pp["modelo"] = QUEIMA[pp["modelo"]]
+            incendio += 1
+    for k in range(6):
+        zumbis.append([round(foco["c"][0] + RE.uniform(-40, 40), 2), round(foco["c"][1] + RE.uniform(-40, 40), 2)])
+# 2) centro bombardeado: entulho e pilhas de tijolo na rua e nas calçadas, carros queimados
+bomba = 0
+for tent in range(900):
+    if bomba >= 45:
+        break
+    a, d = RE.uniform(0, math.tau), 90.0 * math.sqrt(RE.random())
+    q = (CENTRO_C[0] + math.cos(a) * d, CENTRO_C[1] + math.sin(a) * d)
+    novo = (q[0], q[1], 0.0, 3.0, 3.0)
+    if any(sobrepoe(novo, o) for o in ocupado if math.dist(o[:2], q) < 30):
+        continue
+    bomba += 1
+    props.append({"m": RE.choice(["mundo:entulho", "mundo:entulho", "mundo:tijolos"]), "p": [round(q[0], 2), round(q[1], 2)], "r": round(RE.uniform(0, 6.28), 3)})
+    if bomba % 8 == 0:
+        veiculos.append({"m": "mundo:queimado", "p": [round(q[0] + 3, 2), round(q[1], 2)], "r": round(RE.uniform(0, 6.28), 3)})
+# 3) rodovia de entrada engarrafada: a fila de quem tentou fugir, na pista de saída (a de quem chega fica livre)
+lado_e = (ENTRADA_DIR[1], -ENTRADA_DIR[0])  # -lado do carro de quem chega (Bairro._entrada)
+saida_r = math.pi / 2 - math.atan2(-ENTRADA_DIR[1], -ENTRADA_DIR[0])
+fila = 0
+t = 26.0
+while t < RURAL - 25:
+    q = (ENTRADA[0] + ENTRADA_DIR[0] * t + lado_e[0] * 2.7, ENTRADA[1] + ENTRADA_DIR[1] * t + lado_e[1] * 2.7)
+    veiculos.append({"m": RE.choice(["mundo:carcaca", "mundo:ferrugem", "mundo:van", "mundo:carcaca"]), "p": [round(q[0], 2), round(q[1], 2)],
+                     "r": round(saida_r + RE.uniform(-0.12, 0.12), 3), "cor": [round(RE.uniform(0.1, 0.6), 2), round(RE.uniform(0.1, 0.4), 2), round(RE.uniform(0.1, 0.4), 2)]})
+    fila += 1
+    if fila % 4 == 0:
+        zumbis.append([round(q[0] + lado_e[0] * 3, 2), round(q[1] + lado_e[1] * 3, 2)])
+    t += RE.uniform(6.0, 8.5)
+# 4) vala comum: num terreno vazio longe do centro, fileiras de sacos de corpo com cruz na cabeça
+vala = None
+for gx in range(-420, 421, 12):
+    for gz in range(-420, 421, 12):
+        if math.dist((gx, gz), CENTRO_C) > 160 and not perto_rua((gx, gz), 9.0) and livre(gx, gz, 0.0, 26.0, 16.0):
+            vala = (gx, gz)
+            break
+    if vala:
+        break
+if vala:
+    reserva(vala[0], vala[1], 26.0, 16.0)
+    area(ret(vala[0] - 13, vala[1] - 8, vala[0] + 13, vala[1] + 8), "terra")
+    for fil in range(4):
+        for k in range(7):
+            x = vala[0] - 10.5 + k * 3.5
+            z = vala[1] - 5.0 + fil * 3.4
+            props.append({"m": "mundo:saco_corpo", "p": [round(x + RE.uniform(-0.3, 0.3), 2), round(z, 2)], "r": round(RE.uniform(-0.15, 0.15), 3)})
+            if RE.random() < 0.5:
+                props.append({"m": RE.choice(["tumulo_1", "tumulo_2", "tumulo_3"]), "p": [round(x, 2), round(z - 1.4, 2)], "r": 0.0})
+    for k in range(4):
+        zumbis.append([round(vala[0] + RE.uniform(-12, 12), 2), round(vala[1] + RE.uniform(-7, 7), 2)])
+print("E3: casas incendiadas", incendio, "| entulho", bomba, "| fila na rodovia", fila, "| vala comum", vala)
 print("casas prontas:", sum(1 for pp in predios if pp["modelo"].startswith("casa_p")))
 out = {"origem": "Senoia, GA (OpenStreetMap, ODbL; tools/mapa/raven_creek.py CIDADE=senoia)" if SENOIA else "Raven Creek (tools/mapa/raven_creek.py)", "ruas": ruas, "predios": predios, "frestas": frestas, "bloqueios": bloqueios,
        "marcos": marcos, "muros": muros, "props": props, "areas": areas, "faixas": faixas, "postes": postes, "veiculos": veiculos,

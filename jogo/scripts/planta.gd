@@ -202,6 +202,23 @@ static func _lote(b: Bairro, modelo: String, pedacos: Dictionary) -> void:
 		if tr:
 			formas.append([tr, Transform3D(Basis(), Vector3(0, 1.5, 0))])
 		pequena = esp in Vegetacao.RASTEIRAS
+	elif modelo.begins_with("mundo:"):  # 07/11 (E3): enfeite pronto (normaliza.py, assets/mundo/props): textura dele, colisão em caixa
+		var arq: String = "res://assets/mundo/props/%s/%s.gltf" % [modelo.substr(6), modelo.substr(6)]
+		if not ResourceLoader.exists(arq):
+			return
+		var cena: Node3D = (load(arq) as PackedScene).instantiate()
+		var cx := AABB()
+		for g: MeshInstance3D in cena.find_children("*", "MeshInstance3D", true, false):
+			var t: Transform3D = _rel(g, cena)
+			if not Rede.servidor_sem_tela:
+				malhas.append([g.mesh, t])
+			cx = t * g.get_aabb() if cx.size == Vector3.ZERO else cx.merge(t * g.get_aabb())
+		cena.free()
+		if cx.size.y > 0.5:  # o que é baixo (saco) não trava ninguém
+			var bx := BoxShape3D.new()
+			bx.size = cx.size * Vector3(0.8, 1.0, 0.8)
+			formas.append([bx, Transform3D(Basis(), cx.get_center())])
+		pequena = true
 	elif ResourceLoader.exists(Bairro.RUINAS % modelo):
 		var cena: Node3D = (load(Bairro.RUINAS % modelo) as PackedScene).instantiate()
 		if not Rede.servidor_sem_tela:

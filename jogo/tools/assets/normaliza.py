@@ -27,6 +27,10 @@ MODELOS = {
     "van": ("veiculos/graffiti_van.glb", "veiculos", 2.1, False),
     "onibus": ("veiculos/abandoned_bus.glb", "veiculos", 3.1, False),
     "barreira": ("props/concrete_barricade.glb", "props", 0.85, False),
+    # 07/11 (E3): centro bombardeado e vala comum
+    "entulho": ("props/rubble_pile_game_ready_2k_pbr.glb", "props", 1.2, False),
+    "tijolos": ("props/red_brick_pile_rubble_debris.glb", "props", 0.9, False, 2000),
+    "saco_corpo": ("props/body_bag01.glb", "props", 0.35, False),
     # 07/11 (E2b): casas prontas (fechadas: só por fora); tools/blender/casa_pronta.py vira ruína do jogo (assets/ruinas)
     "casa_p1": ("casas/suburban_shabby_house_low_poly.glb", "casas", 8.5, False, 7000),
     "casa_p2": ("casas/suburban_house.glb", "casas", 7.5, False, 7000),
