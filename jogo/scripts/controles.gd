@@ -557,7 +557,7 @@ func pausa(abrir: bool) -> void:
 	_pausa.visible = abrir
 	if abrir and _stats_lbl and _tarefas:  # 06/11: estatísticas da história na pausa
 		var st: Dictionary = _tarefas._stats
-		_stats_lbl.text = "Zumbis mortos: %d   ·   Mortes: %d   ·   Tempo: %d min" % [int(st.abates), int(st.mortes), int(float(st.tempo) / 60.0)]
+		_stats_lbl.text = "Zumbis mortos: %d   ·   Mortes: %d   ·   Tempo: %d min\nBilhetes lidos: %d de %d" % [int(st.abates), int(st.mortes), int(float(st.tempo) / 60.0), _lidos.size(), get_tree().get_nodes_in_group("bilhetes").size()]
 	if not toque:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if abrir else Input.MOUSE_MODE_CAPTURED
 	if jogador and abrir:

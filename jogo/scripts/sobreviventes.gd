@@ -51,6 +51,7 @@ func monta(b: Bairro) -> void:
 		if hash(String(c.name) + "bilhete") % 3 == 0:
 			_bilhete(c, BILHETES[n])
 			n += 1
+	_lugares()
 	for k in mini(N_REFUGIOS, casas.size()):  # todo refúgio tem um bilhete de quem ficou lá
 		if n < BILHETES.size():
 			_bilhete(casas[k], BILHETES[n])
@@ -66,6 +67,7 @@ func _refugio(casa: Node3D) -> void:
 	var p: Vector2 = Vector2(frente.x, frente.z) + lado * 1.6 - fora * 0.5
 	var bar: Node3D = (load(Bairro.RUINAS % "barricada_sobr") as PackedScene).instantiate()
 	bar.name = "Refugio_" + casa.name
+	_cerca_refugio(Vector2(frente.x, frente.z), fora, lado, String(casa.name))
 	bar.position = Vector3(p.x, _b.altura(p), p.y)
 	bar.rotation.y = atan2(fora.x, fora.y)  # frente do modelo (+Z) para a rua
 	add_child(bar)
@@ -140,6 +142,161 @@ func _bilhete(casa: Node3D, texto: String) -> void:
 	mi.material_override = m
 	mi.name = "Bilhete_" + casa.name
 	mi.position = dentro + Vector3(_rng.randf_range(-0.6, 0.6), 0.075, _rng.randf_range(-0.6, 0.6))
+	mi.rotation.y = _rng.randf() * TAU
+	mi.set_meta("texto", texto)
+	mi.add_to_group("bilhetes")
+	add_child(mi)
+
+
+# --- 06/11 (dono): abrigo com cara de abrigo e lugares com cara de lugar; história nos bilhetes ---
+const PROPS: String = "res://assets/mundo/props/%s/%s.gltf"
+const LORE_LUGAR: Dictionary = {
+	"Hospital": ["Prontuário 117. Febre de 41 graus, pele cinza. Óbito às 3h10. Às 3h40 o paciente levantou da maca. — Dra. R. Okafor",
+		"AVISO DA DIREÇÃO: por ordem da Halverson Agro, as amostras do lote 7 ficam na câmara fria. Ninguém abre. Ninguém comenta."],
+	"Delegacia": ["Ocorrência 0452: saque na Hollis Feed. Usavam jaqueta preta com um corvo pintado nas costas. O chefe atende por Wade.",
+		"Ordem do Exército: ninguém sai de Senoia. Atirar se preciso. Eu não assino isso. — Sgt. Cole"],
+	"Mercado": ["REGRAS DOS CORVOS: 1) o que achar é do bando. 2) mordido sai. 3) forasteiro paga pedágio ou vira isca. — W.H.",
+		"O Wade diz que a Halverson pagou pra gente sumir com os caminhões de milho. Agora ninguém paga mais ninguém."],
+	"Igreja": ["O padre Tomás abriu a igreja pra quem chegasse. Na quarta noite, foi ele mesmo que abriu a porta pra eles."],
+}
+
+
+## Coloca um modelo pronto (Sketchfab/normaliza.py) no chão, com colisão em caixa (quem passa pula ou contorna).
+func _prop(nome: String, p: Vector2, rot: float, colide: bool = true) -> Node3D:
+	var arq: String = PROPS % [nome, nome]
+	if not ResourceLoader.exists(arq):
+		return null
+	var m: Node3D = (load(arq) as PackedScene).instantiate()
+	m.position = Vector3(p.x, _b.altura(p), p.y)
+	m.rotation.y = rot
+	add_child(m)
+	var caixa := AABB()
+	var prim: bool = true
+	for g: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
+		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		g.visibility_range_end = 120.0
+		caixa = g.get_aabb() if prim else caixa.merge(g.get_aabb())
+		prim = false
+	if colide and caixa.size.y > 0.4:
+		var corpo := StaticBody3D.new()
+		var cs := CollisionShape3D.new()
+		var bx := BoxShape3D.new()
+		bx.size = caixa.size * Vector3(0.92, 1.0, 0.92)
+		cs.shape = bx
+		cs.position = caixa.get_center()
+		corpo.add_child(cs)
+		m.add_child(corpo)
+	m.set_meta("comp", maxf(maxf(caixa.size.x, caixa.size.z), 0.5))
+	m.set_meta("eixo_z", caixa.size.z > caixa.size.x)
+	m.set_meta("alto", caixa.size.y)
+	return m
+
+
+## Fileira de um modelo de a até b (sacos de areia, barreiras), virada ao longo da linha.
+func _fileira(nome: String, a: Vector2, b: Vector2, andares: int = 1) -> void:
+	var d: Vector2 = b - a
+	var ang: float = atan2(-d.y, d.x)  # o comprimento do modelo (eixo X) ao longo da linha
+	var teste: Node3D = _prop(nome, a, ang)
+	if teste == null:
+		return
+	if bool(teste.get_meta("eixo_z")):  # modelo comprido em Z: gira 90° para deitar ao longo da linha
+		ang += PI * 0.5
+		teste.rotation.y = ang
+	var passo: float = maxf(float(teste.get_meta("comp")) * 0.9, 0.5)
+	var alto: float = float(teste.get_meta("alto"))
+	var n: int = int(d.length() / passo)
+	for andar in andares:
+		for k in range(0 if andar > 0 else 1, n + 1):
+			var m: Node3D = _prop(nome, a + d.normalized() * (passo * k + (passo * 0.5 if andar % 2 == 1 else 0.0)), ang, andar == 0)
+			if m:
+				m.position.y += alto * 0.85 * andar
+
+
+## Refúgio de verdade: quintal da frente fechado com sacos de areia e barreira (um portão estreito no meio),
+## barraca, holofote e placa "VIVOS AQUI".
+func _cerca_refugio(f: Vector2, fora: Vector2, lado: Vector2, nome: String) -> void:
+	var l: float = 5.0
+	var fundo: float = 3.6
+	_fileira("sacos_areia", f + lado * l, f + lado * l + fora * fundo, 2)
+	_fileira("sacos_areia", f - lado * l, f - lado * l + fora * fundo, 2)
+	_fileira("sacos_areia", f + lado * l + fora * fundo, f + lado * 1.4 + fora * fundo, 2)
+	_fileira("barreira", f - lado * l + fora * fundo, f - lado * 1.4 + fora * fundo)
+	if hash(nome) % 2 == 0:
+		_prop("tenda", f + lado * 3.8 + fora * 3.0, atan2(fora.x, fora.y))
+	_prop("holofote", f - lado * 4.5 + fora * 4.6, atan2(fora.x, fora.y), false)
+	var placa := Label3D.new()
+	placa.text = "VIVOS AQUI\nBATA 3 VEZES"
+	placa.font_size = 64
+	placa.modulate = Color(0.95, 0.9, 0.75)
+	placa.outline_size = 10
+	placa.position = Vector3(f.x + fora.x * fundo, _b.altura(f) + 1.6, f.y + fora.y * fundo) + Vector3(lado.x, 0, lado.y) * 2.4
+	placa.rotation.y = atan2(fora.x, fora.y)
+	placa.visibility_range_end = 60.0
+	add_child(placa)
+
+
+## Hospital, delegacia, mercado dos Corvos e igreja com cara de lugar (na frente de cada um) + bilhetes da história.
+func _lugares() -> void:
+	for nome: String in ["Hospital", "Delegacia", "Mercado", "Igreja"]:
+		var no: Node3D = _b.get_node_or_null(nome)
+		if no == null or not no.has_meta("frente"):
+			continue
+		var fr3: Vector3 = (no.get_meta("frente") as Vector3) - Bairro.ORIGEM
+		var f := Vector2(fr3.x, fr3.z)
+		var c: Vector2 = _b._centro(no.get_meta("poly")) if no.has_meta("poly") else f - Vector2(0, 10)
+		var fora: Vector2 = (f - c).normalized()
+		var lado := Vector2(fora.y, -fora.x)
+		var rot: float = atan2(fora.x, fora.y)
+		match nome:
+			"Hospital":  # triagem do Exército na porta: barracas, macas de corpos, barreiras e holofote
+				_prop("tenda", f + fora * 7.0 + lado * 7.0, rot)
+				_prop("tenda", f + fora * 7.0 - lado * 7.0, rot)
+				for k in 6:
+					_prop("saco_corpo", f + fora * 3.5 + lado * (k - 2.5) * 1.0, rot + PI * 0.5, false)
+				_fileira("barreira", f + fora * 11.0 + lado * 9.0, f + fora * 11.0 + lado * 2.0)
+				_prop("holofote", f + fora * 9.0 - lado * 2.5, rot, false)
+				_letreiro("HOSPITAL MUNICIPAL\n✚", f + fora * 1.0, rot, Color(0.95, 0.2, 0.15))
+			"Delegacia":  # polícia caiu atrás de sacos de areia
+				_fileira("sacos_areia", f + fora * 4.0 + lado * 6.0, f + fora * 4.0 + lado * 1.5)
+				_fileira("sacos_areia", f + fora * 4.0 - lado * 1.5, f + fora * 4.0 - lado * 6.0)
+				_fileira("barreira", f + fora * 9.0 + lado * 5.0, f + fora * 9.0 - lado * 5.0)
+			"Mercado":  # base dos Corvos: muralha de sacos e contêiner, torre de vigia, placa pichada
+				_fileira("sacos_areia", f + fora * 5.0 + lado * 10.0, f + fora * 5.0 + lado * 2.0)
+				_fileira("sacos_areia", f + fora * 5.0 - lado * 2.0, f + fora * 5.0 - lado * 10.0)
+				_prop("torre_vigia", f + fora * 8.0 + lado * 11.0, rot)
+				_prop("conteiner", f + fora * 9.0 - lado * 13.0, rot + PI * 0.5)
+				_letreiro("TERRITÓRIO DOS CORVOS\nPEDÁGIO OU MORTE", f + fora * 5.2, rot, Color(0.9, 0.15, 0.1))
+			"Igreja":
+				for k in 4:
+					_prop("saco_corpo", f + fora * 2.5 + lado * (k - 1.5) * 1.1, rot + PI * 0.5, false)
+		var textos: Array = LORE_LUGAR.get(nome, [])
+		for k in textos.size():
+			_bilhete_em(f + fora * (2.0 + k * 1.5) + lado * (1.5 - k * 3.0), String(textos[k]))
+
+
+func _letreiro(texto: String, p: Vector2, rot: float, cor: Color) -> void:
+	var l := Label3D.new()
+	l.text = texto
+	l.font_size = 120
+	l.modulate = cor
+	l.outline_size = 14
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.position = Vector3(p.x, _b.altura(p) + 4.2, p.y)
+	l.rotation.y = rot
+	l.visibility_range_end = 140.0
+	add_child(l)
+
+
+func _bilhete_em(p: Vector2, texto: String) -> void:
+	var mi := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(0.21, 0.29)
+	q.orientation = PlaneMesh.FACE_Y
+	mi.mesh = q
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.86, 0.84, 0.76)
+	mi.material_override = m
+	mi.position = Vector3(p.x, _b.altura(p) + 0.075, p.y)
 	mi.rotation.y = _rng.randf() * TAU
 	mi.set_meta("texto", texto)
 	mi.add_to_group("bilhetes")
