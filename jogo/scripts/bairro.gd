@@ -933,7 +933,7 @@ static func queimada(modelo: String) -> bool:
 
 ## Cores da casa americana (tinta por cima das texturas claras).
 const CORES_US: Dictionary = {
-	"siding_branco": Color(0.92, 0.92, 0.9), "siding_azul": Color(0.58, 0.7, 0.82), "siding_amarelo": Color(0.95, 0.86, 0.6),
+	"siding_branco": Color(0.92, 0.92, 0.9), "siding_azul": Color(0.64, 0.69, 0.72), "siding_amarelo": Color(0.95, 0.86, 0.6),
 	"siding_cinza": Color(0.66, 0.68, 0.68), "siding_verde": Color(0.64, 0.74, 0.62), "siding_bege": Color(0.88, 0.82, 0.7),
 	"siding_vermelho": Color(0.66, 0.3, 0.26),
 	"shingle_cinza": Color(0.62, 0.62, 0.63), "shingle_marrom": Color(0.6, 0.45, 0.36), "shingle_preto": Color(0.36, 0.36, 0.38),

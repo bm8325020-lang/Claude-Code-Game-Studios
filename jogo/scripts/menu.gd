@@ -33,7 +33,7 @@ func _ready() -> void:
 	raiz.add_child(fundo)
 	# início
 	var ini := _pagina(raiz, "inicio", 520.0)
-	ini.add_child(UiTema.titulo("SEM NOME", 56, UiTema.DESTAQUE))
+	ini.add_child(UiTema.titulo("DEAD DISTRICT", 56, UiTema.DESTAQUE))
 	ini.add_child(UiTema.rotulo("sobreviver é com você", 20, UiTema.APAGADO))
 	_nick = UiTema.campo("Seu nome", "Jogador%d" % (randi() % 900 + 100))
 	ini.add_child(_nick)
