@@ -39,6 +39,7 @@ func _init() -> void:
 	await frames(120)
 	j = main.jogador
 	j.vida = 1000000
+	main.controles.jogador = null  # senão o HUD zera o "andar" do bot a cada quadro
 	main.ciclo.tempo = 0.0
 	main.ciclo.set_process(false)
 	for z in main.zumbis.get_children():
@@ -154,11 +155,12 @@ func _rotas(n: int) -> void:
 			if d.length() < 0.6:
 				i += 1
 				continue
-			var yaw: float = atan2(-d.x, -d.z)
-			if j.camera:
-				j.camera.yaw = yaw
-				j.camera.set("_yaw_alvo", yaw)
-			j.entrada["move"] = Vector2(0, 1)
+			# o analógico é relativo ao giro da câmera (sem câmera, giro 0): converte a direção para ele
+			var yaw: float = j.camera.yaw if j.camera else 0.0
+			var frente := Vector3(-sin(yaw), 0, -cos(yaw))
+			var direita := Vector3(cos(yaw), 0, -sin(yaw))
+			var dn: Vector3 = d.normalized()
+			j.entrada["move"] = Vector2(dn.dot(direita), dn.dot(frente))
 			await frames(6)
 			t += 0.1
 			parado_t = parado_t + 0.1 if j.global_position.distance_to(ult) < 0.12 else 0.0
@@ -169,6 +171,7 @@ func _rotas(n: int) -> void:
 				parado_t = 0.0
 				i += 1
 		j.entrada["move"] = Vector2.ZERO
+		log_("   rota %d: (%.0f, %.0f) -> (%.0f, %.0f), %d presos até agora" % [r, de.x, de.z, ate.x, ate.z, presos.size()])
 	log_("   rotas feitas %d, travou %d vezes" % [feitas, presos.size()])
 	for p: Array in presos:
 		log_("   PRESO em (%.1f, %.1f, %.1f) indo para (%.0f, %.0f): %s" % [p[0].x, p[0].y, p[0].z, p[1].x, p[1].z, p[2]])
