@@ -6,6 +6,8 @@ import bpy, re, sys
 a = sys.argv[sys.argv.index("--") + 1:]
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=a[0])
+for o in [o for o in bpy.data.objects if o.name.startswith("Icosphere")]:  # esfera do fundo do Sketchfab (estragava a altura)
+    bpy.data.objects.remove(o, do_unlink=True)
 for act in list(bpy.data.actions):
     bpy.data.actions.remove(act)
 arm = [o for o in bpy.data.objects if o.type == "ARMATURE"][0]

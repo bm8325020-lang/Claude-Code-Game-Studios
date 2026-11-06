@@ -1,5 +1,8 @@
-Zumbis realistas (Sketchfab, licença CC Attribution 4.0), convertidos com tools/blender/zumbi_sketchfab.py:
-zr_homem   — "zombie cameraman rig" por 1266shin (sketchfab.com/3d-models/c2637ea008aa4bcc8019f2daf75b7d6a)
-zr_homem3  — "Zombie Scream" por Juangamer (sketchfab.com/3d-models/052d81624ba24d8b9dc9b8e87909cef0)
+Zumbis realistas (Sketchfab, licença CC Attribution 4.0):
+zr_lb_homem   — "Zombie (Male 1)" por LokitoBlu (sketchfab.com/3d-models/f40dda49b8b94f2faedf58679f676763)
+zr_lb_mulher  — "Zombie (Female 1)" por LokitoBlu (sketchfab.com/3d-models/ce037bf3c08e40eea92df46e4ec32b16)
+zr_lb_mulher2 — "Zombie (Type Female 2)" por LokitoBlu (sketchfab.com/3d-models/d0f13665d110448495e90421a55492ca)
+  (sem esqueleto no original: postos no esqueleto do Mixamo e reduzidos por tools/blender/zumbi_rig_xbot.py)
 zr_mulher  — "Zombie female model" por JonatanSantana (sketchfab.com/3d-models/60e0e94ca09240b0bfc5736fc9fc56dc)
 zr_mulher2 — ".fuse female zombie 1" por livrosparacriancas (sketchfab.com/3d-models/98415df5d3124381a46ccef5c2e02b71)
+  (convertidos com tools/blender/zumbi_sketchfab.py)
