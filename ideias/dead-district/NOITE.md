@@ -49,6 +49,22 @@ Cada rodada: ler isto, fazer o próximo [ ], medir, poucos testes (só da área)
   ficam mortos); pisar no pé da escada sobe. Ciclo: sem névoa de altura no subsolo (virava parede azul).
   test_porao 6/6, bairro/gavetas/raid ok. Era: Porão: em ~1 de cada 8 casas, alçapão no chão da cozinha -> escada -> porão escuro (só a lanterna), loot raro
   e 1-2 zumbis deitados (tocaia). Medo + motivo para explorar.
-- [ ] D3 Corvos vivos de verdade: patrulha em dupla em volta do mercado, gritam o aviso com voz (som), fogem para dentro,
+- [-] D3 (movido para E5) Corvos vivos de verdade: patrulha em dupla em volta do mercado, gritam o aviso com voz (som), fogem para dentro,
   baú do acampamento com loot de saqueador; matar todos libera o mercado (aviso no HUD).
-- [ ] D4 APK + resumo curto para o dono.
+- [-] D4 (movido para E6) APK + resumo curto para o dono.
+
+## E. Cidade nova (dono 07/11: "o loop deve mudar a estrutura inteira da cidade e adicionar coisas novas")
+Regra do loop: cada rodada muda a CIDADE (planta tools/mapa/senoia.py + Bairro/Planta) ou põe coisa NOVA no mundo;
+mudou a planta -> regerar planta + minimapa e a malha (assa_navegacao.gd -- salva_nav), foto antes/depois, peso_render
+(DD_QUALIDADE=1) não pode subir mais que 10%. Ao acabar a seção, escrever a próxima no mesmo espírito.
+- [ ] E1 Zonas novas na planta: centro bombardeado (quarteirão com prédios desabados, crateras, entulho na rua),
+  bairro incendiado (fileira de casas queimadas com fumaça), rodovia de entrada engarrafada (fila de carros dos que
+  tentaram fugir), parque virou vala comum (covas rasas, cruzes, sacos).
+- [ ] E2 Quarentena militar: muro de contêineres e cercas cortando a cidade em duas, portão com checkpoint
+  (sacos de areia, holofote apagado, guarita), tendas médicas lá dentro com loot militar e zumbis soldados.
+- [ ] E3 Lugares novos: posto de gasolina com loja de conveniência, escola barricada (refúgio que caiu), torre de água
+  para subir e ver longe, ferro-velho.
+- [ ] E4 Ruas que mudam: pontes/ruas bloqueadas por barricadas e ônibus tombados, obrigando a dar a volta; atalhos por
+  dentro de prédios e quintais.
+- [ ] E5 Corvos vivos de verdade (era D3): patrulha em dupla no mercado, voz no aviso, matar todos libera o mercado.
+- [ ] E6 APK + resumo curto para o dono; escrever a seção F (mais cidade e coisas novas).
