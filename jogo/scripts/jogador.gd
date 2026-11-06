@@ -44,6 +44,8 @@ var entrada: Dictionary = {"move": Vector2.ZERO, "olhar": Vector2.ZERO, "pular":
 	"atirando": false, "modo": false}
 
 ## Arma na mão: uma arma branca (Armas.BRANCAS) ou "pistola" (vai pela rede para os outros verem).
+## 06/11 (dono): na história de verdade (salas) você nasce sem nada, só no soco; os testes seguem com o facão.
+static var inicio_vazio: bool = false
 var arma: String = "facao":
 	set(v):
 		arma = v
@@ -231,18 +233,28 @@ func _ready() -> void:
 	add_child(_teto)
 	_monta_modelo()
 	_monta_arma()
-	# começa com facão, pistola, lanterna (provisório) e um pente de reserva
-	mochila.adicionar("facao", 1)
-	mochila.adicionar("pistola", 1)
+	# começa com facão, pistola, lanterna (provisório) e um pente de reserva; na história: só o rádio e o soco
+	if inicio_vazio:
+		arma = "punhos"
+		_ultima_branca = "punhos"
+	else:
+		mochila.adicionar("facao", 1)
+		mochila.adicionar("pistola", 1)
 	if tem_lanterna:
 		mochila.adicionar("lanterna", 1)
 	mochila.adicionar("livro", 1)  # abre as HABILIDADES (dono, 31/10: saiu da pausa)
-	mochila.adicionar("taco_pregos", 1)  # 31/10: o taco do print do dono (nas salas ele já vem na mão: main.arma_inicial)
-	pistola.reserva = Pistola.RESERVA_INICIAL
+	if not inicio_vazio:
+		mochila.adicionar("taco_pregos", 1)  # 31/10: o taco do print do dono
+		pistola.reserva = Pistola.RESERVA_INICIAL
 	mochila.mudou.connect(func() -> void:
 		tem_lanterna = mochila.tem("lanterna")
-		if arma != "facao" and not mochila.tem(arma):
-			arma = "facao"  # largou/perdeu a arma da mão: volta para o facão
+		if arma != mao() and not mochila.tem(arma):
+			arma = mao()  # largou/perdeu a arma da mão: volta para o facão (história: o soco)
+		elif arma == "punhos":  # só no soco e achou arma branca: já vai para a mão
+			for t: String in ["machado", "taco_pregos", "taco", "facao", "faca"]:
+				if mochila.tem(t):
+					arma = t
+					break
 		_copia_t = minf(_copia_t, 0.5))  # manda a cópia ao servidor logo
 	_monta_lanterna()
 	_som = AudioStreamPlayer3D.new()
@@ -418,7 +430,7 @@ func _physics_process(dt: float) -> void:
 	if entrada.get("trocar", false):
 		entrada["trocar"] = false
 		if e_fogo(arma):
-			_troca_arma(_ultima_branca if mochila.tem(_ultima_branca) else "facao")
+			_troca_arma(_ultima_branca if mochila.tem(_ultima_branca) else mao())
 		else:
 			var tem: Array = Pistola.FOGO.keys().filter(func(t: String) -> bool: return mochila.tem(t))
 			_troca_arma(_ultima_fogo if mochila.tem(_ultima_fogo) else (tem[0] if not tem.is_empty() else "pistola"))
@@ -1693,8 +1705,13 @@ const PISTOLA_CIMA: Vector3 = Vector3(0.963, 0.140, 0.230)
 const PISTOLA_POS: Vector3 = Vector3(0, 0.08, 0)
 
 
+## O que fica na mão quando não tem arma: o facão (testes/antigo) ou o soco (história, `inicio_vazio`).
+func mao() -> String:
+	return "punhos" if inicio_vazio else "facao"
+
+
 func _troca_arma(nova: String) -> void:
-	if nova == arma or not mochila.tem(nova):
+	if nova == arma or (not mochila.tem(nova) and nova != mao()):
 		return
 	_golpe = -1  # trocar no meio do golpe cancela o golpe (antes o comando era ignorado)
 	arma = nova

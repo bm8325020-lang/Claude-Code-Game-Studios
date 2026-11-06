@@ -5,6 +5,11 @@
 		"voz": "narrador"
 	},
 	{
+		"id": "789407d9034f",
+		"texto": "Alguém na estrada? Aqui é Dana Price, da TV. A pé você não chega: pegue o carro e entre em Senoia.",
+		"voz": "dana"
+	},
+	{
 		"id": "9f447485a877",
 		"texto": "Senoia. 4 mil habitantes. Nenhum vivo à vista.",
 		"voz": "narrador"
@@ -15,14 +20,44 @@
 		"voz": "narrador"
 	},
 	{
-		"id": "2f4d9b58ec81",
-		"texto": "\"Se alguém estiver ouvindo... estou na van da TV, na praça. Venha.\"",
+		"id": "04d1a46691ac",
+		"texto": "Você está de mãos vazias? Assim não dura uma noite. Tem um facão num quintal perto de você. Marquei no seu mapa.",
+		"voz": "dana"
+	},
+	{
+		"id": "d7f31f12d7ae",
+		"texto": "Boa. Agora, armamento de verdade: a delegacia tem um arsenal. Está cheia de policiais mortos... vai com cuidado.",
+		"voz": "dana"
+	},
+	{
+		"id": "80c6e859d1bb",
+		"texto": "Escurece rápido. Procure uma casa com tábuas nas janelas e um lampião aceso: é um refúgio.",
+		"voz": "dana"
+	},
+	{
+		"id": "8f18130633db",
+		"texto": "Cuidado! Eles ouviram você. Estão vindo de todos os lados. Segure o refúgio!",
 		"voz": "dana"
 	},
 	{
 		"id": "53b4646b4249",
 		"texto": "Capítulo 2. A van da tv.",
 		"voz": "narrador"
+	},
+	{
+		"id": "5aa827ebe528",
+		"texto": "Você aguentou! Venha até a van da TV, no centro. Pessoalmente eu explico tudo.",
+		"voz": "dana"
+	},
+	{
+		"id": "09a231e1273c",
+		"texto": "Ouviu isso? Um rapaz pedindo socorro, aqui perto. Está cercado na rua. Vai, rápido!",
+		"voz": "dana"
+	},
+	{
+		"id": "0682e879c152",
+		"texto": "Traga ele até a van. Fique perto dele: ele não tem arma.",
+		"voz": "dana"
 	},
 	{
 		"id": "6285eb717836",
@@ -35,6 +70,16 @@
 		"voz": "narrador"
 	},
 	{
+		"id": "116d4ac837e8",
+		"texto": "O hospital fica no norte da cidade. Aquilo virou um ninho. Entre devagar.",
+		"voz": "dana"
+	},
+	{
+		"id": "1d240fefe7c8",
+		"texto": "A Mia escrevia tudo num diário. Se ele ainda estiver aí, vai dizer para onde ela foi.",
+		"voz": "dana"
+	},
+	{
 		"id": "5ec3aa944ae5",
 		"texto": "\"A Dra. Okafor vai nos levar para a QUARENTENA. Só os Corvos têm explosivo para abrir aquilo.\"",
 		"voz": "mia"
@@ -45,9 +90,19 @@
 		"voz": "narrador"
 	},
 	{
+		"id": "bf3357ce7616",
+		"texto": "Os Corvos tomaram o mercado. O líder é Wade Harlan, e ele tem o explosivo. Não vai entregar por bem.",
+		"voz": "dana"
+	},
+	{
 		"id": "5adc42aed89e",
 		"texto": "Wade cai. Na mochila dele: uma bomba do Exército e uma fita.",
 		"voz": "narrador"
+	},
+	{
+		"id": "30aa76549ef8",
+		"texto": "Ele largou a bomba. Pegue antes que outro Corvo pegue.",
+		"voz": "dana"
 	},
 	{
 		"id": "3021270d3349",
@@ -55,9 +110,34 @@
 		"voz": "narrador"
 	},
 	{
+		"id": "2b2a1be4a8aa",
+		"texto": "Agora, o portão da quarentena. Arme a bomba e saia de perto.",
+		"voz": "dana"
+	},
+	{
+		"id": "061140f8231e",
+		"texto": "As tendas estão infestadas. Limpe tudo antes de procurar a Mia.",
+		"voz": "dana"
+	},
+	{
+		"id": "551d572690a9",
+		"texto": "A Mia tem que estar numa dessas tendas. Procure!",
+		"voz": "dana"
+	},
+	{
+		"id": "3dc84a1be6bb",
+		"texto": "Ela está ardendo em febre. Precisa de antibiótico, agora! Farmácia, hospital, qualquer lugar. Rápido!",
+		"voz": "dana"
+	},
+	{
 		"id": "0426e80d6309",
 		"texto": "\"Melhorou... Vai, o Mercer tem as peças do rádio. Eu te encontro no heliponto.\"",
 		"voz": "mia"
+	},
+	{
+		"id": "70535673581d",
+		"texto": "O sargento Mercer está no laboratório. Ele virou um deles... e está com a peça do rádio.",
+		"voz": "dana"
 	},
 	{
 		"id": "d9a90caef0e4",
@@ -70,6 +150,16 @@
 		"voz": "narrador"
 	},
 	{
+		"id": "b13868161f4d",
+		"texto": "Faltam as peças do rádio militar: uma com o Mercer, uma no ferro-velho e uma no posto.",
+		"voz": "dana"
+	},
+	{
+		"id": "99ca68853e40",
+		"texto": "Rádio montado. Suba na torre de água: lá de cima ele alcança o Exército.",
+		"voz": "dana"
+	},
+	{
 		"id": "b12272f5a929",
 		"texto": "\"...Senoia, entendido. Helicóptero no heliponto do hospital na próxima noite. Aguentem.\"",
 		"voz": "militar"
@@ -80,9 +170,24 @@
 		"voz": "narrador"
 	},
 	{
+		"id": "d6ef3fc8f935",
+		"texto": "O helicóptero vem. Se puder, junte as fitas da doutora pelo caminho. Depois, heliponto do hospital.",
+		"voz": "dana"
+	},
+	{
 		"id": "26ddec87fe05",
 		"texto": "Capítulo 8. A última noite.",
 		"voz": "narrador"
+	},
+	{
+		"id": "efe259da20ea",
+		"texto": "Eles estão vindo. Todos eles. Aguente firme até o helicóptero chegar!",
+		"voz": "dana"
+	},
+	{
+		"id": "00ce38f91ffe",
+		"texto": "O helicóptero pousou! Corre, corre!",
+		"voz": "dana"
 	},
 	{
 		"id": "d5f818d857cf",
@@ -148,6 +253,11 @@
 		"id": "4956e0786f5e",
 		"texto": "Socorro! Aqui! Eles estão por todo lado!",
 		"voz": "tommy"
+	},
+	{
+		"id": "cc4c87a75b3d",
+		"texto": "Ainda está aí? Olhe o mapa: eu marquei para onde você tem que ir.",
+		"voz": "dana"
 	},
 	{
 		"id": "367c00c3992f",

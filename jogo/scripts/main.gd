@@ -198,14 +198,16 @@ var arma_inicial: String = ""
 
 
 func criar_sala_sobrev(nick: String, nome: String, publica: bool, maximo: int) -> void:
-	arma_inicial = "taco_pregos"
+	arma_inicial = "punhos"
+	Jogador.inicio_vazio = true  # história: nasce só com o rádio e o soco (06/11)
 	nick_local = nick
 	sala_sobrev = {"codigo": "", "nome": nome, "max": maximo, "n": 1}
 	relay.criar(nome, publica, maximo)
 
 
 func entrar_sala_sobrev(nick: String, cod: String) -> void:
-	arma_inicial = "taco_pregos"
+	arma_inicial = "punhos"
+	Jogador.inicio_vazio = true  # história: nasce só com o rádio e o soco (06/11)
 	nick_local = nick
 	mostra_carregando()
 	relay.entrar(cod)

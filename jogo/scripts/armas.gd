@@ -16,6 +16,9 @@ const BRANCAS: Dictionary = {
 	# 31/10 (print do dono): taco com pregos e arame farpado (Blender: tools/blender/ruinas.py taco_pregos)
 	"taco_pregos": {"modelo": "res://assets/armas/taco_pregos.glb", "ponta": Vector3(0, 1, 0), "tam": 0.86,
 		"vel": 0.78, "dano": [40, 40, 60], "alcance": 2.0, "empurra": 2.8, "som": "impactPunch_heavy_001"},
+	# 06/11 (dono): na história você começa só no soco; "roubado" de propósito (zumbi é forte): rápido, longe, empurra muito
+	"punhos": {"modelo": "", "ponta": Vector3(0, 0, 1), "tam": 0.14,
+		"vel": 1.5, "dano": [35, 35, 55], "alcance": 2.4, "empurra": 3.2, "som": "impactPunch_heavy_000"},
 	"machado": {"modelo": "res://assets/sketchfab/machado.glb", "ponta": Vector3(0, 1, 0), "tam": 0.8,
 		"vel": 0.65, "dano": [50, 50, 70], "alcance": 1.9, "empurra": 1.3, "som": "knifeSlice2"},
 }
@@ -31,6 +34,18 @@ static func modelo(tipo: String) -> Node3D:
 	var d: Dictionary = BRANCAS[tipo]
 	var pega := Node3D.new()
 	pega.name = "Arma_" + tipo
+	if String(d.modelo) == "":  # punhos: só o punho fechado (caixinha cor de pele) indo para a frente
+		var mi := MeshInstance3D.new()
+		var bx := BoxMesh.new()
+		bx.size = Vector3(0.09, 0.08, 0.11)
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.62, 0.45, 0.36)
+		mat.roughness = 0.8
+		bx.material = mat
+		mi.mesh = bx
+		mi.position = Vector3(0, 0, 0.05)
+		pega.add_child(mi)
+		return pega
 	var m := (load(String(d.modelo)) as PackedScene).instantiate() as Node3D
 	pega.add_child(m)
 	var caixa := AABB()

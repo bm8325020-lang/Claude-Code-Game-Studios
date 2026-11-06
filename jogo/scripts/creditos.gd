@@ -106,6 +106,7 @@ zr_mulher2 — ".fuse female zombie 1" por livrosparacriancas (sketchfab.com/3d-
   (convertidos com tools/blender/zumbi_sketchfab.py)
 
 MÓVEIS
+Vozes da história: Kokoro TTS (hexgrad/Kokoro-82M, licença Apache-2.0), geradas em 06/11 por tools/voz/gera.py.
 Móveis realistas: Poly Haven (https://polyhaven.com), licença CC0 (domínio público). Baixados em 31/10 em 1k,
 texturas limitadas a 512 px na importação (celular). Modelos: ver as pastas.
 

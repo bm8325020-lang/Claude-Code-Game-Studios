@@ -21,18 +21,24 @@ func _init() -> void:
 	for i in 5: await physics_frame
 	var j: Jogador = main.jogador
 	var t: Tarefas = main.controles._tarefas
-	ok(t._linha.text.contains("comida"), "começa pedindo comida (%s)" % t._linha.text)
+	ok(t._linha.text.contains("FACÃO"), "começa só no soco: pegar o facão (%s)" % t._linha.text)
+	j.mochila.tirar("facao", 1)  # teste nasce com facão/pistola; a história começa sem
+	j.mochila.tirar("pistola", 1)
 	var xp0: int = j.prog.xp + j.prog.nivel * 1000
 	t.evento("agua")
 	ok(t._i == 1, "evento errado não conta (teste começa no cap. 1)")
-	j.ganhar("comida", 1)
+	ok(Minimapa.destino.is_finite(), "o facão fica marcado no mapa")
+	ok(t._fila_radio.size() > 0 or t._legenda_t > 0.0, "o objetivo chega pelo rádio")
+	j.ganhar("facao", 1)
 	await physics_frame
-	ok(t._i == 2 and t._linha.text.contains("refúgio"), "pegou comida: história pede o refúgio (%s)" % t._linha.text)
+	ok(t._i == 2 and t._linha.text.contains("DELEGACIA"), "facão: raid na delegacia (%s)" % t._linha.text)
 	ok(j.prog.xp + j.prog.nivel * 1000 > xp0, "passo feito dá XP")
-	ok(Minimapa.destino.is_finite(), "o refúgio fica marcado no mapa (07/11)")
+	j.ganhar("pistola", 1)
+	await physics_frame
+	ok(t._i == 3 and t._linha.text.contains("refúgio"), "pistola: história pede o refúgio (%s)" % t._linha.text)
 	j.entrou_segura.emit(true)
 	await physics_frame
-	ok(t._i == 3 and t._linha.text.contains("DEFENDA") and t._onda_total > 0, "refúgio: luta obrigatória para defender (%s)" % t._linha.text)
+	ok(t._i == 4 and t._linha.text.contains("DEFENDA") and t._onda_total > 0, "refúgio: luta obrigatória para defender (%s)" % t._linha.text)
 	# 06/11 (dono travou em 9/15): no refúgio (sala segura) os zumbis da luta não desistem; perdido longe volta perto
 	j.segura = true
 	for i in 60 * 4: await physics_frame
@@ -44,5 +50,8 @@ func _init() -> void:
 		z0.global_position = j.global_position + Vector3(250, 0, 0)
 		for i in 90: await physics_frame
 		ok(z0.global_position.distance_to(j.global_position) < 30.0, "zumbi da luta perdido longe volta perto (%.0f m)" % z0.global_position.distance_to(j.global_position))
+	# 06/11: soco "roubado" e começo sem nada (só na história de verdade; testes seguem com o facão)
+	ok(Armas.BRANCAS.punhos.alcance > Armas.BRANCAS.facao.alcance and int(Armas.BRANCAS.punhos.dano[0]) >= 30, "soco forte e longo")
+	ok(Voz.tem(String(Tarefas.ROTEIRO[1][7].radio)), "objetivo do rádio tem voz")
 	print("TAREFAS: %d checks, %d falhas -> %s" % [checks, falhas, "PASS" if falhas == 0 else "FAIL"])
 	quit(0 if falhas == 0 else 1)

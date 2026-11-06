@@ -1111,7 +1111,7 @@ func _porta_na_frente(dir: Vector3) -> Porta:
 
 func _atualiza_ataque(dt: float) -> void:
 	_ataque_t += dt * anim.speed_scale
-	var dur: float = anim.get_animation("ataque").length
+	var dur: float = anim.get_animation("ataque").length if anim.has_animation("ataque") else 1.0
 	if not _acertou and _ataque_t >= dur * ACERTO:
 		_acertou = true
 		if _pancada:

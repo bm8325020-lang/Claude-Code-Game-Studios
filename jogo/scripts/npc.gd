@@ -81,4 +81,4 @@ func _process(dt: float) -> void:
 
 func _diz(principal: Node) -> void:
 	if principal.controles and _i < falas.size():
-		_dura = principal.controles._tarefas.legenda(nome, String(falas[_i]), POR_FALA) + 0.3  # legenda (e voz) embaixo
+		_dura = principal.controles._tarefas.legenda(nome, String(falas[_i]), POR_FALA, false) + 0.3  # fala do seu lado (no painel do rádio, sem apito)

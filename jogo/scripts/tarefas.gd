@@ -22,47 +22,67 @@ const HELIPONTO_RAIO: float = 26.0
 ## chefe = barra de vida + fase na metade (reforço); local = linha embaixo do cartão do capítulo.
 const ROTEIRO: Array = [
 	["0 · A ESTRADA", "Entre no carro e siga a estrada até Senoia", "chegou", 1, "", "",
-		"Senoia. 4 mil habitantes. Nenhum vivo à vista.", {"local": "Estrada 16, entrada de Senoia"}],
-	["1 · A PRIMEIRA NOITE", "Pegue uma lata de comida", "comida", 1, "", "", "", {"local": "Senoia, Geórgia"}],
-	["1 · A PRIMEIRA NOITE", "Ache um refúgio (casa com tábuas e lampião)", "segura", 1, "refugio", "", ""],
-	["1 · A PRIMEIRA NOITE", "Os mortos te ouviram! DEFENDA O REFÚGIO (%d/%d)", "limpou", 1, "refugio", "", 
-		"RÁDIO (Dana Price): \"Se alguém estiver ouvindo... estou na van da TV, na praça. Venha.\"",
-		{"ondas": 3, "zumbis": 4, "raio": 30.0, "centro": "eu", "premio": ["municao", 24, "bandagem", 2]}],
+		"Senoia. 4 mil habitantes. Nenhum vivo à vista.", {"local": "Estrada 16, entrada de Senoia",
+		"radio": "Alguém na estrada? Aqui é Dana Price, da TV. A pé você não chega: pegue o carro e entre em Senoia."}],
+	["1 · A PRIMEIRA NOITE", "Você está só no soco: pegue o FACÃO marcado no mapa", "facao", 1, "item:facao", "facao_inicio", "",
+		{"local": "Senoia, Geórgia",
+		"radio": "Você está de mãos vazias? Assim não dura uma noite. Tem um facão num quintal perto de você. Marquei no seu mapa."}],
+	["1 · A PRIMEIRA NOITE", "RAID NA DELEGACIA: pegue a PISTOLA do arsenal", "pistola", 1, "item:pistola", "delegacia", "",
+		{"local": "Delegacia de Senoia", "cena": "raid:DELEGACIA", "premio": ["municao", 24],
+		"radio": "Boa. Agora, armamento de verdade: a delegacia tem um arsenal. Está cheia de policiais mortos... vai com cuidado."}],
+	["1 · A PRIMEIRA NOITE", "Ache um refúgio (casa com tábuas e lampião)", "segura", 1, "refugio", "", "",
+		{"radio": "Escurece rápido. Procure uma casa com tábuas nas janelas e um lampião aceso: é um refúgio."}],
+	["1 · A PRIMEIRA NOITE", "Os mortos te ouviram! DEFENDA O REFÚGIO (%d/%d)", "limpou", 1, "refugio", "", "",
+		{"ondas": 3, "zumbis": 4, "raio": 30.0, "centro": "eu", "premio": ["municao", 24, "bandagem", 2],
+		"radio": "Cuidado! Eles ouviram você. Estão vindo de todos os lados. Segure o refúgio!"}],
 	["2 · A VAN DA TV", "Vá até a van da TV no centro e fale com a Dana", "fala:dana", 1, "dana", "dana", "",
-		{"local": "Centro de Senoia", "cena": "dana"}],
+		{"local": "Centro de Senoia", "cena": "dana",
+		"radio": "Você aguentou! Venha até a van da TV, no centro. Pessoalmente eu explico tudo."}],
 	["2 · A VAN DA TV", "Alguém grita no rádio! SALVE O TOMMY, cercado na rua (%d/%d)", "limpou", 1, "tommy", "tommy", "",
-		{"ondas": 2, "zumbis": 5, "raio": 28.0, "centro": "tommy"}],
+		{"ondas": 2, "zumbis": 5, "raio": 28.0, "centro": "tommy",
+		"radio": "Ouviu isso? Um rapaz pedindo socorro, aqui perto. Está cercado na rua. Vai, rápido!"}],
 	["2 · A VAN DA TV", "Leve o TOMMY vivo até a van da Dana", "escolta", 1, "dana", "",
 		"TOMMY: \"Valeu, cara... Eu vi a Mia. Levaram ela pro hospital, depois pros caminhões do Exército.\"",
-		{"premio": ["espingarda", 1, "cartucho", 12]}],
+		{"premio": ["espingarda", 1, "cartucho", 12], "radio": "Traga ele até a van. Fique perto dele: ele não tem arma."}],
 	["3 · O HOSPITAL", "Vá ao HOSPITAL atrás da sua irmã Mia", "chegar", 1, "raid:HOSPITAL MUNICIPAL", "hospital", "",
-		{"local": "Hospital Municipal de Senoia", "cena": "raid:HOSPITAL MUNICIPAL"}],
+		{"local": "Hospital Municipal de Senoia", "cena": "raid:HOSPITAL MUNICIPAL",
+		"radio": "O hospital fica no norte da cidade. Aquilo virou um ninho. Entre devagar."}],
 	["3 · O HOSPITAL", "Ache o DIÁRIO DA MIA no hospital", "diario", 1, "item:diario", "",
 		"DIÁRIO DA MIA: \"A Dra. Okafor vai nos levar para a QUARENTENA. Só os Corvos têm explosivo para abrir aquilo.\"",
-		{"susto": true}],
+		{"susto": true, "radio": "A Mia escrevia tudo num diário. Se ele ainda estiver aí, vai dizer para onde ela foi."}],
 	["4 · OS CORVOS", "Mate WADE HARLAN, o líder dos Corvos, no mercado", "morto:wade", 1, "raid:OS CORVOS", "wade",
 		"Wade cai. Na mochila dele: uma bomba do Exército e uma fita.",
-		{"local": "Mercado — território dos Corvos", "cena": "raid:OS CORVOS", "chefe": "wade", "premio": ["fuzil", 1, "municao_fuzil", 30]}],
-	["4 · OS CORVOS", "Pegue a BOMBA que o Wade largou", "bomba", 1, "item:bomba", "", ""],
+		{"local": "Mercado — território dos Corvos", "cena": "raid:OS CORVOS", "chefe": "wade", "premio": ["fuzil", 1, "municao_fuzil", 30],
+		"radio": "Os Corvos tomaram o mercado. O líder é Wade Harlan, e ele tem o explosivo. Não vai entregar por bem."}],
+	["4 · OS CORVOS", "Pegue a BOMBA que o Wade largou", "bomba", 1, "item:bomba", "", "",
+		{"radio": "Ele largou a bomba. Pegue antes que outro Corvo pegue."}],
 	["5 · A QUARENTENA", "Exploda o portão da QUARENTENA com a bomba", "portao", 1, "quarentena", "", "",
-		{"local": "Quarentena do Exército", "cena": "quarentena"}],
+		{"local": "Quarentena do Exército", "cena": "quarentena",
+		"radio": "Agora, o portão da quarentena. Arme a bomba e saia de perto."}],
 	["5 · A QUARENTENA", "LIMPE AS TENDAS da quarentena (%d/%d)", "limpou", 1, "quarentena", "", "",
-		{"ondas": 2, "zumbis": 6, "raio": 32.0, "centro": "dentro"}],
-	["5 · A QUARENTENA", "Ache a MIA nas tendas da quarentena", "fala:mia", 1, "mia", "mia", ""],
+		{"ondas": 2, "zumbis": 6, "raio": 32.0, "centro": "dentro",
+		"radio": "As tendas estão infestadas. Limpe tudo antes de procurar a Mia."}],
+	["5 · A QUARENTENA", "Ache a MIA nas tendas da quarentena", "fala:mia", 1, "mia", "mia", "",
+		{"radio": "A Mia tem que estar numa dessas tendas. Procure!"}],
 	["5 · A QUARENTENA", "A febre da Mia sobe! Traga um ANTIBIÓTICO a tempo", "remedio", 1, "mia", "",
-		"MIA: \"Melhorou... Vai, o Mercer tem as peças do rádio. Eu te encontro no heliponto.\"", {"timer": 300.0}],
+		"MIA: \"Melhorou... Vai, o Mercer tem as peças do rádio. Eu te encontro no heliponto.\"",
+		{"timer": 300.0, "radio": "Ela está ardendo em febre. Precisa de antibiótico, agora! Farmácia, hospital, qualquer lugar. Rápido!"}],
 	["5 · A QUARENTENA", "Mate o SARGENTO MERCER (virou zumbi) no laboratório", "morto:mercer", 1, "item:mercer", "mercer",
-		"Mercer caiu. Uma peça do rádio militar e mais uma fita.", {"chefe": "mercer", "premio": ["bandagem", 3, "antibiotico", 1]}],
+		"Mercer caiu. Uma peça do rádio militar e mais uma fita.", {"chefe": "mercer", "premio": ["bandagem", 3, "antibiotico", 1],
+		"radio": "O sargento Mercer está no laboratório. Ele virou um deles... e está com a peça do rádio."}],
 	["6 · O SINAL", "Junte as 3 PEÇAS DO RÁDIO: Mercer, ferro-velho e posto (%d/3)", "peca_radio", 3, "item:peca_radio", "pecas", "",
-		{"local": "Ferro-velho e estrada"}],
+		{"local": "Ferro-velho e estrada",
+		"radio": "Faltam as peças do rádio militar: uma com o Mercer, uma no ferro-velho e uma no posto."}],
 	["6 · O SINAL", "Suba na TORRE DE ÁGUA e chame o Exército pelo rádio", "torre", 1, "torre", "",
 		"RÁDIO MILITAR: \"...Senoia, entendido. Helicóptero no heliponto do hospital na próxima noite. Aguentem.\"",
-		{"cena": "torre"}],
+		{"cena": "torre", "radio": "Rádio montado. Suba na torre de água: lá de cima ele alcança o Exército."}],
 	["7 · AS FITAS", "Junte as fitas da Dra. Okafor (%d/5) e vá ao HELIPONTO do hospital", "chegar", 1, "heliponto", "fitas", "",
-		{"local": "Escola e Igreja Matriz"}],
+		{"local": "Escola e Igreja Matriz",
+		"radio": "O helicóptero vem. Se puder, junte as fitas da doutora pelo caminho. Depois, heliponto do hospital."}],
 	["8 · A ÚLTIMA NOITE", "Aguente no heliponto até o helicóptero chegar", "sobreviveu", 1, "heliponto", "", "",
-		{"local": "Heliponto do hospital"}],
-	["8 · A ÚLTIMA NOITE", "CORRA PARA O HELICÓPTERO!", "chegar", 1, "helicoptero", "helicoptero", ""],
+		{"local": "Heliponto do hospital", "radio": "Eles estão vindo. Todos eles. Aguente firme até o helicóptero chegar!"}],
+	["8 · A ÚLTIMA NOITE", "CORRA PARA O HELICÓPTERO!", "chegar", 1, "helicoptero", "helicoptero", "",
+		{"radio": "O helicóptero pousou! Corre, corre!"}],
 ]
 ## O que cada fita conta (pega a fita -> legenda), na ordem em que você acha.
 const FITAS_TXT: Array = [
@@ -73,6 +93,7 @@ const FITAS_TXT: Array = [
 	"Dia 14. Se alguém achar isto: entregue à imprensa. A Mia, minha enfermeira, sabe onde estão as outras fitas.",
 ]
 const TOMMY: Array = ["Socorro! Aqui! Eles estão por todo lado!"]
+const DICA_VOZ: Array = ["Ainda está aí? Olhe o mapa: eu marquei para onde você tem que ir."]
 ## Falas soltas com voz ("QUEM|texto"; o que vai entre parênteses na legenda não é falado).
 const EXTRAS: Array = ["MIA|...Alex... não estou... aguentando...", "WADE|Corvos, comigo!"]
 
@@ -123,9 +144,10 @@ var _heli: Node3D
 var _salvo: String = ""
 var _cap: String = ""
 var _marcador: _Marcador
-var _legenda: PanelContainer
-var _legenda_txt: RichTextLabel
+var _radio: _Radio
+var _bip: AudioStreamPlayer
 var _legenda_t: float = 0.0
+var _fila_radio: Array = []  # [nome, texto, tempo, pelo_radio] esperando a vez (uma fala por vez)
 var _check: Vector3 = Vector3.INF  # checkpoint: onde volta ao morrer (último passo feito)
 var _morto: bool = false
 var _cfg: Dictionary = {}           # config do passo da vez (8ª coluna)
@@ -180,31 +202,23 @@ func _ready() -> void:
 	_linha = UiTema.rotulo("", 16, Color(1, 1, 1, 0.95))
 	_linha.position = Vector2(14, 30)
 	_linha.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_linha.size = Vector2(412, 28)
+	_linha.size = Vector2(500, 28)
 	_linha.clip_text = true
 	add_child(_linha)
 	_marcador = _Marcador.new()  # 07/11: alvo do objetivo na tela com a distância (jogo de história)
 	_marcador.top_level = true
 	_marcador.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_marcador)
-	_legenda = PanelContainer.new()  # legenda do diálogo embaixo, com o nome de quem fala
-	_legenda.top_level = true
-	_legenda.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var est := StyleBoxFlat.new()
-	est.bg_color = Color(0, 0, 0, 0.7)
-	est.set_content_margin_all(14)
-	est.set_corner_radius_all(6)
-	_legenda.add_theme_stylebox_override("panel", est)
-	_legenda_txt = RichTextLabel.new()
-	_legenda_txt.bbcode_enabled = true
-	_legenda_txt.fit_content = true
-	_legenda_txt.custom_minimum_size = Vector2(760, 0)
-	_legenda_txt.add_theme_font_size_override("normal_font_size", 22)
-	_legenda_txt.add_theme_font_size_override("bold_font_size", 22)
-	_legenda.add_child(_legenda_txt)
-	_legenda.visible = false
-	add_child(_legenda)
-	fundo.size = Vector2(430, 84)
+	_radio = _Radio.new()  # 06/11 (dono): rádio no canto o tempo todo; apita, acende e fala com chiado
+	_radio.top_level = true
+	_radio.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_radio.position = Vector2(12, 300)
+	add_child(_radio)
+	_bip = AudioStreamPlayer.new()
+	_bip.stream = load("res://assets/sons/radio_bip.wav")
+	_bip.volume_db = -4.0
+	add_child(_bip)
+	fundo.size = Vector2(516, 84)
 	_opcional = UiTema.rotulo("", 14, Color(0.75, 0.78, 0.75))  # objetivo opcional (fitas), em cinza
 	_opcional.position = Vector2(14, 58)
 	_opcional.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -233,19 +247,37 @@ func _ready() -> void:
 	add_child(_chiado)
 
 
-## Diálogo na legenda de baixo: "NOME: texto" (nome em cor), some depois de `tempo` s.
-func legenda(nome: String, texto: String, tempo: float = 5.0) -> float:
-	_legenda_txt.text = ("[b][color=#9fd8ff]%s:[/color][/b] %s" % [nome, texto]) if nome != "" else texto
-	_legenda.visible = true
-	_legenda.reset_size()
-	var tela: Vector2 = get_viewport().get_visible_rect().size
-	_legenda.position = Vector2((tela.x - _legenda.size.x) * 0.5, tela.y - _legenda.size.y - 120.0)
-	if nome.begins_with("RÁDIO") and _chiado.stream:  # fala pelo rádio: chiado curto
-		_chiado.play()
-		get_tree().create_timer(1.2).timeout.connect(_chiado.stop)
+## Fala no rádio do canto (06/11, dono): entra na fila; na vez dela o rádio apita, acende, mostra "NOME: texto" e toca a
+## voz (filtro de rádio + chiado). pelo_radio = false: fala de quem está do seu lado (sem apito nem chiado).
+## Devolve em quantos segundos essa fala termina (o Npc espera isso para dizer a próxima).
+func legenda(nome: String, texto: String, tempo: float = 5.0, pelo_radio: bool = true) -> float:
 	var falado: String = texto.left(texto.rfind(" (")) if texto.ends_with(")") and texto.contains(" (") else texto
-	_legenda_t = maxf(tempo, Voz.fala(falado, self) + 0.6)  # com voz: a legenda fica até ela terminar
-	return _legenda_t
+	var dura: float = tempo
+	if Voz.tem(falado):
+		dura = maxf(1.5, (load(Voz.PASTA % Voz.chave(falado)) as AudioStream).get_length() + 0.6)
+	var espera: float = maxf(_legenda_t, 0.0)
+	for f: Array in _fila_radio:
+		espera += float(f[2])
+	_fila_radio.append([nome, texto, dura, pelo_radio, falado])
+	if _legenda_t <= 0.0:
+		_proxima_fala()
+	return espera + dura
+
+
+func _proxima_fala() -> void:
+	if _fila_radio.is_empty():
+		_radio.fala("", "", false)
+		_chiado.stop()
+		return
+	var f: Array = _fila_radio.pop_front()
+	_legenda_t = float(f[2])
+	_radio.fala(String(f[0]), String(f[1]), bool(f[3]))
+	if bool(f[3]):
+		_bip.play()
+		if _chiado.stream:
+			_chiado.volume_db = -20.0  # chiado baixinho por baixo da voz
+			_chiado.play()
+	Voz.fala(String(f[4]), self, bool(f[3]))
 
 
 func liga(j: Jogador) -> void:
@@ -258,7 +290,7 @@ func liga(j: Jogador) -> void:
 	j.item_pego.connect(func(t: String, _q: int) -> void:
 		if t == "fita":  # cada fita conta um pedaço do que aconteceu
 			var n: int = _fitas()
-			legenda("FITA %d/5 · DRA. OKAFOR" % n, FITAS_TXT[clampi(n - 1, 0, FITAS_TXT.size() - 1)], 9.0)
+			legenda("FITA %d/5 · DRA. OKAFOR" % n, FITAS_TXT[clampi(n - 1, 0, FITAS_TXT.size() - 1)], 9.0, false)
 			if n >= FITAS:
 				_trofeu("Toda a verdade: as 5 fitas"))
 	j.entrou_segura.connect(func(sim: bool) -> void:
@@ -276,7 +308,7 @@ func liga(j: Jogador) -> void:
 			_stats = cf.get_value("historia", "stats", _stats)
 			if _i > 1 and _i - 1 < ROTEIRO.size():  # voltando ao jogo: "anteriormente..."
 				var antes: String = String(ROTEIRO[_i - 1][6]) if String(ROTEIRO[_i - 1][6]) != "" else String(ROTEIRO[_i - 1][1])
-				get_tree().create_timer(2.5).timeout.connect(func() -> void: legenda("ANTERIORMENTE", antes.replace("%d", "?"), 7.0))
+				get_tree().create_timer(2.5).timeout.connect(func() -> void: legenda("ANTERIORMENTE", antes.replace("%d", "?"), 7.0, false))
 	_comeca()
 
 
@@ -321,11 +353,8 @@ func _comeca() -> void:
 			_cena(_onde(String(_cfg.cena)))
 		if _cfg.get("susto", false):
 			_susto()
-		var c := get_parent()
-		if c and c.has_method("aviso") and _i > 0:
-			get_tree().create_timer(2.4).timeout.connect(func() -> void:
-				if is_instance_valid(c):
-					c.aviso("NOVO OBJETIVO: " + String(r[1]).replace(" (%d/%d)", "").replace(" (%d/3)", "").replace(" (%d/5)", ""), Color(1.0, 0.85, 0.4), 3.0))
+		if _cfg.has("radio"):  # 06/11 (dono): o objetivo chega pelo rádio, com voz
+			legenda("RÁDIO · DANA", String(_cfg.radio), 6.0)
 		if String(r[2]) == "peca_radio" and _j:
 			_feito = _j.mochila.conta("peca_radio")
 	else:
@@ -428,6 +457,16 @@ func _prepara(o_que: String) -> void:
 		return
 	var principal := get_tree().get_first_node_in_group("principal")
 	match o_que:
+		"facao_inicio":  # 06/11 (dono): nasce sem nada; o primeiro facão fica a uns 35 m, num lugar andável
+			var de: Vector3 = _j.global_position if _j else Bairro.ORIGEM
+			var a: float = randf() * TAU
+			_solta("facao", _chao(de + Vector3(cos(a), 0, sin(a)) * 35.0))
+		"delegacia":  # raid: a pistola fica no arsenal (meio da delegacia), com munição do lado
+			var d: Vector3 = _onde("raid:DELEGACIA")
+			if not d.is_finite():
+				d = _chao((_j.global_position if _j else Bairro.ORIGEM) + Vector3(60, 0, 0))
+			_solta("municao", _chao(d + Vector3(1.2, 0, 0.6)))
+			_solta("pistola", _chao(d))
 		"dana":  # van da TV na praça do centro, Dana do lado
 			var p: Vector3 = _chao(Bairro.ORIGEM + Vector3(-15, 0, 225))
 			var van: Node3D = b._veiculo("mundo:van", Color.WHITE)
@@ -508,7 +547,7 @@ func evento(tipo: String) -> void:
 	var c := get_parent()
 	if fala != "":
 		var dois: int = fala.find(": ")
-		legenda(fala.left(dois) if dois > 0 and dois < 24 else "", fala.substr(dois + 2) if dois > 0 and dois < 24 else fala, 8.0)
+		legenda(fala.left(dois) if dois > 0 and dois < 24 else "", fala.substr(dois + 2) if dois > 0 and dois < 24 else fala, 8.0, fala.begins_with("RÁDIO"))
 	if c and c.has_method("aviso"):
 		c.aviso("OBJETIVO CONCLUÍDO  +%d XP" % XP, UiTema.DESTAQUE, 2.0)
 	if _j and _j.vida > 0 and _j.carro == null:
@@ -546,7 +585,8 @@ func _process(dt: float) -> void:
 	_t -= dt
 	if _legenda_t > 0.0:
 		_legenda_t -= dt
-		_legenda.visible = _legenda_t > 0.0
+		if _legenda_t <= 0.0:
+			_proxima_fala()
 	if _j == null or not is_instance_valid(_j) or _atual.is_empty():
 		return
 	_marcador.jogador = _j
@@ -557,7 +597,7 @@ func _process(dt: float) -> void:
 			_stats.mortes += 1
 			_morreu_no_passo = true
 			if _i < ROTEIRO.size():
-				legenda("VOCÊ MORREU", "Volta no último checkpoint. Objetivo: " + String(ROTEIRO[_i][1]).replace(" (%d/%d)", "").replace(" (%d/3)", "").replace(" (%d/5)", ""), 5.0)
+				legenda("VOCÊ MORREU", "Volta no último checkpoint. Objetivo: " + String(ROTEIRO[_i][1]).replace(" (%d/%d)", "").replace(" (%d/3)", "").replace(" (%d/5)", ""), 5.0, false)
 		_morto = true
 	elif _morto:
 		_morto = false
@@ -574,7 +614,7 @@ func _process(dt: float) -> void:
 		_timer_t -= dt
 		if _timer_t <= 0.0:  # não deu tempo: recomeça o passo do checkpoint
 			_timer_t = float(_cfg.get("timer", 300.0))
-			legenda("MIA", "...Alex... não estou... aguentando... (tempo esgotado: tente de novo)", 5.0)
+			legenda("MIA", "...Alex... não estou... aguentando... (tempo esgotado: tente de novo)", 5.0, false)
 			if _check.is_finite():
 				_j.global_position = _check + Vector3(0, 0.3, 0)
 	_chefe_ui()
@@ -584,7 +624,7 @@ func _process(dt: float) -> void:
 	if _parado_t > 150.0 and _alvo.is_finite():  # perdido: a Dana dá a direção pelo rádio
 		_parado_t = 0.0
 		var rumo: Vector3 = _alvo - _j.global_position
-		legenda("RÁDIO (Dana)", "Ainda está aí? O que você procura fica ao %s, uns %d metros." % [Horda.lado(rumo), int(rumo.length() / 10.0) * 10], 6.0)
+		legenda("RÁDIO · DANA", DICA_VOZ[0] + " (fica ao %s, uns %d m)" % [Horda.lado(rumo), int(rumo.length() / 10.0) * 10], 6.0)
 	if _t > 0.0:
 		return
 	_t = 0.4
@@ -794,7 +834,7 @@ func _chefe_ui() -> void:
 			var r: Zumbi = principal.spawner_zumbis.spawn(d)
 			if r:
 				r.alvo = _j
-		legenda(qual.to_upper(), "Corvos, comigo!" if qual == "wade" else "(o Sargento solta um berro que ecoa pela quarentena)", 3.5)
+		legenda(qual.to_upper(), "Corvos, comigo!" if qual == "wade" else "(o Sargento solta um berro que ecoa pela quarentena)", 3.5, false)
 
 
 ## Cena de cinema: a câmera gira em volta do lugar com as barras pretas, e volta para você.
@@ -864,6 +904,72 @@ func _trofeu(nome: String) -> void:
 
 ## Alvo do objetivo na tela (como nos jogos de história): losango amarelo onde fica Minimapa.destino, com a distância;
 ## atrás de você ou fora da tela, fica preso na borda.
+## O rádio do canto: walkie-talkie desenhado (antena, alto-falante, luz). Parado: apagado e pequeno. Falando: a luz pisca,
+## ele cresce um pouco e abre a faixa com quem fala e o texto.
+class _Radio extends Control:
+	var _nome: String = ""
+	var _texto: String = ""
+	var _radio: bool = true
+	var _t: float = 0.0
+	var _brilho: float = 0.0
+	var _faixa: RichTextLabel
+
+	func _ready() -> void:
+		size = Vector2(60, 100)
+		_faixa = RichTextLabel.new()
+		_faixa.bbcode_enabled = true
+		_faixa.fit_content = true
+		_faixa.scroll_active = false
+		_faixa.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_faixa.position = Vector2(70, 8)
+		_faixa.custom_minimum_size = Vector2(440, 0)
+		_faixa.size = Vector2(440, 0)
+		_faixa.add_theme_font_size_override("normal_font_size", 19)
+		_faixa.add_theme_font_size_override("bold_font_size", 19)
+		_faixa.add_theme_color_override("font_outline_color", Color.BLACK)
+		_faixa.add_theme_constant_override("outline_size", 4)
+		_faixa.visible = false
+		add_child(_faixa)
+
+	func fala(nome: String, texto: String, pelo_radio: bool) -> void:
+		_nome = nome
+		_texto = texto
+		_radio = pelo_radio
+		_faixa.visible = texto != ""
+		if texto != "":
+			var cor: String = "#ffb347" if pelo_radio else "#9fd8ff"
+			_faixa.text = ("[b][color=%s]%s[/color][/b]\n%s" % [cor, nome, texto]) if nome != "" else texto
+		queue_redraw()
+
+	func _process(dt: float) -> void:
+		var alvo: float = 1.0 if _texto != "" else 0.0
+		if absf(_brilho - alvo) > 0.01 or _texto != "":
+			_brilho = move_toward(_brilho, alvo, dt * 4.0)
+			_t += dt
+			scale = Vector2.ONE * (1.0 + 0.12 * _brilho)
+			queue_redraw()
+
+	func _draw() -> void:
+		var falando: bool = _texto != ""
+		if falando:  # fundo da faixa do texto
+			var h: float = maxf(_faixa.get_content_height() + 16.0, 60.0)
+			draw_rect(Rect2(62, 0, 456, h), Color(0.05, 0.07, 0.05, 0.78 * _brilho))
+			draw_rect(Rect2(62, 0, 4, h), Color(1.0, 0.6, 0.2, _brilho) if _radio else Color(0.6, 0.85, 1.0, _brilho))
+		var a: float = 0.55 + 0.45 * _brilho
+		if _brilho > 0.05 and _radio:  # brilho em volta quando fala
+			draw_rect(Rect2(-4, 14, 52, 90), Color(1.0, 0.6, 0.2, 0.25 * _brilho), false, 4.0)
+		draw_line(Vector2(36, 16), Vector2(40, -6), Color(0.15, 0.15, 0.14, a), 4.0)  # antena
+		draw_rect(Rect2(0, 16, 44, 84), Color(0.16, 0.19, 0.14, a))  # corpo
+		draw_rect(Rect2(0, 16, 44, 84), Color(0.05, 0.05, 0.05, a), false, 2.0)
+		draw_rect(Rect2(6, 24, 32, 16), Color(0.85, 0.6, 0.2, 0.9) if falando else Color(0.2, 0.22, 0.18, a))  # visor
+		for k in 5:  # alto-falante
+			draw_line(Vector2(8, 52 + k * 7), Vector2(36, 52 + k * 7), Color(0.04, 0.05, 0.04, a), 3.0)
+		var luz: Color = Color(0.25, 0.8, 0.3, a)
+		if falando and _radio:
+			luz = Color(1.0, 0.15, 0.1) if fmod(_t, 0.5) < 0.3 else Color(0.35, 0.05, 0.05)
+		draw_circle(Vector2(8, 20), 3.5, luz)
+
+
 class _Marcador extends Control:
 	var jogador: Jogador
 
