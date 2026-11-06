@@ -994,10 +994,23 @@ func _custo_caminho(_mapa: RID, p: Vector3) -> float:
 	return total
 
 
+## Anti-lag (06/11): o raio de visão vale por VE_QUADROS quadros (Corvos perguntavam várias vezes por quadro).
+const VE_QUADROS: int = 6
+var _ve_j: Jogador
+var _ve_quadro: int = -100
+var _ve_sim: bool = false
+
+
 func _ve(j: Jogador) -> bool:
+	var q0: int = Engine.get_physics_frames()
+	if j == _ve_j and q0 - _ve_quadro < VE_QUADROS:
+		return _ve_sim
 	var olho: Vector3 = global_position + Vector3(0, 1.5, 0)
 	var q := PhysicsRayQueryParameters3D.create(olho, j.global_position + Vector3(0, 1.4, 0), 1 | Porta.CAMADA)
-	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+	_ve_j = j
+	_ve_quadro = q0
+	_ve_sim = get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+	return _ve_sim
 
 
 func _ataca() -> void:

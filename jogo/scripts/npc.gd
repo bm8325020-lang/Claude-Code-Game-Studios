@@ -15,7 +15,10 @@ const VEL: float = 4.6
 var _anim: AnimationPlayer
 var _i: int = -1
 var _t: float = 0.0
-var _dura: float = POR_FALA  # a fala atual (com voz dura o que a voz durar)
+var _dura: float = POR_FALA
+var _cam: PackedVector3Array = []
+var _cam_i: int = 1
+var _refaz_t: float = 0.0  # a fala atual (com voz dura o que a voz durar)
 
 
 func _ready() -> void:
@@ -44,9 +47,14 @@ func _process(dt: float) -> void:
 		var d: float = global_position.distance_to(segue.global_position)
 		var andando: bool = d > 2.5
 		if andando:
-			var mapa: RID = get_world_3d().navigation_map
-			var cam: PackedVector3Array = NavigationServer3D.map_get_path(mapa, global_position, segue.global_position, true)
-			var prox: Vector3 = cam[1] if cam.size() > 1 else segue.global_position
+			_refaz_t -= dt
+			if _refaz_t <= 0.0 or _cam.size() < 2:  # anti-lag (06/11): caminho refeito 4x por segundo, não todo quadro
+				_refaz_t = 0.25
+				_cam = NavigationServer3D.map_get_path(get_world_3d().navigation_map, global_position, segue.global_position, true)
+				_cam_i = 1
+			while _cam_i < _cam.size() - 1 and Vector2(_cam[_cam_i].x - global_position.x, _cam[_cam_i].z - global_position.z).length() < 0.3:
+				_cam_i += 1
+			var prox: Vector3 = _cam[_cam_i] if _cam_i < _cam.size() else segue.global_position
 			var dir: Vector3 = prox - global_position
 			dir.y = 0.0
 			if dir.length() < 0.05:  # já está na esquina do caminho: mira direto em quem segue (antes ficava parado)

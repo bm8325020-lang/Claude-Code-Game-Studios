@@ -147,6 +147,7 @@ var _marcador: _Marcador
 var _radio: _Radio
 var _bip: AudioStreamPlayer
 var _legenda_t: float = 0.0
+var _ultima_fala: Array = []
 var _fila_radio: Array = []  # [nome, texto, tempo, pelo_radio] esperando a vez (uma fala por vez)
 var _check: Vector3 = Vector3.INF  # checkpoint: onde volta ao morrer (último passo feito)
 var _morto: bool = false
@@ -211,8 +212,11 @@ func _ready() -> void:
 	add_child(_marcador)
 	_radio = _Radio.new()  # 06/11 (dono): rádio no canto o tempo todo; apita, acende e fala com chiado
 	_radio.top_level = true
-	_radio.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_radio.mouse_filter = Control.MOUSE_FILTER_STOP  # tocar no rádio repete a última fala
 	_radio.position = Vector2(12, 300)
+	_radio.gui_input.connect(func(e: InputEvent) -> void:
+		if (e is InputEventScreenTouch or e is InputEventMouseButton) and e.pressed:
+			repete())
 	add_child(_radio)
 	_bip = AudioStreamPlayer.new()
 	_bip.stream = load("res://assets/sons/radio_bip.wav")
@@ -264,12 +268,20 @@ func legenda(nome: String, texto: String, tempo: float = 5.0, pelo_radio: bool =
 	return espera + dura
 
 
+## Tocou no rádio (06/11, dono): repete a última fala, se ele estiver quieto.
+func repete() -> void:
+	if not _ultima_fala.is_empty() and _legenda_t <= 0.0 and _fila_radio.is_empty():
+		_fila_radio.append(_ultima_fala)
+		_proxima_fala()
+
+
 func _proxima_fala() -> void:
 	if _fila_radio.is_empty():
 		_radio.fala("", "", false)
 		_chiado.stop()
 		return
 	var f: Array = _fila_radio.pop_front()
+	_ultima_fala = f
 	_legenda_t = float(f[2])
 	_radio.fala(String(f[0]), String(f[1]), bool(f[3]))
 	if bool(f[3]):
