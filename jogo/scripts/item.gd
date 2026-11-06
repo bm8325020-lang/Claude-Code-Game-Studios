@@ -53,7 +53,7 @@ func nome() -> String:
 			return "antibiótico" + (" (%d)" % quantidade if quantidade > 1 else "")
 		"agua":
 			return "garrafa de água"
-		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador", "receita_pistola", "smg", "receita_smg":
+		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador", "receita_pistola", "smg", "receita_smg", "espingarda", "fuzil", "sniper", "cartucho", "municao_fuzil":
 			return Mochila.NOMES[tipo].to_lower() + (" (%d)" % quantidade if quantidade > 1 else "")
 	return "lanterna"
 
@@ -133,6 +133,10 @@ func _monta_modelo() -> void:
 		add_child(pega)
 	elif tipo == "smg":
 		_modelo("res://assets/sketchfab/smg.glb", 0.6, Vector3(0, 0, 90))
+	elif Pistola.MODELO_3P.has(tipo):  # deitada de lado no chão
+		_modelo("res://assets/mundo/armas/%s/%s.gltf" % [tipo, tipo], float(Pistola.MODELO_3P[tipo]), Vector3(0, 0, 90))
+	elif tipo == "cartucho":
+		_modelo("res://assets/mundo/armas/cartuchos/cartuchos.gltf", 0.12, Vector3.ZERO)
 	elif tipo == "pistola":
 		_modelo("res://assets/cgtrader/pistola.glb", 0.2, Vector3(0, 0, 90), "Pistola")
 	elif tipo == "comida":

@@ -27,6 +27,11 @@ const TABELA: Array = [
 	["carregador", 1, 1, 1, RARO],
 	["receita_pistola", 3, 1, 1, INCOMUM],
 	["smg", 1, 1, 1, RARO],
+	["cartucho", 6, 4, 10, INCOMUM],
+	["municao_fuzil", 5, 10, 25, INCOMUM],
+	["espingarda", 1, 1, 1, RARO],
+	["fuzil", 0.6, 1, 1, RARO],
+	["sniper", 0.4, 1, 1, RARO],
 	["receita_smg", 1, 1, 1, RARO],
 ]
 ## peças de arma (para fabricar, prompt 6)
@@ -58,10 +63,12 @@ const LUGAR: Dictionary = {
 	"sala": {"mola": 2.0, "gatilho": 2.0, "cano": 2.0, "receita_pistola": 2.0},
 	"farmacia": {"antibiotico": 10.0, "agua": 2.0},
 	"comida": {"comida": 5.0, "agua": 5.0},
-	"caca": {"municao": 4.0, "faca": 3.0, "receita_pistola": 3.0, "lanterna": 2.0},
+	"caca": {"municao": 4.0, "faca": 3.0, "receita_pistola": 3.0, "lanterna": 2.0, "cartucho": 5.0, "municao_fuzil": 4.0,
+		"espingarda": 6.0, "sniper": 5.0, "fuzil": 3.0},
 	"oficina": {"mola": 3.0, "gatilho": 3.0, "cano": 3.0, "cabo": 3.0, "ferrolho": 3.0, "machado": 3.0},
 	"hospital": {"antibiotico": 8.0},
-	"carro": {"municao": 2.0, "lanterna": 2.5, "agua": 2.0, "cabo": 3.0, "mola": 2.0, "carregador": 2.0},  # porta-malas
+	"carro": {"municao": 2.0, "lanterna": 2.5, "agua": 2.0, "cabo": 3.0, "mola": 2.0, "carregador": 2.0, "cartucho": 2.0,
+		"espingarda": 2.0},  # porta-malas (caminhonete com a espingarda atrás do banco)
 }
 const RAID_RARO: float = 4.0  # baú de raid (delegacia): raras 4x mais prováveis
 const ITENS_MIN: int = 2

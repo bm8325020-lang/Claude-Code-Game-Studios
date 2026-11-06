@@ -10,11 +10,24 @@ extends Node3D
 
 const OLHO_PISTOLA := Vector3(0, 1.41, 0.02)
 const OLHO_SMG := Vector3(0, 1.4, -0.25)  # "FPS Animations LowPoly MP5" (ccransh, CC BY)
+## pacotes de braços de cada arma (assets/sketchfab/fps/<tipo>_fp.glb) e o ponto do olho de cada um
+const OLHOS: Dictionary = {"pistola": OLHO_PISTOLA, "smg": OLHO_SMG, "espingarda": Vector3(0, 0.26, 0.0),
+	"fuzil": Vector3(0, 0.4715, -0.1577), "sniper": Vector3(0, 0.2408, -0.0929)}  # nó "Camera" / osso Head_Cam do pacote
+## ponta do cano na tela (a partir da câmera)
+const BOCA: Dictionary = {"pistola": Vector3(0.008, -0.062, -0.42), "smg": Vector3(0.031, -0.048, -0.62),
+	"espingarda": Vector3(0.03, -0.05, -0.8), "fuzil": Vector3(0.03, -0.05, -0.75), "sniper": Vector3(0.03, -0.05, -0.9)}
 ## nomes das animações de cada pacote de arma de fogo
 const ANIMS: Dictionary = {
 	"pistola": {"idle": "Idle", "walk": "Walk", "run": "Run", "fire": "Fire", "reload": "Reload", "reload_vazio": "Reload_Empty", "equip": "Equip"},
 	"smg": {"idle": "Arms_Idle", "walk": "Arms_Walk", "run": "Arms_Run", "fire": "Arms_Fire", "reload": "Arms_notfullreload",
 		"reload_vazio": "Arms_fullreload", "equip": "Arms_Draw"},
+	# ccransh (Sketchfab, CC BY): "FPS Arms remington", "FPS AK-74m animations", "FPS animations sniper rifle"
+	"espingarda": {"idle": "SG_FPS_Idle", "walk": "SG_FPS_Walk", "run": "SG_FPS_Walk", "fire": "SG_FPS_Shot",
+		"reload": "SG_FPS_Reload", "reload_vazio": "SG_FPS_Reload", "equip": ""},
+	"fuzil": {"idle": "AK_Idle", "walk": "AK_Walk", "run": "AK_Run", "fire": "AK_Shot", "reload": "AK_Reload",
+		"reload_vazio": "AK_Reload_full", "equip": "AK_Draw"},
+	"sniper": {"idle": "SRifle_Idle", "walk": "SRifle_Walk", "run": "SRifle_Walk", "fire": "SRifle_Shot_nosight",
+		"reload": "SRifle_Reload", "reload_vazio": "SRifle_Reload_Full", "equip": ""},
 }
 const MIRA_PISTOLA := Vector3(0.0, 0.02, 0.025)  # quanto a pistola vem para o centro/para perto mirando
 const OMBRO := Vector3(0.36, -0.5, 0.12)         # pivô dos cortes (atrás e abaixo, à direita da câmera)
@@ -51,8 +64,9 @@ var _parede: float = 0.0    # 0 = livre, 1 = parede colada na frente (arma recol
 
 
 func _ready() -> void:
-	_pistola = _carrega("pistola_fp", OLHO_PISTOLA)
-	_rigs = {"pistola": _pistola, "smg": _carrega("smg_fp", OLHO_SMG)}
+	for t: String in OLHOS:
+		_rigs[t] = _carrega(t + "_fp", OLHOS[t])
+	_pistola = _rigs["pistola"]
 	_ap_p = _pistola.find_children("*", "AnimationPlayer", true, false)[0]
 	_ombro = Node3D.new()
 	_ombro.position = OMBRO
@@ -82,6 +96,12 @@ func _monta_branca(tipo: String) -> void:
 
 func _carrega(nome: String, olho: Vector3) -> Node3D:
 	var r: Node3D = (load("res://assets/sketchfab/fps/%s.glb" % nome) as PackedScene).instantiate()
+	for ap: AnimationPlayer in r.find_children("*", "AnimationPlayer", true, false):  # "Armature|AK_Idle" -> "AK_Idle"
+		for lib_nome: StringName in ap.get_animation_library_list():
+			var lib: AnimationLibrary = ap.get_animation_library(lib_nome)
+			for a: StringName in lib.get_animation_list():
+				if String(a).contains("|"):
+					lib.rename_animation(a, String(a).get_slice("|", 1))
 	add_child(r)
 	for mi: MeshInstance3D in r.find_children("*", "MeshInstance3D", true, false):
 		mi.visible = mi.skin != null  # o pacote traz céu, mira e fundo de vitrine: fica só o que tem esqueleto
@@ -104,7 +124,7 @@ func _sem_sombra(n: Node) -> void:
 func _process(dt: float) -> void:
 	if alvo == null:
 		return
-	visible = alvo.vida > 0 and alvo.fresta == null and alvo.carro == null  # na fresta e no carro a arma vai para o coldre
+	visible = alvo.vida > 0 and alvo.fresta == null and alvo.carro == null and not luneta()  # na fresta e no carro a arma vai para o coldre
 	if alvo.arma != _arma:
 		_arma = alvo.arma
 		for t: String in _rigs:
@@ -141,10 +161,15 @@ func _process(dt: float) -> void:
 	rotation = Vector3(-_balanco.y * 0.5 - _parede * 0.5, _balanco.x * 0.5 + _parede * 0.35, 0.0)
 
 
+## Olhando pela luneta (sniper mirando): os braços somem e o HUD põe o círculo preto.
+func luneta() -> bool:
+	return alvo != null and alvo.mira_travada and Jogador.e_fogo(alvo.arma) and alvo.fogo().luneta > 0.0
+
+
 ## Ponta do cano da arma de fogo que aparece na tela (rastro e clarão do tiro em primeira pessoa).
 func boca(tipo: String) -> Vector3:
 	var c := get_parent() as Node3D  # a Camera3D
-	return c.global_transform * (position + (Vector3(0.031, -0.048, -0.62) if tipo == "smg" else Vector3(0.008, -0.062, -0.42)))
+	return c.global_transform * (position + BOCA.get(tipo, BOCA.pistola))
 
 
 # parede/caixa a menos de 0,7 m na frente do olho: 0..1 (mais perto = mais recolhida)

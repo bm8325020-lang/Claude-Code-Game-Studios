@@ -10,10 +10,10 @@ signal mudou
 const ESPACOS: int = 24
 const BARRA: int = 6
 ## tamanho da pilha por espaço (o que não está aqui não empilha)
-const PILHA: Dictionary = {"municao": 48, "comida": 5, "agua": 5, "antibiotico": 3, "mola": 10, "gatilho": 10, "cano": 10, "cabo": 10,
+const PILHA: Dictionary = {"municao": 48, "cartucho": 24, "municao_fuzil": 60, "comida": 5, "agua": 5, "antibiotico": 3, "mola": 10, "gatilho": 10, "cano": 10, "cabo": 10,
 	"ferrolho": 10, "carregador": 10, "receita_pistola": 5, "receita_smg": 5, "chave": 5}
 ## quanto dá para carregar no total (provisório, até existir peso)
-const LIMITE: Dictionary = {"livro": 1, "municao": 96, "comida": 5, "agua": 5, "antibiotico": 3, "lanterna": 1, "facao": 1, "pistola": 1,
+const LIMITE: Dictionary = {"livro": 1, "municao": 96, "cartucho": 48, "municao_fuzil": 120, "espingarda": 1, "fuzil": 1, "sniper": 1, "comida": 5, "agua": 5, "antibiotico": 3, "lanterna": 1, "facao": 1, "pistola": 1,
 	"faca": 1, "taco": 1, "machado": 1, "mola": 30, "gatilho": 30, "cano": 30, "cabo": 30, "ferrolho": 30, "carregador": 30, "receita_pistola": 5, "smg": 1, "receita_smg": 5, "chave": 5, "taco_pregos": 1}
 ## não dá para largar (são a mão do jogador por enquanto)
 const PRESOS: Array[String] = ["facao", "pistola"]
@@ -21,7 +21,8 @@ const NOMES: Dictionary = {"chave": "Chave", "municao": "Munição", "comida": "
 	"livro": "Livro de habilidades", "lanterna": "Lanterna", "facao": "Facão", "taco_pregos": "Taco com pregos", "pistola": "Pistola 9 mm", "faca": "Faca de açougueiro",
 	"taco": "Taco de beisebol", "machado": "Machado de bombeiro", "mola": "Mola", "gatilho": "Gatilho", "cano": "Cano",
 	"cabo": "Empunhadura", "ferrolho": "Ferrolho", "carregador": "Carregador", "receita_pistola": "Receita: Pistola 9 mm",
-	"smg": "Submetralhadora MP5", "receita_smg": "Receita: Submetralhadora"}
+	"smg": "Submetralhadora MP5", "receita_smg": "Receita: Submetralhadora", "espingarda": "Espingarda Remington",
+	"fuzil": "Fuzil AK-74", "sniper": "Rifle de precisão Mosin", "cartucho": "Cartuchos 12", "municao_fuzil": "Munição de fuzil"}
 const TEXTOS: Dictionary = {
 	"municao": "Balas 9 mm para a pistola.",
 	"taco_pregos": "Taco de beisebol com pregos e arame farpado. Lento, mas derruba.",
@@ -45,6 +46,11 @@ const TEXTOS: Dictionary = {
 	"receita_pistola": "Ensina a fazer a pistola na bancada (arma simples). USAR para aprender.",
 	"smg": "9 mm, 30 no pente. Semi ou automática (botão MODO). Rajada chama zumbi de longe.",
 	"receita_smg": "Ensina a fazer a submetralhadora na bancada (arma mediana). USAR para aprender.",
+	"espingarda": "Calibre 12, 6 no tubo. Oito chumbos por tiro: de perto derruba qualquer um. Recarga lenta.",
+	"fuzil": "Munição de fuzil, 30 no pente. Semi ou automático (botão MODO). Alcance longo, barulho alto.",
+	"sniper": "Munição de fuzil, 5 tiros. Mirar abre a luneta. Um tiro na cabeça de longe resolve; o estampido chama a rua inteira.",
+	"cartucho": "Cartuchos calibre 12 para a espingarda.",
+	"municao_fuzil": "Balas de fuzil (AK-74 e Mosin).",
 }
 
 var espacos: Array = []  # null ou {"tipo": String, "qtd": int}

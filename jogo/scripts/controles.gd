@@ -86,6 +86,7 @@ var _seta_golpe: _SetaGolpe
 var _tarefas: Tarefas
 var _qte: _Qte  # briga com o zumbi mordendo (barra + EMPURRAR)
 var _mini: Minimapa  # minimapa estilo GTA V (canto de cima à direita)
+var _luneta: ColorRect  # círculo preto da luneta (sniper mirando)
 var _clique_qte: bool = false
 var _espera_texto: Label
 var _espera_botao: Button
@@ -213,6 +214,15 @@ func _ready() -> void:
 	_monta_pausa()
 	_mini = Minimapa.new()
 	add_child(_mini)
+	_luneta = ColorRect.new()
+	_luneta.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_luneta.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_luneta.material = ShaderMaterial.new()
+	(_luneta.material as ShaderMaterial).shader = Shader.new()
+	(_luneta.material as ShaderMaterial).shader.code = LUNETA
+	_luneta.visible = false
+	add_child(_luneta)
+	move_child(_luneta, 0)  # atrás dos botões
 	# letras do tema também no HUD
 	for l: Label in [_relogio, _municao, _dica_pegar, _aviso_item]:
 		l.add_theme_font_override("font", UiTema.tema().default_font)
@@ -250,6 +260,7 @@ func _process(dt: float) -> void:
 	_le_bilhete(dt)
 	_qte.jogador = jogador
 	_mini.jogador = jogador
+	_luneta.visible = jogador.camera != null and jogador.camera.maos != null and jogador.camera.maos.luneta()
 	_qte.visible = jogador.mordida_t > 0.0 and jogador.mordida_zumbi != null
 	if _qte.visible:
 		_qte.queue_redraw()
@@ -359,8 +370,8 @@ func _process(dt: float) -> void:
 	_mira.visible = jogador.mira_travada or com_pistola or (_mira as _Mira).marca_t > 0.0
 	_municao.visible = com_pistola
 	if _btn_modo:
-		_btn_modo.visible = jogador.arma == "smg"
-		_btn_modo.ligado = jogador.smg.modo_auto
+		_btn_modo.visible = Jogador.e_fogo(jogador.arma) and jogador.fogo().automatica
+		_btn_modo.ligado = jogador.fogo().modo_auto
 	if not toque:
 		e["atirando"] = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 		if Input.is_action_just_pressed("modo"):
@@ -1449,3 +1460,14 @@ func _monta_habs() -> void:
 			_monta_habs())
 		linha.add_child(mais)
 		_lista_habs.add_child(linha)
+
+
+## Luneta do sniper: tudo preto fora do círculo, retícula fina no meio.
+const LUNETA := """shader_type canvas_item;
+void fragment() {
+	vec2 p = (UV - 0.5) * vec2(SCREEN_PIXEL_SIZE.y / SCREEN_PIXEL_SIZE.x, 1.0);
+	float d = length(p);
+	float fora = smoothstep(0.44, 0.447, d);
+	float cruz = (abs(p.x) < 0.0012 || abs(p.y) < 0.0012) && d < 0.44 ? 0.85 : 0.0;
+	COLOR = vec4(0.0, 0.0, 0.0, max(fora, cruz));
+}"""

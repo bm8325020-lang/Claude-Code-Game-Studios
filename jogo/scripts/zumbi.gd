@@ -138,6 +138,7 @@ const ESCALA_LIDER: float = 1.2
 const VIDA_LIDER: int = 400
 const CORPO_HORDA: float = 30.0  # s até o corpo de um zumbi de horda sumir
 const DO_MORTO: int = -1  # horda: zumbi que levantou de um jogador morto (deitado; morto de novo, some)
+const AMBIENTE: int = -2  # horda: zumbi da população em volta dos jogadores (Populacao; morto, some)
 var _skill_t: float = 2.0
 var _mordendo: float = -1.0  # servidor: s até morder (agarrado no jogador)
 var _mordida_cd: float = 0.0

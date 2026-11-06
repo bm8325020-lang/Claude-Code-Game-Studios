@@ -31,6 +31,7 @@ var bairro: Bairro
 static var nascer_no_bairro: bool = true
 var grupos := Grupos.new()  # servidor: quem está com quem
 var horda := Horda.new()  # servidor: horda andarilha (mods de zumbi do GTA V)
+var populacao := Populacao.new()  # servidor: zumbis em volta de quem está na cidade (GTAZ: orçamento + fila)
 var faccoes := Faccoes.new()  # servidor: facções e domínios em andamento
 var _faccoes_cli: Dictionary = {"f": {}, "t": {}}  # todos: cópia que o servidor manda
 var _faccao_tick: float = 0.0
@@ -369,6 +370,7 @@ func _process(dt: float) -> void:
 		_divide_peso(dt)
 		grupos.passa(dt)
 		horda.passa(self, dt)
+		populacao.passa(self, dt)
 		_passa_raids(dt)
 		_passa_dominio(dt)
 		_passa_salas(dt)

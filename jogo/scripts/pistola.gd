@@ -17,7 +17,7 @@ const DISPERSAO_POR_TIRO: float = 1.2 # cresce a cada tiro e volta sozinha
 const COICE: float = 1.3              # graus que a câmera sobe por tiro
 const BARULHO: float = 20.0           # m: zumbis a essa distância ouvem o tiro e vão ver (35 chamava horda demais)
 
-## Tipo de arma de fogo (FOGO): "pistola" ou "smg" — escolher antes de pôr na árvore.
+## Tipo de arma de fogo (FOGO): pistola, smg, espingarda, fuzil, sniper — escolher antes de pôr na árvore.
 var tipo: String = "pistola"
 ## números da arma (vêm de FOGO[tipo]); as constantes acima são os da pistola, usados nos testes
 var pente: int = PENTE
@@ -31,19 +31,37 @@ var recarga: float = RECARGA
 ## tem seletor de tiro (só algumas armas); modo_auto = segurando o gatilho sai rajada
 var automatica: bool = false
 var modo_auto: bool = false
+## item da mochila que é a munição desta arma
+var municao: String = "municao"
+## projéteis por tiro (espingarda: chumbos, cada um com o seu desvio e o seu dano)
+var chumbos: int = 1
+var alcance: float = ALCANCE
+## m: zumbis a essa distância ouvem o tiro
+var barulho: float = BARULHO
+## fov da luneta mirando (0 = sem luneta)
+var luneta: float = 0.0
 const FOGO: Dictionary = {
 	"pistola": {},
 	"smg": {"pente": 30, "dano": 22, "cadencia": 0.085, "disp_mira": 1.0, "disp_quadril": 4.0, "disp_tiro": 0.7,
 		"coice": 0.9, "recarga": 2.2, "automatica": true},
+	# 05/11 (dono: "refaça o sistema de tiros, uma animação pra cada arma"): cada uma com o pacote de braços dela (Maos)
+	"espingarda": {"pente": 6, "dano": 16, "chumbos": 8, "cadencia": 0.95, "disp_mira": 3.0, "disp_quadril": 4.5,
+		"disp_tiro": 0.0, "coice": 4.5, "recarga": 4.2, "alcance": 35.0, "barulho": 32.0, "municao": "cartucho"},
+	"fuzil": {"pente": 30, "dano": 30, "cadencia": 0.1, "disp_mira": 0.5, "disp_quadril": 3.5, "disp_tiro": 0.55,
+		"coice": 1.2, "recarga": 2.6, "automatica": true, "alcance": 140.0, "barulho": 30.0, "municao": "municao_fuzil"},
+	"sniper": {"pente": 5, "dano": 110, "cadencia": 1.4, "disp_mira": 0.03, "disp_quadril": 6.0, "disp_tiro": 0.0,
+		"coice": 5.0, "recarga": 3.2, "alcance": 260.0, "barulho": 45.0, "municao": "municao_fuzil", "luneta": 18.0},
 }
+## arma pronta (tools/assets/normaliza.py ARMAS: cano em +Z, centro no meio): comprimento em metros
+const MODELO_3P: Dictionary = {"espingarda": 1.06, "fuzil": 0.94, "sniper": 1.23}
 var balas: int = PENTE
 ## Balas guardadas (moram na mochila do dono; sem dono, aqui mesmo).
 var reserva: int:
 	get:
-		return dono.mochila.conta("municao") if dono else _reserva
+		return dono.mochila.conta(municao) if dono else _reserva
 	set(v):
 		if dono:
-			dono.mochila.definir("municao", v)
+			dono.mochila.definir(municao, v)
 		else:
 			_reserva = v
 var _reserva: int = RESERVA_INICIAL
@@ -81,6 +99,17 @@ func _ready() -> void:
 func _monta_modelo() -> void:
 	if tipo == "smg":
 		_monta_smg()
+		return
+	if MODELO_3P.has(tipo):
+		var c: float = MODELO_3P[tipo]
+		var a := (load("res://assets/mundo/armas/%s/%s.gltf" % [tipo, tipo]) as PackedScene).instantiate() as Node3D
+		for g: GeometryInstance3D in a.find_children("*", "GeometryInstance3D", true, false):
+			g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		a.position = Vector3(0, 0.06, c * 0.22)  # mão no cabo, um quarto atrás do meio
+		add_child(a)
+		cano = Node3D.new()
+		cano.position = Vector3(0, 0.08, c * 0.72)
+		add_child(cano)
 		return
 	var m := (load("res://assets/cgtrader/pistola.glb") as PackedScene).instantiate() as Node3D
 	for mi: Node in m.find_children("*", "MeshInstance3D", true, false):
@@ -143,27 +172,33 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 	# dispersão: um pequeno desvio aleatório dentro de um cone (cresce a cada tiro seguido)
 	var graus: float = ((disp_mira if mirando else disp_quadril) + _abertura) * (dono.mult_espalho() if dono else 1.0)
 	_abertura = minf(_abertura + disp_tiro, 4.0 if not automatica else 6.0)
-	var desvio := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)).normalized()
-	dir = dir.rotated(dir.cross(desvio).normalized(), deg_to_rad(randf() * graus)) if dir.cross(desvio).length() > 0.01 else dir
 	var pvp: bool = dono != null and dono.is_inside_tree() and dono.get_tree().get_first_node_in_group("principal") != null \
 		and dono.get_tree().get_first_node_in_group("principal").em_pvp()
-	var q := PhysicsRayQueryParameters3D.create(origem, origem + dir * ALCANCE, 1 | 8 | (4 if pvp else 0))  # mundo, zumbis (e jogadores no PvP)
-	q.exclude = [dono.get_rid()] if dono else []
-	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
-	var ponto: Vector3 = hit.position if not hit.is_empty() else origem + dir * ALCANCE
 	res.atirou = true
-	res.ponto = ponto
-	if not hit.is_empty() and (hit.collider as Node).is_in_group("golpeavel"):
-		var alvo: Node3D = hit.collider
-		var altura: Variant = alvo.get("altura_cabeca")
-		var cabeca: bool = ponto.y - alvo.global_position.y > (float(altura) if altura != null else 1.65)
-		alvo.call("levar_golpe", roundi(dano * (2 if cabeca else 1) * (dono.mult_fogo() if dono else 1.0)), dir, dono)
-		res.acertou = alvo
-		res.cabeca = cabeca
-	if not hit.is_empty() and hit.collider is Carro:
-		(hit.collider as Carro).dispara_alarme()  # tiro em carro: alarme chama a horda (Dying Light/L4D)
+	for k in chumbos:  # espingarda: cada chumbo com o seu desvio (o resultado é o do primeiro que pegou em alguém)
+		var desvio := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)).normalized()
+		var d: Vector3 = dir.rotated(dir.cross(desvio).normalized(), deg_to_rad(randf() * graus)) if dir.cross(desvio).length() > 0.01 else dir
+		var q := PhysicsRayQueryParameters3D.create(origem, origem + d * alcance, 1 | 8 | (4 if pvp else 0))  # mundo, zumbis (e jogadores no PvP)
+		q.exclude = [dono.get_rid()] if dono else []
+		var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
+		var ponto: Vector3 = hit.position if not hit.is_empty() else origem + d * alcance
+		var pegou: Node3D = null
+		var cabeca: bool = false
+		if not hit.is_empty() and (hit.collider as Node).is_in_group("golpeavel"):
+			pegou = hit.collider
+			var altura: Variant = pegou.get("altura_cabeca")
+			cabeca = ponto.y - pegou.global_position.y > (float(altura) if altura != null else 1.65)
+			pegou.call("levar_golpe", roundi(dano * (2 if cabeca else 1) * (dono.mult_fogo() if dono else 1.0)), d, dono)
+		if not hit.is_empty() and hit.collider is Carro:
+			(hit.collider as Carro).dispara_alarme()  # tiro em carro: alarme chama a horda (Dying Light/L4D)
+		if k == 0 or (pegou and res.acertou == null):
+			res.ponto = ponto
+			res.acertou = pegou
+			res.cabeca = cabeca
+		var carne: bool = pegou is Zumbi or pegou is Jogador
+		if k < 4:  # rastro e marca: no máximo 4 por tiro (celular)
+			efeito(ponto, not hit.is_empty(), carne, k == 0)
 	res.carne = res.acertou is Zumbi or res.acertou is Jogador
-	efeito(ponto, not hit.is_empty(), res.carne)
 	return res
 
 
@@ -176,11 +211,12 @@ func recarregar() -> void:
 
 ## Clarão, som e rastro até `ponto` (também chamado nos outros aparelhos quando alguém atira).
 ## `carne` = acertou zumbi: sangue no lugar da faísca.
-func efeito(ponto: Vector3, bateu: bool, carne: bool = false) -> void:
-	_luz.light_energy = 3.0
-	_som.stream = _som_tiro
-	_som.pitch_scale = randf_range(0.95, 1.05)
-	_som.play()
+func efeito(ponto: Vector3, bateu: bool, carne: bool = false, estampido: bool = true) -> void:
+	if estampido:  # chumbos da espingarda: um estampido só
+		_luz.light_energy = 3.0
+		_som.stream = _som_tiro
+		_som.pitch_scale = randf_range(0.95, 1.05) * (0.75 if chumbos > 1 or luneta > 0.0 else 1.0)  # arma grande: mais grave
+		_som.play()
 	var de: Vector3 = cano.global_position
 	if dono and dono.camera:  # primeira pessoa: o rastro sai da arma da tela, não da do corpo (só sombra)
 		de = dono.camera.maos.boca(tipo)

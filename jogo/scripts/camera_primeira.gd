@@ -96,6 +96,8 @@ func _process(dt: float) -> void:
 	var fov_alvo: float = base * (FOV_MIRA if alvo.mira_travada else (FOV_CORRENDO if alvo.correndo else FOV)) / FOV
 	if foco:
 		fov_alvo = base * 0.72
+	if maos and maos.luneta():
+		fov_alvo = alvo.fogo().luneta  # sniper: zoom da luneta
 	cam.fov = lerpf(cam.fov, fov_alvo, 1.0 - exp(-10.0 * dt))
 	_tremor = maxf(0.0, _tremor - dt * 1.6)
 	cam.h_offset = randf_range(-1.0, 1.0) * _tremor * 0.12 + sin(_passo * 0.5) * BALANCO * 0.6 * forca

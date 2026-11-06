@@ -18,6 +18,10 @@ MUNDO (vegetação, construções)
 • "Realistic Beech Fern Plant / Games / Film" — 3D Environment Artist Shop (CC Attribution) — sketchfab.com/3d-models/realistic-beech-fern-plant-games-film-adf1e8832cf74a8a94c98792fa1d9088
 • "Grass Bushes (game ready asset)" — Aparicio Silva 3D (CC Attribution) — sketchfab.com/3d-models/grass-bushes-game-ready-asset-aa1fa43af9bf4228adfddb54ea123ad1
 • "Dry realistic grass lods 1" — POLYSCAN (Free Standard) — sketchfab.com/3d-models/dry-realistic-grass-lods-1-a7ace7ca73ce46d2a2614cebe20fa610
+• "Remington Shotgun Low Poly" — aBraM_ (CC Attribution) — sketchfab.com/3d-models/remington-shotgun-low-poly-0ebb3c3335f04ac6a57cff624fb14a81
+• "Low-Poly AK-74" — TastyTony (CC Attribution) — sketchfab.com/3d-models/low-poly-ak-74-b27f9003622a4c7499bfd8d2a06dc47b
+• "Low Poly Mosin Sniper" — samanthacford (CC Attribution) — sketchfab.com/3d-models/low-poly-mosin-sniper-5472b7415ce14468bd19443422e30e08
+• "Low Poly Shotgun Shells" — mapleaber (CC Attribution) — sketchfab.com/3d-models/low-poly-shotgun-shells-7090d59effb14bd987eda7369a3da54a
 
 ARMAS E OBJETOS
 Kenney (kenney.nl) — CC0: assets/sons/*.ogg
@@ -60,6 +64,9 @@ faca.glb: "Butcher Knife" por beyondmatter — https://sketchfab.com/3d-models/a
 taco.glb: "Bloody post-apo baseball bat" por Mielos3D — https://sketchfab.com/3d-models/f3c3c73529e14dc59d525a9a6a2220cd
 machado.glb: "Old Fire Axe" por MaX3Dd — https://sketchfab.com/3d-models/af6ca8fbfc6a434185e82c88001418ec
 fps/smg_fp.glb: "FPS Animations LowPoly MP5" por ccransh — https://sketchfab.com/3d-models/568f00dd76944baaa5eae1a1cc871423
+fps/espingarda_fp.glb: "FPS Arms remington (shotgun)" por ccransh — https://sketchfab.com/3d-models/e68ef617fe8a48cca8610d016ffd5881
+fps/fuzil_fp.glb: "FPS AK-74m animations" por ccransh — https://sketchfab.com/3d-models/94be8385c402474cacd39bc096c6ca14
+fps/sniper_fp.glb: "FPS animations sniper rifle" por ccransh — https://sketchfab.com/3d-models/c15ae8393d824f5b929e3f69691cdd31
 smg.glb: "Low Poly MP5A3" por samanthacford — https://sketchfab.com/3d-models/a77e9f726a9d4647b4a84d0bfd656ddc
 
 ZUMBIS

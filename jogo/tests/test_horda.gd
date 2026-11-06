@@ -45,7 +45,7 @@ func _init() -> void:
 		await frames(5)
 	ok(main.horda.solta(main, 4), "acha lugar para a horda")
 	await frames(2)
-	var membros: Array = main.zumbis.get_children().filter(func(z: Zumbi) -> bool: return z.horda != 0)
+	var membros: Array = main.zumbis.get_children().filter(func(z: Zumbi) -> bool: return z.horda > 0)  # a horda tem id > 0
 	ok(membros.size() == 5, "4 + o líder (%d)" % membros.size())
 	var lideres: Array = membros.filter(func(z: Zumbi) -> bool: return z.lider)
 	ok(lideres.size() == 1, "um líder")
