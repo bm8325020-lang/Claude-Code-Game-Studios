@@ -1176,6 +1176,8 @@ func _cai() -> void:
 	_golpe = -1
 	mordida_t = 0.0  # morto não briga mais com o zumbi (a tela de EMPURRAR ficava presa)
 	mordida_zumbi = null
+	if camera:
+		camera.foco = null  # morreu na mordida: a câmera ficava presa olhando o zumbi depois de renascer (dono 06/11)
 	agarrado_t = 0.0
 	mira_travada = false
 	for f: Pistola in fogos.values():

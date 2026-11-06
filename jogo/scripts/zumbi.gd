@@ -1413,7 +1413,7 @@ static var SOMBRA: bool = true  # zumbi faz sombra (Batata/Média não: sombra d
 var _anima_acum: float = 0.0
 ## 08/11 horda: com muitos zumbis na tela, só os ANIMA_CHEIOS mais perto da câmera animam todo quadro (os outros de 2
 ## em 2). `_limiar` = distância do ANIMA_CHEIOS-ésimo mais perto no quadro anterior.
-const ANIMA_CHEIOS: int = 8
+const ANIMA_CHEIOS: int = 6
 static var _dists: PackedFloat32Array = PackedFloat32Array()
 static var _dists_q: int = -1
 static var _limiar: float = INF
