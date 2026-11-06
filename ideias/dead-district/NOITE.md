@@ -21,5 +21,7 @@
 - [x] B4 Igreja com 24 velas no altar (luz que treme), hospital escuro com lâmpada fria falhando e 12 zumbis (eram 8);
   cidade mais vazia: 427 -> 355 prédios (1 em 4 casas do OSM some, 30% de terreno baldio). Malha refeita. Porão: ficou
   de fora (pede modelo novo no Blender). test_raid/test_bairro ok.
-- [ ] B5 Sobreviventes inimigos (saqueadores "Os Corvos" no mercado).
+- [x] B5 Os Corvos: 5 saqueadores vivos no mercado (roupa preta, nome em cima), avisam ("SAI DAQUI!") 2,5 s antes de
+  atirar, se escondem e fogem feridos; fogueira e pichação na frente; caveira no minimapa; ninguém nasce lá. Rede 47.
+  test_raid 12/12. Falta: andar de gente (usam o andar de zumbi).
 - [ ] B6 APK final + resumo para o dono.

@@ -80,6 +80,21 @@ func _init() -> void:
 			break
 	ok(antes - j.vida > 0, "zumbi armado acerta tiro de 10 m (tirou %d)" % (antes - j.vida))
 	ok(z.global_position.distance_to(j.global_position) > Zumbi.TIRO_DE, "e atira em vez de só correr até você")
+	# Os Corvos (06/11): saqueadores vivos no mercado; avisam antes do primeiro tiro e não mordem nem gemem
+	var c := Zumbi.new()
+	c.de_raid = true
+	c.tipo_pedido = "corvo"
+	c.position = Vector3(36, 0, -12)
+	c.casa = c.position
+	main.zumbis.add_child(c)
+	await frames(2)
+	ok(c.humano() and c.armado and not c.come and c.chance_grito == 0.0, "corvo é gente armada que não grita nem come")
+	c.alvo = j
+	await frames(3)
+	ok(c._avisou and c._tiro_cd > 1.0 and c._mirando < 0.0, "corvo avisa antes de atirar")
+	var corvos: Array = b.pontos_raid.filter(func(r: Dictionary) -> bool: return r.tipo == "corvo")
+	ok(corvos.size() >= 3 and corvos.all(func(r: Dictionary) -> bool: return r.armado), "mercado tem %d corvos armados" % corvos.size())
+	c.free()
 	# morto fica morto
 	z.levar_golpe(100000, Vector3.FORWARD, j)
 	await frames(60 * int(Zumbi.MORTO_POR + 2))

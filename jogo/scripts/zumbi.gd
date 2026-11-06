@@ -81,6 +81,9 @@ const TIPOS: Dictionary = {
 	"zumbi_policial": {"nome": "Policial", "vida": VIDA_MAX, "dano": DANO, "vel": 1.0, "andar": "andar", "correr": "correr", "skill": "agarrao"},
 	"zumbi_soldado": {"nome": "Soldado", "vida": 300, "dano": 38, "vel": 0.75, "andar": "andar_lento", "correr": "correr_lento", "skill": "blindado"},
 	# 31/10: sem as pernas, se arrasta; perto vem de quatro, rápido. Baixinho: some atrás de carro e mato
+	# 06/11 terror: Os Corvos, saqueadores vivos que tomaram o mercado (Zumbi reaproveitado: armado, avisa, atira,
+	# se esconde e foge ferido; não morde, não grita, não come). Roupa preta e nome em cima da cabeça.
+	"corvo": {"nome": "Corvo", "vida": 140, "dano": 12, "vel": 1.1, "andar": "andar", "correr": "correr", "skill": "humano"},
 	"zumbi_rastejante": {"nome": "Rastejante", "vida": 70, "dano": 14, "vel": 0.6, "andar": "rastejar", "correr": "rastejar_rapido", "skill": "baixo"},
 }
 ## Jeitos diferentes de cada clipe (Anims.CLIPES_ZUMBI): parado/andar/correr ficam fixos por zumbi (pelo nome, igual em
@@ -272,6 +275,9 @@ func _ready() -> void:
 	var rr := RandomNumberGenerator.new()
 	rr.seed = hash(String(name) + "jeito")
 	_passo = rr.randf_range(0.82, 1.18)
+	if humano():
+		armado = true
+		chance_grito = 0.0
 	come = not chefe and not tocaia and not armado and TIPOS[tipo].skill != "baixo" and rr.randf() < 0.3
 	var lista: Array = Anims.MODELOS_TIPO.get(tipo, [tipo])
 	var cara: String = Anims.CHEFE if chefe else String(lista[hash(String(name) + "m") % lista.size()])
@@ -310,8 +316,20 @@ func _ready() -> void:
 	_monta_sincronia()
 	if not Rede.servidor_sem_tela:
 		anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL  # avançada em _process
-		_monta_torto(rr)
-		_suja(hash(String(name) + "pele") % TINTAS.size())
+		if humano():
+			_suja(-1, Color(0.22, 0.22, 0.25))  # roupa preta dos Corvos, sem cabeça torta nem sujeira
+			var nome := Label3D.new()
+			nome.text = "CORVO"
+			nome.modulate = Color(0.8, 0.15, 0.1)
+			nome.font_size = 40
+			nome.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+			nome.position.y = 2.15
+			nome.visibility_range_end = 30.0
+			add_child(nome)
+			_fala_lbl = nome
+		else:
+			_monta_torto(rr)
+			_suja(hash(String(name) + "pele") % TINTAS.size())
 		if come:
 			_poe_corpo()
 	_toca("parado", 0.0)
@@ -329,7 +347,29 @@ const TINTAS: Array[Color] = [Color(0.78, 0.8, 0.74), Color(0.72, 0.7, 0.66), Co
 static var _peles: Dictionary = {}
 
 
-func _suja(tom: int) -> void:
+func humano() -> bool:
+	return not chefe and TIPOS.has(tipo) and TIPOS[tipo].skill == "humano"
+
+
+## Corvo: grita o aviso (o nome em cima da cabeça vira a fala por FALA_T s)
+const FALAS: Array[String] = ["SAI DAQUI!", "ESSA ÁREA É DOS CORVOS!", "LARGA A ARMA!", "VAZA OU MORRE!"]
+const FALA_T: float = 2.5
+const AVISO_T: float = 2.5  # s entre o aviso e o primeiro tiro
+var _fala_lbl: Label3D
+var _avisou: bool = false
+@rpc("authority", "call_local", "reliable")
+func _fala(i: int) -> void:
+	if _fala_lbl == null:
+		return
+	_fala_lbl.text = FALAS[i % FALAS.size()]
+	_fala_lbl.font_size = 56
+	get_tree().create_timer(FALA_T).timeout.connect(func() -> void:
+		if is_instance_valid(_fala_lbl):
+			_fala_lbl.text = "CORVO"
+			_fala_lbl.font_size = 40)
+
+
+func _suja(tom: int, cor: Color = Color.WHITE) -> void:
 	var suj: Texture2D = load("res://assets/texturas/sujeira.jpg")
 	for mi: MeshInstance3D in modelo.find_children("*", "MeshInstance3D", true, false):
 		if mi.mesh == null:
@@ -341,9 +381,9 @@ func _suja(tom: int) -> void:
 			var chave: String = "%d_%d" % [orig.get_instance_id(), tom]
 			if not _peles.has(chave):
 				var m: BaseMaterial3D = (orig as BaseMaterial3D).duplicate()
-				m.albedo_color = m.albedo_color * TINTAS[tom]
+				m.albedo_color = m.albedo_color * (TINTAS[tom] if tom >= 0 else cor)
 				m.roughness = maxf(m.roughness, 0.85)
-				m.detail_enabled = true
+				m.detail_enabled = tom >= 0
 				m.detail_albedo = suj
 				m.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MUL
 				m.detail_uv_layer = BaseMaterial3D.DETAIL_UV_1
@@ -504,6 +544,10 @@ func _physics_process(dt: float) -> void:
 				and d.length() < BOTE_ATE and _ve(alvo):
 			_bote = BOTE_DUR  # corredora: pula em cima de longe
 			_skill_t = BOTE_INTERVALO
+		if not _avisou and humano() and _ve(alvo):
+			_avisou = true  # Corvo: avisa antes de atirar
+			_tiro_cd = AVISO_T
+			_fala.rpc(randi())
 		_tiro_cd -= dt
 		if armado and _tiro_cd <= 0.0 and d.length() > TIRO_DE and d.length() < TIRO_ATE and _ve(alvo):
 			_mirando = TIRO_MIRA  # para, aponta e atira
@@ -698,7 +742,7 @@ func _escolhe_alvo() -> void:
 		_fechando = false
 		if _sem_gritar <= 0.0 and randf() < chance_grito:
 			_grita()
-		elif _sem_gritar <= 0.0:
+		elif _sem_gritar <= 0.0 and not humano():
 			_sem_gritar = GRITO_PAUSA
 			_rosna.rpc()
 

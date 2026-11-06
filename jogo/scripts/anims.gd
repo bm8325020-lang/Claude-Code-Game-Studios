@@ -22,6 +22,7 @@ const MODELOS_TIPO: Dictionary = {
 	"zumbi_policial": ["zumbi_policial", "zumbi_prisioneiro", "zr_homem", "zr_homem3"],
 	"zumbi_mulher": ["zumbi_mulher", "zr_mulher", "zr_mulher2"],
 	"zumbi_soldado": ["zumbi_soldado", "zr_homem3"],
+	"corvo": [JOGADOR],  # Os Corvos: gente viva (o mesmo modelo do jogador, de roupa preta)
 	"zumbi_rastejante": ["zr_homem", "zumbi_prisioneiro", "zr_mulher2"],
 }
 const CHEFE: String = "chefe_parasita"

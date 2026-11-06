@@ -659,11 +659,11 @@ func _massinha(pedaco: String, centro: Vector3, a: AABB, cor: Color) -> void:
 ## Raid: lê os pontos marcados no modelo (zumbi_k, zumbi_arm_k, bau_k), põe baús de loot raro e viaturas na frente.
 ## Raids da planta nova: modelo -> [nome do nó, título do aviso, tipo dos zumbis ("" = qualquer)]
 const RAIDS: Dictionary = {"delegacia": ["Delegacia", "DELEGACIA", "zumbi_policial"], "hospital": ["Hospital", "HOSPITAL MUNICIPAL", ""],
-	"mercado": ["Mercado", "SUPERMERCADO", ""], "igreja": ["Igreja", "IGREJA MATRIZ", ""]}
+	"mercado": ["Mercado", "OS CORVOS", "corvo"], "igreja": ["Igreja", "IGREJA MATRIZ", ""]}
 
 
 ## Zumbis por raid nova (celular: a cidade nasce com muitos; a delegacia fica com todos os dela)
-const RAID_ZUMBIS: Dictionary = {"HOSPITAL MUNICIPAL": 12, "SUPERMERCADO": 6, "IGREJA MATRIZ": 4}
+const RAID_ZUMBIS: Dictionary = {"HOSPITAL MUNICIPAL": 12, "OS CORVOS": 5, "IGREJA MATRIZ": 4}
 
 
 func _monta_raid(no: Node3D, titulo: String, tipo: String = "zumbi_policial") -> void:
@@ -677,13 +677,15 @@ func _monta_raid(no: Node3D, titulo: String, tipo: String = "zumbi_policial") ->
 		var p: Vector3 = ORIGEM + m.transform * (e as Node3D).position
 		if n.begins_with("zumbi_") and cabe > 0:
 			cabe -= 1
-			pontos_raid.append({"pos": p + Vector3(0, 0.1 + no.position.y, 0), "armado": n.begins_with("zumbi_arm_"), "tipo": tipo})
+			pontos_raid.append({"pos": p + Vector3(0, 0.1 + no.position.y, 0), "armado": n.begins_with("zumbi_arm_") or tipo == "corvo", "tipo": tipo})
 		elif n.begins_with("bau_"):
 			var bau := Bau.new()
 			bau.name = "Bau_raid_%s" % n.trim_prefix("bau_")
 			bau.raid = true
 			bau.position = m.transform * (e as Node3D).position
 			no.add_child(bau)
+	if titulo == "OS CORVOS" and no.has_meta("frente"):
+		pontos_nascer.erase(no.get_meta("frente"))  # ninguém nasce na porta dos saqueadores
 	if not Rede.servidor_sem_tela:
 		_medo(no, m, titulo)
 	if titulo != "DELEGACIA":
@@ -698,6 +700,21 @@ func _monta_raid(no: Node3D, titulo: String, tipo: String = "zumbi_policial") ->
 ## 06/11 terror: igreja com velas acesas no chão (alguém rezou aqui até o fim) e hospital no escuro com uma
 ## lâmpada fria que falha. As luzes entram no grupo "treme" (PostesPiscam faz piscar).
 func _medo(no: Node3D, m: Node3D, titulo: String) -> void:
+	if titulo == "OS CORVOS":  # acampamento dos saqueadores: fogueira na frente e o aviso pichado
+		var fr: Vector3 = no.get_meta("frente") - ORIGEM if no.has_meta("frente") else no.position
+		var f := Fogo.new()
+		f.tamanho = 0.6
+		f.position = fr + Vector3(3.5, 0.06, 0)
+		add_child(f)
+		var pich := Label3D.new()
+		pich.text = "OS CORVOS\nSAQUEADOR ATIRA"
+		pich.modulate = Color(0.75, 0.08, 0.06)
+		pich.font_size = 90
+		pich.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+		pich.position = fr + Vector3(0, 1.6, 0)
+		pich.visibility_range_end = 90.0
+		add_child(pich)
+		return
 	if titulo != "IGREJA MATRIZ" and titulo != "HOSPITAL MUNICIPAL":
 		return
 	# ponto de referência do modelo: base do altar (igreja) ou o chão (hospital), corpos "-col" do Blender

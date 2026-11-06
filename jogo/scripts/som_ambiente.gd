@@ -241,7 +241,7 @@ func _gemidos(j: Jogador, dt: float) -> void:
 	_geme_t = 0.4
 	for n: Node in get_tree().get_nodes_in_group("zumbis"):
 		var z := n as Zumbi
-		if z.vida <= 0 or z.global_position.distance_to(j.global_position) > GEME_PERTO:
+		if z.vida <= 0 or z.humano() or z.global_position.distance_to(j.global_position) > GEME_PERTO:
 			continue
 		var cacando: bool = z.alvo != null
 		if _rng.randf() > (0.12 if cacando else 0.04):
