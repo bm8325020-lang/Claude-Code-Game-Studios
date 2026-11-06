@@ -50,6 +50,7 @@ var toque: bool = false  # mostra os controles de toque
 var _stick_id: int = -1
 ## Carro no toque (06/11, dono): 4 botões (esquerda/direita à esquerda; freio-ré e acelerar à direita), vários dedos juntos
 var _pad: _PadCarro
+var _espreita_lbl: Label
 var _pad_toques: Dictionary = {}  # índice do dedo -> "esq"/"dir"/"freio"/"gas"
 var _stick_centro: Vector2
 var _stick_vec: Vector2 = Vector2.ZERO
@@ -331,6 +332,13 @@ func _process(dt: float) -> void:
 		est.bg_color.a = float(Config.v.botoes_opacidade)
 	if _btn_agachar:
 		_btn_agachar.ligado = jogador.agachado
+	if _espreita_lbl == null:
+		_espreita_lbl = UiTema.rotulo("ESPREITANDO: ELES QUASE NÃO TE VEEM", 18, Color(0.6, 0.9, 1.0))
+		_espreita_lbl.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+		_espreita_lbl.position.y -= 150
+		_espreita_lbl.position.x -= 200
+		add_child(_espreita_lbl)
+	_espreita_lbl.visible = jogador.espreitando()
 	if _btn_mira:
 		_btn_mira.ligado = jogador.mira_travada
 	_caiu.visible = jogador.vida <= 0

@@ -91,7 +91,8 @@ func _process(dt: float) -> void:
 	# respiração: a vista balança de leve parada; ofegante com pouca vida (mira firme quando aponta)
 	_resp += dt * (1.0 if alvo.vida > 30 else 2.2)
 	var folego: float = (0.0 if alvo.mira_travada else 1.0) * (1.0 if alvo.vida > 30 else 2.5)
-	rotation = Vector3(-(pitch - _recuo) + sin(_resp * 1.4) * 0.004 * folego, yaw + sin(_resp * 0.7) * 0.003 * folego, sin(_resp * 0.9) * 0.002 * folego)
+	_inclina = lerpf(_inclina, 0.09 if alvo.espreitando() else 0.0, 1.0 - exp(-6.0 * dt))  # espreitando: inclina a cabeça na parede
+	rotation = Vector3(-(pitch - _recuo) + sin(_resp * 1.4) * 0.004 * folego, yaw + sin(_resp * 0.7) * 0.003 * folego, sin(_resp * 0.9) * 0.002 * folego + _inclina)
 	var base: float = float(Config.v.fov)
 	var fov_alvo: float = base * (FOV_MIRA if alvo.mira_travada else (FOV_CORRENDO if alvo.correndo else FOV)) / FOV
 	if foco:
@@ -105,6 +106,7 @@ func _process(dt: float) -> void:
 
 
 var _sem_olhar: float = 0.0
+var _inclina: float = 0.0
 const CARRO_LONGE: float = 5.8
 const CARRO_ALTO: float = 2.3
 

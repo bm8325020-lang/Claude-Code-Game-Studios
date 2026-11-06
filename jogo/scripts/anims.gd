@@ -51,6 +51,26 @@ static func ajuste_osso(esq: Skeleton3D, osso: String) -> Basis:
 
 ## Instancia um personagem de assets/mixamo/personagens/ com a altura do X Bot (assim o quadril das
 ## animações cai no lugar certo). Sem o arquivo (clone sem os .fbx), cai no X Bot.
+## Mochila nas costas (06/11, dono; Sketchfab CC BY, assets/mundo/props/mochila): presa ao osso do tronco para
+## acompanhar o corpo; sem sombra e some de longe (celular). Frente do personagem = +Z do modelo.
+static func poe_mochila(raiz: Node3D) -> void:
+	if Rede.servidor_sem_tela or not ResourceLoader.exists("res://assets/mundo/props/mochila/mochila.gltf"):
+		return
+	# shortcut: presa no corpo (raiz), não no osso do tronco: não balança com a corrida; trocar se ficar estranho
+	var m: Node3D = (load("res://assets/mundo/props/mochila/mochila.gltf") as PackedScene).instantiate()
+	m.name = "Mochila"
+	m.scale = Vector3.ONE * 0.8
+	m.position = Vector3(0, 0.98, -0.2)
+	m.rotation.y = MOCHILA_GIRO
+	raiz.add_child(m)
+	for g: GeometryInstance3D in m.find_children("*", "GeometryInstance3D", true, false):
+		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		g.visibility_range_end = 45.0
+
+
+const MOCHILA_GIRO: float = 0.0
+
+
 static func boneco(nome: String) -> Node3D:
 	var caminho: String = PASTA + "personagens/%s.fbx" % nome
 	if ResourceLoader.exists("res://assets/zumbis/%s.glb" % nome):

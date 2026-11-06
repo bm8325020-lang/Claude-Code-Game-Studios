@@ -31,6 +31,7 @@ MODELOS = {
     "entulho": ("props/rubble_pile_game_ready_2k_pbr.glb", "props", 1.2, False, 600),
     "tijolos": ("props/red_brick_pile_rubble_debris.glb", "props", 0.9, False, 800),
     "saco_corpo": ("props/body_bag01.glb", "props", 0.35, False),
+    "mochila": ("props/mochila/backpack_low_poly_pbr_1_of_2.glb", "props", 0.5, False, 1200),  # nas costas dos personagens (06/11)
     # 07/11 (E4): quarentena militar
     "conteiner": ("props/shipping_container.glb", "props", 2.6, False),
     "conteiner_azul": ("props/shipping_container_low_poly.glb", "props", 2.6, False),

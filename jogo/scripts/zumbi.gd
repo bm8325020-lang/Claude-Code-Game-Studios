@@ -358,6 +358,7 @@ func _ready() -> void:
 		anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL  # avançada em _process
 		if humano():
 			_suja(-1, Color(0.22, 0.22, 0.25))  # roupa preta dos Corvos, sem cabeça torta nem sujeira
+			Anims.poe_mochila(modelo)
 			var nome := Label3D.new()
 			nome.text = "CORVO"
 			nome.modulate = Color(0.8, 0.15, 0.1)
@@ -809,7 +810,7 @@ static func ouve_de(j: Jogador, base: float) -> float:
 	if j.no_carro:
 		return maxf(base, OUVE_CARRO)
 	if j.agachado:
-		return base * OUVE_AGACHADO
+		return base * (0.15 if j.espreitando() else OUVE_AGACHADO)  # grudado na parede: só ouve bem perto
 	if j.correndo:
 		return base * OUVE_CORRENDO
 	return base
@@ -874,7 +875,8 @@ func _escolhe_alvo() -> void:
 			continue
 		var dist: float = j.global_position.distance_to(global_position)
 		var na_frente: bool = dist < VISAO_PERTO or modelo.global_basis.z.dot((j.global_position - global_position).normalized()) > VISAO_CONE
-		if dist < melhor and (dist < Zumbi.ouve_de(j, ouve) or (dist < visao and (na_frente or humano()) and _ve(j))):
+		var vis: float = visao * (0.18 if j.espreitando() else 1.0)  # espreitando na parede: só vê a uns poucos metros
+		if dist < melhor and (dist < Zumbi.ouve_de(j, ouve) or (dist < vis and (na_frente or humano()) and _ve(j))):
 			melhor = dist
 			alvo = j
 	if alvo == null and humano():
@@ -1036,6 +1038,8 @@ func _mira_e_atira(dt: float) -> void:
 		return
 	_vira_para(alvo.global_position - global_position, dt * 3.0)
 	_mirando -= dt
+	if humano():  # 06/11 (dono): Corvo mira e atira com a mesma animação do jogador (só 2 clipes, sem camada extra)
+		_toca("pistola_mira" if _mirando > 0.0 else "pistola_tiro", 0.12, _mirando <= 0.0)
 	if _mirando > 0.0:
 		return
 	_mirando = -1.0

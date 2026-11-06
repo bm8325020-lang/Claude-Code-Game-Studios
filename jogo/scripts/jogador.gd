@@ -152,6 +152,30 @@ var _fome_t: float = INTERVALO_FOME
 var cima_rede: String = ""
 
 var agachado: bool = false
+## Espreitar (06/11, dono): agachado e grudado numa parede (a até ESPREITA_DIST m, atrás ou dos lados) os zumbis quase
+## não te percebem. Quem pergunta (o servidor, na IA do zumbi) calcula; vale ESPREITA_CACHE s.
+const ESPREITA_DIST: float = 0.75
+const ESPREITA_CACHE: float = 0.25
+var _espreita_ms: int = -100000
+var _espreita: bool = false
+
+
+func espreitando() -> bool:
+	if not agachado or no_carro or vida <= 0:
+		return false
+	var agora: int = Time.get_ticks_msec()
+	if agora - _espreita_ms < int(ESPREITA_CACHE * 1000.0):
+		return _espreita
+	_espreita_ms = agora
+	_espreita = false
+	var esp := get_world_3d().direct_space_state
+	var de: Vector3 = global_position + Vector3(0, 0.7, 0)
+	for d: Vector3 in [-modelo.global_basis.z, modelo.global_basis.x, -modelo.global_basis.x, modelo.global_basis.z]:
+		var q := PhysicsRayQueryParameters3D.create(de, de + d.normalized() * ESPREITA_DIST, 1)
+		if not esp.intersect_ray(q).is_empty():
+			_espreita = true
+			break
+	return _espreita
 ## Mira travada: o corpo fica virado para onde a câmera olha e anda de lado/de costas (modo tiro).
 var mira_travada: bool = false
 var correndo: bool = false
@@ -318,6 +342,7 @@ func _monta_modelo() -> void:
 	modelo.add_child(anim)
 	anim.add_animation_library("", Anims.adaptada(Anims.biblioteca(), Anims.JOGADOR))
 	_toca("parado", 0.0)
+	Anims.poe_mochila(modelo)
 
 
 # facão provisório (espada curta do pacote de props) na mão direita

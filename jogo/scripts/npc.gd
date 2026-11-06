@@ -33,6 +33,7 @@ func _ready() -> void:
 	if anim.has_animation("parado"):
 		anim.play("parado")
 	_anim = anim
+	Anims.poe_mochila(m)
 	var l := Label3D.new()
 	l.text = nome
 	l.modulate = Color(0.55, 0.85, 1.0)
