@@ -40,3 +40,25 @@ Disco cheio: apagar só sobras próprias (APK já enviado, temporários de expor
 - Vibração do celular ao levar dano/mordida (desligável nas configurações).
 - Conquistas simples (primeiro porão, matar o líder dos Corvos, sobreviver 3 noites) para dar motivo de voltar.
 - Diário do jogador: bilhetes e fitas achados contam a história da Febre Cinzenta (liga com a jornalista Dana Price).
+
+## 12. Mais 20 ideias (dono 07/11: "adicione mais umas 20 coisas"; mesmas regras 1-10, pronto antes de feito à mão)
+1. Zumbi que sai de dentro de carro/lixeira/porta-malas quando você passa (susto pronto).
+2. Zumbi gordo que explode em gás e cega por uns segundos; zumbi com colete à prova de bala (só morre na cabeça).
+3. Cachorros zumbis em matilha, rápidos, à noite nos quintais.
+4. Moto e bicicleta dirigíveis (bicicleta silenciosa, moto rápida e barulhenta).
+5. Gerador a gasolina para ligar luz de uma casa (atrai zumbi pelo barulho).
+6. Barricar porta e janela da casa onde você está com tábuas achadas no loot (sem modo construção: só no lugar certo).
+7. Armadilhas: garrafa com lata (alarme), molotov, mina caseira.
+8. Arco e besta silenciosos (flecha recuperável).
+9. Lanterna com pilha que acaba; sinalizador vermelho que ilumina e atrai zumbi.
+10. Ferimento sangrando (curar com bandagem), perna quebrada (anda devagar) além da infecção.
+11. Sono e cansaço: dormir na cama de casa segura passa a noite (com risco de ataque).
+12. Cozinhar no fogão/fogueira: comida crua faz mal, cozida rende mais.
+13. Ciclo de lua e noites de neblina vermelha com zumbis mais agressivos (evento raro).
+14. NPCs sobreviventes amigos que pedem escolta até o abrigo e viram vendedores lá.
+15. Comerciante que aparece de tempo em tempo num ponto do mapa (troca, sem dinheiro de verdade).
+16. Corvos: trégua paga (pedágio) ou guerra; se você matar muitos, eles caçam você à noite.
+17. Câmeras de segurança de loja: TV que mostra o que tem lá dentro antes de entrar.
+18. Elevador quebrado e escada de incêndio em prédios altos; telhados ligados por tábuas para fugir pelo alto.
+19. Fotos/polaroids pela cidade que viram cartas colecionáveis no diário.
+20. Final da história: helicóptero de resgate no topo do hospital depois de juntar peças do rádio (fim do jogo, crédito).
