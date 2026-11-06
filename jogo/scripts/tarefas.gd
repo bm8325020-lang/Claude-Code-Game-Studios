@@ -124,6 +124,24 @@ const CORVOS_RADIO: Array = [
 	"Ouvi tiro no centro. Se for o forasteiro, quero ele vivo. Ele sabe onde a jornalista está.",
 ]
 const LORE_QUIETO: float = 200.0
+## 06/11 (dono): falas na hora da ação (com voz): chefe provoca, Tommy fica para trás, relógio do remédio, última noite
+const MOMENTO: Dictionary = {
+	"wade": ["WADE", "Então você é o forasteiro. A Halverson paga bem pela cabeça de quem fala demais. Corvos, peguem ele!"],
+	"tommy_longe": ["TOMMY", "Ei, espera! Não corre tanto, eu não tenho arma!"],
+	"remedio_meio": ["RÁDIO · DANA", "Metade do tempo já foi. A febre dela não vai esperar!"],
+	"remedio_fim": ["RÁDIO · DANA", "Último minuto! Corre com esse remédio!"],
+	"noite_meio": ["RÁDIO · DANA", "Estou ouvindo o helicóptero! Aguenta mais um pouco!"],
+	"noite_fim": ["RÁDIO · DANA", "Mais trinta segundos! Não deixa eles subirem!"],
+}
+var _momentos: Dictionary = {}  # o que já foi dito neste passo
+var _tommy_ms: int = 0
+
+
+func _momento(k: String, uma_vez: bool = true) -> void:
+	if uma_vez and _momentos.has(k):
+		return
+	_momentos[k] = true
+	legenda(String(MOMENTO[k][0]), String(MOMENTO[k][1]), 6.0, String(MOMENTO[k][0]).begins_with("RÁDIO"))
 var _quieto_t: float = 0.0
 var _lore_i: int = 0
 var _corvos_ms: int = -10000000
@@ -398,6 +416,7 @@ func _salva() -> void:
 
 func _comeca() -> void:
 	_feito = 0
+	_momentos.clear()
 	if _i < ROTEIRO.size():
 		var r: Array = ROTEIRO[_i]
 		_atual = [r[2], r[3], r[1]]
@@ -681,6 +700,11 @@ func _process(dt: float) -> void:
 		_noite_final(dt)
 	if _timer_t >= 0.0:
 		_timer_t -= dt
+		var total: float = float(_cfg.get("timer", 300.0))
+		if _timer_t < total * 0.5:
+			_momento("remedio_meio")
+		if _timer_t < 60.0:
+			_momento("remedio_fim")
 		if _timer_t <= 0.0:  # não deu tempo: recomeça o passo do checkpoint
 			_timer_t = float(_cfg.get("timer", 300.0))
 			legenda("MIA", "...Alex... não estou... aguentando... (tempo esgotado: tente de novo)", 5.0, false)
@@ -748,6 +772,10 @@ func _process(dt: float) -> void:
 			if p and p.arrombada():
 				evento("portao")
 		"escolta":
+			var tm: Npc = _npc.get("tommy")
+			if tm and tm.global_position.distance_to(_j.global_position) > 14.0 and Time.get_ticks_msec() - _tommy_ms > 20000:
+				_tommy_ms = Time.get_ticks_msec()
+				_momento("tommy_longe", false)
 			var tommy: Npc = _npc.get("tommy")
 			var dana: Node3D = _npc.get("dana")
 			if tommy and tommy.segue == null:
@@ -793,6 +821,10 @@ func _noite_final(dt: float) -> void:
 		_linha.text = "•  Volte para o HELIPONTO! (%d s)" % int(NOITE_FINAL_T - _resiste_t)
 		return
 	_resiste_t += dt
+	if _resiste_t > NOITE_FINAL_T * 0.5:
+		_momento("noite_meio")
+	if _resiste_t > NOITE_FINAL_T - 30.0:
+		_momento("noite_fim")
 	_linha.text = "•  Aguente no heliponto: %d s" % int(maxf(NOITE_FINAL_T - _resiste_t, 0.0))
 	_onda_t -= dt
 	if _onda_t <= 0.0 and _servidor():
@@ -910,6 +942,8 @@ func _chefe_ui() -> void:
 	if not vivo:
 		return
 	_chefe_nome.text = "WADE HARLAN — LÍDER DOS CORVOS" if qual == "wade" else "SARGENTO COLE MERCER"
+	if qual == "wade" and _j.global_position.distance_to(z.global_position) < 35.0:
+		_momento("wade")  # o chefe provoca quando você chega
 	_chefe_barra.max_value = z._vida_max
 	_chefe_barra.value = z.vida
 	if not _chefe_fase and z.vida < z._vida_max * 0.5 and _servidor():

@@ -315,6 +315,36 @@
 		"voz": "dana"
 	},
 	{
+		"id": "8759238288ff",
+		"texto": "Então você é o forasteiro. A Halverson paga bem pela cabeça de quem fala demais. Corvos, peguem ele!",
+		"voz": "wade"
+	},
+	{
+		"id": "1184ef8cd610",
+		"texto": "Ei, espera! Não corre tanto, eu não tenho arma!",
+		"voz": "tommy"
+	},
+	{
+		"id": "530014c99679",
+		"texto": "Metade do tempo já foi. A febre dela não vai esperar!",
+		"voz": "dana"
+	},
+	{
+		"id": "c4a2a60b76b9",
+		"texto": "Último minuto! Corre com esse remédio!",
+		"voz": "dana"
+	},
+	{
+		"id": "8b18b4f0396e",
+		"texto": "Estou ouvindo o helicóptero! Aguenta mais um pouco!",
+		"voz": "dana"
+	},
+	{
+		"id": "454b38acde8e",
+		"texto": "Mais trinta segundos! Não deixa eles subirem!",
+		"voz": "dana"
+	},
+	{
 		"id": "f343ebe112b2",
 		"texto": "Aqui é o Wade. Tem um forasteiro andando pela nossa cidade. Quem trouxer a mochila dele ganha munição.",
 		"voz": "wade"
