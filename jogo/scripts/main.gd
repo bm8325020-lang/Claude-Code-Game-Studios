@@ -344,6 +344,9 @@ var _res_t: float = 0.0
 var _res_escala: float = 1.0
 
 
+const ZUMBI_VE_MIN: float = 24.0  # m: menos que isso o zumbi brota na cara
+
+
 func _resolucao_dinamica(dt: float) -> void:
 	_res_t += dt
 	if _res_t < 2.0 or jogador == null:
@@ -351,10 +354,19 @@ func _resolucao_dinamica(dt: float) -> void:
 	_res_t = 0.0
 	var alvo: float = float(Config.v.fps) if int(Config.v.fps) > 0 else 60.0
 	var fps: float = Engine.get_frames_per_second()
+	# 07/11 (D1): apertou, primeiro encurta até onde zumbi aparece (a névoa esconde; a imagem não borra), depois a
+	# resolução; folgou, volta a resolução e depois os zumbis
+	var ve_max: float = float(Config.qualidade().zumbi)
 	if fps < alvo * 0.85:
-		_res_escala = maxf(_res_escala - 0.07, 0.6)
+		if Zumbi.VE_ATE > ZUMBI_VE_MIN:
+			Zumbi.VE_ATE = maxf(Zumbi.VE_ATE - 6.0, ZUMBI_VE_MIN)
+		else:
+			_res_escala = maxf(_res_escala - 0.07, 0.6)
 	elif fps > alvo * 0.97:
-		_res_escala = minf(_res_escala + 0.05, 1.0)
+		if _res_escala < 1.0:
+			_res_escala = minf(_res_escala + 0.05, 1.0)
+		else:
+			Zumbi.VE_ATE = minf(Zumbi.VE_ATE + 4.0, ve_max)
 	get_tree().root.scaling_3d_scale = float(Config.v.resolucao) * _res_escala
 
 

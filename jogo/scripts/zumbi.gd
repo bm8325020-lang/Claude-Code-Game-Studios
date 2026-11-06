@@ -1285,13 +1285,15 @@ func _process(dt: float) -> void:
 		var d: Vector3 = global_position - cam.global_position
 		var dist: float = d.length()
 		modelo.visible = dist < VE_ATE  # celular: de longe a neblina já esconde
+		if not modelo.visible:
+			return  # invisível não anima (o tempo acumula e anda tudo de uma vez quando aparecer)
 		if dist > ANIMA_LONGE:
 			pulo = 8
 		elif dist > ANIMA_PERTO or (dist > 6.0 and d.dot(-cam.global_basis.z) < 0.0):
 			pulo = 3
 	if _anima_quadro % pulo != 0:
 		return
-	anim.advance(_anima_acum)
+	anim.advance(minf(_anima_acum, 2.0))
 	_anima_acum = 0.0
 	if _cabeca < 0:
 		return

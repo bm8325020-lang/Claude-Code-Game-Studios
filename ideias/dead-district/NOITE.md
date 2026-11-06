@@ -40,7 +40,9 @@
 
 ## D. Próximos passos (loop automático a partir das 6:31 de 07/11; dono: "tá começando a ficar agradável")
 Cada rodada: ler isto, fazer o próximo [ ], medir, poucos testes (só da área), commit + push, marcar [x].
-- [ ] D1 Zumbis que se ajustam ao aparelho: se o quadro passar do tempo (30 FPS), diminui sozinho a distância dos
+- [x] D1 (07/11) main._resolucao_dinamica: FPS baixo encurta Zumbi.VE_ATE de 6 em 6 m até 24 m antes de baixar a
+  resolução; folgou, volta. Zumbi invisível não anima (process do zumbi 0,7 -> 0,25 ms). test_zumbi/jeitos ok.
+  Era: Zumbis que se ajustam ao aparelho: se o quadro passar do tempo (30 FPS), diminui sozinho a distância dos
   zumbis e o tanto que acordam juntos; volta quando folgar. Medir com peso_cpu/peso_render.
 - [ ] D2 Porão: em ~1 de cada 8 casas, alçapão no chão da cozinha -> escada -> porão escuro (só a lanterna), loot raro
   e 1-2 zumbis deitados (tocaia). Medo + motivo para explorar.
