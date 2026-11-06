@@ -74,7 +74,7 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":3890,
+			"count":1600,
 			"max":[
 				1.263310194015503,
 				0.9020484089851379,
@@ -82,7 +82,7 @@
 			],
 			"min":[
 				-1.4060372114181519,
-				-0.029034718871116638,
+				0.0004027110990136862,
 				-2.0237796306610107
 			],
 			"type":"VEC3"
@@ -90,57 +90,57 @@
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":3890,
+			"count":1600,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":3890,
+			"count":1600,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":3890,
+			"count":1600,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":4,
 			"componentType":5123,
-			"count":6000,
+			"count":2400,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":46680,
+			"byteLength":19200,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":46680,
-			"byteOffset":46680,
+			"byteLength":19200,
+			"byteOffset":19200,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":31120,
-			"byteOffset":93360,
+			"byteLength":12800,
+			"byteOffset":38400,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":31120,
-			"byteOffset":124480,
+			"byteLength":12800,
+			"byteOffset":51200,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":12000,
-			"byteOffset":155600,
+			"byteLength":4800,
+			"byteOffset":64000,
 			"target":34963
 		}
 	],
@@ -152,7 +152,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":167600,
+			"byteLength":68800,
 			"uri":"tijolos.bin"
 		}
 	]

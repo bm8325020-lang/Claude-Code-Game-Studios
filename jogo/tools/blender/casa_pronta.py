@@ -12,6 +12,54 @@ LOTE_W, LOTE_D = 11.5, 9.5
 GIRO = {"casa_p1": 0.0, "casa_p2": 0.0, "casa_p3": 0.0, "casa_p4": 0.0}  # graus em Z se a frente vier de lado
 
 
+def atlas(o, nome, lado=1024):
+    """Assa a cor de todos os materiais numa imagem só (UV nova sem sobreposição) e deixa 1 material."""
+    me = o.data
+    orig = me.uv_layers.active.name
+    uv = me.uv_layers.new(name="atlas")
+    me.uv_layers.active = uv
+    bpy.context.view_layer.objects.active = o
+    o.select_set(True)
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.smart_project(island_margin=0.01)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    for l in me.uv_layers:
+        l.active_render = l.name == orig  # as texturas de origem leem a UV antiga; o alvo do bake é a ativa (atlas)
+    img = bpy.data.images.new(nome + "_atlas", lado, lado)
+    for m in me.materials:
+        nt = m.node_tree
+        n = nt.nodes.new("ShaderNodeTexImage")
+        n.image = img
+        uvn = nt.nodes.new("ShaderNodeUVMap")
+        uvn.uv_map = "atlas"
+        nt.links.new(uvn.outputs[0], n.inputs[0])
+        nt.nodes.active = n
+    sc = bpy.context.scene
+    sc.render.engine = "CYCLES"
+    sc.cycles.samples = 1
+    sc.cycles.device = "CPU"
+    sc.render.bake.use_pass_direct = False
+    sc.render.bake.use_pass_indirect = False
+    sc.render.bake.margin = 4
+    bpy.ops.object.bake(type="DIFFUSE", pass_filter={"COLOR"})
+    img.filepath_raw = os.path.join(bpy.app.tempdir, nome + "_atlas.png")
+    img.file_format = "PNG"
+    img.save()
+    mat = bpy.data.materials.new("pronto_%s_atlas" % nome)
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes["Principled BSDF"]
+    tex = mat.node_tree.nodes.new("ShaderNodeTexImage")
+    tex.image = img
+    mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    bsdf.inputs["Roughness"].default_value = 0.9
+    me.materials.clear()
+    me.materials.append(mat)
+    me.uv_layers.remove(me.uv_layers[orig])
+    me.uv_layers["atlas"].active_render = True
+    print("ATLAS_OK", nome)
+
+
 def faz(nome):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=os.path.join(RAIZ, "mundo", "casas", nome, nome + ".gltf"))
@@ -34,6 +82,8 @@ def faz(nome):
     o.location = Vector((-(mn.x + mx.x) / 2 * k, -(mn.y + mx.y) / 2 * k, -mn.z * k))
     o.scale = (k, k, k)
     bpy.ops.object.transform_apply(location=True, scale=True)
+    if len(o.data.materials) > 3:
+        atlas(o, nome)  # 07/11 (otimização): muitos materiais = muitas chamadas de desenho; assa tudo numa textura só
     for m in o.data.materials:
         if m and not m.name.startswith("pronto_"):
             m.name = "pronto_%s_%s" % (nome, m.name)

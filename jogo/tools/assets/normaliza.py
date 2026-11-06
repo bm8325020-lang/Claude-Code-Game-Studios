@@ -28,8 +28,8 @@ MODELOS = {
     "onibus": ("veiculos/abandoned_bus.glb", "veiculos", 3.1, False),
     "barreira": ("props/concrete_barricade.glb", "props", 0.85, False),
     # 07/11 (E3): centro bombardeado e vala comum
-    "entulho": ("props/rubble_pile_game_ready_2k_pbr.glb", "props", 1.2, False),
-    "tijolos": ("props/red_brick_pile_rubble_debris.glb", "props", 0.9, False, 2000),
+    "entulho": ("props/rubble_pile_game_ready_2k_pbr.glb", "props", 1.2, False, 600),
+    "tijolos": ("props/red_brick_pile_rubble_debris.glb", "props", 0.9, False, 800),
     "saco_corpo": ("props/body_bag01.glb", "props", 0.35, False),
     # 07/11 (E4): quarentena militar
     "conteiner": ("props/shipping_container.glb", "props", 2.6, False),

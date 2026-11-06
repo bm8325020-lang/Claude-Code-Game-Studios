@@ -110,3 +110,6 @@ Ordem pensada: primeiro a cara e o pronto (muda o jogo inteiro), depois estrutur
   (< 9 m), ferido corre para cobertura 2,5 s e volta (não foge de vez), sem alvo ronda 70 m em volta de casa caçando,
   vê saco de morto a 55 m, vai lá e rouba (devolve num saco quando morre). Minimapa: losango laranja até 160 m.
   Tirado o aviso falado (Rede.VERSAO 49). test_raid 14/14, test_zumbi 49/49, test_rede ok (2ª rodada).
+- [x] (dono 07/11 "otimize tudo e mande APK") casa_pronta.py assa as casas com > 3 materiais numa textura só (atlas
+  1024 no Cycles: casa_p2/p3/p4 de 6/10/12 materiais para 1); entulho 1536 -> 600 e tijolos 2000 -> 800 tri.
+  Render Média 450 -> 370 chamadas, 371 -> 297 mil tri; CPU 6,0 ms. Malha refeita. test_bairro/porao ok. APK 1.03.

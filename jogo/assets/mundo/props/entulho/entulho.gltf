@@ -109,61 +109,61 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":836,
+			"count":348,
 			"max":[
-				2.4639840126037598,
-				1.1999999284744263,
-				2.057783603668213
+				2.4499595165252686,
+				1.2062774896621704,
+				2.0473732948303223
 			],
 			"min":[
 				-2.680124521255493,
 				0,
-				-1.768734097480774
+				-1.7749580144882202
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":836,
+			"count":348,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":836,
+			"count":348,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5123,
-			"count":4608,
+			"count":1800,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":10032,
+			"byteLength":4176,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":10032,
-			"byteOffset":10032,
+			"byteLength":4176,
+			"byteOffset":4176,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":6688,
-			"byteOffset":20064,
+			"byteLength":2784,
+			"byteOffset":8352,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":9216,
-			"byteOffset":26752,
+			"byteLength":3600,
+			"byteOffset":11136,
 			"target":34963
 		}
 	],
@@ -175,7 +175,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":35968,
+			"byteLength":14736,
 			"uri":"entulho.bin"
 		}
 	]
