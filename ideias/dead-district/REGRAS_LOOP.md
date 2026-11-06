@@ -24,8 +24,8 @@ aprimorar o grupo Os Corvos; super operação no jogo inteiro; fazer tudo funcio
 9. FUNCIONAR: cada item com teste da área passando + foto quando visual; nada quebrado no log (SCRIPT ERROR = parar e
    corrigir). Multiplayer: mudou rede/RPC -> subir Rede.VERSAO e rodar test_rede.
 10. PRONTO PRA POSTAR: no fim de cada seção, APK que instala e roda limpo, com resumo curto ao dono (pt-BR). A última
-   seção da operação fecha: ícone do app, tela inicial, créditos, sem erro no export, AAB para a loja (a assinatura de
-   loja é do dono: pedir a chave dele, nunca inventar).
+   seção da operação fecha: ícone do app, tela inicial, créditos, sem erro no export. Loja (Play Store/AAB): NÃO
+   (dono 07/11: "deixa isso pra lá"); "postar" = APK pronto e limpo.
 
 ## Segurança (sempre)
 Nunca commitar export_presets.cfg, assets/mixamo/, chaves. Commit com o trailer da sessão. Não passar segredo no chat.
@@ -40,6 +40,3 @@ Disco cheio: apagar só sobras próprias (APK já enviado, temporários de expor
 - Vibração do celular ao levar dano/mordida (desligável nas configurações).
 - Conquistas simples (primeiro porão, matar o líder dos Corvos, sobreviver 3 noites) para dar motivo de voltar.
 - Diário do jogador: bilhetes e fitas achados contam a história da Febre Cinzenta (liga com a jornalista Dana Price).
-- LOJA (Play Store), obrigatório para postar: AAB com o pacote base até 200 MB (hoje o APK tem ~260 MB: cortar
-  texturas/sons ou usar Play Asset Delivery), política de privacidade (página simples), classificação etária,
-  ícone 512 px, 2+ capturas de tela e texto da loja em pt-BR e inglês. Chave de loja: do dono.

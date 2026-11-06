@@ -74,4 +74,4 @@ Ordem pensada: primeiro a cara e o pronto (muda o jogo inteiro), depois estrutur
 - [ ] E9 SEM LAG (regra 6): medir tudo de novo (peso_cpu + peso_render), cortar o que subiu; meta Média <= 330 mil
   triângulos e <= 400 chamadas.
 - [ ] E10 PRONTO PRA POSTAR (regras 9/10): ícone do app (o export reclama "No project icon"), tela inicial/menu com a
-  cara nova, créditos atualizados, rodar TODOS os testes, APK limpo + AAB (pedir a chave de loja ao dono), resumo.
+  cara nova, créditos atualizados, rodar TODOS os testes, APK limpo (sem loja/AAB: dono não quer), resumo.
