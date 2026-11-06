@@ -50,3 +50,6 @@ Cada modelo: arquivo | nome original | autor | licença | origem | tamanho | fac
 | brutos/props/small_guard_booth.glb | Small Guard Booth | Arsen Ismailov | CC Attribution | https://sketchfab.com/3d-models/small-guard-booth-422ec83e0bd64687a0026c67abb6bc07 | 2.2 MB | 960 | sim | obrigatória |
 | brutos/props/low_poly_military_floodlight.glb | Low Poly Military Floodlight | DGS | CC Attribution | https://sketchfab.com/3d-models/low-poly-military-floodlight-0615acfee17b47599fc1c6ac91c53cbf | 0.1 MB | 540 | sim | obrigatória |
 | brutos/props/chg_c4.glb | ChG C4 | Artem48k | CC Attribution | https://sketchfab.com/3d-models/chg-c4-e10e0c4206854c708191470637b59ebd | 0.2 MB | 376 | sim | obrigatória |
+| brutos/props/abandoned_gas_station.glb | Abandoned Gas Station | SURVIVED | CC Attribution | https://sketchfab.com/3d-models/abandoned-gas-station-0720be99fcfd41d9a5772eee5edf5013 | 19.9 MB | 7927 | sim | obrigatória |
+| brutos/props/weathered_water_tower.glb | Weathered Water Tower | Pippa | CC Attribution | https://sketchfab.com/3d-models/weathered-water-tower-bff3a33dff32414e83fa57e650e701ce | 3.2 MB | 4968 | sim | obrigatória |
+| brutos/props/gas_pump.glb | Gas Pump | xrooshka | CC Attribution | https://sketchfab.com/3d-models/gas-pump-4354327e7c52491f9dda58bb2fc0b375 | 1.1 MB | 1092 | sim | obrigatória |

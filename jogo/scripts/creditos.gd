@@ -45,6 +45,9 @@ MUNDO (vegetação, construções)
 • "Small Guard Booth" — Arsen Ismailov (CC Attribution) — sketchfab.com/3d-models/small-guard-booth-422ec83e0bd64687a0026c67abb6bc07
 • "Low Poly Military Floodlight" — DGS (CC Attribution) — sketchfab.com/3d-models/low-poly-military-floodlight-0615acfee17b47599fc1c6ac91c53cbf
 • "ChG C4" — Artem48k (CC Attribution) — sketchfab.com/3d-models/chg-c4-e10e0c4206854c708191470637b59ebd
+• "Abandoned Gas Station" — SURVIVED (CC Attribution) — sketchfab.com/3d-models/abandoned-gas-station-0720be99fcfd41d9a5772eee5edf5013
+• "Weathered Water Tower" — Pippa (CC Attribution) — sketchfab.com/3d-models/weathered-water-tower-bff3a33dff32414e83fa57e650e701ce
+• "Gas Pump" — xrooshka (CC Attribution) — sketchfab.com/3d-models/gas-pump-4354327e7c52491f9dda58bb2fc0b375
 
 ARMAS E OBJETOS
 Kenney (kenney.nl) — CC0: assets/sons/*.ogg

@@ -783,10 +783,58 @@ for tent in range(200):
             quarentena["soldados"].append([round(q[0] + RE.uniform(-7, 7), 2), round(q[1] + RE.uniform(-7, 7), 2)])
         tendas += 1
 print("E4: contêineres", nq, "| portão x", round(portao_x, 1), "| tendas", tendas)
+# 6) (E5) lugares novos: torre de água (sobe e vê longe), ferro-velho cercado, escola barricada, bombas de gasolina
+lugares = {"baus": [], "subidas": []}
+def acha_livre(w, d, alvo, raio, folga_rua=10.0):
+    for rr in range(0, int(raio), 6):
+        for k in range(max(1, rr // 3)):
+            a = math.tau * k / max(1, rr // 3)
+            q = (alvo[0] + math.cos(a) * rr, alvo[1] + math.sin(a) * rr)
+            if livre(q[0], q[1], 0.0, w, d) and perto_rua(q, w / 2 + folga_rua) and not perto_rua(q, max(w, d) / 2 + 1.0):
+                return q
+    return None
+torre = acha_livre(11.0, 11.0, (140.0, 140.0), 160)
+if torre:
+    reserva(torre[0], torre[1], 11.0, 11.0)
+    props.append({"m": "mundo:torre_agua", "p": [round(torre[0], 2), round(torre[1], 2)], "r": 0.0})
+    lugares["subidas"].append([round(torre[0] + 5.6, 2), round(torre[1], 2), round(torre[0], 2), round(torre[1], 2), 22.0, 1.0, 0.0])
+ferro = acha_livre(34.0, 26.0, (-300.0, 330.0), 220, 14.0)
+if ferro:
+    fx, fz = ferro
+    reserva(fx, fz, 34.0, 26.0)
+    area(ret(fx - 17, fz - 13, fx + 17, fz + 13), "terra")
+    for (a1, b1) in (((-17, -13), (17, -13)), ((17, -13), (17, 13)), ((17, 13), (3, 13)), ((-3, 13), (-17, 13)), ((-17, 13), (-17, -13))):
+        muros.append({"a": [round(fx + a1[0], 2), round(fz + a1[1], 2)], "b": [round(fx + b1[0], 2), round(fz + b1[1], 2)], "alt": 2.2, "cor": 0, "grade": True})
+    for k in range(14):
+        q = (fx + RE.uniform(-14, 14), fz + RE.uniform(-10, 9))
+        veiculos.append({"m": RE.choice(["mundo:ferrugem", "mundo:queimado", "mundo:carcaca", "mundo:van"]), "p": [round(q[0], 2), round(q[1], 2)],
+                         "r": round(RE.uniform(0, 6.28), 3), "cor": [round(RE.uniform(0.2, 0.6), 2), round(RE.uniform(0.15, 0.4), 2), round(RE.uniform(0.1, 0.3), 2)]})
+    lugares["baus"] += [[round(fx - 12, 2), round(fz - 9, 2)], [round(fx + 12, 2), round(fz - 9, 2)]]
+    for k in range(4):
+        zumbis.append([round(fx + RE.uniform(-12, 12), 2), round(fz + RE.uniform(-9, 9), 2)])
+for pe in predios:
+    if pe["modelo"] == "escola":  # escola virou refúgio que caiu: barreira e sacos de areia na frente, baú dentro
+        ex, ez = pe["c"]
+        fr = pe["frente"]
+        lado = (-fr[1], fr[0])
+        for k in range(-3, 4):
+            if k == 0:
+                continue  # a passagem que os sobreviventes deixavam
+            q = (ex + fr[0] * 9.0 + lado[0] * k * 2.0, ez + fr[1] * 9.0 + lado[1] * k * 2.0)
+            props.append({"m": "mundo:barreira" if k % 2 else "mundo:sacos_areia", "p": [round(q[0], 2), round(q[1], 2)],
+                          "r": round(math.atan2(lado[0], lado[1]) + (0.0 if k % 2 else math.pi / 2), 3)})
+        lugares["baus"].append([round(ex + fr[0] * 6.5, 2), round(ez + fr[1] * 6.5, 2)])
+        for k in range(5):
+            zumbis.append([round(ex + RE.uniform(-4, 4), 2), round(ez + RE.uniform(-8, 8), 2)])
+pt = (ENTRADA[0] + ENTRADA_DIR[0] * (RURAL + 30) + ENTRADA_DIR[1] * 9, ENTRADA[1] + ENTRADA_DIR[1] * (RURAL + 30) - ENTRADA_DIR[0] * 9)
+for k in range(3):  # bombas de gasolina na beira da estrada (o prédio do posto pronto entra depois: colisão a fazer)
+    props.append({"m": "mundo:bomba_gasolina", "p": [round(pt[0] + ENTRADA_DIR[0] * k * 3.0, 2), round(pt[1] + ENTRADA_DIR[1] * k * 3.0, 2)], "r": round(math.atan2(ENTRADA_DIR[0], ENTRADA_DIR[1]), 3)})
+lugares["baus"].append([round(pt[0] + ENTRADA_DIR[1] * 2.5, 2), round(pt[1] - ENTRADA_DIR[0] * 2.5, 2)])
+print("E5: torre", torre, "| ferro-velho", ferro, "| baús de lugar", len(lugares["baus"]))
 print("E3: casas incendiadas", incendio, "| entulho", bomba, "| fila na rodovia", fila, "| vala comum", vala)
 print("casas prontas:", sum(1 for pp in predios if pp["modelo"].startswith("casa_p")))
 out = {"origem": "Senoia, GA (OpenStreetMap, ODbL; tools/mapa/raven_creek.py CIDADE=senoia)" if SENOIA else "Raven Creek (tools/mapa/raven_creek.py)", "ruas": ruas, "predios": predios, "frestas": frestas, "bloqueios": bloqueios,
-       "quarentena": quarentena, "marcos": marcos, "muros": muros, "props": props, "areas": areas, "faixas": faixas, "postes": postes, "veiculos": veiculos,
+       "quarentena": quarentena, "lugares": lugares, "marcos": marcos, "muros": muros, "props": props, "areas": areas, "faixas": faixas, "postes": postes, "veiculos": veiculos,
        "zumbis": zumbis, "longe": longe, "entrada": entrada,
        "terreno": {"rio": {"p": rio, "larg": RIO_LARG, "fundo": 2.2, "agua": 1.5}, "morros": [MORRO]}}
 json.dump(out, open(sys.argv[1] if len(sys.argv) > 1 else "assets/mapa/cidade.json", "w"))

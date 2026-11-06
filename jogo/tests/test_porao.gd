@@ -51,5 +51,15 @@ func _init() -> void:
 	j.global_position = p.sala + Vector3(-Porao.LARG / 2 + 0.8, 0.3, Porao.COMP / 2 - 0.5)  # pé da escada
 	await frames(20)
 	ok(absf(j.global_position.y - p.alcapao.y) < 1.5, "pé da escada sobe para a cozinha (y %.1f)" % j.global_position.y)
+	# torre de água (E5): pisar no pé da escada sobe para o alto, a beira lá em cima desce
+	var sb: Subida = b.find_children("Subida_*", "Subida", false, false)[0]
+	j.global_position = sb.baixo + Vector3(0, 0.3, 0)
+	await frames(20)
+	ok(j.global_position.y > sb.cima.y - 1.0, "escada da torre sobe (y %.1f)" % j.global_position.y)
+	await frames(60)
+	ok(j.global_position.y > sb.cima.y - 1.0, "fica em pé em cima da torre (y %.1f)" % j.global_position.y)
+	j.global_position = sb.cima + sb.lado * 3.2 + Vector3(0, 0.3, 0)
+	await frames(80)
+	ok(j.global_position.y < sb.baixo.y + 2.0, "a beira lá em cima desce (y %.1f)" % j.global_position.y)
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)

@@ -108,6 +108,22 @@ func _ready() -> void:
 	_barricadas()
 	for b: Dictionary in dados.get("bloqueios", []):
 		_bloqueio(Vector2(b.p[0], b.p[1]), float(b.ang), float(b.larg))
+	var lg: Dictionary = dados.get("lugares", {})  # 07/11 (E5): baús dos lugares novos (posto, ferro-velho, escola) e subidas
+	for k in lg.get("baus", []).size():
+		var q: Array = lg.baus[k]
+		var bl := Bau.new()
+		bl.name = "BauLugar_%d" % k
+		bl.raid = true
+		bl.position = Vector3(q[0], altura(Vector2(q[0], q[1])), q[1])
+		add_child(bl)
+	for k in lg.get("subidas", []).size():
+		var q: Array = lg.subidas[k]  # [x, z do pé, x, z do meio, altura de cima, lado x, lado z]
+		var sb := Subida.new()
+		sb.name = "Subida_%d" % k
+		sb.baixo = ORIGEM + Vector3(q[0], altura(Vector2(q[0], q[1])), q[1])
+		sb.cima = ORIGEM + Vector3(q[2], float(q[4]), q[3])
+		sb.lado = Vector3(q[5], 0, q[6])
+		add_child(sb)
 	var qt: Dictionary = dados.get("quarentena", {})  # 07/11 (E4): acampamento militar da quarentena (tenda com baú, soldados)
 	for k in qt.get("baus", []).size():
 		var q: Array = qt.baus[k]

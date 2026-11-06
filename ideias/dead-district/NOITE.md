@@ -93,7 +93,13 @@ Ordem pensada: primeiro a cara e o pronto (muda o jogo inteiro), depois estrutur
   baus/loja ok; test_rede ok (1ª rodada falhou no tempo, 2ª passou).
   Era: QUARENTENA MILITAR (regras 1/4): muro de contêineres cortando a cidade, checkpoint (sacos de areia, guarita,
   holofote), tendas médicas com loot militar e zumbis soldados — modelos prontos.
-- [ ] E5 CONSTRUÇÕES NOVAS (regra 4): posto de gasolina com loja, escola barricada, torre de água (subir e ver longe),
+- [x] E5 (07/11 10:31) Torre de água pronta (Sketchfab CC BY) que dá para subir (Subida: pé da escada sobe, beira
+  lá em cima desce; vê a cidade de longe), ferro-velho cercado com grade (14 carcaças, 2 baús, 4 zumbis), escola
+  virou refúgio caído (barreiras e sacos de areia na frente, baú, 5 zumbis), 3 bombas de gasolina prontas na estrada
+  com baú. "lugares" no JSON. Malha refeita. test_porao 9/9 (subida), bairro/nascer ok. Render Média 421-443
+  chamadas (medida varia ±30 com zumbi na vista; o mercado pesa pelos Corvos de 7 partes -> E9), 323-356 mil tri.
+  FALTA: prédio do posto pronto (baixado, a colisão dele precisa ser feita à parte).
+  Era: CONSTRUÇÕES NOVAS (regra 4): posto de gasolina com loja, escola barricada, torre de água (subir e ver longe),
   ferro-velho — prontos, com motivo para entrar.
 - [ ] E6 MECÂNICA NOVA (regra 3): rádio com chamados (drop de suprimento, sobrevivente pedindo ajuda, Corvos
   vendendo/roubando): vai até o ponto no mapa, evento acontece, recompensa. Teste próprio.
