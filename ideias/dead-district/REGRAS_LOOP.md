@@ -62,3 +62,30 @@ Disco cheio: apagar só sobras próprias (APK já enviado, temporários de expor
 18. Elevador quebrado e escada de incêndio em prédios altos; telhados ligados por tábuas para fugir pelo alto.
 19. Fotos/polaroids pela cidade que viram cartas colecionáveis no diário.
 20. Final da história: helicóptero de resgate no topo do hospital depois de juntar peças do rádio (fim do jogo, crédito).
+
+## 13. MODO HISTÓRIA (dono 07/11: "todos os modos vão ser modo história, combina com o 20")
+O menu tem um modo só: HISTÓRIA (sozinho ou com amigos na sala). História completa em ideias/dead-district/HISTORIA.md
+(capítulos 0-8, personagens, finais). Toda seção do plano avança pelo menos 1 capítulo jogável (objetivo na tela,
+marcador, rádio/bilhete), sempre usando o que já existe no mundo (refúgios, porões, Corvos, hospital, quarentena).
+
+## 14. Mais 20 ideias (todas a serviço da história)
+1. Van da TV da Dana na praça, cercada de zumbis (capítulo 2).
+2. Fitas da Dra. Okafor (5) com a voz em texto e chiado: item de história no diário.
+3. Mia infectada que precisa de remédio a cada noite (escolta + cuidado).
+4. Dana no rádio comentando o que você faz ("vi a fumaça, foi você?").
+5. Wade Harlan, líder dos Corvos: chefe humano com guarda-costas, granada e fuga pelo telhado.
+6. Sgt. Mercer zumbi chefe no laboratório, com a chave do heliponto.
+7. Laboratório da Halverson escondido nas tendas da quarentena (papéis, câmaras frias, jaulas).
+8. Silos da Hollis Feed na zona industrial: lugar onde tudo começou, milho podre, esporos que embaçam a tela.
+9. Esporos: área com névoa amarela que infecta mais rápido (máscara de gás no loot protege).
+10. Escolhas com consequência (trégua/guerra com os Corvos muda lojas, patrulhas e o final).
+11. Abrigos salvam o jogo e passam a noite (cama), e viram o lugar onde Dana/Mia esperam.
+12. Mortes de personagens possíveis (Dana pode morrer na última noite se você não chegar a tempo).
+13. Sirene da cidade ligada por você no capítulo 8 (chama a horda para longe do hospital ou para perto).
+14. Heliponto no topo do hospital com rampa de subida pelo lado de fora (escada de incêndio).
+15. Cena final simples: câmera subindo com o helicóptero sobre Senoia ao amanhecer + boletim final da Dana + créditos.
+16. Capítulos com nome e número na tela ao começar (cartão preto com chiado, como a abertura).
+17. Diário com páginas: História (fitas/bilhetes), Pessoas (Dana, Mia, Wade, Mercer), Mapa (marcadores).
+18. Recompensa por capítulo (arma nova, mochila maior, chave de lugar novo) para dar vontade de seguir.
+19. Final alternativo e "Novo Jogo+" (recomeçar com o que achou no diário, cidade mais perigosa).
+20. Co-op na história: até 4 na sala jogando o capítulo de quem criou; cada um vê as falas.
