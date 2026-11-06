@@ -1172,6 +1172,9 @@ func pede_dano_pvp(alvo: int, dano: int, dir: Vector3) -> void:
 	var atirador := jogadores.get_node_or_null(str(q)) as Jogador
 	if j == null or atirador == null or not salas.vale(q, alvo) or _pvp_caido.has(alvo) or j.vida <= 0:
 		return
+	# o dano vem do aparelho de quem atirou: nunca mais que a arma dele tira (cabeça, força máxima)
+	var teto: int = Pistola.dano_maximo(atirador.arma) if Jogador.e_fogo(atirador.arma) else 200
+	dano = clampi(dano, 0, teto)
 	var morreu: bool = j.vida - dano <= 0
 	j.levar_dano(dano, dir)
 	if not morreu:
@@ -1179,7 +1182,8 @@ func pede_dano_pvp(alvo: int, dano: int, dir: Vector3) -> void:
 	_pvp_caido[alvo] = true
 	var cod: String = salas.sala_de(q)
 	salas.abate(cod, atirador.nick, j.nick)
-	_aviso_sala(cod, "%s DERRUBOU %s" % [atirador.nick.to_upper(), j.nick.to_upper()])
+	var com: String = Mochila.NOMES.get(atirador.arma, atirador.arma).to_upper()
+	_aviso_sala(cod, "%s DERRUBOU %s  [%s]" % [atirador.nick.to_upper(), j.nick.to_upper(), com])
 	_manda_salas()
 	get_tree().create_timer(Salas.RENASCE_T).timeout.connect(func() -> void:
 		_pvp_caido.erase(alvo)

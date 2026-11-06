@@ -15,6 +15,9 @@ const GEME_PERTO: float = 22.0  # m: zumbi a essa distância geme/rosna de vez e
 
 var principal: Node
 var _vento: AudioStreamPlayer
+var _passaros: AudioStreamPlayer
+var _pingos: AudioStreamPlayer
+var _agua: AudioStreamPlayer
 var _coracao: AudioStreamPlayer
 var _passo: AudioStreamPlayer
 var _sons: Dictionary = {}
@@ -33,6 +36,10 @@ func _ready() -> void:
 		return
 	_rng.randomize()
 	_vento = _toca_sempre("vento", -14.0)
+	# 06/11: pássaros de dia lá fora, pingos dentro de casa, água escorrendo nas calhas quando chove (OpenGameArt CC0)
+	_passaros = _toca_sempre("passaros", -80.0)
+	_pingos = _toca_sempre("pingos", -80.0)
+	_agua = _toca_sempre("agua", -80.0)
 	_coracao = _toca_sempre("coracao", -80.0)
 	_passo = AudioStreamPlayer.new()
 	add_child(_passo)
@@ -50,6 +57,11 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if _eco >= 0 and _eco < AudioServer.get_bus_effect_count(0):
 		AudioServer.remove_bus_effect(0, _eco)
+
+
+# volume vai devagar até o alvo (entrar em casa não corta o som de uma vez)
+func _suave(p: AudioStreamPlayer, alvo: float, dt: float) -> void:
+	p.volume_db = move_toward(p.volume_db, alvo, dt * 25.0)
 
 
 func som(nome: String) -> AudioStream:
@@ -78,6 +90,10 @@ func _process(dt: float) -> void:
 		return
 	var dentro: bool = principal.bairro != null and principal.bairro.casa_em(j.global_position) != ""
 	AudioServer.set_bus_effect_enabled(0, _eco, dentro)
+	var chuva: bool = ciclo != null and ciclo.clima in ["chuva", "tempestade"]
+	_suave(_passaros, (-17.0 if not dentro else -30.0) if noite < 0.5 and not chuva else -80.0, dt)
+	_suave(_pingos, -16.0 if dentro else -80.0, dt)
+	_suave(_agua, (-14.0 if not dentro else -24.0) if chuva else -80.0, dt)
 	_passos(j, dentro)
 	_coracao_bate(j, dt)
 	_sustos(j, dt, noite)
@@ -147,8 +163,8 @@ func _sustos(j: Jogador, dt: float, noite: float) -> void:
 	else:
 		nome = ""  # tiro distante
 	if nome == "":
-		s.stream = Pistola._gera_estampido()
-		s.pitch_scale = 0.75
+		s.stream = load("res://assets/sons/armas/%s_1.ogg" % ["pistola", "fuzil", "espingarda"][_rng.randi() % 3])
+		s.pitch_scale = 0.8
 		s.volume_db = -6.0
 	else:
 		s.stream = som(nome)

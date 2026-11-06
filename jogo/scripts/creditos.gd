@@ -99,4 +99,9 @@ fogo       — "Fire Crackling" (opengameart.org/content/fire-crackling)
 corvo_1    — "Crow" (opengameart.org/content/crow)
 corvos     — "Crows singing" (opengameart.org/content/crows-singing)
 alarme.wav — feito no próprio projeto (CC0)
+
+06/11: passaros (birds-isaiah658, "Ambient Bird Sounds"), corvos ("Crows singing"), corvo_1 ("Crow caw"), pingos ("Dripping water loop"), agua ("Sea and river wave sounds", VistulaShort) — OpenGameArt CC0.
+
+SONS DAS ARMAS
+Tiros: "The Free Firearm Sound Library" (OpenGameArt, CC0): Walther PPQ (pistola), PPSh (smg), Mossberg (espingarda), AK-47 (fuzil), Mosin Nagant (sniper). Recarga: "Gun reload sounds" (OpenGameArt, CC0).
 """

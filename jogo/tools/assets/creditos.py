@@ -29,7 +29,7 @@ if linhas:
     partes += ["MUNDO (vegetação, construções)"] + linhas + [""]
 for nome, titulo in (("LICENCAS.txt", "ARMAS E OBJETOS"), ("zumbis/CREDITOS.txt", "ZUMBIS"),
                      ("moveis/CREDITOS.txt", "MÓVEIS"), ("catalogo/CREDITOS.txt", "CAPITAL AO LONGE"),
-                     ("sons/amb/CREDITOS.txt", "SONS")):
+                     ("sons/amb/CREDITOS.txt", "SONS"), ("sons/armas/CREDITOS.txt", "SONS DAS ARMAS")):
     p = os.path.join(A, nome)
     if os.path.exists(p):
         partes += [titulo, le(p).strip(), ""]

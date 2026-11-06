@@ -76,7 +76,10 @@ var _espera: float = 0.0
 var _recarga_t: float = 0.0
 var _abertura: float = 0.0             # dispersão extra que cresce com tiros seguidos
 var _som: AudioStreamPlayer3D
-var _som_tiro: AudioStreamWAV
+var _som_tiro: AudioStream
+## tiros gravados de verdade (The Free Firearm Sound Library, OpenGameArt CC0): 2 por arma, sorteados
+var _tiros: Array[AudioStream] = []
+var _som_recarga: AudioStreamPlayer3D
 var _luz: OmniLight3D
 
 
@@ -88,8 +91,18 @@ func _ready() -> void:
 	_monta_modelo()
 	_som = AudioStreamPlayer3D.new()
 	_som.max_db = 6.0
+	_som.max_polyphony = 4  # rajada: um tiro não corta o eco do outro
+	_som.unit_size = 14.0
 	add_child(_som)
 	_som_tiro = _gera_estampido()
+	for k in [1, 2]:
+		var arq: String = "res://assets/sons/armas/%s_%d.ogg" % [tipo, k]
+		if ResourceLoader.exists(arq):
+			_tiros.append(load(arq))
+	_som_recarga = AudioStreamPlayer3D.new()
+	_som_recarga.stream = load("res://assets/sons/armas/recarga.ogg") if ResourceLoader.exists("res://assets/sons/armas/recarga.ogg") else null
+	_som_recarga.volume_db = -6.0
+	add_child(_som_recarga)
 	_luz = OmniLight3D.new()
 	_luz.light_color = Color(1, 0.8, 0.45)
 	_luz.omni_range = 4.0
@@ -191,7 +204,7 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 			pegou = hit.collider
 			var altura: Variant = pegou.get("altura_cabeca")
 			cabeca = ponto.y - pegou.global_position.y > (float(altura) if altura != null else 1.65)
-			pegou.call("levar_golpe", roundi(dano * (2 if cabeca else 1) * (dono.mult_fogo() if dono else 1.0)), d, dono)
+			pegou.call("levar_golpe", dano_em(origem.distance_to(ponto), ponto.y - pegou.global_position.y, cabeca), d, dono)
 		if not hit.is_empty() and hit.collider is Carro:
 			(hit.collider as Carro).dispara_alarme()  # tiro em carro: alarme chama a horda (Dying Light/L4D)
 		if k == 0 or (pegou and res.acertou == null):
@@ -205,11 +218,32 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 	return res
 
 
+## Dano de um projétil (06/11, tiro renovado): cabeça x2, perna x0,7 (abaixo de PERNA m), cai até QUEDA_MIN no fim do
+## alcance (a partir da metade), e a força do jogador (habilidade).
+const PERNA: float = 0.85
+const QUEDA_MIN: float = 0.5
+
+
+func dano_em(dist: float, altura: float, cabeca: bool) -> int:
+	var queda: float = lerpf(1.0, QUEDA_MIN, clampf((dist / alcance - 0.5) * 2.0, 0.0, 1.0))
+	var parte: float = 2.0 if cabeca else (0.7 if altura < PERNA else 1.0)
+	return maxi(1, roundi(dano * parte * queda * (dono.mult_fogo() if dono else 1.0)))
+
+
+## O máximo que um tiro desta arma pode tirar (o servidor corta o que passar disso no PvP).
+static func dano_maximo(t: String) -> int:
+	var f: Dictionary = FOGO.get(t, {})
+	return roundi(float(f.get("dano", DANO)) * 2.0 * 1.5) * int(f.get("chumbos", 1))
+
+
 func recarregar() -> void:
 	if recarregando or balas == pente or reserva <= 0:
 		return
 	recarregando = true
 	_recarga_t = recarga
+	if _som_recarga.stream:
+		_som_recarga.pitch_scale = clampf(1.6 / recarga, 0.7, 1.3)  # recarga lenta, som mais arrastado
+		_som_recarga.play()
 
 
 ## Clarão, som e rastro até `ponto` (também chamado nos outros aparelhos quando alguém atira).
@@ -226,7 +260,7 @@ func silenciada() -> bool:
 func efeito(ponto: Vector3, bateu: bool, carne: bool = false, estampido: bool = true) -> void:
 	if estampido:  # chumbos da espingarda: um estampido só
 		_luz.light_energy = 3.0
-		_som.stream = _som_tiro
+		_som.stream = _tiros[randi() % _tiros.size()] if not _tiros.is_empty() else _som_tiro
 		_som.pitch_scale = randf_range(0.95, 1.05) * (0.75 if chumbos > 1 or luneta > 0.0 else 1.0)  # arma grande: mais grave
 		_som.volume_db = -14.0 if silenciada() else 0.0
 		_som.play()

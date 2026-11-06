@@ -311,6 +311,7 @@ func _ready() -> void:
 	if not Rede.servidor_sem_tela:
 		anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL  # avançada em _process
 		_monta_torto(rr)
+		_suja(hash(String(name) + "pele") % TINTAS.size())
 		if come:
 			_poe_corpo()
 	_toca("parado", 0.0)
@@ -319,6 +320,35 @@ func _ready() -> void:
 		anim.active = false  # ninguém vê: não mexe nos ossos (os tempos vêm do tamanho dos clipes)
 	if tocaia and _manda():
 		_deita()
+
+
+## Pele de morto (06/11, dono: "melhore a aparência do zumbi"): tons pálidos/acinzentados sorteados por zumbi e
+## manchas de sujeira e sangue seco por cima da textura (foto de chão ambientCG CC0 multiplicando). Materiais em cache
+## por (material, tom): 70 zumbis não viram 70 materiais.
+const TINTAS: Array[Color] = [Color(0.78, 0.8, 0.74), Color(0.72, 0.7, 0.66), Color(0.82, 0.76, 0.72), Color(0.66, 0.7, 0.68)]
+static var _peles: Dictionary = {}
+
+
+func _suja(tom: int) -> void:
+	var suj: Texture2D = load("res://assets/texturas/sujeira.jpg")
+	for mi: MeshInstance3D in modelo.find_children("*", "MeshInstance3D", true, false):
+		if mi.mesh == null:
+			continue
+		for i in mi.mesh.get_surface_count():
+			var orig: Material = mi.get_surface_override_material(i) if mi.get_surface_override_material(i) else mi.mesh.surface_get_material(i)
+			if not orig is BaseMaterial3D:
+				continue
+			var chave: String = "%d_%d" % [orig.get_instance_id(), tom]
+			if not _peles.has(chave):
+				var m: BaseMaterial3D = (orig as BaseMaterial3D).duplicate()
+				m.albedo_color = m.albedo_color * TINTAS[tom]
+				m.roughness = maxf(m.roughness, 0.85)
+				m.detail_enabled = true
+				m.detail_albedo = suj
+				m.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MUL
+				m.detail_uv_layer = BaseMaterial3D.DETAIL_UV_1
+				_peles[chave] = m
+			mi.set_surface_override_material(i, _peles[chave])
 
 
 # Dois sincronizadores: "Sincronia" (posição, giro, animação) vem de quem PENSA o zumbi (pode ser o celular do
