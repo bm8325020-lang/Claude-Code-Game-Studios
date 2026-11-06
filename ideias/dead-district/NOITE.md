@@ -101,7 +101,10 @@ Ordem pensada: primeiro a cara e o pronto (muda o jogo inteiro), depois estrutur
   FALTA: prédio do posto pronto (baixado, a colisão dele precisa ser feita à parte).
   Era: CONSTRUÇÕES NOVAS (regra 4): posto de gasolina com loja, escola barricada, torre de água (subir e ver longe),
   ferro-velho — prontos, com motivo para entrar.
-- [ ] E6 MECÂNICA NOVA (regra 3): rádio com chamados (drop de suprimento, sobrevivente pedindo ajuda, Corvos
+- [x] E6 (07/11 11:31) Rádio: pedido de socorro a cada 9 min (o 1º aos 4 min) num ponto de rua a 90-170 m de um
+  jogador, com caixa de loot de raid marcada (fumaça, mapa); 60% verdade (5 zumbis em volta que não renascem), 40%
+  EMBOSCADA dos Corvos (3 saqueadores armados esperando: regra 8). Somado ao drop de suprimento que já existia.
+  test_chamado 5/5, test_populacao ok. Era: MECÂNICA NOVA (regra 3): rádio com chamados (drop de suprimento, sobrevivente pedindo ajuda, Corvos
   vendendo/roubando): vai até o ponto no mapa, evento acontece, recompensa. Teste próprio.
 - [ ] E7 MECÂNICA NOVA (regra 3): ruas que mudam — barricadas e ônibus tombados fecham caminhos, atalhos por dentro de
   prédios/quintais; e combustível nos carros (galão no loot, carro para sem gasolina). Teste próprio.
