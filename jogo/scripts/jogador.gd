@@ -266,7 +266,6 @@ func _ready() -> void:
 		mochila.adicionar("pistola", 1)
 	if tem_lanterna:
 		mochila.adicionar("lanterna", 1)
-	mochila.adicionar("livro", 1)  # abre as HABILIDADES (dono, 31/10: saiu da pausa)
 	if not inicio_vazio:
 		mochila.adicionar("taco_pregos", 1)  # 31/10: o taco do print do dono
 		pistola.reserva = Pistola.RESERVA_INICIAL
@@ -508,7 +507,7 @@ func _physics_process(dt: float) -> void:
 	elif agachado:
 		alvo_vel = AGACHADO
 	elif correndo:
-		alvo_vel = CORRER * (1.0 + 0.05 * int(prog.hab.folego))
+		alvo_vel = CORRER * (1.0 + 0.05 * 0)
 	elif entrada.get("andar", false) or forca < 0.55:
 		alvo_vel = ANDAR  # stick meio empurrado = andar devagar
 	else:
@@ -547,6 +546,8 @@ func _physics_process(dt: float) -> void:
 		velocity.y -= GRAVIDADE * dt
 		_no_ar_desde += dt
 	var estava_no_ar: bool = not is_on_floor()
+	if is_on_floor() and _subindo < 0.0:
+		_degrau(dt)
 	move_and_slide()
 	if estava_no_ar and is_on_floor() and _no_ar_desde > 0.35:
 		_pousando = 0.22
@@ -887,6 +888,7 @@ func _recebe(tipo: String, qtd: int) -> void:
 			_recebe("xp", XP_SEQUENCIA * (sequencia - 1))
 		return
 	if tipo == "xp":
+		return  # 06/11 (dono): sem XP nem nível; você fica mais forte só com o loot
 		var subiu: int = prog.ganha(qtd)
 		if nick != "":
 			prog.salva(Progresso.arquivo(nick))
@@ -1191,7 +1193,7 @@ func _passa_fome(dt: float) -> void:
 			vida = 0  # a infecção venceu
 			_cai()
 			return
-	var folego: float = 1.0 - 0.06 * int(prog.hab.folego)
+	var folego: float = 1.0 - 0.06 * 0
 	fome = maxf(0.0, fome - 100.0 / FOME_TEMPO * dt * folego)
 	sede = maxf(0.0, sede - 100.0 / SEDE_TEMPO * dt * folego)
 	if fome > 0.0 and sede > 0.0:
@@ -1427,14 +1429,73 @@ func _beirada(mov: Vector2) -> bool:
 		return false
 	var h: float = (topo.position as Vector3).y - pe.y
 	if h < BEIRADA_MIN or h > BEIRADA_MAX:
-		return false
+		return _pula_por_cima(parede, fr, pe)
 	var q3 := PhysicsRayQueryParameters3D.create(topo.position + Vector3(0, 0.05, 0), topo.position + Vector3(0, ALTURA_EM_PE, 0), 1)
 	q3.exclude = [get_rid()]
 	if not esp.intersect_ray(q3).is_empty():
 		return false  # sem lugar para ficar em pé lá em cima
 	_sobe_de = pe
 	_sobe_ate = topo.position + Vector3(0, 0.03, 0) + fr * 0.15
+	_sobe_topo = -INF
 	return true
+
+
+## 06/11 (dono): pular muro e janela. Parede fina com o topo (muro) ou o peitoril (janela aberta) entre 0,6 e 2 m e chão
+## livre do outro lado: passa por cima num arco. Nada de ficar em pé no muro.
+var _sobe_topo: float = -INF
+
+
+func _pula_por_cima(parede: Dictionary, fr: Vector3, pe: Vector3) -> bool:
+	var esp := get_world_3d().direct_space_state
+	var p: Vector3 = (parede.position as Vector3) + fr * 0.12
+	var q := PhysicsRayQueryParameters3D.create(Vector3(p.x, pe.y + 1.75, p.z), Vector3(p.x, pe.y + 0.4, p.z), 1)
+	q.exclude = [get_rid()]
+	var topo: Dictionary = esp.intersect_ray(q)  # dentro da verga da janela o raio não conta: acha o peitoril
+	if topo.is_empty():
+		return false
+	var h: float = (topo.position as Vector3).y - pe.y
+	if h < BEIRADA_MIN or h > 1.7:
+		return false
+	var cai: Vector3 = (parede.position as Vector3) + fr * 0.95
+	var q2 := PhysicsRayQueryParameters3D.create(Vector3(cai.x, pe.y + h + 0.3, cai.z), Vector3(cai.x, pe.y - 2.0, cai.z), 1)
+	q2.exclude = [get_rid()]
+	var chao: Dictionary = esp.intersect_ray(q2)
+	if chao.is_empty() or (chao.normal as Vector3).y < 0.7 or (chao.position as Vector3).y > pe.y + h - 0.3:
+		return false  # do outro lado não tem chão (ou é parede grossa)
+	var q3 := PhysicsRayQueryParameters3D.create(chao.position + Vector3(0, 0.1, 0), chao.position + Vector3(0, 1.6, 0), 1)
+	q3.exclude = [get_rid()]
+	if not esp.intersect_ray(q3).is_empty():
+		return false
+	_sobe_de = pe
+	_sobe_ate = (chao.position as Vector3) + Vector3(0, 0.05, 0)
+	_sobe_topo = pe.y + h
+	return true
+
+
+## 06/11 (dono): degrau de varanda/calçada (até DEGRAU_MAX) sobe andando, sem precisar pular.
+const DEGRAU_MAX: float = 0.5
+
+
+func _degrau(dt: float) -> void:
+	var h := Vector3(velocity.x, 0.0, velocity.z) * dt
+	if h.length() < 0.001:
+		return
+	var frente: Vector3 = h.normalized() * maxf(h.length(), 0.12)
+	if not test_move(global_transform, frente):
+		return  # nada na frente
+	var cima := Vector3(0, DEGRAU_MAX, 0)
+	if test_move(global_transform, cima):
+		return  # teto
+	var t2: Transform3D = global_transform.translated(cima)
+	if test_move(t2, frente):
+		return  # é parede, não degrau
+	var col := KinematicCollision3D.new()
+	var t3: Transform3D = t2.translated(frente)
+	if test_move(t3, -cima, col):  # acha o topo do degrau e sobe só o necessário
+		var sobe: float = DEGRAU_MAX - col.get_travel().length()
+		if sobe > 0.08:  # degrau baixinho a própria cola do chão (floor_snap) resolve; sem pular o pé fica no chão
+			global_position.y += sobe
+			apply_floor_snap()
 
 
 # sobe primeiro (braços puxando) e só no fim vai para a frente, por cima da beirada
@@ -1444,6 +1505,12 @@ func _escala(dt: float) -> void:
 	var sobe: float = smoothstep(0.0, 0.7, t)
 	var vai: float = smoothstep(0.55, 1.0, t)
 	global_position = Vector3(lerpf(_sobe_de.x, _sobe_ate.x, vai), lerpf(_sobe_de.y, _sobe_ate.y, sobe), lerpf(_sobe_de.z, _sobe_ate.z, vai))
+	if _sobe_topo > -INF:  # pulando muro/janela: arco por cima, mais rápido
+		var u: float = smoothstep(0.0, 1.0, t)
+		var base: float = lerpf(_sobe_de.y, _sobe_ate.y, u)
+		global_position = _sobe_de.lerp(_sobe_ate, u)
+		global_position.y = base + sin(PI * u) * maxf(_sobe_topo + 0.35 - maxf(_sobe_de.y, _sobe_ate.y), 0.3)
+		_subindo += dt * 0.6
 	velocity = Vector3.ZERO
 	if anim.has_animation("escalar"):
 		_toca("escalar", 0.1)
@@ -2135,20 +2202,20 @@ func clipe_atual() -> String:
 
 ## Vida máxima com o Vigor.
 func vida_max() -> int:
-	return VIDA_MAX + 8 * int(prog.hab.vigor)
+	return VIDA_MAX + 8 * 0
 
 
 ## Multiplicadores das habilidades (Pontaria: espalho e dano de arma de fogo; Força: dano de arma branca).
 func mult_espalho() -> float:
-	return 1.0 - 0.1 * int(prog.hab.pontaria)
+	return 1.0 - 0.1 * 0
 
 
 func mult_fogo() -> float:
-	return 1.0 + 0.06 * int(prog.hab.pontaria)
+	return 1.0 + 0.06 * 0
 
 
 func mult_forca() -> float:
-	return 1.0 + 0.08 * int(prog.hab.forca)
+	return 1.0 + 0.08 * 0
 
 
 ## Gasta 1 ponto numa habilidade (tela HABILIDADES); salva.

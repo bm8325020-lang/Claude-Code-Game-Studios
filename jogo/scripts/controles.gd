@@ -31,7 +31,7 @@ var jogador: Jogador:
 					aviso("SALA SEGURA — zumbi não entra aqui; a vida volta devagar", Color(1.0, 0.75, 0.4), 3.0))
 			v.mordida_fim.connect(func(escapou: bool) -> void:
 				if escapou:
-					aviso("VOCÊ SE SOLTOU!  +%d XP" % Jogador.XP_SOLTOU, UiTema.DESTAQUE, 1.6))
+					aviso("VOCÊ SE SOLTOU!", UiTema.DESTAQUE, 1.6))
 			_tarefas.liga(v)
 			v.golpe_de.connect(func(dir: Vector3) -> void: _seta_golpe.mostra(-dir))
 			v.item_pego.connect(_pegou)
@@ -406,7 +406,7 @@ func _process(dt: float) -> void:
 	var porta: Porta = _perto[5]
 	var carro: Carro = _perto[6]
 	_dica_pegar.visible = it != null or porta != null or bau != null or banc != null or loja != null or carro != null or jogador.carro != null or gav != null
-	_saldo.text = "$ %d    NV %d  %d/%d XP" % [jogador.dinheiro, jogador.prog.nivel, jogador.prog.xp, Progresso.xp_para(jogador.prog.nivel)]
+	_saldo.text = "$ %d" % jogador.dinheiro
 	if jogador.carro:
 		_dica_pegar.text = ("SAIR DO CARRO" if toque else "[E] sair do carro")
 	elif jogador.abrindo:
@@ -1007,7 +1007,7 @@ func _acertou(forte: bool) -> void:
 
 func _pegou(tipo: String, qtd: int) -> void:
 	if tipo == "cabeca":
-		aviso("TIRO NA CABEÇA!  +5 XP", Color(1.0, 0.45, 0.3), 1.2)
+		aviso("TIRO NA CABEÇA!", Color(1.0, 0.45, 0.3), 1.2)
 		return
 	if tipo == "antibiotico" and jogador and not jogador.infectado:
 		aviso("Antibiótico tomado: a infecção parou", Color(0.45, 0.75, 0.4))
@@ -1036,7 +1036,7 @@ func _pegou(tipo: String, qtd: int) -> void:
 		aviso("Destrancou com a chave", UiTema.DESTAQUE, 1.6)
 		return
 	if tipo == "sequencia":
-		aviso("%d ABATES SEGUIDOS!  +%d XP" % [qtd, Jogador.XP_SEQUENCIA * (qtd - 1)], UiTema.DESTAQUE, 1.6)
+		aviso("%d ABATES SEGUIDOS!" % qtd, UiTema.DESTAQUE, 1.6)
 		return
 	if tipo == "dinheiro":
 		_aviso_item.text = "+$ %d" % qtd

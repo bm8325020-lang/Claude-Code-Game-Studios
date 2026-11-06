@@ -15,7 +15,7 @@ const DICAS: Array[String] = [
 	"Zumbi não atravessa a tábua entre os telhados. Suba pela escada de incêndio.",
 	"No rio todo mundo fica lento, inclusive os zumbis.",
 	"Fresta entre dois prédios: entre de lado. O zumbi não cabe.",
-	"Amanhecer vivo dá XP. Gaste os pontos em HABILIDADES, na pausa.",
+	"Ninguém fica mais forte sozinho: arma melhor, munição e bandagem só achando loot.",
 	"Arame farpado corta e prende. Não encoste.",
 	"Bilhetes no chão contam onde tem coisa boa.",
 	"À noite os zumbis correm mais e batem mais forte.",

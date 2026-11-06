@@ -167,6 +167,7 @@ var _salvo: String = ""
 var _cap: String = ""
 var _marcador: _Marcador
 var _radio: _Radio
+var _fundo: Panel
 var _bip: AudioStreamPlayer
 var _legenda_t: float = 0.0
 var _ultima_fala: Array = []
@@ -213,17 +214,24 @@ func _cartao(texto: String) -> void:
 
 
 func _ready() -> void:
-	var fundo := ColorRect.new()
-	fundo.color = Color(0, 0, 0, 0.45)
-	fundo.size = Vector2(430, 62)
-	fundo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(fundo)
+	_fundo = Panel.new()  # 06/11 (dono: "layout mais bonito"): cartão escuro arredondado com faixa laranja
+	var est := StyleBoxFlat.new()
+	est.bg_color = Color(0.05, 0.06, 0.05, 0.62)
+	est.set_corner_radius_all(10)
+	est.border_width_left = 5
+	est.border_color = Color(1.0, 0.62, 0.2, 0.95)
+	est.shadow_color = Color(0, 0, 0, 0.35)
+	est.shadow_size = 6
+	_fundo.add_theme_stylebox_override("panel", est)
+	_fundo.size = Vector2(430, 62)
+	_fundo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_fundo)
 	_titulo = UiTema.rotulo("HISTÓRIA", 19, Color(1.0, 0.68, 0.2))
 	_titulo.autowrap_mode = TextServer.AUTOWRAP_OFF  # sem largura, quebrava letra por letra (vídeo do dono)
-	_titulo.position = Vector2(10, 2)
+	_titulo.position = Vector2(16, 4)
 	add_child(_titulo)
 	_linha = UiTema.rotulo("", 16, Color(1, 1, 1, 0.95))
-	_linha.position = Vector2(14, 30)
+	_linha.position = Vector2(18, 32)
 	_linha.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_linha.size = Vector2(500, 28)
 	_linha.clip_text = true
@@ -244,9 +252,9 @@ func _ready() -> void:
 	_bip.stream = load("res://assets/sons/radio_bip.wav")
 	_bip.volume_db = -4.0
 	add_child(_bip)
-	fundo.size = Vector2(516, 84)
+	_fundo.size = Vector2(516, 64)
 	_opcional = UiTema.rotulo("", 14, Color(0.75, 0.78, 0.75))  # objetivo opcional (fitas), em cinza
-	_opcional.position = Vector2(14, 58)
+	_opcional.position = Vector2(18, 58)
 	_opcional.autowrap_mode = TextServer.AUTOWRAP_OFF
 	add_child(_opcional)
 	var topo := VBoxContainer.new()  # barra de vida do chefe no alto, no meio
@@ -414,6 +422,7 @@ func _mostra() -> void:
 	_linha.text = "•  " + texto
 	var achou: int = _fitas()
 	_opcional.text = "Opcional: fitas da Dra. Okafor %d/5" % achou if _i >= 8 and _i < ROTEIRO.size() and achou < FITAS else ""
+	_fundo.size.y = 86.0 if _opcional.text != "" else 64.0
 
 
 func _fitas() -> int:
@@ -586,7 +595,7 @@ func evento(tipo: String) -> void:
 		var dois: int = fala.find(": ")
 		legenda(fala.left(dois) if dois > 0 and dois < 24 else "", fala.substr(dois + 2) if dois > 0 and dois < 24 else fala, 8.0, fala.begins_with("RÁDIO"))
 	if c and c.has_method("aviso"):
-		c.aviso("OBJETIVO CONCLUÍDO  +%d XP" % XP, UiTema.DESTAQUE, 2.0)
+		c.aviso("OBJETIVO CONCLUÍDO", UiTema.DESTAQUE, 2.0)
 	if _j and _j.vida > 0 and _j.carro == null:
 		_check = _j.global_position
 	var premio: Array = _cfg.get("premio", [])
@@ -1001,8 +1010,12 @@ class _Radio extends Control:
 		var falando: bool = _texto != ""
 		if falando:  # fundo da faixa do texto
 			var h: float = maxf(_faixa.get_content_height() + 16.0, 60.0)
-			draw_rect(Rect2(62, 0, 456, h), Color(0.05, 0.07, 0.05, 0.78 * _brilho))
-			draw_rect(Rect2(62, 0, 4, h), Color(1.0, 0.6, 0.2, _brilho) if _radio else Color(0.6, 0.85, 1.0, _brilho))
+			var est := StyleBoxFlat.new()
+			est.bg_color = Color(0.05, 0.07, 0.05, 0.78 * _brilho)
+			est.set_corner_radius_all(10)
+			est.border_width_left = 5
+			est.border_color = Color(1.0, 0.6, 0.2, _brilho) if _radio else Color(0.6, 0.85, 1.0, _brilho)
+			draw_style_box(est, Rect2(62, 0, 456, h))
 		var a: float = 0.55 + 0.45 * _brilho
 		if _brilho > 0.05 and _radio:  # brilho em volta quando fala
 			draw_rect(Rect2(-4, 14, 52, 90), Color(1.0, 0.6, 0.2, 0.25 * _brilho), false, 4.0)
