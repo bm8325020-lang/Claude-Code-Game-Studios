@@ -53,18 +53,25 @@ Cada rodada: ler isto, fazer o próximo [ ], medir, poucos testes (só da área)
   baú do acampamento com loot de saqueador; matar todos libera o mercado (aviso no HUD).
 - [-] D4 (movido para E6) APK + resumo curto para o dono.
 
-## E. Cidade nova (dono 07/11: "o loop deve mudar a estrutura inteira da cidade e adicionar coisas novas")
-Regra do loop: cada rodada muda a CIDADE (planta tools/mapa/senoia.py + Bairro/Planta) ou põe coisa NOVA no mundo;
-mudou a planta -> regerar planta + minimapa e a malha (assa_navegacao.gd -- salva_nav), foto antes/depois, peso_render
-(DD_QUALIDADE=1) não pode subir mais que 10%. Ao acabar a seção, escrever a próxima no mesmo espírito.
-- [ ] E1 Zonas novas na planta: centro bombardeado (quarteirão com prédios desabados, crateras, entulho na rua),
-  bairro incendiado (fileira de casas queimadas com fumaça), rodovia de entrada engarrafada (fila de carros dos que
-  tentaram fugir), parque virou vala comum (covas rasas, cruzes, sacos).
-- [ ] E2 Quarentena militar: muro de contêineres e cercas cortando a cidade em duas, portão com checkpoint
-  (sacos de areia, holofote apagado, guarita), tendas médicas lá dentro com loot militar e zumbis soldados.
-- [ ] E3 Lugares novos: posto de gasolina com loja de conveniência, escola barricada (refúgio que caiu), torre de água
-  para subir e ver longe, ferro-velho.
-- [ ] E4 Ruas que mudam: pontes/ruas bloqueadas por barricadas e ônibus tombados, obrigando a dar a volta; atalhos por
-  dentro de prédios e quintais.
-- [ ] E5 Corvos vivos de verdade (era D3): patrulha em dupla no mercado, voz no aviso, matar todos libera o mercado.
-- [ ] E6 APK + resumo curto para o dono; escrever a seção F (mais cidade e coisas novas).
+## E. SUPER OPERAÇÃO (dono 07/11, enquanto dorme) — seguir ideias/dead-district/REGRAS_LOOP.md em TODA rodada
+Ordem pensada: primeiro a cara e o pronto (muda o jogo inteiro), depois estrutura, construções, mecânicas, Corvos, loja.
+- [ ] E1 CARA NOVA (regra 5): direção de arte própria — paleta (ferrugem/âmbar das luzes contra azul-petróleo da noite,
+  não cinza), céu com nuvens prontas (HDRI Poly Haven CC0), névoa colorida, chuva/poças; foto antes/depois de 4 lugares.
+- [ ] E2 PRONTO NO LUGAR DO FEITO À MÃO (regra 7): levantar o que é feito à mão (casas_us, ruinas, cidade.py, porão,
+  postes, barricadas); trocar os mais vistos por modelos prontos CC0/CC BY (começar pelas casas e lojas do centro).
+- [ ] E3 ESTRUTURA (regra 1): centro bombardeado (prédios desabados prontos, crateras, entulho), bairro incendiado,
+  rodovia de entrada engarrafada, parque virado vala comum. Planta + minimapa + malha.
+- [ ] E4 QUARENTENA MILITAR (regras 1/4): muro de contêineres cortando a cidade, checkpoint (sacos de areia, guarita,
+  holofote), tendas médicas com loot militar e zumbis soldados — modelos prontos.
+- [ ] E5 CONSTRUÇÕES NOVAS (regra 4): posto de gasolina com loja, escola barricada, torre de água (subir e ver longe),
+  ferro-velho — prontos, com motivo para entrar.
+- [ ] E6 MECÂNICA NOVA (regra 3): rádio com chamados (drop de suprimento, sobrevivente pedindo ajuda, Corvos
+  vendendo/roubando): vai até o ponto no mapa, evento acontece, recompensa. Teste próprio.
+- [ ] E7 MECÂNICA NOVA (regra 3): ruas que mudam — barricadas e ônibus tombados fecham caminhos, atalhos por dentro de
+  prédios/quintais; e combustível nos carros (galão no loot, carro para sem gasolina). Teste próprio.
+- [ ] E8 OS CORVOS (regra 8): facção completa — 3 acampamentos (mercado + 2 novos), patrulha em dupla, emboscada na
+  estrada, líder com recompensa, voz no aviso, mercado liberado ao derrotar; modelos de humano prontos (CC BY/CC0).
+- [ ] E9 SEM LAG (regra 6): medir tudo de novo (peso_cpu + peso_render), cortar o que subiu; meta Média <= 330 mil
+  triângulos e <= 400 chamadas.
+- [ ] E10 PRONTO PRA POSTAR (regras 9/10): ícone do app (o export reclama "No project icon"), tela inicial/menu com a
+  cara nova, créditos atualizados, rodar TODOS os testes, APK limpo + AAB (pedir a chave de loja ao dono), resumo.
