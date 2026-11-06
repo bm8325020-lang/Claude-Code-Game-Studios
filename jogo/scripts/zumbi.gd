@@ -357,26 +357,50 @@ const TINTAS: Array[Color] = [Color(0.78, 0.8, 0.74), Color(0.72, 0.7, 0.66), Co
 static var _peles: Dictionary = {}
 
 
+## 07/11 (dono: "igual player que gosta de matar os outros pra roubar loot"): saqueadores (Corvos)
+const CORVO_VISAO: float = 48.0
+const CORVO_TIRO_ATE: float = 26.0
+const CORVO_MIRA: float = 0.35
+const CORVO_TIRO_INTERVALO: float = 1.3
+const CORVO_DISTANCIA: float = 9.0   # m: recua se o alvo chega mais perto que isso
+const CORVO_COBRE: float = 2.5       # s atrás da cobertura antes de voltar a atirar
+const CORVO_CACA_A_CADA: float = 18.0
+const CORVO_RONDA: float = 70.0      # m em volta de casa que ele ronda caçando
+const CORVO_SAQUE: float = 55.0      # m: vê saco de morto e vai roubar
+var _cobre_cd: float = 0.0
+var _caca_t: float = 3.0
+var _saque: Bau
+var _roubado: Array = []              # [{tipo, qtd}] tirado dos sacos dos mortos (cai de volta quando ele morre)
+
+
+## Servidor, sem alvo: rouba saco de morto perto; senão ronda em volta de casa caçando gente.
+func _caca() -> void:
+	if _saque and is_instance_valid(_saque):
+		if _plano(_saque.global_position - global_position) < 2.0:
+			_roubado.append_array(_saque.conteudo)
+			_saque.conteudo = []
+			_saque = null
+		return
+	_caca_t -= 0.3
+	if _caca_t > 0.0 or _indo_ouvir:
+		return
+	_caca_t = CORVO_CACA_A_CADA * randf_range(0.7, 1.3)
+	for b: Node in get_tree().get_nodes_in_group("baus"):
+		var bb := b as Bau
+		if bb and bb.saco and not bb.conteudo.is_empty() and bb.global_position.distance_to(global_position) < CORVO_SAQUE:
+			_saque = bb
+			ouve(bb.global_position, INF)
+			return
+	var a: float = randf() * TAU
+	ouve(casa + Vector3(cos(a), 0, sin(a)) * randf_range(15.0, CORVO_RONDA), INF)
+
+
 func humano() -> bool:
 	return not chefe and TIPOS.has(tipo) and TIPOS[tipo].skill == "humano"
 
 
-## Corvo: grita o aviso (o nome em cima da cabeça vira a fala por FALA_T s)
-const FALAS: Array[String] = ["SAI DAQUI!", "ESSA ÁREA É DOS CORVOS!", "LARGA A ARMA!", "VAZA OU MORRE!"]
-const FALA_T: float = 2.5
-const AVISO_T: float = 2.5  # s entre o aviso e o primeiro tiro
-var _fala_lbl: Label3D
-var _avisou: bool = false
-@rpc("authority", "call_local", "reliable")
-func _fala(i: int) -> void:
-	if _fala_lbl == null:
-		return
-	_fala_lbl.text = FALAS[i % FALAS.size()]
-	_fala_lbl.font_size = 56
-	get_tree().create_timer(FALA_T).timeout.connect(func() -> void:
-		if is_instance_valid(_fala_lbl):
-			_fala_lbl.text = "CORVO"
-			_fala_lbl.font_size = 40)
+var _fala_lbl: Label3D  # nome "CORVO" em cima da cabeça
+var _avisou: bool = false  # já viu o alvo (atira logo, sem aviso)
 
 
 func _suja(tom: int, cor: Color = Color.WHITE) -> void:
@@ -456,6 +480,7 @@ func _sente_golpe(dir: Vector3) -> void:
 
 func _physics_process(dt: float) -> void:
 	_pancada_t -= dt
+	_cobre_cd -= dt
 	_mordida_cd -= dt
 	_skill_t -= dt
 	_bote -= dt
@@ -555,14 +580,14 @@ func _physics_process(dt: float) -> void:
 				and d.length() < BOTE_ATE and _ve(alvo):
 			_bote = BOTE_DUR  # corredora: pula em cima de longe
 			_skill_t = BOTE_INTERVALO
-		if not _avisou and humano() and _ve(alvo):
-			_avisou = true  # Corvo: avisa antes de atirar
-			_tiro_cd = AVISO_T
-			_fala.rpc(randi())
+		if not _avisou and humano():
+			_avisou = true  # 07/11 (dono): saqueador não avisa; atira logo que vê
+			_tiro_cd = 0.4
 		_tiro_cd -= dt
-		if armado and _tiro_cd <= 0.0 and d.length() > TIRO_DE and d.length() < TIRO_ATE and _ve(alvo):
-			_mirando = TIRO_MIRA  # para, aponta e atira
-			_tiro_cd = TIRO_INTERVALO * randf_range(0.8, 1.3)
+		var tiro_ate: float = CORVO_TIRO_ATE if humano() else TIRO_ATE
+		if armado and _tiro_cd <= 0.0 and d.length() > TIRO_DE and d.length() < tiro_ate and _ve(alvo):
+			_mirando = CORVO_MIRA if humano() else TIRO_MIRA  # para, aponta e atira
+			_tiro_cd = (CORVO_TIRO_INTERVALO if humano() else TIRO_INTERVALO) * randf_range(0.8, 1.3)
 			_toca("parado", 0.15)
 		if _mirando >= 0.0:
 			pass
@@ -590,6 +615,13 @@ func _physics_process(dt: float) -> void:
 			if global_position.y < Bairro.AGUA_Y + 0.3:
 				vel = minf(vel, ANDAR)  # no rio também é lento
 			desejada = _caminho(destino, vel * (0.8 if chefe else _vel) * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
+			if humano() and d.length() < CORVO_TIRO_ATE and _ve(alvo):
+				# luta como jogador: anda de lado entre os tiros (troca de lado sem ritmo fixo) e não cola em quem atira
+				_zigue_t += dt * randf_range(0.7, 1.3)
+				var lado_c := Vector3(d.z, 0, -d.x).normalized() * signf(sin(_zigue_t * 1.6 + float(absi(hash(name)) % 7)))
+				var recua: Vector3 = -d.normalized() if d.length() < CORVO_DISTANCIA else Vector3.ZERO
+				desejada = (lado_c + recua).normalized() * ANDAR * 1.3 * _vel
+				_vira_para(d, dt * 3.0)
 			# mirando nele de longe: desvia para os lados (troca de lado a cada ~0,7 s, sem ritmo fixo)
 			if ZIGUE > 0.0 and d.length() > ZIGUE_LONGE and alvo.mirando_em(global_position, 12.0):
 				_zigue_t += dt * randf_range(0.8, 1.2)
@@ -744,7 +776,7 @@ func _escolhe_alvo() -> void:
 		return
 	var melhor: float = INF
 	var ouve: float = OUVE * Ciclo.forca_noite(get_tree(), NOITE_OUVE) * (COMENDO_PERCEBE if _comendo() else 1.0)
-	var visao: float = VISAO * (COMENDO_VE if _comendo() else 1.0)
+	var visao: float = (CORVO_VISAO if humano() else VISAO) * (COMENDO_VE if _comendo() else 1.0)
 	for n: Node in get_tree().get_nodes_in_group("jogadores"):
 		var j := n as Jogador
 		if j == null or j.vida <= 0 or j.segura:
@@ -753,6 +785,8 @@ func _escolhe_alvo() -> void:
 		if dist < melhor and (dist < Zumbi.ouve_de(j, ouve) or (dist < visao and _ve(j))):
 			melhor = dist
 			alvo = j
+	if alvo == null and humano():
+		_caca()
 	if alvo:
 		_indo_ouvir = false
 		_olhando_t = 0.0
@@ -1139,6 +1173,10 @@ func _aplica(dano: int, dir: Vector3) -> void:
 		else:
 			_derruba.rpc_id(pensa)
 		return
+	if vida > 0 and humano() and alvo and _foge_t <= 0.0 and _cobre_cd <= 0.0 and randf() < 0.55:
+		_abrigo = _acha_abrigo()  # saqueador ferido corre para trás de algo, espia e volta (não foge de vez)
+		_foge_t = CORVO_COBRE
+		_cobre_cd = 6.0
 	if vida > 0 and vida <= FOGE_VIDA and not _fugiu and alvo and not chefe:
 		_fugiu = true
 		_abrigo = _acha_abrigo()
@@ -1192,6 +1230,9 @@ func _morre() -> void:
 	_toca("morte", 0.1, true)
 	if _manda():
 		_larga_drop()
+		if not _roubado.is_empty():  # saqueador morto devolve o que roubou de quem matou antes
+			get_tree().get_first_node_in_group("principal").solta_saco(_roubado.duplicate(true), global_position)
+			_roubado.clear()
 		if _ultimo and is_instance_valid(_ultimo):
 			var noite: bool = Ciclo.forca_noite(get_tree(), 2.0) > 1.5
 			_ultimo.ganhar("dinheiro", roundi((DINHEIRO_CHEFE if chefe else DINHEIRO) * (DINHEIRO_NOITE if noite else 1.0)))

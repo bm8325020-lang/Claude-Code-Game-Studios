@@ -11,6 +11,7 @@ const TAM := Vector2(230, 170)
 const METROS := 150.0  # largura mostrada a pé (no carro x2)
 const CENTRO := Vector2(0.5, 0.62)  # onde fica o jogador no quadro
 const ZUMBI_VE := 45.0  # zumbi aparece a até esta distância
+const SAQUEADOR_VE := 160.0  # saqueador (Corvo) aparece bem mais longe
 const COR_RAID := Color(0.9, 0.2, 0.15)
 const COR_MARCO := Color(1.0, 0.8, 0.2)
 const COR_SEGURA := Color(0.35, 0.9, 0.4)
@@ -97,8 +98,19 @@ func _draw() -> void:
 	# zumbis perto (pontinhos vermelhos, sem prender na borda)
 	if m and m.zumbis:
 		for z: Node in m.zumbis.get_children():
-			if z is Zumbi and (z as Zumbi).vida > 0 and (z as Node3D).global_position.distance_to(jogador.global_position) < ZUMBI_VE:
-				var q: Vector2 = no_quadro((z as Node3D).global_position)
+			var zz := z as Zumbi
+			if zz == null or zz.vida <= 0:
+				continue
+			var dz: float = zz.global_position.distance_to(jogador.global_position)
+			if zz.humano():  # 07/11 (dono): saqueador marcado no mapa de longe: losango laranja com borda preta
+				if dz < SAQUEADOR_VE:
+					var qs: Vector2 = no_quadro(zz.global_position)
+					if Rect2(Vector2.ZERO, TAM).has_point(qs):
+						var pts := PackedVector2Array([qs + Vector2(0, -5.5), qs + Vector2(5.5, 0), qs + Vector2(0, 5.5), qs + Vector2(-5.5, 0)])
+						draw_colored_polygon(pts, Color(1.0, 0.55, 0.1))
+						draw_polyline(pts + PackedVector2Array([pts[0]]), Color(0.05, 0.05, 0.05), 1.5)
+			elif dz < ZUMBI_VE:
+				var q: Vector2 = no_quadro(zz.global_position)
 				if Rect2(Vector2.ZERO, TAM).has_point(q):
 					draw_circle(q, 3.2, Color(0.95, 0.15, 0.1))
 	# salas seguras, marcos e raids (presos na borda quando longe)

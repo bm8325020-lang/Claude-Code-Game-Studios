@@ -92,7 +92,19 @@ func _init() -> void:
 	ok(c.anim.has_animation(c._real("andar")) and c._real("andar") == "andar_p", "corvo anda como gente (%s)" % c._real("andar"))
 	c.alvo = j
 	await frames(3)
-	ok(c._avisou and c._tiro_cd > 1.0 and c._mirando < 0.0, "corvo avisa antes de atirar")
+	ok(c._avisou and c._tiro_cd < 1.0, "corvo não avisa: atira logo que vê (07/11)")
+	# rouba o saco de quem morreu e devolve quando morre
+	c.alvo = null
+	c._caca_t = 0.0
+	var saco := Bau.new()
+	saco.saco = true
+	main.add_child(saco)
+	saco.global_position = c.global_position + Vector3(1.0, 0, 0)
+	saco.conteudo = [{"tipo": "municao", "qtd": 20}]
+	c._caca()
+	c._caca()
+	ok(saco.conteudo.is_empty() and c._roubado.size() == 1, "corvo rouba o saco de quem morreu")
+	saco.free()
 	var corvos: Array = b.pontos_raid.filter(func(r: Dictionary) -> bool: return r.tipo == "corvo")
 	ok(corvos.size() >= 3 and corvos.all(func(r: Dictionary) -> bool: return r.armado), "mercado tem %d corvos armados" % corvos.size())
 	c.free()

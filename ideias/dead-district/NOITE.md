@@ -105,3 +105,8 @@ Ordem pensada: primeiro a cara e o pronto (muda o jogo inteiro), depois estrutur
   triângulos e <= 400 chamadas.
 - [ ] E10 PRONTO PRA POSTAR (regras 9/10): ícone do app (o export reclama "No project icon"), tela inicial/menu com a
   cara nova, créditos atualizados, rodar TODOS os testes, APK limpo (sem loja/AAB: dono não quer), resumo.
+- [x] (dono 07/11) Saqueadores/Corvos como jogador que mata para roubar: sem aviso (atira 0,4 s depois de ver), vê a
+  48 m e atira até 26 m, mira 0,35 s e tiro a cada ~1,3 s, anda de lado entre os tiros e recua se o alvo cola
+  (< 9 m), ferido corre para cobertura 2,5 s e volta (não foge de vez), sem alvo ronda 70 m em volta de casa caçando,
+  vê saco de morto a 55 m, vai lá e rouba (devolve num saco quando morre). Minimapa: losango laranja até 160 m.
+  Tirado o aviso falado (Rede.VERSAO 49). test_raid 14/14, test_zumbi 49/49, test_rede ok (2ª rodada).
