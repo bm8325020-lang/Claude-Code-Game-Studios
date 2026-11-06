@@ -48,6 +48,7 @@ static func brilho(t: float, fase: float) -> float:
 
 func _process(dt: float) -> void:
 	_tempo += dt
+	_tremem()
 	var b: Bairro = principal.bairro if principal else null
 	var cam := get_viewport().get_camera_3d()
 	var noite: float = principal.ciclo.noite() if principal and principal.ciclo else 0.0
@@ -72,3 +73,15 @@ func _process(dt: float) -> void:
 	for k in POOL:
 		if _luzes[k].visible:
 			_luzes[k].light_energy = 2.2 * noite * brilho(_tempo, _fase[k])
+
+
+# luzes do grupo "treme" (velas da igreja, lâmpada do hospital: Bairro._medo), de dia e de noite
+func _tremem() -> void:
+	for l: OmniLight3D in get_tree().get_nodes_in_group("treme"):
+		if not l.has_meta("base"):
+			l.set_meta("base", l.light_energy)
+		var base: float = l.get_meta("base")
+		if l.get_meta("jeito", "") == "vela":
+			l.light_energy = base * (0.8 + 0.2 * sin(_tempo * 9.0) * sin(_tempo * 23.0 + 1.0))
+		else:
+			l.light_energy = base * brilho(_tempo * 1.7, 3.0)

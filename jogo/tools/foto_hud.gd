@@ -11,6 +11,9 @@ func _init() -> void:
 	for i in 10: await process_frame
 	main.iniciar_solo("Foto")
 	for i in 40: await process_frame
+	if OS.get_environment("SEM_ZUMBI") != "":
+		for z in main.zumbis.get_children():
+			z.queue_free()
 	main.ciclo.tempo = float(OS.get_environment("HORA")) if OS.get_environment("HORA") != "" else 100.0
 	if args.size() > 1:
 		var v: PackedStringArray = args[1].split(",")

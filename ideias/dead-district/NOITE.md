@@ -18,6 +18,8 @@
   3 queimados ainda arde; 110 sacos de corpo (eram 40).
 - [x] B3 Postes velhos piscando de noite (4 luzes andam pelos postes vivos mais perto; metade queimou), rádio esquecido
   ligado em 1 de cada 7 casas (notícia da Febre + chiado), sustos novos: grito, porta batendo, explosão longe. test_som ok.
-- [ ] B4 Lugares de medo: hospital escuro, igreja com velas, porão; menos casas, mais vazio e silêncio.
+- [x] B4 Igreja com 24 velas no altar (luz que treme), hospital escuro com lâmpada fria falhando e 12 zumbis (eram 8);
+  cidade mais vazia: 427 -> 355 prédios (1 em 4 casas do OSM some, 30% de terreno baldio). Malha refeita. Porão: ficou
+  de fora (pede modelo novo no Blender). test_raid/test_bairro ok.
 - [ ] B5 Sobreviventes inimigos (saqueadores "Os Corvos" no mercado).
 - [ ] B6 APK final + resumo para o dono.

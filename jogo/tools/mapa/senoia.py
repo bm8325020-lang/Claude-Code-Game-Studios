@@ -169,6 +169,8 @@ def predios_osm():
             modelo = R.choice(APTOS)
         elif t in ("garage", "shed", "roof"):
             continue
+        elif R.random() < 0.25:
+            continue  # 06/11 terror: 1 em 4 casas reais do OSM não está mais lá (cidade mais vazia e silenciosa)
         else:
             modelo = min(CASAS, key=lambda m: abs(tam(m)[0] * tam(m)[1] - area_m2) + R.random() * 20)
         w, d = tam(modelo)
@@ -401,7 +403,7 @@ def enche(pts, lado, zona_ok=None):
             modelo = R.choice(["galpao_r1", "galpao_r2"])
             recuo, vao = R.uniform(6, 10), R.uniform(16, 28)
         else:
-            if R.random() < 0.12:  # terreno baldio: mato e árvore no lugar da casa
+            if R.random() < 0.3:  # terreno baldio (06/11 terror: 30%, cidade mais vazia): mato e árvore no lugar da casa
                 for k in range(R.randint(1, 3)):
                     q = (p[0] + nx * (meia + R.uniform(6, 20)) + math.cos(ang_r) * R.uniform(3, 15),
                          p[1] + nz * (meia + R.uniform(6, 20)) + math.sin(ang_r) * R.uniform(3, 15))

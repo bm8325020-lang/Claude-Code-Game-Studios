@@ -663,7 +663,7 @@ const RAIDS: Dictionary = {"delegacia": ["Delegacia", "DELEGACIA", "zumbi_polici
 
 
 ## Zumbis por raid nova (celular: a cidade nasce com muitos; a delegacia fica com todos os dela)
-const RAID_ZUMBIS: Dictionary = {"HOSPITAL MUNICIPAL": 8, "SUPERMERCADO": 6, "IGREJA MATRIZ": 4}
+const RAID_ZUMBIS: Dictionary = {"HOSPITAL MUNICIPAL": 12, "SUPERMERCADO": 6, "IGREJA MATRIZ": 4}
 
 
 func _monta_raid(no: Node3D, titulo: String, tipo: String = "zumbi_policial") -> void:
@@ -684,6 +684,8 @@ func _monta_raid(no: Node3D, titulo: String, tipo: String = "zumbi_policial") ->
 			bau.raid = true
 			bau.position = m.transform * (e as Node3D).position
 			no.add_child(bau)
+	if not Rede.servidor_sem_tela:
+		_medo(no, m, titulo)
 	if titulo != "DELEGACIA":
 		return
 	var frente: Vector3 = no.get_meta("frente") - ORIGEM
@@ -691,6 +693,81 @@ func _monta_raid(no: Node3D, titulo: String, tipo: String = "zumbi_policial") ->
 		var v: Node3D = _veiculo("carro_r1", Color(0.08, 0.08, 0.1))
 		v.position = frente + Vector3(-4.0 + k * 7.0, -0.1, k * 1.5)
 		v.rotation.y = m.rotation.y + PI * 0.5 + _rng.randf_range(-0.4, 0.4)
+
+
+## 06/11 terror: igreja com velas acesas no chão (alguém rezou aqui até o fim) e hospital no escuro com uma
+## lâmpada fria que falha. As luzes entram no grupo "treme" (PostesPiscam faz piscar).
+func _medo(no: Node3D, m: Node3D, titulo: String) -> void:
+	if titulo != "IGREJA MATRIZ" and titulo != "HOSPITAL MUNICIPAL":
+		return
+	# ponto de referência do modelo: base do altar (igreja) ou o chão (hospital), corpos "-col" do Blender
+	var ref: Node3D = m.get_node_or_null("altar_base_c" if titulo == "IGREJA MATRIZ" else "chao_c")
+	if ref == null:
+		return
+	var meio: Vector3 = ref.position
+	var luz := OmniLight3D.new()
+	luz.shadow_enabled = false
+	luz.add_to_group("treme")
+	if titulo == "HOSPITAL MUNICIPAL":
+		luz.light_color = Color(0.75, 0.9, 1.0)
+		luz.omni_range = 9.0
+		luz.light_energy = 1.6
+		luz.set_meta("jeito", "fria")
+		luz.position = meio + Vector3(0, 2.6, 0)
+		m.add_child(luz)
+		return
+	luz.light_color = Color(1.0, 0.62, 0.3)
+	luz.omni_range = 11.0
+	luz.light_energy = 2.6
+	luz.set_meta("jeito", "vela")
+	var r := RandomNumberGenerator.new()
+	r.seed = 6611
+	var vela := CylinderMesh.new()
+	vela.top_radius = 0.025
+	vela.bottom_radius = 0.03
+	vela.height = 0.22
+	vela.radial_segments = 6
+	vela.rings = 0
+	var cera := StandardMaterial3D.new()
+	cera.albedo_color = Color(0.86, 0.82, 0.7)
+	vela.material = cera
+	var chama := SphereMesh.new()
+	chama.radius = 0.018
+	chama.height = 0.05
+	chama.radial_segments = 4
+	chama.rings = 2
+	var fogo := StandardMaterial3D.new()
+	fogo.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fogo.albedo_color = Color(1.0, 0.75, 0.35)
+	chama.material = fogo
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = vela
+	mm.instance_count = 24
+	var mf := MultiMesh.new()
+	mf.transform_format = MultiMesh.TRANSFORM_3D
+	mf.mesh = chama
+	mf.instance_count = 24
+	# base do altar: 6 x 3 m, 0,5 m de altura; a frente dela olha para a porta (basis do corpo)
+	var bz: Vector3 = ref.basis.z.normalized()
+	var bx: Vector3 = ref.basis.x.normalized()
+	for k in 24:
+		var q: Vector3
+		if k < 14:  # em cima da base, na frente da mesa do altar
+			q = meio + bx * r.randf_range(-2.7, 2.7) + bz * r.randf_range(0.7, 1.4) + Vector3(0, 0.36, 0)
+		else:  # no chão na frente do altar, como num velório
+			q = meio + bx * r.randf_range(-2.5, 2.5) + bz * r.randf_range(1.8, 3.5) + Vector3(0, -0.14, 0)
+		var esc: float = r.randf_range(0.6, 1.4)
+		mm.set_instance_transform(k, Transform3D(Basis.from_scale(Vector3(1, esc, 1)), q))
+		mf.set_instance_transform(k, Transform3D(Basis(), q + Vector3(0, 0.11 * esc + 0.03, 0)))
+	for x: MultiMesh in [mm, mf]:
+		var mi := MultiMeshInstance3D.new()
+		mi.multimesh = x
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.visibility_range_end = 60.0
+		m.add_child(mi)
+	luz.position = meio + bz * 2.0 + Vector3(0, 1.2, 0)
+	m.add_child(luz)
 
 
 func _tam_ruina(arq: String) -> Vector2:
