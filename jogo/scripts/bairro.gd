@@ -45,6 +45,7 @@ var _lado_mapa: int = 0
 var _rio: Array = []  # [[a, b]] pedaços do rio
 const AGUA_Y: float = -0.9  # nível da água do rio (abaixo disso: dentro d'água)
 var _infos: Dictionary = {}  # ruína -> tamanho no chão
+var poroes: int = 0  # quantos porões a cidade tem (Porao)
 var lampadas: Array[Vector3] = []  # alto de cada poste da Planta (PostesPiscam acende os de perto)
 var postes_da_planta: bool = false  # planta nova: postes de concreto e fiação da Planta (Enfeites não põe os de madeira)
 var _fechados: Dictionary = {}  # ruína -> só de fora (prédio de apartamento: marca "fechado" no modelo)
@@ -1795,6 +1796,19 @@ func _gavetas_e_cofres() -> void:
 			if not por_casa.has(casa):
 				por_casa[casa] = []
 			por_casa[casa].append(g)
+	# 07/11 (D2): porão em 1 de cada Porao.CADA casas com cozinha (alçapão entre o balcão e o meio da casa)
+	var cozinhas: Dictionary = {}
+	for casa: Node3D in por_casa:
+		for g: Gaveta in por_casa[casa]:
+			if g.lugar == "cozinha":
+				cozinhas[casa] = g.global_position
+				break
+	var kp: int = 0
+	for par: Array in Porao.escolhe(cozinhas):
+		var c2: Vector2 = _centro((par[0] as Node3D).get_meta("poly"))
+		Porao.monta(self, par[0], par[1], ORIGEM + Vector3(c2.x, 0, c2.y), kp)
+		kp += 1
+	poroes = kp
 	for casa: Node3D in get_tree().get_nodes_in_group("casas"):  # caixas de móvel -> modelos realistas (Moveis)
 		Moveis.troca(casa)
 	_porta_malas(n)

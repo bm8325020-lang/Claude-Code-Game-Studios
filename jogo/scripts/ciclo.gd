@@ -84,6 +84,10 @@ func _process(dt: float) -> void:
 		ambiente.fog_density = lerpf(0.02, 0.028, n) * float(c[2])  # a névoa fecha a visão
 		ambiente.fog_height = 3.0
 		ambiente.fog_height_density = lerpf(0.06, 0.12, n)
+		var cam := get_viewport().get_camera_3d()
+		if cam and cam.global_position.y < -10.0:  # porão (Porao, 40 m abaixo): sem névoa de altura (virava parede azul)
+			ambiente.fog_height_density = 0.0
+			ambiente.fog_density = 0.06  # pó no ar, a lanterna corta
 
 
 ## 0 = dia claro, 1 = noite fechada (sobe no anoitecer e desce no amanhecer).

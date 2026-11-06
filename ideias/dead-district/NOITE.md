@@ -44,7 +44,10 @@ Cada rodada: ler isto, fazer o próximo [ ], medir, poucos testes (só da área)
   resolução; folgou, volta. Zumbi invisível não anima (process do zumbi 0,7 -> 0,25 ms). test_zumbi/jeitos ok.
   Era: Zumbis que se ajustam ao aparelho: se o quadro passar do tempo (30 FPS), diminui sozinho a distância dos
   zumbis e o tanto que acordam juntos; volta quando folgar. Medir com peso_cpu/peso_render.
-- [ ] D2 Porão: em ~1 de cada 8 casas, alçapão no chão da cozinha -> escada -> porão escuro (só a lanterna), loot raro
+- [x] D2 (07/11) scripts/porao.gd: 1 em 8 casas com cozinha (~33 porões), alçapão aberto entre o balcão e o meio
+  da casa -> sala 40 m abaixo (concreto, prateleira, caixas, escada, lâmpada fria falhando, baú raro, 1-2 zumbis que
+  ficam mortos); pisar no pé da escada sobe. Ciclo: sem névoa de altura no subsolo (virava parede azul).
+  test_porao 6/6, bairro/gavetas/raid ok. Era: Porão: em ~1 de cada 8 casas, alçapão no chão da cozinha -> escada -> porão escuro (só a lanterna), loot raro
   e 1-2 zumbis deitados (tocaia). Medo + motivo para explorar.
 - [ ] D3 Corvos vivos de verdade: patrulha em dupla em volta do mercado, gritam o aviso com voz (som), fogem para dentro,
   baú do acampamento com loot de saqueador; matar todos libera o mercado (aviso no HUD).
