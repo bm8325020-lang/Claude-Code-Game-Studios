@@ -1044,11 +1044,18 @@ func _mira_e_atira(dt: float) -> void:
 	if alvo.agachado:
 		chance *= 0.6
 	var mira: Vector3 = alvo.global_position + Vector3(0, 1.3, 0)
-	var acertou: bool = _ve(alvo) and randf() < chance and not alvo.no_carro
+	var acertou: bool = randf() < chance and not alvo.no_carro
+	if not acertou:
+		mira += Vector3(randf_range(-1.2, 1.2), randf_range(-0.6, 0.9), randf_range(-1.2, 1.2))
+	# 06/11 (dono): a bala atravessava parede. Raio novo (sem cache) da arma até onde vai: parede no meio = bala para nela
+	var olho: Vector3 = global_position + Vector3(0, 1.4, 0)
+	var q := PhysicsRayQueryParameters3D.create(olho, olho + (mira - olho) * 1.5, 1 | Porta.CAMADA)
+	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
+	if not hit.is_empty() and olho.distance_to(hit.position) < olho.distance_to(mira) - 0.3:
+		acertou = false
+		mira = hit.position
 	if acertou:
 		alvo.levar_dano(roundi(TIRO_DANO * Ciclo.forca_noite(get_tree(), NOITE_DANO)), (alvo.global_position - global_position).normalized() * 0.3)
-	else:
-		mira += Vector3(randf_range(-1.2, 1.2), randf_range(-0.6, 0.9), randf_range(-1.2, 1.2))
 	Zumbi.barulho(get_tree(), global_position, Pistola.BARULHO * 0.6)
 	_tiro_fx.rpc(mira)
 
@@ -1113,9 +1120,14 @@ func _poe_arma() -> void:
 	preso.bone_name = Jogador.MAO
 	esq.add_child(preso)
 	_arma = (load("res://assets/cgtrader/pistola.glb") as PackedScene).instantiate() if ResourceLoader.exists("res://assets/cgtrader/pistola.glb") else Node3D.new()
-	_arma.scale = Vector3.ONE * 0.2 / maxf(modelo.scale.x, 0.01)
 	_arma.rotation_degrees = Vector3(0, 0, 90)
 	preso.add_child(_arma)
+	# 06/11 (dono): arma desproporcional. Mede o modelo e deixa com ~22 cm de verdade no mundo (escala do esqueleto conta)
+	var caixa: AABB = Moveis._aabb(_arma)
+	var maior: float = maxf(caixa.size.x, maxf(caixa.size.y, caixa.size.z))
+	var esc_osso: float = preso.global_transform.basis.get_scale().x if preso.is_inside_tree() else modelo.scale.x
+	if maior > 0.001:
+		_arma.scale = Vector3.ONE * 0.22 / (maior * maxf(esc_osso, 0.0001))
 
 
 # porta fechada a menos de 1 m na direção `dir`, ou null
