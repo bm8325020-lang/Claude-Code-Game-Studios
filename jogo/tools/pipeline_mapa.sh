@@ -12,7 +12,7 @@ if [ "$1" != "sem_modelos" ]; then
   timeout 900 $G --headless --path . --import > /dev/null 2>&1
   timeout 300 $G --headless --path . -s res://tools/mapa/mede_ruinas.gd 2>&1 | grep -i "script error"
 fi
-python3 -I tools/mapa/raven_creek.py assets/mapa/cidade.json && echo PLANTA_OK
+python3 -I tools/mapa/raven_creek.py assets/mapa/cidade.json && python3 -I tools/mapa/minimapa.py && echo PLANTA_OK
 echo "== nav"; timeout 3600 $G --headless --path . -s res://tools/assa_navegacao.gd -- salva_nav 2>&1 | grep -E "NAV salva|SCRIPT ERROR"
 echo "== testes"; : > $SAIDA/testes.txt
 for f in tests/test_*.gd; do

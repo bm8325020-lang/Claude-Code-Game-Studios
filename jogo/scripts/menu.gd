@@ -45,6 +45,13 @@ func _ready() -> void:
 		main.relay.lista())
 	_liga(ini, UiTema.botao("MODO CONSTRUÇÃO"), func() -> void: _mostra("construir"))
 	_liga(ini, UiTema.botao("CONFIGURAÇÕES"), func() -> void: _mostra("config"))
+	_liga(ini, UiTema.botao("CRÉDITOS"), func() -> void: _mostra("creditos"))
+	var cre := _pagina(raiz, "creditos", 900.0)  # CC BY pede o nome dos autores no jogo (tools/assets/creditos.py)
+	cre.add_child(UiTema.titulo("CRÉDITOS", 40, UiTema.DESTAQUE))
+	var txt := UiTema.rotulo(Creditos.TEXTO, 15, UiTema.APAGADO)
+	txt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cre.add_child(txt)
+	_voltar(cre)
 	var con := _pagina(raiz, "construir", 560.0)
 	con.add_child(UiTema.titulo("MODO CONSTRUÇÃO", 40, UiTema.DESTAQUE))
 	con.add_child(UiTema.rotulo("Monte o seu mapa com mais de 2 mil peças. Salve, jogue nele e compartilhe.", 20, UiTema.APAGADO))

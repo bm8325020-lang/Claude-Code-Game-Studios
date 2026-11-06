@@ -164,7 +164,46 @@ def predio(modelo, cx, cz, frente, uso, tipo="commercial"):
                     "modelo": modelo, "c": [round(cx, 2), round(cz, 2)], "frente": [round(frente[0], 4), round(frente[1], 4)]})
 
 
+# Vegetação pronta (scripts/vegetacao.gd, Etapa D 05/11): "arvore_k" vira uma espécie da zona, com mato embaixo.
+# Rng próprio: escolher a espécie não muda o sorteio do resto da cidade.
+RV = random.Random(2077)
+VEG = {
+    "parque": [("conifera_1", 3), ("conifera_2", 3), ("conifera_3", 3), ("conifera_4", 2), ("conifera_5", 3),
+               ("conifera_6", 3), ("abeto_1", 3), ("abeto_3", 2), ("pinheiro", 2), ("outono_1", 1), ("outono_2", 1),
+               ("betula", 1)],
+    "casas": [("arvore", 4), ("betula", 3), ("outono_1", 2), ("outono_2", 2), ("outono_3", 2), ("pinheiro", 1),
+              ("abeto_1", 1), ("arvore_morta", 2), ("arvore_velha", 1)],
+    "centro": [("arvore", 3), ("betula", 2), ("outono_3", 1), ("arvore_morta", 2)],
+    "industrial": [("arvore_morta", 3), ("arvore_velha", 2), ("toco", 1), ("outono_2", 1), ("abeto_2", 1)],
+}
+SUB = {  # perto do pé da árvore
+    "parque": ["pinheirinho", "abeto_baixo", "arbusto", "arbusto_2", "pedras", "pedras_2", "samambaia",
+               "samambaia_baixa", "capim_alto"],
+    "casas": ["moita", "arbusto", "capim", "arbusto_2"],
+    "centro": ["moita", "capim_seco"],
+    "industrial": ["capim_seco", "capim_seco", "moita", "pedras_2"],
+}
+
+
+def sorteia(lista):
+    t = RV.uniform(0, sum(p for _, p in lista))
+    for nome, p in lista:
+        t -= p
+        if t <= 0:
+            return nome
+    return lista[-1][0]
+
+
 def prop(m, x, z, r=0.0):
+    if m.startswith("arvore_"):
+        zn = zona(x, z)
+        m = "veg:" + sorteia(VEG[zn])
+        for k in range(RV.randint(2, 4) if zn == "parque" else RV.randint(0, 1)):
+            a, d = RV.uniform(0, math.tau), RV.uniform(1.2, 4.0)
+            q = (x + math.cos(a) * d, z + math.sin(a) * d)
+            if not perto_rua(q, 1.5) and not perto_rio(q, 1.0) and abs(q[0]) < LIM and abs(q[1]) < LIM:
+                props.append({"m": "veg:" + RV.choice(SUB[zn]), "p": [round(q[0], 2), round(q[1], 2)],
+                              "r": round(RV.uniform(0, 6.28), 3)})
     props.append({"m": m, "p": [round(x, 2), round(z, 2)], "r": round(r, 3)})
 
 
@@ -414,8 +453,8 @@ for r in list(ruas):
             enche(r["p"], lado)
 frestas = [{k: v for k, v in f.items() if k != "_pend"} for f in frestas
            if sum(1 for o in ocupado if math.dist(o[:2], ((f["a"][0] + f["b"][0]) / 2, (f["a"][1] + f["b"][1]) / 2)) < 9) >= 2]
-# mata em Raven Hill
-for k in range(260):
+# mata em Raven Hill (floresta de coníferas: as do pacote têm poucos triângulos)
+for k in range(700):
     a, r = R.uniform(0, math.tau), MORRO["raio"] * math.sqrt(R.random())
     q = (MORRO["p"][0] + math.cos(a) * r, MORRO["p"][1] + math.sin(a) * r)
     if abs(q[0]) < LIM and abs(q[1]) < LIM and math.dist(q, MORRO["p"]) > 9 and not perto_rua(q, 2.0):
@@ -535,6 +574,21 @@ for k in range(3000):
         continue
     feitas += 1
     prop(R.choice(["arvore_1", "arvore_2", "arvore_2", "arvore_3"]), q[0], q[1], R.uniform(0, 6.28))
+
+# beira do riacho: capim alto, samambaia e pedras nas duas margens
+for a, b in zip(rio, rio[1:]):
+    L = math.dist(a, b)
+    ux, uz = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+    for k in range(int(L / 2.5)):
+        t = RV.uniform(0, L)
+        lado = RV.choice((-1, 1))
+        d = RIO_LARG / 2 + RV.uniform(0.3, 4.5)
+        q = (a[0] + ux * t - uz * lado * d, a[1] + uz * t + ux * lado * d)
+        if abs(q[0]) < LIM and abs(q[1]) < LIM and not perto_rua(q, 2.0) \
+                and not any(sobrepoe((q[0], q[1], 0, 1.0, 1.0), o) for o in ocupado if math.dist(o[:2], q) < 30):
+            props.append({"m": "veg:" + RV.choice(["capim_alto", "capim_alto", "samambaia", "samambaia_baixa", "capim",
+                                                   "arbusto", "pedras_2"]),
+                          "p": [round(q[0], 2), round(q[1], 2)], "r": round(RV.uniform(0, 6.28), 3)})
 
 # ---------------- a capital destruída ao longe (norte, depois do muro): só silhueta ----------------
 for (x, z, b, rot) in ((-480, 640, "building_03", 0.3), (-300, 700, "building_07", 0.0), (-120, 620, "building_01", 0.5),

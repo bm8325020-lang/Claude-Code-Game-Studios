@@ -184,22 +184,31 @@ static func _guarda(b: Bairro, por: Dictionary, modelo: String, p: Vector2, rot:
 
 ## Todas as cópias de um modelo: uma MultiMesh por malha e pedaço; colisão de cada cópia com as formas do modelo.
 static func _lote(b: Bairro, modelo: String, pedacos: Dictionary) -> void:
-	if not ResourceLoader.exists(Bairro.RUINAS % modelo):
-		return
-	var cena: Node3D = (load(Bairro.RUINAS % modelo) as PackedScene).instantiate()
 	var malhas: Array = []  # [Mesh pintada, Transform3D dentro do modelo]
-	if not Rede.servidor_sem_tela:
-		for g: MeshInstance3D in cena.find_children("*", "MeshInstance3D", true, false):
-			var mesh: Mesh = g.mesh.duplicate()
-			for s in mesh.get_surface_count():
-				var mm: Material = mesh.surface_get_material(s)
-				mesh.surface_set_material(s, b._mat_ruina(mm.resource_name if mm else "", Color(0.82, 0.8, 0.76)))
-			malhas.append([mesh, _rel(g, cena)])
 	var formas: Array = []  # [Shape3D, Transform3D]
-	for cs: CollisionShape3D in cena.find_children("*", "CollisionShape3D", true, false):
-		formas.append([cs.shape, _rel(cs, cena)])
-	cena.free()
 	var pequena: bool = modelo in PEQUENAS
+	if modelo.begins_with("veg:"):  # vegetação pronta (Vegetacao): material com vento, tronco de cilindro
+		var esp: String = modelo.substr(4)
+		if not Rede.servidor_sem_tela:
+			malhas = Vegetacao.malhas(esp)
+		var tr: Shape3D = Vegetacao.tronco(esp)
+		if tr:
+			formas.append([tr, Transform3D(Basis(), Vector3(0, 1.5, 0))])
+		pequena = esp in Vegetacao.RASTEIRAS
+	elif ResourceLoader.exists(Bairro.RUINAS % modelo):
+		var cena: Node3D = (load(Bairro.RUINAS % modelo) as PackedScene).instantiate()
+		if not Rede.servidor_sem_tela:
+			for g: MeshInstance3D in cena.find_children("*", "MeshInstance3D", true, false):
+				var mesh: Mesh = g.mesh.duplicate()
+				for s in mesh.get_surface_count():
+					var mm: Material = mesh.surface_get_material(s)
+					mesh.surface_set_material(s, b._mat_ruina(mm.resource_name if mm else "", Color(0.82, 0.8, 0.76)))
+				malhas.append([mesh, _rel(g, cena)])
+		for cs: CollisionShape3D in cena.find_children("*", "CollisionShape3D", true, false):
+			formas.append([cs.shape, _rel(cs, cena)])
+		cena.free()
+	else:
+		return
 	for chave: Vector2i in pedacos:
 		var ts: Array = pedacos[chave]
 		for par: Array in malhas:

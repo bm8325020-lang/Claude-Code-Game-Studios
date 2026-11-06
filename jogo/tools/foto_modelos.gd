@@ -45,6 +45,8 @@ func _init() -> void:
 		var nome: String = args[k + 1].get_slice(":", 0)
 		var modo: String = args[k + 1].get_slice(":", 1) if args[k + 1].contains(":") else ""
 		var arq: String = ("res://assets/%s.glb" % nome) if nome.contains("/") else (Bairro.RUINAS % nome)  # "mundo/..." = asset pronto
+		if nome.contains("/") and not ResourceLoader.exists(arq):  # normaliza.py: pasta/<nome>/<nome>.gltf
+			arq = "res://assets/%s/%s.gltf" % [nome, nome.get_file()]
 		var m: Node3D = (load(arq) as PackedScene).instantiate()
 		cena.add_child(m)
 		if not nome.contains("/"):  # asset pronto fica com as texturas dele

@@ -85,6 +85,7 @@ var _espera: PanelContainer  # tela de espera da sala de sobrevivência
 var _seta_golpe: _SetaGolpe
 var _tarefas: Tarefas
 var _qte: _Qte  # briga com o zumbi mordendo (barra + EMPURRAR)
+var _mini: Minimapa  # minimapa estilo GTA V (canto de cima à direita)
 var _clique_qte: bool = false
 var _espera_texto: Label
 var _espera_botao: Button
@@ -210,6 +211,8 @@ func _ready() -> void:
 	_monta_convite()
 	_monta_barra_rapida()
 	_monta_pausa()
+	_mini = Minimapa.new()
+	add_child(_mini)
 	# letras do tema também no HUD
 	for l: Label in [_relogio, _municao, _dica_pegar, _aviso_item]:
 		l.add_theme_font_override("font", UiTema.tema().default_font)
@@ -246,6 +249,7 @@ func _process(dt: float) -> void:
 	_avisa_raid(dt)
 	_le_bilhete(dt)
 	_qte.jogador = jogador
+	_mini.jogador = jogador
 	_qte.visible = jogador.mordida_t > 0.0 and jogador.mordida_zumbi != null
 	if _qte.visible:
 		_qte.queue_redraw()

@@ -33,7 +33,7 @@ func _init() -> void:
 		z.free()
 	var b: Bairro = main.bairro
 	var pontes: Array = b.find_children("Ponte_*", "StaticBody3D", false, false)
-	ok(pontes.size() >= 3, "pontes onde as ruas cruzam o rio (%d)" % pontes.size())
+	ok(pontes.size() >= 2, "pontes onde as ruas cruzam o rio (%d)" % pontes.size())  # Raven Creek: Route 9 e Center St
 	var dados: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Bairro.MAPA))
 	var m: Dictionary = dados.terreno.morros[0]
 	var topo := Vector2(m.p[0], m.p[1])
