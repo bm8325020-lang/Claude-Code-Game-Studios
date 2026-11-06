@@ -23,5 +23,5 @@
   de fora (pede modelo novo no Blender). test_raid/test_bairro ok.
 - [x] B5 Os Corvos: 5 saqueadores vivos no mercado (roupa preta, nome em cima), avisam ("SAI DAQUI!") 2,5 s antes de
   atirar, se escondem e fogem feridos; fogueira e pichação na frente; caveira no minimapa; ninguém nasce lá. Rede 47.
-  test_raid 12/12. Falta: andar de gente (usam o andar de zumbi).
+  test_raid 12/12. 07/11: andam, correm e miram com os clipes do jogador (Zumbi.HUMANO). Noite mais clara (luar).
 - [x] B6 APK 0.99-terror (257 MB) mandado ao dono com resumo. Plano da noite completo.

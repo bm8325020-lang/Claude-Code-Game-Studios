@@ -94,6 +94,9 @@ const VARIANTES: Dictionary = {
 	"correr": ["correr", "correr_rapido"],
 	"ataque": ["ataque", "ataque_2", "ataque_3", "ataque_4", "ataque_5"], "dano": ["dano", "dano_2"],
 }
+## Corvo: clipe lógico do zumbi -> clipe do jogador (Anims.CLIPES), sempre de pistola na mão
+const HUMANO: Dictionary = {"parado": "parado_p", "andar": "andar_p", "correr": "correr_p", "ataque": "golpe1",
+	"dano": "tras_p", "grito": "parado_p", "deitado": "morte", "levantar": "parado_p", "morte": "morte"}
 const SORTEIA_SEMPRE: Array[String] = ["ataque", "dano"]
 const RASTEJANTE: Dictionary = {"parado": "rastejar", "ataque": "comendo", "dano": "rastejar", "grito": "rastejar",
 	"deitado": "rastejar", "levantar": "rastejar"}
@@ -298,7 +301,8 @@ func _ready() -> void:
 		_poe_arma()
 	anim = AnimationPlayer.new()
 	modelo.add_child(anim)
-	anim.add_animation_library("", Anims.adaptada(Anims.biblioteca_zumbi(), cara))
+	# Corvo anda, corre e mira como gente (clipes do jogador com pistola); zumbi usa os dele
+	anim.add_animation_library("", Anims.adaptada(Anims.biblioteca() if humano() else Anims.biblioteca_zumbi(), cara))
 	_agente = NavigationAgent3D.new()
 	_agente.radius = RAIO + 0.05
 	_agente.height = ALTURA
@@ -1365,6 +1369,8 @@ func _toca(clipe: String, mistura: float, de_novo: bool = false) -> void:
 
 ## Nome lógico (vai pela rede) -> animação deste zumbi.
 func _real(clipe: String) -> String:
+	if humano():
+		return HUMANO.get(clipe, clipe)
 	if tipo == "zumbi_rastejante" and not chefe:
 		return RASTEJANTE.get(clipe, clipe)
 	var l: Array = VARIANTES.get(clipe, [])

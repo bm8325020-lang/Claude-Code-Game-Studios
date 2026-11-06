@@ -89,6 +89,7 @@ func _init() -> void:
 	main.zumbis.add_child(c)
 	await frames(2)
 	ok(c.humano() and c.armado and not c.come and c.chance_grito == 0.0, "corvo é gente armada que não grita nem come")
+	ok(c.anim.has_animation(c._real("andar")) and c._real("andar") == "andar_p", "corvo anda como gente (%s)" % c._real("andar"))
 	c.alvo = j
 	await frames(3)
 	ok(c._avisou and c._tiro_cd > 1.0 and c._mirando < 0.0, "corvo avisa antes de atirar")
