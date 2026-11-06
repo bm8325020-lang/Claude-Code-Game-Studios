@@ -863,6 +863,8 @@ func _pinta(m: Node3D, tinta: Color, lataria: Color = Color(0.4, 0.15, 0.12)) ->
 		for s in mi.mesh.get_surface_count():
 			var mm: Material = mi.mesh.surface_get_material(s)
 			var n: String = mm.resource_name if mm else ""
+			if n.begins_with("pronto_"):
+				continue  # modelo pronto (tools/blender/casa_pronta.py): fica a textura dele
 			mi.set_surface_override_material(s, _cor(lataria, 0.45) if n == "lataria" else _mat_ruina(n, tinta))
 
 
@@ -1264,7 +1266,7 @@ func _veiculo(arq: String, cor: Color) -> Node3D:
 func _bloqueio(p: Vector2, ang: float, larg: float) -> void:
 	var lado := Vector2(cos(ang), sin(ang))
 	if _rng.randf() < 0.4:
-		var o: Node3D = _veiculo("onibus_r1", Color.WHITE)
+		var o: Node3D = _veiculo("mundo:onibus", Color.WHITE)  # 07/11 E2b: ônibus pronto (Sketchfab CC BY)
 		o.position = _v3(p)
 		o.rotation.y = -ang + PI * 0.5
 		return
@@ -1482,6 +1484,7 @@ func _borda() -> void:
 # bloqueio do exército largado: barreiras de concreto atravessando a rua, sacos de areia e entulho
 func _barricadas() -> void:
 	var conc := _mat("concreto", 0.5, Color(0.72, 0.7, 0.66))
+	var barreira: PackedScene = null if Rede.servidor_sem_tela else load("res://assets/mundo/props/barreira/barreira.gltf")
 	var saco := _cor(Color(0.42, 0.38, 0.28))
 	var n: int = 0
 	for r: Array in _espalhados(5, 7.0):
@@ -1507,6 +1510,12 @@ func _barricadas() -> void:
 			bl.rotation.y = rot + PI * 0.5 + _rng.randf_range(-0.15, 0.15)
 			corpo.add_child(bl)
 			_caixa(bl, Vector3(1.5, 0.9, 0.5), conc)
+			if barreira:  # 07/11 E2b: barreira de concreto pronta (Sketchfab CC BY) no lugar do bloco liso; colisão segue a caixa
+				bl.get_child(0).visible = false
+				var mb: Node3D = barreira.instantiate()
+				mb.position.y = -0.45
+				mb.scale = Vector3(0.84, 1.05, 0.8)
+				bl.add_child(mb)
 		for k in 6:
 			var q: Vector2 = p + d * 1.5 + lado * _rng.randf_range(-2.5, 2.5)
 			var sc := _peca(corpo, Vector3(q.x, 0.15 + (k % 2) * 0.28, q.y), Vector3(0.7, 0.28, 0.4), saco)

@@ -66,7 +66,12 @@ Ordem pensada: primeiro a cara e o pronto (muda o jogo inteiro), depois estrutur
   (Graffiti Van) e enferrujado novo (Car Wreck) do Sketchfab CC BY (créditos ok); dirigíveis já eram o sedã pronto.
   _veiculo acha o comprimento e a colisão pelo tamanho do modelo; tinta escura no queimado. Planta com o mesmo sorteio
   (cidade igual), malha refeita. Render Média 437 chamadas (+7,6%), 341 mil tri. test_bairro/carro/porta_malas ok.
-- [ ] E2b Casas e lojas prontas: achar kit de casas americanas CC0/CC BY com interior (ou fachadas prontas por cima do
+- [x] E2b (07/11 8:31) 4 casas prontas do Sketchfab CC BY (normaliza -> tools/blender/casa_pronta.py -> ruína
+  fechada assets/ruinas/casa_p1..4, materiais "pronto_*" que o Bairro não repinta); a planta troca 1 em 3 casas comuns
+  depois do sorteio (87 casas prontas, cidade igual). Ônibus tombado e barreiras de concreto prontos. Malha refeita.
+  Render Média 463 chamadas (+6%), 369 mil tri (+8%). test_bairro/porao/gavetas/nascer ok. Falta: lojas do centro
+  prontas e girar a frente das casas prontas para a rua (algumas mostram o lado).
+  Era: Casas e lojas prontas: achar kit de casas americanas CC0/CC BY com interior (ou fachadas prontas por cima do
   interior atual, mantendo os nomes de móvel que as gavetas usam); ônibus e barricadas prontos.
   Era: PRONTO NO LUGAR DO FEITO À MÃO (regra 7): levantar o que é feito à mão (casas_us, ruinas, cidade.py, porão,
   postes, barricadas); trocar os mais vistos por modelos prontos CC0/CC BY (começar pelas casas e lojas do centro).

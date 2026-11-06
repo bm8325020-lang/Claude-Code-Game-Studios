@@ -28,6 +28,12 @@ MUNDO (vegetação, construções)
 • "Burned Car" — GAMGO (CC Attribution) — sketchfab.com/3d-models/burned-car-3c5ee424326c44b497534c8721dfef6f
 • "Graffiti Van" — FrankCrossNC (CC Attribution) — sketchfab.com/3d-models/graffiti-van-121b72f4f78846f2867336bde21cd4d3
 • "Car Wreck Low-Poly" — vinrax (CC Attribution) — sketchfab.com/3d-models/car-wreck-low-poly-87cbb2ec7a994c2a9e7bd7a62f1f7ff3
+• "Suburban shabby house low poly" — Simlion (CC Attribution) — sketchfab.com/3d-models/suburban-shabby-house-low-poly-f4678340de204c829e79a01f216e1be0
+• "Suburban House" — mbuannoart (CC Attribution) — sketchfab.com/3d-models/suburban-house-b8375c5e5e6b40639fc06492fbd95fcb
+• "LowPoly Suburban House" — DarwinDOS (CC Attribution) — sketchfab.com/3d-models/lowpoly-suburban-house-76b36c015ac3400d8539fc6f7f22d1bd
+• "Abandoned House Low Poly" — Karthik Naidu (CC Attribution) — sketchfab.com/3d-models/abandoned-house-low-poly-9d4146728c4948efb378c02449eb6aea
+• "Abandoned bus" — godonsmile505 (CC Attribution) — sketchfab.com/3d-models/abandoned-bus-62a7b558381042978f38877974aacf35
+• "Concrete barricade" — ejtamovic (CC Attribution) — sketchfab.com/3d-models/concrete-barricade-280db7c2ee6648898a944a07b93f31d7
 
 ARMAS E OBJETOS
 Kenney (kenney.nl) — CC0: assets/sons/*.ogg

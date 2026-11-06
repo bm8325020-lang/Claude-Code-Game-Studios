@@ -25,6 +25,13 @@ MODELOS = {
     "ferrugem": ("veiculos/car_wreck_low_poly.glb", "veiculos", 1.4, False, 6000),
     "queimado": ("veiculos/burned_car.glb", "veiculos", 1.3, False),
     "van": ("veiculos/graffiti_van.glb", "veiculos", 2.1, False),
+    "onibus": ("veiculos/abandoned_bus.glb", "veiculos", 3.1, False),
+    "barreira": ("props/concrete_barricade.glb", "props", 0.85, False),
+    # 07/11 (E2b): casas prontas (fechadas: só por fora); tools/blender/casa_pronta.py vira ruína do jogo (assets/ruinas)
+    "casa_p1": ("casas/suburban_shabby_house_low_poly.glb", "casas", 8.5, False, 7000),
+    "casa_p2": ("casas/suburban_house.glb", "casas", 7.5, False, 7000),
+    "casa_p3": ("casas/lowpoly_suburban_house.glb", "casas", 5.0, False),
+    "casa_p4": ("casas/abandoned_house_low_poly.glb", "casas", 7.0, False),
     "capim_seco": ("vegetation/plants/dry_realistic_grass_lods_1.glb", "vegetation/plants", 0.6, False, 500),
     # 07/11 anti-travamento: versão de longe das árvores grandes (Planta: perto a inteira, longe esta)
     "arvore_lod": ("vegetation/trees/realistic_tree.glb", "vegetation/trees", 10.0, False, 500),

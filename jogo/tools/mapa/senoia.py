@@ -663,6 +663,18 @@ for (x, z, b, rot) in ((-480, 640, "building_03", 0.3), (-300, 700, "building_07
                        (520, 620, "building_04", 0.6)):
     longe.append({"c": "res://assets/catalogo/majadroid/%s.glb" % b, "p": [x, -z], "r": rot})
 
+# 07/11 (E2b, regra 7: pronto no lugar do feito à mão): 1 em cada 3 casas americanas comuns vira casa pronta do
+# Sketchfab (fechada: só por fora; tools/blender/casa_pronta.py). Troca depois de tudo: o sorteio da cidade não muda.
+PRONTAS = sorted(k for k in MED if k.startswith("casa_p"))
+n_casa = 0
+for pp in predios:
+    if pp["modelo"] in CASAS and PRONTAS:
+        n_casa += 1
+        if n_casa % 3 == 0:
+            pp["modelo"] = PRONTAS[(n_casa // 3) % len(PRONTAS)]
+            q = pp["p"]
+            pp["c"] = [round(sum(v[0] for v in q) / len(q), 2), round(sum(v[1] for v in q) / len(q), 2)]
+print("casas prontas:", sum(1 for pp in predios if pp["modelo"].startswith("casa_p")))
 out = {"origem": "Senoia, GA (OpenStreetMap, ODbL; tools/mapa/raven_creek.py CIDADE=senoia)" if SENOIA else "Raven Creek (tools/mapa/raven_creek.py)", "ruas": ruas, "predios": predios, "frestas": frestas, "bloqueios": bloqueios,
        "marcos": marcos, "muros": muros, "props": props, "areas": areas, "faixas": faixas, "postes": postes, "veiculos": veiculos,
        "zumbis": zumbis, "longe": longe, "entrada": entrada,
