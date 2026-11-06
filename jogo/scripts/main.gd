@@ -899,6 +899,10 @@ const CEU: String = """shader_type sky;
 // fumaça de incêndios longe (três, em direções fixas). Ciclo troca as cores do dia/noite.
 uniform vec3 topo;
 uniform vec3 horizonte;
+// 07/11 (E1 cara nova): nuvens de foto (HDRI CC0 do Poly Haven, assets/ceu) tingidas pela paleta do Ciclo
+uniform sampler2D foto : source_color, filter_linear, repeat_enable;
+uniform vec3 brasa = vec3(0.95, 0.5, 0.18);  // âmbar/ferrugem no horizonte (luz dos incêndios)
+uniform float brasa_forca = 0.35;
 uniform vec3 fogo = vec3(0.9, 0.35, 0.1);
 uniform float cobertura = 0.72;
 float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -916,11 +920,11 @@ void sky() {
 			float s = max(dot(EYEDIR, LIGHT0_DIRECTION), 0.0);
 			c += LIGHT0_COLOR * (pow(s, 60.0) * 0.8 + pow(s, 6.0) * 0.12);
 		}
-		vec2 p = EYEDIR.xz / (y + 0.12) * 1.2 + vec2(TIME * 0.01, TIME * 0.004);
-		float n = fbm(p);
-		float nuvem = smoothstep(1.0 - cobertura, 1.0 - cobertura + 0.45, n);
-		vec3 cn = mix(horizonte * 0.9, topo * 0.6, smoothstep(0.35, 0.95, n));
-		c = mix(c, cn, nuvem * smoothstep(0.0, 0.1, y) * 0.95);
+		vec2 uv = vec2(atan(EYEDIR.x, -EYEDIR.z) / 6.2831853 + 0.5 + TIME * 0.0006, acos(clamp(y, -1.0, 1.0)) / 3.14159265);
+		float l = dot(texture(foto, uv).rgb, vec3(0.299, 0.587, 0.114));
+		vec3 cn = mix(topo * 0.55, horizonte * 1.25, smoothstep(0.25, 0.85, l));
+		c = mix(c, cn, smoothstep(0.0, 0.08, y) * 0.9);
+		c += brasa * brasa_forca * exp(-y * 9.0) * (0.6 + 0.4 * l);
 		// colunas de fumaça subindo no horizonte, tortas pelo vento, com o pé avermelhado do fogo
 		float az = atan(EYEDIR.x, EYEDIR.z);
 		for (int k = 0; k < 3; k++) {
@@ -967,6 +971,7 @@ func _luz() -> void:
 	ceu.shader.code = CEU
 	ceu.set_shader_parameter("topo", Ciclo.CEU_TOPO[0])
 	ceu.set_shader_parameter("horizonte", Ciclo.CEU_HORIZONTE[0])
+	ceu.set_shader_parameter("foto", load("res://assets/ceu/ceu_nublado.jpg"))
 	env.sky = Sky.new()
 	env.sky.sky_material = ceu
 	env.background_mode = Environment.BG_SKY

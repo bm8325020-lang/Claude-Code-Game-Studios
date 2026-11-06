@@ -89,6 +89,9 @@ Prédios da capital destruída ao longe: Majadroid (CC0, domínio público), pas
 MAPA DA CIDADE
 Senoia, Geórgia (EUA): ruas e prédios do OpenStreetMap — © colaboradores do OpenStreetMap, licença ODbL (openstreetmap.org/copyright).
 
+CÉU
+ceu_nublado.jpg — "Kloofendal Overcast (Pure Sky)" de Greg Zaal, Poly Haven (polyhaven.com/a/kloofendal_overcast_puresky), CC0. Reduzido para 2048x1024.
+
 SONS
 Sons de ambiente (OpenGameArt, todos CC0):
 passo_*    — "Footsteps" (opengameart.org/content/footsteps-0)

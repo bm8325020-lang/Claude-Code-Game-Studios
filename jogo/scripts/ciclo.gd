@@ -24,8 +24,12 @@ var _rng_clima := RandomNumberGenerator.new()
 ## Fim do mundo: de dia nuvem cinza-marrom e poeira alaranjada no horizonte; de noite quase preto com o horizonte
 ## avermelhado dos incêndios.
 # 31/10 (dono: "não gosto desse céu, pegada feia"): saiu o poeirão laranja; dia nublado frio, cinza-azulado, e noite azul-escura
-const CEU_TOPO: Array[Color] = [Color(0.34, 0.37, 0.4), Color(0.06, 0.08, 0.13)]  # dia de chumbo, noite de luar azulada (07/11 dono: noite mais clara)
-const CEU_HORIZONTE: Array[Color] = [Color(0.55, 0.57, 0.58), Color(0.14, 0.16, 0.21)]
+# 07/11 (E1 cara nova, dono: "tirar a cara de morto e genérico"): paleta própria — ferrugem/âmbar das luzes e do
+# horizonte em brasa contra o azul-petróleo das sombras e da noite (nada de cinza neutro)
+const CEU_TOPO: Array[Color] = [Color(0.3, 0.37, 0.41), Color(0.04, 0.09, 0.12)]
+const CEU_HORIZONTE: Array[Color] = [Color(0.54, 0.53, 0.5), Color(0.1, 0.19, 0.21)]
+const SOL_COR: Array[Color] = [Color(1.0, 0.8, 0.58), Color(0.5, 0.72, 0.82)]  # sol âmbar abafado; luar petróleo
+const AMBIENTE_COR: Array[Color] = [Color(0.52, 0.6, 0.64), Color(0.34, 0.5, 0.56)]  # sombra fria (petróleo)
 
 
 func _ready() -> void:
@@ -69,7 +73,7 @@ func _process(dt: float) -> void:
 		flash = _clima.flash
 	if sol:
 		sol.light_energy = lerpf(0.62, 0.32, n) * float(c[3]) + flash * 2.5  # 06/11 terror: noite escura (a lanterna manda)  # noite de luar: escura, mas dá para jogar (pedido do dono)
-		sol.light_color = Color(1.0, 0.95, 0.88).lerp(Color(0.55, 0.6, 0.85), n)  # sol de dia nublado; luar azulado
+		sol.light_color = SOL_COR[0].lerp(SOL_COR[1], n)
 	if ambiente:
 		var ceu: Color = CEU_HORIZONTE[0].lerp(CEU_HORIZONTE[1], n)
 		ambiente.background_color = ceu
@@ -78,7 +82,8 @@ func _process(dt: float) -> void:
 		if mat:
 			mat.set_shader_parameter("topo", CEU_TOPO[0].lerp(CEU_TOPO[1], n))
 			mat.set_shader_parameter("horizonte", ceu)
-		ambiente.ambient_light_color = Color(0.66, 0.68, 0.7).lerp(Color(0.42, 0.48, 0.64), n)
+			mat.set_shader_parameter("brasa_forca", lerpf(0.3, 0.18, n))  # de noite o brilho dos incêndios fica mais vermelho e baixo
+		ambiente.ambient_light_color = AMBIENTE_COR[0].lerp(AMBIENTE_COR[1], n)
 		ambiente.ambient_light_energy = lerpf(0.4, 0.42, n)  # 06/11: dia escurecido (dono: "muito claro"); a noite segue jogável
 		# 06/11 (dono: "bastante atmosfera"): névoa mais grossa e cerração rente ao chão
 		ambiente.fog_density = lerpf(0.02, 0.028, n) * float(c[2])  # a névoa fecha a visão

@@ -55,7 +55,11 @@ Cada rodada: ler isto, fazer o próximo [ ], medir, poucos testes (só da área)
 
 ## E. SUPER OPERAÇÃO (dono 07/11, enquanto dorme) — seguir ideias/dead-district/REGRAS_LOOP.md em TODA rodada
 Ordem pensada: primeiro a cara e o pronto (muda o jogo inteiro), depois estrutura, construções, mecânicas, Corvos, loja.
-- [ ] E1 CARA NOVA (regra 5): direção de arte própria — paleta (ferrugem/âmbar das luzes contra azul-petróleo da noite,
+- [x] E1 (07/11 6:31) Paleta própria no Ciclo: sol âmbar/luar petróleo, sombra fria, horizonte com brasa; nuvens
+  de FOTO (HDRI CC0 Poly Haven kloofendal_overcast, assets/ceu, no shader do céu no lugar do ruído). Foto antes/depois
+  4 lugares (dia neutro-quente, noite azul-petróleo; tirei o laranja forte que o dono já recusou). Render Média 406
+  chamadas (+5%), 335 mil tri (=). test_clima/zumbi ok. Falta da ideia: chuva com poças (vai para a próxima seção).
+  Era: CARA NOVA (regra 5): direção de arte própria — paleta (ferrugem/âmbar das luzes contra azul-petróleo da noite,
   não cinza), céu com nuvens prontas (HDRI Poly Haven CC0), névoa colorida, chuva/poças; foto antes/depois de 4 lugares.
 - [ ] E2 PRONTO NO LUGAR DO FEITO À MÃO (regra 7): levantar o que é feito à mão (casas_us, ruinas, cidade.py, porão,
   postes, barricadas); trocar os mais vistos por modelos prontos CC0/CC BY (começar pelas casas e lojas do centro).
