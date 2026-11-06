@@ -233,6 +233,8 @@ func dirige(mov: Vector2, dt: float) -> float:
 	var giro: float = -volante * GIRO * lerpf(1.0, GIRO_ALTA, clampf(absf(vel) / VEL_MAX, 0.0, 1.0)) * clampf(absf(vel) / 3.0, 0.0, 1.0) * signf(vel) * dt
 	rotation.y += giro
 	var frente: Vector3 = global_basis.z
+	if absf(vel) > ATROPELA_VEL:
+		_atropela(frente * signf(vel))
 	velocity.x = frente.x * vel
 	velocity.z = frente.z * vel
 	velocity.y = 0.0 if is_on_floor() else velocity.y - GRAVIDADE * dt
@@ -248,6 +250,27 @@ func dirige(mov: Vector2, dt: float) -> float:
 			_manda_t = MANDA_A_CADA
 			_estado.rpc_id(1, position, rotation.y)
 	return giro
+
+
+## Atropelar (dono 07/11): acima de ATROPELA_VEL, zumbi na frente do carro leva dano pela velocidade e voa; o carro
+## perde um pouco de velocidade. Quem dirige calcula (o golpe vai ao servidor como o do facão).
+const ATROPELA_VEL: float = 4.0   # m/s (~15 km/h)
+const ATROPELA_DIST: float = 3.2  # m do meio do carro
+const ATROPELA_DANO: float = 14.0 # por m/s
+func _atropela(dir: Vector3) -> void:
+	var quem: Node = null
+	for j: Node in get_tree().get_nodes_in_group("jogadores"):
+		if j.get_multiplayer_authority() == motorista:
+			quem = j
+	for n: Node in get_tree().get_nodes_in_group("golpeavel"):
+		var z := n as Zumbi
+		if z == null or z.vida <= 0:
+			continue
+		var d: Vector3 = z.global_position - global_position
+		d.y = 0.0
+		if d.length() < ATROPELA_DIST and d.normalized().dot(dir) > 0.35:
+			z.levar_golpe(roundi(absf(vel) * ATROPELA_DANO), (dir + Vector3.UP * 0.3) * 3.0, quem)
+			vel *= 0.82
 
 
 ## Alarme (tiro no carro): toca ALARME_T s em todos e chama os zumbis a até ALARME_RAIO; cada carro uma vez por

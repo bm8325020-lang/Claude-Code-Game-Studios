@@ -34,7 +34,8 @@ const ALTURA_ATAQUE: float = 1.3   # m de diferença de altura: mais que isso n�
 const DANO: int = 20  # 28 era forte demais (dono 31/10, vídeo); 22 antes de 30/10
 const ACERTO: float = 0.45         # fração do clipe de ataque em que o soco pega
 const CAMBALEIO: float = 0.25      # s parado depois de levar golpe
-const MORTO_POR: float = 8.0       # s até levantar de novo
+const MORTO_POR: float = 300.0     # s até outro zumbi aparecer no lugar (era 8: matava e levantava na hora)
+const RENASCE_LONGE: float = 70.0  # m: só volta se ninguém está perto do corpo nem de casa
 const GIRO: float = 7.0
 const GRAVIDADE: float = 24.0
 const RAIO: float = 0.35
@@ -490,7 +491,7 @@ func _physics_process(dt: float) -> void:
 		if _dorme_t <= 0.0:
 			_dorme_t = 1.0
 			_dormindo = _quieto() and not _alguem_perto(DORME_DIST)
-		if _dormindo and _quieto():
+		if _dormindo and _quieto() and vida > 0:  # morto conta o tempo de voltar mesmo longe (só volta longe de todos)
 			return
 	if not _pensa_aqui():
 		global_position = global_position.lerp(pos_rede, 1.0 - exp(-14.0 * dt))
@@ -508,8 +509,12 @@ func _physics_process(dt: float) -> void:
 			if horda != 0:
 				queue_free()
 				return
-			global_position = casa
-			vida = _vida_max
+			# dono 07/11: "matou e já spawna de novo, não faz sentido": só levanta de novo longe dos jogadores
+			if _alguem_perto(RENASCE_LONGE):
+				_morto_t = 30.0
+			else:
+				global_position = casa
+				vida = _vida_max
 		velocity.x = 0.0
 		velocity.z = 0.0
 		if not is_on_floor():
@@ -928,7 +933,7 @@ func _mira_e_atira(dt: float) -> void:
 	if alvo.agachado:
 		chance *= 0.6
 	var mira: Vector3 = alvo.global_position + Vector3(0, 1.3, 0)
-	var acertou: bool = _ve(alvo) and randf() < chance
+	var acertou: bool = _ve(alvo) and randf() < chance and not alvo.no_carro
 	if acertou:
 		alvo.levar_dano(roundi(TIRO_DANO * Ciclo.forca_noite(get_tree(), NOITE_DANO)), (alvo.global_position - global_position).normalized() * 0.3)
 	else:
@@ -1020,7 +1025,7 @@ func _atualiza_ataque(dt: float) -> void:
 		elif _porta_alvo:
 			_porta_alvo.leva_soco(_dano)
 			_porta_alvo = null
-		elif alvo and is_instance_valid(alvo):
+		elif alvo and is_instance_valid(alvo) and not alvo.no_carro:  # dono 07/11: dentro do carro não machucam
 			var d: Vector3 = alvo.global_position - global_position
 			var dy: float = absf(d.y)
 			d.y = 0.0

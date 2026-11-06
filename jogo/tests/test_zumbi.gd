@@ -121,8 +121,15 @@ func _tiro_e_morte() -> void:
 	await frames(5)
 	ok(z.vida == 0 and z.clipe_atual() == "morte", "morre com a vida zerada (%s)" % z.clipe_atual())
 	ok(z.collision_layer == 0 and not z.is_in_group("golpeavel"), "morto não bloqueia nem leva golpe")
-	await frames(int(Zumbi.MORTO_POR * 60) + 20)
-	ok(z.vida == Zumbi.VIDA_MAX and z.is_in_group("golpeavel"), "levanta depois de %d s" % int(Zumbi.MORTO_POR))
+	var volta: Vector3 = j.global_position
+	z._morto_t = 1.0  # o tempo de verdade é Zumbi.MORTO_POR (5 min); aqui só a regra de quem está perto
+	await frames(90)
+	ok(z.vida == 0, "não levanta com o jogador perto (07/11)")
+	j.global_position += Vector3(0, 0, Zumbi.RENASCE_LONGE + 30.0)
+	z._morto_t = 1.0
+	await frames(90)
+	ok(z.vida == Zumbi.VIDA_MAX and z.is_in_group("golpeavel"), "levanta quando não tem ninguém perto")
+	j.global_position = volta
 	j.entrada["mira_segurando"] = null
 
 

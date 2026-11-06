@@ -1706,7 +1706,7 @@ func _espalhados(n: int, larg_min: float, rng: RandomNumberGenerator = _rng) -> 
 ## Pedido do dono (31/10): mais carros para dirigir; e coisas pelas ruas para não andar muito sem achar nada.
 ## Gerador próprio: não muda o sorteio do resto da cidade.
 const CARROS_EXTRA: int = 26
-const ACHADOS: int = 45
+const ACHADOS: int = 160  # 07/11 (dono: "espalha mais loot, parece que ando em linha reta"; era 45)
 ## Entrada da cidade (06/11, HISTORIA.md): ponto da estrada do leste onde quem chega nasce (main._ponto_inicial), com
 ## o carro dele parado no acostamento. Vazio (Vector3.INF) se o mapa não tem.
 var entrada_pos: Vector3 = Vector3.INF

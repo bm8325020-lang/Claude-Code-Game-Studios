@@ -86,6 +86,7 @@ var _seta_golpe: _SetaGolpe
 var _tarefas: Tarefas
 var _qte: _Qte  # briga com o zumbi mordendo (barra + EMPURRAR)
 var _mini: Minimapa  # minimapa estilo GTA V (canto de cima à direita)
+var _mapa: TelaMapa
 var _luneta: ColorRect  # círculo preto da luneta (sniper mirando)
 var _clique_qte: bool = false
 var _espera_texto: Label
@@ -214,6 +215,11 @@ func _ready() -> void:
 	_monta_pausa()
 	_mini = Minimapa.new()
 	add_child(_mini)
+	_mapa = TelaMapa.new()  # 07/11: mapa grande (toque no minimapa ou M)
+	add_child(_mapa)
+	_mini.abrir_mapa.connect(func() -> void:
+		_mapa.jogador = jogador
+		_mapa.abre(true))
 	_luneta = ColorRect.new()
 	_luneta.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_luneta.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -266,6 +272,9 @@ func _process(dt: float) -> void:
 	_qte.jogador = jogador
 	_mini.jogador = jogador
 	_luneta.visible = jogador.camera != null and jogador.camera.maos != null and jogador.camera.maos.luneta()
+	if _mapa.visible:
+		e["move"] = Vector2.ZERO  # olhando o mapa grande: fica parado
+		return
 	_qte.visible = jogador.mordida_t > 0.0 and jogador.mordida_zumbi != null
 	if _qte.visible:
 		_qte.queue_redraw()
@@ -410,6 +419,12 @@ func _process(dt: float) -> void:
 func _input(ev: InputEvent) -> void:
 	if jogador == null:
 		return
+	if not toque and ev is InputEventKey and (ev as InputEventKey).pressed and (ev as InputEventKey).keycode == KEY_M:
+		_mapa.jogador = jogador
+		_mapa.abre(not _mapa.visible)
+		return
+	if _mapa.visible:
+		return  # o mapa grande cuida do toque e do mouse
 	if (_pausa.visible or _mochila.visible or _tela_bau.visible or _tela_bancada.visible or _tela_loja.visible) and toque:
 		return  # na pausa/mochila o toque é dos botões da tela, não do analógico nem da câmera
 	if (_mochila.visible or _tela_bau.visible or _tela_bancada.visible or _tela_loja.visible) and ev is InputEventMouseMotion:
@@ -966,7 +981,7 @@ func _levou_dano(dano: int) -> void:
 
 func _em_botao(p: Vector2) -> bool:
 	for b: Control in [_btn_agachar, _btn_mira, _btn_atacar, _btn_recarregar, _btn_pegar, get_node_or_null("Pular") as Control,
-			get_node_or_null("Pausa") as Control, get_node_or_null("Mochila") as Control, get_node_or_null("Trocar") as Control, _btn_modo, _btn_dominar, _btn_deitar] + _barra:
+			get_node_or_null("Pausa") as Control, get_node_or_null("Mochila") as Control, get_node_or_null("Trocar") as Control, _btn_modo, _btn_dominar, _btn_deitar, _mini] + _barra:
 		if b and b.is_visible_in_tree() and b.get_global_rect().grow(10).has_point(p):
 			return true
 	return false

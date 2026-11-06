@@ -110,7 +110,7 @@ func _init() -> void:
 	c.free()
 	# morto fica morto
 	z.levar_golpe(100000, Vector3.FORWARD, j)
-	await frames(60 * int(Zumbi.MORTO_POR + 2))
-	ok(z.vida <= 0, "zumbi da raid morto não levanta em %d s" % int(Zumbi.MORTO_POR))
+	await frames(60 * 12)
+	ok(z.vida <= 0 and z._morto_t > Zumbi.MORTO_POR, "zumbi da raid morto fica morto (15 min)")
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(0 if falhas == 0 else 1)

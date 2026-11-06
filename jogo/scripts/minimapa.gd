@@ -18,6 +18,16 @@ const COR_SEGURA := Color(0.35, 0.9, 0.4)
 const COR_AMIGO := Color(0.35, 0.65, 1.0)
 
 var jogador: Jogador
+## Destino marcado no mapa grande (TelaMapa); INF = nenhum. Some ao chegar perto.
+static var destino: Vector3 = Vector3.INF
+const CHEGOU: float = 8.0
+signal abrir_mapa
+
+
+func _gui_input(ev: InputEvent) -> void:
+	if (ev is InputEventScreenTouch or ev is InputEventMouseButton) and not ev.pressed:
+		abrir_mapa.emit()
+		accept_event()
 var _fundo: ColorRect
 var _mat: ShaderMaterial
 var _metros: float = METROS
@@ -25,7 +35,7 @@ var _ang: float = 0.0
 
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mouse_filter = Control.MOUSE_FILTER_STOP  # tocar no minimapa abre o mapa grande
 	anchor_left = 1.0
 	anchor_right = 1.0
 	offset_left = -TAM.x - 20
@@ -125,6 +135,16 @@ func _draw() -> void:
 	if m and m.has_method("amigos"):
 		for a: Node in m.amigos():
 			_blip((a as Node3D).global_position, COR_AMIGO, "amigo", true)
+	# destino marcado no mapa grande: alfinete amarelo preso na borda e a distância
+	if destino.is_finite():
+		var dd: float = Vector2(destino.x - jogador.global_position.x, destino.z - jogador.global_position.z).length()
+		if dd < CHEGOU:
+			destino = Vector3.INF
+		else:
+			var rd: Array = _na_borda(no_quadro(destino))
+			draw_circle(rd[0], 8.5, Color(0, 0, 0, 0.85))
+			draw_circle(rd[0], 6.5, Color(1.0, 0.85, 0.15))
+			draw_string(ThemeDB.fallback_font, Vector2(8, TAM.y - 8), "%d m" % roundi(dd), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1.0, 0.9, 0.4))
 	# N na borda
 	var n: Array = _na_borda(no_quadro(jogador.global_position + Vector3(0, 0, -10000)))
 	draw_circle(n[0], 10, Color(0.1, 0.1, 0.1, 0.85))

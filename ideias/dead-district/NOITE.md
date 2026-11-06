@@ -119,3 +119,8 @@ Ordem pensada: primeiro a cara e o pronto (muda o jogo inteiro), depois estrutur
 - [x] (dono 07/11 "otimize tudo e mande APK") casa_pronta.py assa as casas com > 3 materiais numa textura só (atlas
   1024 no Cycles: casa_p2/p3/p4 de 6/10/12 materiais para 1); entulho 1536 -> 600 e tijolos 2000 -> 800 tri.
   Render Média 450 -> 370 chamadas, 371 -> 297 mil tri; CPU 6,0 ms. Malha refeita. test_bairro/porao ok. APK 1.03.
+- [x] (dono 07/11, depois de jogar) Mapa grande (tela_mapa.gd): toque no minimapa ou M; arrasta, +/-, toque marca o
+  destino (Minimapa.destino: alfinete amarelo no minimapa preso na borda + distância; some a 8 m). Atropelar (Carro:
+  > 4 m/s, zumbi na frente leva 14 x m/s de dano e voa). Dentro do carro zumbi/saqueador não machuca. Zumbi morto só
+  volta depois de 5 min e só sem jogador a 70 m (era 8 s); morto não dorme. Achados na rua 45 -> 160.
+  test_atropela 2/2, test_zumbi 50/50, carro/raid/bairro/itens ok. APK 1.04.
