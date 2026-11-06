@@ -91,6 +91,7 @@ func _balas_pentes() -> Dictionary:
 	return d
 
 const VIDA_MAX: int = 100
+const CURA_BANDAGEM: int = 30
 const RENASCE: float = 4.0  # s caído até voltar no ponto de início (o resgate do grupo vem depois)
 ## Vida (quem manda é o dono do jogador; vai pela rede para os outros verem a queda).
 var vida: int = VIDA_MAX
@@ -869,6 +870,11 @@ func usar_espaco(i: int) -> void:
 			entrada["beber"] = true
 		"antibiotico":
 			toma_antibiotico()
+		"bandagem":  # Simple Zombies: bandagem cura um pouco na hora
+			if vida > 0 and vida < vida_max():
+				vida = mini(vida + CURA_BANDAGEM, vida_max())
+				mochila.tirar("bandagem", 1)
+				item_pego.emit("bandagem", CURA_BANDAGEM)
 		"livro":
 			item_pego.emit("livro", 0)
 
@@ -1694,7 +1700,7 @@ func _atira() -> void:
 	_encara = 0.7
 	_tiro_t = 0.0
 	if multiplayer.is_server():  # quem roda os zumbis ouve aqui; os tiros dos clientes chegam por _rede_tiro
-		Zumbi.barulho(get_tree(), global_position, f.barulho)
+		Zumbi.barulho(get_tree(), global_position, f.barulho_atual())
 	if camera:
 		camera.coice(f.coice)
 	if res.acertou is Zumbi:
@@ -1714,7 +1720,7 @@ func _atira() -> void:
 func _rede_tiro(ponto: Vector3, bateu: bool, carne: bool) -> void:
 	fogo().efeito(ponto, bateu, carne)
 	if multiplayer.is_server():
-		Zumbi.barulho(get_tree(), global_position, fogo().barulho)
+		Zumbi.barulho(get_tree(), global_position, fogo().barulho_atual())
 
 
 ## O corpo fica virado para a câmera? (mirando, logo depois do tiro, ou com a pistola sem correr)

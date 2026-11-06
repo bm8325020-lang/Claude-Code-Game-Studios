@@ -15,6 +15,8 @@ var raid: bool = false
 const REENCHE_RAID: float = 1200.0
 ## saco de quem caiu (não sorteia, não reenche, some vazio ou em SOME_SACO)
 var saco: bool = false
+## caixa de suprimento que caiu do céu (Suprimento): some como o saco, mas é uma caixa militar com fumaça
+var caixa: bool = false
 const SOME_SACO: float = 600.0
 var _saco_t: float = SOME_SACO
 ## baú da facção (prompt 13): começa vazio, não reenche, só membros da facção dona da casa (`faccao`) abrem
@@ -131,6 +133,9 @@ func _process(dt: float) -> void:
 
 # caixa de madeira escura com cantoneiras de metal e tampa (dobradiça atrás); o saco é uma mochila de lona
 func _monta() -> void:
+	if caixa:
+		_monta_caixa()
+		return
 	if saco:
 		_monta_saco()
 		return
@@ -161,6 +166,56 @@ func _monta() -> void:
 		lata.albedo_color = Color(0.75, 0.6, 0.2)
 		lata.metallic = 0.7
 		_bloco(_tampa, Vector3(0, -0.07, corpo.z + 0.04), Vector3(0.09, 0.1, 0.04), lata)
+
+
+# caixa militar verde com fumaça vermelha subindo (sinalizador): dá para achar de longe
+func _monta_caixa() -> void:
+	add_to_group("suprimento")
+	var verde := StandardMaterial3D.new()
+	verde.albedo_color = Color(0.22, 0.27, 0.17)
+	verde.roughness = 0.8
+	var cx := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(1.2, 0.7, 0.8)
+	bm.material = verde
+	cx.mesh = bm
+	cx.position.y = 0.35
+	add_child(cx)
+	var col := CollisionShape3D.new()
+	var bs := BoxShape3D.new()
+	bs.size = bm.size
+	col.shape = bs
+	col.position.y = 0.35
+	var corpo := StaticBody3D.new()
+	corpo.add_child(col)
+	add_child(corpo)
+	if Rede.servidor_sem_tela:
+		return
+	var fumaca := CPUParticles3D.new()
+	fumaca.amount = 40
+	fumaca.lifetime = 6.0
+	fumaca.position.y = 0.8
+	fumaca.direction = Vector3.UP
+	fumaca.spread = 12.0
+	fumaca.initial_velocity_min = 2.5
+	fumaca.initial_velocity_max = 4.0
+	fumaca.gravity = Vector3(0.4, 0.6, 0)
+	fumaca.scale_amount_min = 1.0
+	fumaca.scale_amount_max = 3.0
+	var q := QuadMesh.new()
+	q.size = Vector2(1.2, 1.2)
+	var mf := StandardMaterial3D.new()
+	mf.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	mf.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mf.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mf.vertex_color_use_as_albedo = true
+	q.material = mf
+	fumaca.mesh = q
+	var g := Gradient.new()
+	g.set_color(0, Color(0.9, 0.15, 0.1, 0.7))
+	g.set_color(1, Color(0.5, 0.45, 0.45, 0.0))
+	fumaca.color_ramp = g
+	add_child(fumaca)
 
 
 func _monta_saco() -> void:

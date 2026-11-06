@@ -53,7 +53,7 @@ func nome() -> String:
 			return "antibiótico" + (" (%d)" % quantidade if quantidade > 1 else "")
 		"agua":
 			return "garrafa de água"
-		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador", "receita_pistola", "smg", "receita_smg", "espingarda", "fuzil", "sniper", "cartucho", "municao_fuzil":
+		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador", "receita_pistola", "smg", "receita_smg", "espingarda", "fuzil", "sniper", "cartucho", "municao_fuzil", "bandagem", "silenciador":
 			return Mochila.NOMES[tipo].to_lower() + (" (%d)" % quantidade if quantidade > 1 else "")
 	return "lanterna"
 

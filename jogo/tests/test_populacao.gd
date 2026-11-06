@@ -75,5 +75,22 @@ func _init() -> void:
 	p.passa(main, 0.1)
 	await frames(2)
 	ok(main.zumbis.get_child_count() == n0, "orçamento cheio: não nasce mais")
+	# caixa de suprimento (Simple Zombies): cai perto, com loot e marca no mapa
+	for z in main.zumbis.get_children():
+		z.free()
+	var sp := Suprimento.new()
+	var caiu: bool = false
+	for k in 10:
+		caiu = sp.solta(main)
+		if caiu:
+			break
+	await frames(3)
+	var cx: Array = main.get_tree().get_nodes_in_group("suprimento")
+	ok(caiu and cx.size() == 1, "caixa de suprimento caiu (%d)" % cx.size())
+	ok(not cx.is_empty() and not (cx[0] as Bau).conteudo.is_empty(), "caixa tem loot")
+	# silenciador abafa a pistola
+	var b0: float = j.pistola.barulho_atual()
+	j.mochila.adicionar("silenciador", 1)
+	ok(j.pistola.barulho_atual() < b0 * 0.5 and j.fogos.espingarda.barulho_atual() == j.fogos.espingarda.barulho, "silenciador abafa pistola, não espingarda")
 	print("%s: %d checks, %d falhas" % ["PASS" if falhas == 0 else "FAIL", checks, falhas])
 	quit(1 if falhas else 0)

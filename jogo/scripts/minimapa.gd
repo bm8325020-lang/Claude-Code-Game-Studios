@@ -106,6 +106,8 @@ func _draw() -> void:
 		_blip((s as Node3D).global_position, COR_SEGURA, "casa", false)
 	for k: String in b.marcos_pos:
 		_blip(b.marcos_pos[k], COR_MARCO, "marco", false)
+	for c: Node in get_tree().get_nodes_in_group("suprimento"):
+		_blip((c as Node3D).global_position, Color(0.3, 0.95, 0.3), "caixa", true)
 	for r: Dictionary in b.raids:
 		_blip(r.pos, COR_RAID, "raid", true)
 	if m and m.has_method("amigos"):

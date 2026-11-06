@@ -38,6 +38,9 @@ var chumbos: int = 1
 var alcance: float = ALCANCE
 ## m: zumbis a essa distância ouvem o tiro
 var barulho: float = BARULHO
+## silenciador na mochila abafa estas (Simple Zombies: com silenciador o zumbi só ouve bem de perto)
+const SILENCIAVEIS: Array[String] = ["pistola", "smg", "fuzil"]
+const SILENCIADO: float = 0.35  # fração do barulho com silenciador
 ## fov da luneta mirando (0 = sem luneta)
 var luneta: float = 0.0
 const FOGO: Dictionary = {
@@ -211,11 +214,21 @@ func recarregar() -> void:
 
 ## Clarão, som e rastro até `ponto` (também chamado nos outros aparelhos quando alguém atira).
 ## `carne` = acertou zumbi: sangue no lugar da faísca.
+## Barulho do tiro agora (m): com silenciador na mochila cai para SILENCIADO.
+func barulho_atual() -> float:
+	return barulho * (SILENCIADO if silenciada() else 1.0)
+
+
+func silenciada() -> bool:
+	return dono != null and tipo in SILENCIAVEIS and dono.mochila.tem("silenciador")
+
+
 func efeito(ponto: Vector3, bateu: bool, carne: bool = false, estampido: bool = true) -> void:
 	if estampido:  # chumbos da espingarda: um estampido só
 		_luz.light_energy = 3.0
 		_som.stream = _som_tiro
 		_som.pitch_scale = randf_range(0.95, 1.05) * (0.75 if chumbos > 1 or luneta > 0.0 else 1.0)  # arma grande: mais grave
+		_som.volume_db = -14.0 if silenciada() else 0.0
 		_som.play()
 	var de: Vector3 = cano.global_position
 	if dono and dono.camera:  # primeira pessoa: o rastro sai da arma da tela, não da do corpo (só sombra)

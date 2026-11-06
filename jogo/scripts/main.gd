@@ -32,6 +32,7 @@ static var nascer_no_bairro: bool = true
 var grupos := Grupos.new()  # servidor: quem está com quem
 var horda := Horda.new()  # servidor: horda andarilha (mods de zumbi do GTA V)
 var populacao := Populacao.new()  # servidor: zumbis em volta de quem está na cidade (GTAZ: orçamento + fila)
+var suprimento := Suprimento.new()  # servidor: caixa que cai do céu (Simple Zombies, Crate Drop)
 var faccoes := Faccoes.new()  # servidor: facções e domínios em andamento
 var _faccoes_cli: Dictionary = {"f": {}, "t": {}}  # todos: cópia que o servidor manda
 var _faccao_tick: float = 0.0
@@ -312,6 +313,7 @@ func _process(dt: float) -> void:
 		grupos.passa(dt)
 		horda.passa(self, dt)
 		populacao.passa(self, dt)
+		suprimento.passa(self, dt)
 		_passa_raids(dt)
 		_passa_dominio(dt)
 		_passa_salas(dt)
@@ -625,6 +627,7 @@ func _cria_item_solto(d: Dictionary) -> Node:
 	if d.has("saco"):
 		var b := Bau.new()
 		b.saco = true
+		b.caixa = bool(d.get("caixa", false))
 		b.conteudo = d.saco
 		b.position = d.pos
 		return b

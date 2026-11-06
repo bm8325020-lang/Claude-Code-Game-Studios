@@ -28,6 +28,8 @@ const TABELA: Array = [
 	["receita_pistola", 3, 1, 1, INCOMUM],
 	["smg", 1, 1, 1, RARO],
 	["cartucho", 6, 4, 10, INCOMUM],
+	["bandagem", 10, 1, 2, COMUM],
+	["silenciador", 1.5, 1, 1, RARO],
 	["municao_fuzil", 5, 10, 25, INCOMUM],
 	["espingarda", 1, 1, 1, RARO],
 	["fuzil", 0.6, 1, 1, RARO],
@@ -58,7 +60,7 @@ const FACIL: Dictionary = {"comida": 1.6, "agua": 1.6}
 ## por cima da tabela. Cômodo da casa (pelo nome do móvel) ou tipo da loja (pelo modelo do sobrado).
 const LUGAR: Dictionary = {
 	"cozinha": {"comida": 4.0, "agua": 4.0, "faca": 2.0},
-	"banheiro": {"antibiotico": 6.0, "agua": 1.5},
+	"banheiro": {"antibiotico": 6.0, "agua": 1.5, "bandagem": 4.0},
 	"quarto": {"municao": 1.5, "lanterna": 3.0, "faca": 1.5},
 	"sala": {"mola": 2.0, "gatilho": 2.0, "cano": 2.0, "receita_pistola": 2.0},
 	"farmacia": {"antibiotico": 10.0, "agua": 2.0},
