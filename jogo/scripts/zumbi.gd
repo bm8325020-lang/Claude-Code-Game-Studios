@@ -283,7 +283,7 @@ func _ready() -> void:
 	add_to_group("golpeavel")
 	add_to_group("zumbis")
 	collision_layer = 8
-	collision_mask = 1 | 8 | Porta.CAMADA
+	collision_mask = 1 | Porta.CAMADA  # anti-lag (dono 06/11): zumbi não empurra zumbi, bando grande pesava na física
 	floor_snap_length = 0.4
 	var k: float = ESCALA_CHEFE if chefe else (ESCALA_LIDER if lider else 1.0)
 	if chefe:
