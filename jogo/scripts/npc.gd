@@ -15,6 +15,7 @@ const VEL: float = 4.6
 var _anim: AnimationPlayer
 var _i: int = -1
 var _t: float = 0.0
+var _dura: float = POR_FALA  # a fala atual (com voz dura o que a voz durar)
 
 
 func _ready() -> void:
@@ -69,7 +70,7 @@ func _process(dt: float) -> void:
 			_diz(principal)
 		return
 	_t += dt
-	if _t >= POR_FALA:
+	if _t >= _dura:
 		_t = 0.0
 		_i += 1
 		if _i >= falas.size():
@@ -80,4 +81,4 @@ func _process(dt: float) -> void:
 
 func _diz(principal: Node) -> void:
 	if principal.controles and _i < falas.size():
-		principal.controles._tarefas.legenda(nome, String(falas[_i]), POR_FALA)  # legenda de diálogo embaixo
+		_dura = principal.controles._tarefas.legenda(nome, String(falas[_i]), POR_FALA) + 0.3  # legenda (e voz) embaixo

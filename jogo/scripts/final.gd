@@ -30,6 +30,8 @@ var _t: float = 0.0
 var _texto: Label
 var _creditos: Label
 var _fase: int = 0  # 0 boletim, 1 créditos
+var _falou: int = -1
+var _dura: float = POR_LINHA
 
 
 func _ready() -> void:
@@ -67,7 +69,10 @@ func _process(dt: float) -> void:
 	if _fase == 0:
 		var l: String = _linhas[_i]
 		_texto.text = l.left(int(_t / LETRA))
-		if _t > POR_LINHA or (l == "" and _t > 0.5):
+		if _i != _falou:
+			_falou = _i
+			_dura = maxf(POR_LINHA, Voz.fala(l, self) + 0.4)  # boletim narrado pela Dana
+		if _t > _dura or (l == "" and _t > 0.5):
 			_t = 0.0
 			_i += 1
 			if _i >= _linhas.size():

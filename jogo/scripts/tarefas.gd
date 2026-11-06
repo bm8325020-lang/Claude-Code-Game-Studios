@@ -73,6 +73,26 @@ const FITAS_TXT: Array = [
 	"Dia 14. Se alguém achar isto: entregue à imprensa. A Mia, minha enfermeira, sabe onde estão as outras fitas.",
 ]
 const TOMMY: Array = ["Socorro! Aqui! Eles estão por todo lado!"]
+## Falas soltas com voz ("QUEM|texto"; o que vai entre parênteses na legenda não é falado).
+const EXTRAS: Array = ["MIA|...Alex... não estou... aguentando...", "WADE|Corvos, comigo!"]
+
+
+## Quem fala (para escolher a voz) pelo nome que aparece na legenda.
+static func quem(nome: String) -> String:
+	var n: String = nome.to_upper()
+	for par: Array in [["MILITAR", "militar"], ["DANA", "dana"], ["MIA", "mia"], ["TOMMY", "tommy"], ["WADE", "wade"],
+			["FITA", "okafor"], ["OKAFOR", "okafor"]]:
+		if n.contains(par[0]):
+			return par[1]
+	return "narrador"
+
+
+## "1 · A PRIMEIRA NOITE" -> "Capítulo 1. A primeira noite." (o narrador lê no cartão do capítulo)
+static func capitulo_falado(cap: String) -> String:
+	var num: String = cap.get_slice(" · ", 0)
+	var nome: String = cap.get_slice(" · ", 1).to_lower()
+	nome = nome.left(1).to_upper() + nome.substr(1)
+	return ("Prólogo. " if num == "0" else "Capítulo %s. " % num) + nome + "."
 const DEPOIS: Array = [["abateu", 5, "Mate zumbis (%d/%d)"], ["revistou", 5, "Revistar gavetas ou armários (%d/%d)"],
 	["agua", 2, "Pegue garrafas de água (%d/%d)"], ["comida", 2, "Pegue latas de comida (%d/%d)"]]
 
@@ -214,16 +234,18 @@ func _ready() -> void:
 
 
 ## Diálogo na legenda de baixo: "NOME: texto" (nome em cor), some depois de `tempo` s.
-func legenda(nome: String, texto: String, tempo: float = 5.0) -> void:
+func legenda(nome: String, texto: String, tempo: float = 5.0) -> float:
 	_legenda_txt.text = ("[b][color=#9fd8ff]%s:[/color][/b] %s" % [nome, texto]) if nome != "" else texto
 	_legenda.visible = true
 	_legenda.reset_size()
 	var tela: Vector2 = get_viewport().get_visible_rect().size
 	_legenda.position = Vector2((tela.x - _legenda.size.x) * 0.5, tela.y - _legenda.size.y - 120.0)
-	_legenda_t = tempo
 	if nome.begins_with("RÁDIO") and _chiado.stream:  # fala pelo rádio: chiado curto
 		_chiado.play()
 		get_tree().create_timer(1.2).timeout.connect(_chiado.stop)
+	var falado: String = texto.left(texto.rfind(" (")) if texto.ends_with(")") and texto.contains(" (") else texto
+	_legenda_t = maxf(tempo, Voz.fala(falado, self) + 0.6)  # com voz: a legenda fica até ela terminar
+	return _legenda_t
 
 
 func liga(j: Jogador) -> void:
@@ -284,6 +306,7 @@ func _comeca() -> void:
 		if String(r[0]) != _cap:
 			if _cap != "":
 				_cartao("CAPÍTULO " + String(r[0]) + "\n" + _hora() + ("  ·  " + String(_cfg.local) if _cfg.has("local") else ""))
+				Voz.fala(capitulo_falado(String(r[0])), self)
 			_cap = String(r[0])
 		_prepara(String(r[5]))
 		_alvo = _onde(String(r[4]))

@@ -1,0 +1,217 @@
+[
+	{
+		"id": "22a639f8d41a",
+		"texto": "Prólogo. A estrada.",
+		"voz": "narrador"
+	},
+	{
+		"id": "9f447485a877",
+		"texto": "Senoia. 4 mil habitantes. Nenhum vivo à vista.",
+		"voz": "narrador"
+	},
+	{
+		"id": "c82480141d43",
+		"texto": "Capítulo 1. A primeira noite.",
+		"voz": "narrador"
+	},
+	{
+		"id": "2f4d9b58ec81",
+		"texto": "\"Se alguém estiver ouvindo... estou na van da TV, na praça. Venha.\"",
+		"voz": "dana"
+	},
+	{
+		"id": "53b4646b4249",
+		"texto": "Capítulo 2. A van da tv.",
+		"voz": "narrador"
+	},
+	{
+		"id": "6285eb717836",
+		"texto": "\"Valeu, cara... Eu vi a Mia. Levaram ela pro hospital, depois pros caminhões do Exército.\"",
+		"voz": "tommy"
+	},
+	{
+		"id": "096adabf4d0a",
+		"texto": "Capítulo 3. O hospital.",
+		"voz": "narrador"
+	},
+	{
+		"id": "5ec3aa944ae5",
+		"texto": "\"A Dra. Okafor vai nos levar para a QUARENTENA. Só os Corvos têm explosivo para abrir aquilo.\"",
+		"voz": "mia"
+	},
+	{
+		"id": "5e2f823612e5",
+		"texto": "Capítulo 4. Os corvos.",
+		"voz": "narrador"
+	},
+	{
+		"id": "5adc42aed89e",
+		"texto": "Wade cai. Na mochila dele: uma bomba do Exército e uma fita.",
+		"voz": "narrador"
+	},
+	{
+		"id": "3021270d3349",
+		"texto": "Capítulo 5. A quarentena.",
+		"voz": "narrador"
+	},
+	{
+		"id": "0426e80d6309",
+		"texto": "\"Melhorou... Vai, o Mercer tem as peças do rádio. Eu te encontro no heliponto.\"",
+		"voz": "mia"
+	},
+	{
+		"id": "d9a90caef0e4",
+		"texto": "Mercer caiu. Uma peça do rádio militar e mais uma fita.",
+		"voz": "narrador"
+	},
+	{
+		"id": "809d6a86e4c0",
+		"texto": "Capítulo 6. O sinal.",
+		"voz": "narrador"
+	},
+	{
+		"id": "b12272f5a929",
+		"texto": "\"...Senoia, entendido. Helicóptero no heliponto do hospital na próxima noite. Aguentem.\"",
+		"voz": "militar"
+	},
+	{
+		"id": "5552fbb6a5be",
+		"texto": "Capítulo 7. As fitas.",
+		"voz": "narrador"
+	},
+	{
+		"id": "26ddec87fe05",
+		"texto": "Capítulo 8. A última noite.",
+		"voz": "narrador"
+	},
+	{
+		"id": "d5f818d857cf",
+		"texto": "Dia 3. Quarenta pacientes com febre e pele cinzenta. Todos comeram pão da padaria que usa o milho da Hollis Feed.",
+		"voz": "okafor"
+	},
+	{
+		"id": "4a5e3031e041",
+		"texto": "Dia 6. A Halverson Agro mandou dois homens buscar as amostras. Disseram que o milho era 'experimental'.",
+		"voz": "okafor"
+	},
+	{
+		"id": "ac73ac13741b",
+		"texto": "Dia 9. O primeiro morto levantou no necrotério. O Exército fechou as estradas na mesma noite.",
+		"voz": "okafor"
+	},
+	{
+		"id": "ee8a8032a534",
+		"texto": "Dia 12. O fungo está no milho. A Halverson sabia desde o lote 7. Tenho os papéis e o nome de quem assinou.",
+		"voz": "okafor"
+	},
+	{
+		"id": "f5097f5ce0d5",
+		"texto": "Dia 14. Se alguém achar isto: entregue à imprensa. A Mia, minha enfermeira, sabe onde estão as outras fitas.",
+		"voz": "okafor"
+	},
+	{
+		"id": "e1d9d957f132",
+		"texto": "Graças a Deus, alguém vivo! Sou a Dana, da WSB.",
+		"voz": "dana"
+	},
+	{
+		"id": "b0a7eee9b99f",
+		"texto": "Não foi acidente: a Febre Cinzenta saiu do milho da Hollis Feed. A Halverson Agro testava algo ali.",
+		"voz": "dana"
+	},
+	{
+		"id": "fae05f90b780",
+		"texto": "A Dra. Okafor gravou tudo em fitas. São cinco. Sem elas, ninguém vai acreditar.",
+		"voz": "dana"
+	},
+	{
+		"id": "435d5ac825c1",
+		"texto": "Sua irmã, a Mia? Vi enfermeiras no hospital no dia 20. Comece por lá.",
+		"voz": "dana"
+	},
+	{
+		"id": "c4c447e00da2",
+		"texto": "Leve este rádio. Eu falo com você por ele. Boa sorte.",
+		"voz": "dana"
+	},
+	{
+		"id": "fa1b9dadd558",
+		"texto": "...Alex? Você veio... eu disse para não vir.",
+		"voz": "mia"
+	},
+	{
+		"id": "c8829434c27a",
+		"texto": "Fui mordida. A doutora me dava remédio para segurar a febre. Preciso de um ANTIBIÓTICO.",
+		"voz": "mia"
+	},
+	{
+		"id": "4956e0786f5e",
+		"texto": "Socorro! Aqui! Eles estão por todo lado!",
+		"voz": "tommy"
+	},
+	{
+		"id": "367c00c3992f",
+		"texto": "...Alex... não estou... aguentando...",
+		"voz": "mia"
+	},
+	{
+		"id": "9b6dbba0d4db",
+		"texto": "Corvos, comigo!",
+		"voz": "wade"
+	},
+	{
+		"id": "38eb040c89c2",
+		"texto": "WSB CHANNEL 2 — EDIÇÃO EXTRAORDINÁRIA",
+		"voz": "dana"
+	},
+	{
+		"id": "419725a6c30e",
+		"texto": "Aqui é Dana Price, a bordo de um helicóptero do Exército, saindo de Senoia.",
+		"voz": "dana"
+	},
+	{
+		"id": "bec4c77e9628",
+		"texto": "Temos as cinco fitas da doutora Ruth Okafor.",
+		"voz": "dana"
+	},
+	{
+		"id": "7f371dd2540b",
+		"texto": "A Febre Cinzenta não foi acidente: a Halverson Agro testou um milho modificado na Hollis Feed.",
+		"voz": "dana"
+	},
+	{
+		"id": "ff5a67fcb455",
+		"texto": "A Mia está viva. Está fraca, mas está aqui, do meu lado.",
+		"voz": "dana"
+	},
+	{
+		"id": "e579178e1a80",
+		"texto": "Ao Alex, que veio de fora e não desistiu: obrigada.",
+		"voz": "dana"
+	},
+	{
+		"id": "faa0ef4ca3b8",
+		"texto": "Senoia ficou para trás. A verdade, não.",
+		"voz": "dana"
+	},
+	{
+		"id": "1268fd836a7c",
+		"texto": "Aqui é Dana Price, saindo de Senoia num helicóptero do Exército.",
+		"voz": "dana"
+	},
+	{
+		"id": "443e763fbd71",
+		"texto": "Sem as fitas da doutora Okafor, não temos prova de nada.",
+		"voz": "dana"
+	},
+	{
+		"id": "87508e1f57ca",
+		"texto": "A Halverson Agro já soltou uma nota: 'surto de origem desconhecida'.",
+		"voz": "dana"
+	},
+	{
+		"id": "96ef264475ac",
+		"texto": "Saímos vivos. Mas a verdade ficou lá embaixo, com os mortos.",
+		"voz": "dana"
+	}
+]
