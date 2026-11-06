@@ -598,7 +598,8 @@ func _process(dt: float) -> void:
 			var dana: Node3D = _npc.get("dana")
 			if tommy and tommy.segue == null:
 				tommy.segue = _j
-			if tommy and dana and tommy.global_position.distance_to(dana.global_position) < PERTO:
+			# Tommy para a 2,5 m de você: vale chegar com ele perto da van (antes exigia ele colado nela e travava)
+			if tommy and dana and tommy.global_position.distance_to(dana.global_position) < PERTO + 4.0:
 				tommy.segue = null
 				evento("escolta")
 			_mostra()
@@ -683,6 +684,11 @@ func _luta(dt: float) -> void:
 			_onda_nos.erase(z)
 			_onda_mortos += 1
 			_mostra()
+	if _onda_centro.distance_to(_j.global_position) > float(_cfg.raio) * 2.2 and _j.carro == null:
+		var c2 := get_parent()  # fugiu da luta (também entre as ondas): volta
+		if c2 and c2.has_method("aviso"):
+			c2.aviso("NÃO DÁ PARA FUGIR: VOLTE PARA A LUTA", Color(1.0, 0.35, 0.3), 2.5)
+		_j.global_position = _chao(_onda_centro + (_j.global_position - _onda_centro).normalized() * float(_cfg.raio)) + Vector3(0, 0.3, 0)
 	if _onda_nos.is_empty():
 		if _onda_resta <= 0:
 			_onda_total = 0
@@ -704,11 +710,6 @@ func _luta(dt: float) -> void:
 			var c := get_parent()
 			if c and c.has_method("aviso"):
 				c.aviso("ONDA %d/%d" % [int(_cfg.ondas) - _onda_resta, int(_cfg.ondas)], Color(1.0, 0.4, 0.3), 2.0)
-	elif _onda_centro.distance_to(_j.global_position) > float(_cfg.raio) * 2.2 and _j.carro == null:
-		var c2 := get_parent()  # fugiu da luta: volta
-		if c2 and c2.has_method("aviso"):
-			c2.aviso("NÃO DÁ PARA FUGIR: VOLTE PARA A LUTA", Color(1.0, 0.35, 0.3), 2.5)
-		_j.global_position = _chao(_onda_centro + (_j.global_position - _onda_centro).normalized() * float(_cfg.raio)) + Vector3(0, 0.3, 0)
 
 
 ## Barra de vida do chefe no alto; na metade da vida ele chama reforço (Wade: Corvos; Mercer: zumbis).

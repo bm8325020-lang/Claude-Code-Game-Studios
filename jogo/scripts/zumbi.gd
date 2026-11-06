@@ -1043,7 +1043,8 @@ func _tiro_fx(ate: Vector3) -> void:
 	luz.light_color = Color(1, 0.8, 0.5)
 	luz.light_energy = 3.0
 	luz.omni_range = 5.0
-	get_parent().add_child(luz)
+	var fora: Node = get_parent().get_parent()  # fora da lista de zumbis (laços tipados de Zumbi quebravam com luz/som lá)
+	fora.add_child(luz)
 	luz.global_position = de
 	luz.create_tween().tween_property(luz, "light_energy", 0.0, 0.08).finished.connect(luz.queue_free)
 	var som := AudioStreamPlayer3D.new()
@@ -1052,7 +1053,7 @@ func _tiro_fx(ate: Vector3) -> void:
 	som.stream = _estampido
 	som.pitch_scale = randf_range(0.85, 0.95)
 	som.unit_size = 12.0
-	get_parent().add_child(som)
+	fora.add_child(som)
 	som.global_position = de
 	som.finished.connect(som.queue_free)
 	som.play()
@@ -1069,7 +1070,7 @@ func _tiro_fx(ate: Vector3) -> void:
 	m.albedo_color = Color(1, 0.9, 0.6, 0.7)
 	cil.material = m
 	r.mesh = cil
-	get_parent().add_child(r)
+	fora.add_child(r)
 	r.global_position = (de + ate) * 0.5
 	var eixo: Vector3 = (ate - de).normalized()
 	if absf(eixo.dot(Vector3.UP)) < 0.999:
@@ -1172,7 +1173,7 @@ func _poeira() -> void:
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.albedo_color = Color(0.55, 0.5, 0.42, 0.7)
 	mi.material_override = m
-	get_parent().add_child(mi)
+	get_parent().get_parent().add_child(mi)  # poeira fora da lista de zumbis
 	mi.global_position = global_position + Vector3(0, 0.1, 0)
 	mi.scale = Vector3(0.5, 0.3, 0.5)
 	var tw := mi.create_tween().set_parallel()

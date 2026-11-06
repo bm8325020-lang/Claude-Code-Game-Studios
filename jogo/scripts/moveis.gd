@@ -82,7 +82,32 @@ static func _poe(mi: MeshInstance3D, modelo: String, na_parede: bool) -> bool:
 	m.position = -desl
 	suporte.add_child(m)
 	_leve(m)
+	if not na_parede:
+		_ajusta_colisao(mi, suporte, AABB(ma.position * s - desl, ma.size * s))
 	return true
+
+
+# A caixa do Blender era a colisão; o modelo cabe nela só num eixo e sobrava parede invisível em volta (dono 06/11).
+# Desliga a colisão da caixa e põe uma do tamanho do modelo (um pouco menor, para não enroscar).
+static func _ajusta_colisao(mi: MeshInstance3D, suporte: Node3D, a: AABB) -> void:
+	var achou: bool = false
+	var formas: Array = mi.find_children("*", "CollisionShape3D", true, false)
+	var irma: Node = mi.get_parent().get_node_or_null(String(mi.name) + "_c")  # o glb põe a colisão num irmão "<nome>_c"
+	if irma:
+		formas += irma.find_children("*", "CollisionShape3D", true, false)
+	for c: CollisionShape3D in formas:
+		c.disabled = true
+		achou = true
+	if not achou:
+		return
+	var corpo := StaticBody3D.new()
+	var forma := CollisionShape3D.new()
+	var caixa := BoxShape3D.new()
+	caixa.size = Vector3(maxf(a.size.x - 0.06, 0.1), a.size.y, maxf(a.size.z - 0.06, 0.1))
+	forma.shape = caixa
+	forma.position = a.get_center()
+	corpo.add_child(forma)
+	suporte.add_child(corpo)
 
 
 # coisa pequena em cima do móvel (micro-ondas no balcão, lampião no criado)

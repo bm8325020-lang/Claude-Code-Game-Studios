@@ -32,6 +32,6 @@ func _init() -> void:
 	ok(Minimapa.destino.is_finite(), "o refúgio fica marcado no mapa (07/11)")
 	j.entrou_segura.emit(true)
 	await physics_frame
-	ok(t._i == 3 and t._linha.text.contains("van") and Minimapa.destino.is_finite(), "refúgio: vai para a van da Dana, marcada (%s)" % t._linha.text)
+	ok(t._i == 3 and t._linha.text.contains("DEFENDA") and t._onda_total > 0, "refúgio: luta obrigatória para defender (%s)" % t._linha.text)
 	print("TAREFAS: %d checks, %d falhas -> %s" % [checks, falhas, "PASS" if falhas == 0 else "FAIL"])
 	quit(0 if falhas == 0 else 1)

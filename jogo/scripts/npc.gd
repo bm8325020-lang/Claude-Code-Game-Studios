@@ -48,6 +48,9 @@ func _process(dt: float) -> void:
 			var prox: Vector3 = cam[1] if cam.size() > 1 else segue.global_position
 			var dir: Vector3 = prox - global_position
 			dir.y = 0.0
+			if dir.length() < 0.05:  # já está na esquina do caminho: mira direto em quem segue (antes ficava parado)
+				prox = segue.global_position
+				dir = Vector3(prox.x - global_position.x, 0.0, prox.z - global_position.z)
 			global_position += dir.normalized() * minf(VEL * (1.6 if d > 12.0 else 1.0) * dt, dir.length())
 			global_position.y = prox.y
 			rotation.y = atan2(dir.x, dir.z)
