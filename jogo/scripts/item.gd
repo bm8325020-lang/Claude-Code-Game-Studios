@@ -147,6 +147,15 @@ func _monta_modelo() -> void:
 		_modelo("res://assets/sketchfab/garrafa_agua.glb", 0.24, Vector3(0, 0, 90))  # deitada
 	elif tipo == "antibiotico":
 		_monta_remedio()
+	elif tipo in ["fita", "peca_radio", "diario"]:  # itens da história: caixinha com cor (brilha um pouco para achar)
+		var cor := {"fita": Color(0.1, 0.1, 0.1), "peca_radio": Color(0.2, 0.42, 0.22), "diario": Color(0.45, 0.25, 0.12)}[tipo] as Color
+		var m := StandardMaterial3D.new()
+		m.albedo_color = cor
+		m.emission_enabled = true
+		m.emission = Color(1.0, 0.75, 0.3)
+		m.emission_energy_multiplier = 0.35
+		var tam: Vector3 = {"fita": Vector3(0.1, 0.02, 0.065), "peca_radio": Vector3(0.14, 0.08, 0.1), "diario": Vector3(0.15, 0.03, 0.2)}[tipo]
+		_bloco(Vector3(0, tam.y * 0.5, 0), tam, m)
 	elif tipo == "bomba":
 		_modelo("res://assets/mundo/props/bomba/bomba.gltf", 0.18, Vector3.ZERO)
 	elif tipo == "chave":  # chave velha de latão: argola, haste e dente

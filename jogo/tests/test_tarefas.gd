@@ -24,17 +24,14 @@ func _init() -> void:
 	ok(t._linha.text.contains("comida"), "começa pedindo comida (%s)" % t._linha.text)
 	var xp0: int = j.prog.xp + j.prog.nivel * 1000
 	t.evento("agua")
-	ok(t._i == 0, "evento errado não conta")
+	ok(t._i == 1, "evento errado não conta (teste começa no cap. 1)")
 	j.ganhar("comida", 1)
 	await physics_frame
-	ok(t._i == 1 and t._linha.text.contains("refúgio"), "pegou comida: história pede o refúgio (%s)" % t._linha.text)
+	ok(t._i == 2 and t._linha.text.contains("refúgio"), "pegou comida: história pede o refúgio (%s)" % t._linha.text)
 	ok(j.prog.xp + j.prog.nivel * 1000 > xp0, "passo feito dá XP")
 	ok(Minimapa.destino.is_finite(), "o refúgio fica marcado no mapa (07/11)")
 	j.entrou_segura.emit(true)
 	await physics_frame
-	ok(t._i == 2 and t._linha.text.contains("HOSPITAL") and Minimapa.destino.is_finite(), "refúgio: vai para o hospital, marcado (%s)" % t._linha.text)
-	j.global_position = t._alvo + Vector3(0, 0.3, 0)
-	for i in 40: await physics_frame
-	ok(t._i == 3 and t._linha.text.contains("Revistar"), "chegou no hospital: revistar (%s)" % t._linha.text)
+	ok(t._i == 3 and t._linha.text.contains("van") and Minimapa.destino.is_finite(), "refúgio: vai para a van da Dana, marcada (%s)" % t._linha.text)
 	print("TAREFAS: %d checks, %d falhas -> %s" % [checks, falhas, "PASS" if falhas == 0 else "FAIL"])
 	quit(0 if falhas == 0 else 1)

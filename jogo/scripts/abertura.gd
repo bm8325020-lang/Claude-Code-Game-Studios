@@ -81,9 +81,13 @@ func _process(dt: float) -> void:
 	var principal := get_tree().get_first_node_in_group("principal")
 	var b: Bairro = principal.bairro if principal else null
 	if _passo == 1:
+		if _muro == null and b:
+			_poe_muro(b)
 		if jogador.carro != null:
 			_passo = 2
 			_aviso_t = 0.0
+			if _muro:
+				_muro.queue_free()  # pegou o carro: a estrada abre
 		elif _aviso_t <= 0.0:
 			_aviso_t = 3.5
 			principal.controles.aviso("ENTRE NO CARRO (botão USAR)")
@@ -91,10 +95,27 @@ func _process(dt: float) -> void:
 		if b and jogador.global_position.distance_to(b.entrada_pos) > 160.0:
 			_passo = 3
 			principal.controles.aviso("BEM-VINDO A SENOIA. ACHE COMIDA, ÁGUA E UM LUGAR SEGURO.", UiTema.DESTAQUE, 6.0)
+			if principal.controles._tarefas:
+				principal.controles._tarefas.evento("chegou")  # capítulo 0 da história fechado
 			queue_free()
 		elif _aviso_t <= 0.0:
 			_aviso_t = 4.0
 			principal.controles.aviso("SIGA A ESTRADA ATÉ A CIDADE")
+
+
+## 07/11 (dono: "é obrigado a pegar o carro, não pode ir direto para a cidade"): a pé, um muro invisível largo atravessa
+## a estrada e o mato na frente do carro; some quando você entra no carro.
+var _muro: StaticBody3D
+func _poe_muro(b: Bairro) -> void:
+	_muro = StaticBody3D.new()
+	var cs := CollisionShape3D.new()
+	var f := BoxShape3D.new()
+	f.size = Vector3(260.0, 8.0, 1.0)
+	cs.shape = f
+	_muro.add_child(cs)
+	b.add_child(_muro)
+	_muro.global_position = b.entrada_pos + b.entrada_dir * 22.0 + Vector3(0, 3.0, 0)
+	_muro.rotation.y = atan2(b.entrada_dir.x, b.entrada_dir.z)
 
 
 func _acaba_boletim() -> void:

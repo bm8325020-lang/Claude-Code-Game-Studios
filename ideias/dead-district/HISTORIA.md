@@ -63,3 +63,18 @@ ordem dentro do capítulo; o próximo abre quando o objetivo fecha. Morrer volta
   Halverson nas caixas e no laboratório, conversa curta com Dana/Wade/Mia em faixas de texto.
 - Objetivo do capítulo no lugar das TAREFAS do HUD; marcador no mapa/minimapa; diário com fitas, fotos e bilhetes.
 - Co-op: os amigos na sala ajudam no capítulo de quem criou; o progresso salva para quem criou.
+
+
+## Como está no jogo (07/11, scripts/tarefas.gd; teste tests/test_historia.gd zera tudo)
+Ordem obrigatória, um passo por vez, destino marcado no mapa sozinho, progresso salvo no aparelho:
+0. A estrada: muro invisível na frente do carro até você ENTRAR NO CARRO (abertura.gd); dirigir até Senoia.
+1. Primeira noite: comida -> refúgio (rádio da Dana chama).
+2. A van da TV: Dana Price ao lado da van no centro (Npc), conta a Febre, a Halverson, as 5 fitas e a Mia.
+3. O hospital: chegar; achar o DIÁRIO DA MIA (+ fita 1 na frente).
+4. Os Corvos: matar WADE HARLAN (líder, saqueador com muita vida) no mercado -> larga a BOMBA (+ fita 2).
+5. A quarentena: explodir o portão com a bomba; achar a MIA nas tendas; levar um ANTIBIÓTICO; matar o SARGENTO MERCER
+   (zumbi chefe) -> peça do rádio (+ fita 3).
+6. O sinal: 3 peças do rádio (Mercer, ferro-velho, bombas de gasolina) -> subir na TORRE DE ÁGUA e chamar o Exército.
+7. As fitas: escola e igreja (fitas 4 e 5) e ir ao HELIPONTO (H amarelo na frente do hospital).
+8. A última noite: anoitecer no heliponto e aguentar 150 s de ondas de zumbis; o helicóptero desce; correr até ele.
+Fim (final.gd): boletim da Dana (BOM com as 5 fitas: a Halverson é exposta; AMARGO sem elas) + créditos; CONTINUAR.
