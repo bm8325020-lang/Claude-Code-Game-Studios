@@ -93,6 +93,7 @@ const FITAS_TXT: Array = [
 	"Dia 14. Se alguém achar isto: entregue à imprensa. A Mia, minha enfermeira, sabe onde estão as outras fitas.",
 ]
 const TOMMY: Array = ["Socorro! Aqui! Eles estão por todo lado!"]
+const NOITE_VOZ: String = "Escureceu. De noite eles correm e ouvem mais longe. Fique perto de um refúgio."
 const DICA_VOZ: Array = ["Ainda está aí? Olhe o mapa: eu marquei para onde você tem que ir."]
 ## Falas soltas com voz ("QUEM|texto"; o que vai entre parênteses na legenda não é falado).
 const EXTRAS: Array = ["MIA|...Alex... não estou... aguentando...", "WADE|Corvos, comigo!"]
@@ -645,6 +646,8 @@ func _process(dt: float) -> void:
 		var noite: bool = ciclo.e_noite()
 		if _era_noite and not noite:
 			evento("amanheceu")
+		if noite and not _era_noite and _i > 0:  # 06/11: a Dana avisa a noite pelo rádio
+			legenda("RÁDIO · DANA", NOITE_VOZ, 6.0)
 		_era_noite = noite
 	if _alvo.is_finite() and Minimapa.destino != _alvo and Minimapa.destino.is_finite() == false:
 		Minimapa.destino = _alvo

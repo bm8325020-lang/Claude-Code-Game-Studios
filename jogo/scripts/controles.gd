@@ -977,6 +977,7 @@ func _pegou(tipo: String, qtd: int) -> void:
 
 func _levou_dano(dano: int) -> void:
 	_vermelho.color.a = clampf(0.15 + dano * 0.012, 0.0, 0.45)
+	Input.vibrate_handheld(clampi(40 + dano * 4, 60, 260))  # 06/11 (dono): celular vibra ao levar dano (mordida: mais forte)
 
 
 func _em_botao(p: Vector2) -> bool:
