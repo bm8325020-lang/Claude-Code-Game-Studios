@@ -30,3 +30,6 @@ Cada modelo: arquivo | nome original | autor | licença | origem | tamanho | fac
 | veiculos/sedan.glb | Medium sized sedan | MaG80 | CC Attribution | https://sketchfab.com/3d-models/medium-sized-sedan-cb8fdecbc30d4618a6109d1de0e30a9e | 1.2 MB | 17748 | sim | obrigatória |
 | brutos/veiculos/abandoned_generic_sedan_2_game_ready.glb | Abandoned Generic Sedan 2 - Game Ready | Rashad Ibrahimli | CC Attribution | https://sketchfab.com/3d-models/abandoned-generic-sedan-2-game-ready-db2df46c49f9441286c84c66208ef7ac | 5.1 MB | 16487 | sim | obrigatória |
 | brutos/veiculos/pickup_truck.glb | Pickup Truck | 00amza | CC Attribution | https://sketchfab.com/3d-models/pickup-truck-047615f53e2d45b9a1a2a4dd203d459c | 1.7 MB | 5047 | sim | obrigatória |
+| brutos/veiculos/burned_car.glb | Burned Car | GAMGO | CC Attribution | https://sketchfab.com/3d-models/burned-car-3c5ee424326c44b497534c8721dfef6f | 2.0 MB | 2755 | sim | obrigatória |
+| brutos/veiculos/graffiti_van.glb | Graffiti Van | FrankCrossNC | CC Attribution | https://sketchfab.com/3d-models/graffiti-van-121b72f4f78846f2867336bde21cd4d3 | 3.5 MB | 2818 | sim | obrigatória |
+| brutos/veiculos/car_wreck_low_poly.glb | Car Wreck Low-Poly | vinrax | CC Attribution | https://sketchfab.com/3d-models/car-wreck-low-poly-87cbb2ec7a994c2a9e7bd7a62f1f7ff3 | 4.5 MB | 8656 | sim | obrigatória |

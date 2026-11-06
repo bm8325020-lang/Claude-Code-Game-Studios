@@ -57,7 +57,15 @@ def baixa(pasta, uid):
 
 if __name__ == "__main__":
     a = sys.argv[1:]
-    if a[0] == "--info":
+    if a[0] == "--busca":  # --busca "termo" [máx. de faces]: só baixáveis com licença comercial, os mais leves primeiro
+        import urllib.parse
+        lim = int(a[2]) if len(a) > 2 else 20000
+        r = api("search?type=models&downloadable=true&count=24&q=" + urllib.parse.quote(a[1]))
+        for m in sorted(r.get("results", []), key=lambda m: m.get("faceCount", 0)):
+            lic = (m.get("license") or {}).get("label", "?")
+            if m.get("faceCount", 0) <= lim and lic.startswith(OK_LIC) and "NonCommercial" not in lic and "NoDerivs" not in lic:
+                print(m["uid"], m.get("faceCount"), lic, "|", m["name"][:60])
+    elif a[0] == "--info":
         for uid in a[1:]:
             m, lic, ok = info(uid)
             d = api("models/%s/download" % uid) if ok else {}

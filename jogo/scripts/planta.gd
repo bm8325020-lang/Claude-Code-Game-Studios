@@ -60,7 +60,7 @@ static func monta(b: Bairro, dados: Dictionary) -> void:
 			m.name = "VeiculoPlanta_%d" % n
 			m.position = Vector3(p.x, b.altura(p), p.y)
 			m.rotation.y = float(v.r)
-			if v.m == "carro_r2" and n % 3 == 0 and not Rede.servidor_sem_tela:  # carro queimado ainda ardendo (terror 06/11)
+			if (v.m == "carro_r2" or v.m == "mundo:queimado") and n % 3 == 0 and not Rede.servidor_sem_tela:  # carro queimado ainda ardendo (terror 06/11)
 				var f := Fogo.new()
 				f.tamanho = 0.7
 				f.coluna = n % 2 == 0

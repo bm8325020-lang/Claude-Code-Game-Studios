@@ -20,7 +20,8 @@ const RUINAS_CASA: Array[String] = ["casa_r11", "casa_r5", "casa_r10", "casa_r2"
 const RUINAS_MANSAO: Array[String] = ["casa_r11", "casa_r5", "casa_r10", "casa_r2", "casa_r3"]
 const RUINAS_LOJA: Array[String] = ["predio_r1", "loja_r2", "loja_r1"]
 const RUINAS_GALPAO: Array[String] = ["galpao_r1", "galpao_r2"]
-const VEICULOS: Array[String] = ["carro_r1", "carro_r1", "van_r1", "carro_r2"]  # carro_r2 = queimado
+# 07/11 (E2): queimado e van prontos (Sketchfab CC BY, normaliza.py) no lugar dos feitos no Blender
+const VEICULOS: Array[String] = ["carro_r1", "carro_r1", "mundo:van", "mundo:queimado"]
 const FRESTA_ALT: float = 4.2  # muros da fresta (mais altos que o pulo)
 const LARG_RUA: Dictionary = {"primary": 10.0, "secondary": 9.0, "tertiary": 8.0, "residential": 6.5, "unclassified": 6.0, "service": 4.0}
 
@@ -1217,19 +1218,25 @@ func _carros() -> void:
 
 
 func _veiculo(arq: String, cor: Color) -> Node3D:
-	if arq.begins_with("mundo:"):  # carro pronto baixado (normaliza.py): carcaça abandonada, frente no +X do arquivo
+	if arq.begins_with("mundo:"):  # carro pronto baixado (normaliza.py): comprimento virado para Z, colisão do tamanho dele
 		var nome: String = arq.substr(6)
 		var raiz := Node3D.new()
 		add_child(raiz)
 		var m: Node3D = (load("res://assets/mundo/veiculos/%s/%s.gltf" % [nome, nome]) as PackedScene).instantiate()
-		m.rotation.y = PI * 0.5
+		var cx := AABB()
+		for mi: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
+			var a: AABB = mi.transform * mi.get_aabb()
+			cx = a if cx.size == Vector3.ZERO else cx.merge(a)
+		if cx.size.x > cx.size.z:
+			m.rotation.y = PI * 0.5
 		raiz.add_child(m)
 		var corpo := StaticBody3D.new()
 		var cs := CollisionShape3D.new()
 		var bx := BoxShape3D.new()
-		bx.size = Vector3(1.8, 1.4, 4.2)
+		var tam := Vector3(minf(cx.size.x, cx.size.z), cx.size.y, maxf(cx.size.x, cx.size.z)) if cx.size != Vector3.ZERO else Vector3(1.8, 1.4, 4.2)
+		bx.size = tam * Vector3(0.95, 1.0, 0.95)
 		cs.shape = bx
-		cs.position.y = 0.7
+		cs.position.y = tam.y * 0.5
 		corpo.add_child(cs)
 		raiz.add_child(corpo)
 		return raiz

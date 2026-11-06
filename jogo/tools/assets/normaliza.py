@@ -21,6 +21,10 @@ MODELOS = {
     "samambaia": ("vegetation/plants/realistic_beech_fern_plant_games_film.glb", "vegetation/plants", 0.6, False, 500),
     "moita": ("vegetation/plants/grass_bushes_game_ready_asset.glb", "vegetation/plants", 0.8, False),
     "carcaca": ("veiculos/abandoned_generic_sedan_2_game_ready.glb", "veiculos", 1.45, False, 6000),  # carro abandonado
+    # 07/11 (E2, regra 7: pronto no lugar do feito à mão): trocam carro_r1, carro_r2 e van_r1 (Blender) na cidade
+    "ferrugem": ("veiculos/car_wreck_low_poly.glb", "veiculos", 1.4, False, 6000),
+    "queimado": ("veiculos/burned_car.glb", "veiculos", 1.3, False),
+    "van": ("veiculos/graffiti_van.glb", "veiculos", 2.1, False),
     "capim_seco": ("vegetation/plants/dry_realistic_grass_lods_1.glb", "vegetation/plants", 0.6, False, 500),
     # 07/11 anti-travamento: versão de longe das árvores grandes (Planta: perto a inteira, longe esta)
     "arvore_lod": ("vegetation/trees/realistic_tree.glb", "vegetation/trees", 10.0, False, 500),

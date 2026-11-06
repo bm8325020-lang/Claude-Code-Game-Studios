@@ -393,7 +393,7 @@ def enche(pts, lado, zona_ok=None):
                 q1 = (q0[0] + math.cos(ang_r) * larg_e, q0[1] + math.sin(ang_r) * larg_e)
                 area([q0, q1, (q1[0] + nx * 14, q1[1] + nz * 14), (q0[0] + nx * 14, q0[1] + nz * 14)], "asfalto")
                 if R.random() < 0.6:
-                    veiculos.append({"m": R.choice(["carro_r1", "carro_r2"]), "p": [round((q0[0] + q1[0]) / 2 + nx * 6, 2), round((q0[1] + q1[1]) / 2 + nz * 6, 2)],
+                    veiculos.append({"m": R.choice(["carro_r1", ("mundo:queimado", "mundo:ferrugem")[len(veiculos) % 2]]), "p": [round((q0[0] + q1[0]) / 2 + nx * 6, 2), round((q0[1] + q1[1]) / 2 + nz * 6, 2)],
                                      "r": round(ang_r + R.uniform(-0.3, 0.3), 3)})
                 t += larg_e + 1.0
                 continue
@@ -637,7 +637,7 @@ for tent in range(400):
     for k in range(RA.randint(2, 3)):
         ang = a + RA.choice([0.0, math.pi]) + RA.uniform(-1.1, 1.1)
         q = (p[0] + math.cos(a) * (k * 3.2 - 3) + RA.uniform(-1, 1), p[1] + math.sin(a) * (k * 3.2 - 3) + RA.uniform(-1, 1))
-        veiculos.append({"m": RA.choice(["mundo:carcaca", "mundo:carcaca", "carro_r2", "van_r1"]), "p": [round(q[0], 2), round(q[1], 2)],
+        veiculos.append({"m": RA.choice(["mundo:carcaca", "mundo:ferrugem", "mundo:queimado", "mundo:van"]), "p": [round(q[0], 2), round(q[1], 2)],
                          "r": round(math.pi / 2 - ang, 3), "cor": [round(RA.uniform(0.1, 0.5), 2), round(RA.uniform(0.1, 0.4), 2), round(RA.uniform(0.1, 0.4), 2)]})
     zumbis.append([round(p[0] + RA.uniform(-4, 4), 2), round(p[1] + RA.uniform(-4, 4), 2)])
 

@@ -25,6 +25,9 @@ MUNDO (vegetação, construções)
 • "Low Poly Shotgun Shells" — mapleaber (CC Attribution) — sketchfab.com/3d-models/low-poly-shotgun-shells-7090d59effb14bd987eda7369a3da54a
 • "Medium sized sedan" — MaG80 (CC Attribution) — sketchfab.com/3d-models/medium-sized-sedan-cb8fdecbc30d4618a6109d1de0e30a9e
 • "Abandoned Generic Sedan 2 - Game Ready" — Rashad Ibrahimli (CC Attribution) — sketchfab.com/3d-models/abandoned-generic-sedan-2-game-ready-db2df46c49f9441286c84c66208ef7ac
+• "Burned Car" — GAMGO (CC Attribution) — sketchfab.com/3d-models/burned-car-3c5ee424326c44b497534c8721dfef6f
+• "Graffiti Van" — FrankCrossNC (CC Attribution) — sketchfab.com/3d-models/graffiti-van-121b72f4f78846f2867336bde21cd4d3
+• "Car Wreck Low-Poly" — vinrax (CC Attribution) — sketchfab.com/3d-models/car-wreck-low-poly-87cbb2ec7a994c2a9e7bd7a62f1f7ff3
 
 ARMAS E OBJETOS
 Kenney (kenney.nl) — CC0: assets/sons/*.ogg
