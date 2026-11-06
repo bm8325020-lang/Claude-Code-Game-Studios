@@ -386,6 +386,80 @@ func _process(dt: float) -> void:
 		_passa_salas(dt)
 
 
+## Bomba (07/11): servidor arma; bipa e explode em Jogador.BOMBA_T s: arromba os portões blindados perto, fere quem
+## estiver perto e faz o barulho que chama zumbi da cidade.
+const BOMBA_RAIO: float = 9.0
+const BOMBA_DANO: int = 90
+@rpc("any_peer", "call_remote", "reliable")
+func pede_bomba(pos: Vector3) -> void:
+	var j: Node3D = null
+	for jj: Node3D in get_tree().get_nodes_in_group("jogadores"):
+		if jj.get_multiplayer_authority() == multiplayer.get_remote_sender_id():
+			j = jj
+	if j and j.global_position.distance_to(pos) < Jogador.BOMBA_PERTO + 2.0:
+		arma_bomba(pos)
+
+
+func arma_bomba(pos: Vector3) -> void:
+	_bomba_fx.rpc(pos, 0)
+	await get_tree().create_timer(Jogador.BOMBA_T).timeout
+	for p: Porta in get_tree().get_nodes_in_group("portas"):
+		if p.blindada and p.centro().distance_to(pos) < BOMBA_RAIO + 4.0:  # o portão inteiro (14 m) cai junto
+			p.vida = 0
+			p.aberta = true
+	for j: Node3D in get_tree().get_nodes_in_group("jogadores"):
+		var d: float = j.global_position.distance_to(pos)
+		if d < BOMBA_RAIO * 0.7 and j.vida > 0:
+			j.levar_dano(roundi(BOMBA_DANO * (1.0 - d / (BOMBA_RAIO * 0.7))), (j.global_position - pos).normalized() * 3.0)
+	for z: Node3D in get_tree().get_nodes_in_group("zumbis"):
+		var d: float = z.global_position.distance_to(pos)
+		if d < BOMBA_RAIO * 0.7 and z.vida > 0:
+			z.levar_golpe(roundi(BOMBA_DANO * 2 * (1.0 - d / (BOMBA_RAIO * 0.7))), z.global_position - pos, null)
+	Zumbi.barulho(get_tree(), pos, 70.0)
+	_bomba_fx.rpc(pos, 1)
+
+
+## Todos: bip da bomba armada (fase 0) e a explosão (fase 1: clarão, fumaça, estrondo, tremida perto).
+@rpc("authority", "call_local", "reliable")
+func _bomba_fx(pos: Vector3, fase: int) -> void:
+	if Rede.servidor_sem_tela:
+		return
+	var s := AudioStreamPlayer3D.new()
+	s.stream = load("res://assets/sons/amb/explosao_longe.ogg") if fase == 1 else load("res://assets/sons/alarme.wav")
+	s.max_db = 12.0 if fase == 1 else 0.0
+	s.unit_size = 30.0 if fase == 1 else 6.0
+	s.pitch_scale = 1.0 if fase == 1 else 2.2
+	add_child(s)
+	s.global_position = pos + Vector3(0, 1, 0)
+	s.finished.connect(s.queue_free)
+	s.play()
+	if fase == 0:
+		get_tree().create_timer(1.2).timeout.connect(func() -> void:
+			if is_instance_valid(s):
+				s.stop()
+				s.queue_free())
+		if controles:
+			controles.aviso("BOMBA ARMADA — SAIA DE PERTO!", Color(1, 0.35, 0.2))
+		return
+	var luz := OmniLight3D.new()
+	luz.light_color = Color(1.0, 0.6, 0.25)
+	luz.light_energy = 12.0
+	luz.omni_range = 22.0
+	add_child(luz)
+	luz.global_position = pos + Vector3(0, 2, 0)
+	var t := create_tween()
+	t.tween_property(luz, "light_energy", 0.0, 0.9)
+	t.tween_callback(luz.queue_free)
+	var f := Fogo.new()
+	f.tamanho = 1.4
+	f.coluna = true
+	add_child(f)
+	f.global_position = pos
+	get_tree().create_timer(25.0).timeout.connect(f.queue_free)
+	if jogador and jogador.camera and jogador.global_position.distance_to(pos) < 40.0:
+		jogador.camera.tremer(clampf(1.0 - jogador.global_position.distance_to(pos) / 40.0, 0.2, 1.0))
+
+
 const RAIO_PVP: float = 110.0  # o PvP fica no centro da cidade (a cidade toda é grande demais para poucos)
 
 

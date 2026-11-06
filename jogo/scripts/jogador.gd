@@ -870,6 +870,8 @@ func usar_espaco(i: int) -> void:
 			entrada["beber"] = true
 		"antibiotico":
 			toma_antibiotico()
+		"bomba":
+			planta_bomba()
 		"bandagem":  # Simple Zombies: bandagem cura um pouco na hora
 			if vida > 0 and vida < vida_max():
 				vida = mini(vida + CURA_BANDAGEM, vida_max())
@@ -1053,6 +1055,29 @@ func infecta(mais: float) -> void:
 		infectado = true
 		infectou.emit()
 	infeccao = minf(100.0, infeccao + mais)
+
+
+## Bomba (07/11, quarentena): perto de um portão blindado, gruda a bomba nele; explode em BOMBA_T s (servidor).
+const BOMBA_T: float = 5.0
+const BOMBA_PERTO: float = 4.0
+func planta_bomba() -> void:
+	if vida <= 0 or not mochila.tem("bomba"):
+		return
+	var alvo: Porta = null
+	for p: Porta in get_tree().get_nodes_in_group("portas"):
+		if p.blindada and not p.arrombada() and p.centro().distance_to(global_position) < BOMBA_PERTO:
+			alvo = p
+			break
+	if alvo == null:
+		item_pego.emit("bomba_longe", 0)
+		return
+	mochila.tirar("bomba", 1)  # shortcut: o servidor confia na mochila do cliente (como a chave); conferir quando a mochila for do servidor
+	var principal := get_tree().get_first_node_in_group("principal")
+	if not multiplayer.has_multiplayer_peer() or multiplayer.is_server():
+		principal.arma_bomba(alvo.centro())
+	else:
+		principal.pede_bomba.rpc_id(1, alvo.centro())
+	item_pego.emit("bomba", 0)
 
 
 func toma_antibiotico() -> void:

@@ -44,6 +44,7 @@ MUNDO (vegetação, construções)
 • "Military Guard Tower / Watchtower" — BogDo (CC Attribution) — sketchfab.com/3d-models/military-guard-tower-watchtower-77a6527379494b269442a317a1cc6564
 • "Small Guard Booth" — Arsen Ismailov (CC Attribution) — sketchfab.com/3d-models/small-guard-booth-422ec83e0bd64687a0026c67abb6bc07
 • "Low Poly Military Floodlight" — DGS (CC Attribution) — sketchfab.com/3d-models/low-poly-military-floodlight-0615acfee17b47599fc1c6ac91c53cbf
+• "ChG C4" — Artem48k (CC Attribution) — sketchfab.com/3d-models/chg-c4-e10e0c4206854c708191470637b59ebd
 
 ARMAS E OBJETOS
 Kenney (kenney.nl) — CC0: assets/sons/*.ogg

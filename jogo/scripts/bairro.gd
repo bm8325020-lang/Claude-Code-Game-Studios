@@ -116,8 +116,8 @@ func _ready() -> void:
 		bq.raid = true
 		bq.position = Vector3(q[0], altura(Vector2(q[0], q[1])), q[1])
 		add_child(bq)
-	for q: Array in qt.get("soldados", []):
-		pontos_raid.append({"pos": ORIGEM + Vector3(q[0], altura(Vector2(q[0], q[1])) + 0.1, q[1]), "armado": false, "tipo": "zumbi_soldado"})
+	for q: Array in qt.get("soldados", []):  # dono 07/11: dentro tem gente tipo Os Corvos (saqueadores armados)
+		pontos_raid.append({"pos": ORIGEM + Vector3(q[0], altura(Vector2(q[0], q[1])) + 0.1, q[1]), "armado": true, "tipo": "corvo"})
 	if qt.has("portao"):
 		marcos_pos["quarentena"] = ORIGEM + Vector3(qt.portao[0], 0.0, qt.portao[1])
 		# portão do checkpoint (dono 07/11: "faça um portãozinho pra entrar"): 4 folhas de grade de metal no vão do muro;
@@ -128,6 +128,7 @@ func _ready() -> void:
 			pt.name = "Portao_%d" % k
 			pt.largura = vao / 4.0
 			pt.cor = Color(0.22, 0.24, 0.25)
+			pt.blindada = true  # dono 07/11: "pra raidar esse lugar vai ter que explodir o portão com a bomba"
 			var x0: float = float(qt.portao[0]) - vao * 0.5 + k * vao / 4.0
 			pt.position = Vector3(x0, altura(Vector2(x0, qt.portao[1])), float(qt.portao[1]))
 			add_child(pt)

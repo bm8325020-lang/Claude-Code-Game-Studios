@@ -934,6 +934,11 @@ func _pegou(tipo: String, qtd: int) -> void:
 	if tipo == "vazio":
 		aviso("Nada aqui.", UiTema.TEXTO, 1.2)
 		return
+	if tipo == "bomba_longe":
+		aviso("A bomba é para o portão blindado da quarentena: chegue perto dele.", UiTema.TEXTO, 2.5)
+		return
+	if tipo == "bomba":
+		return  # o aviso "BOMBA ARMADA" vem de main._bomba_fx (todos ouvem)
 	if tipo == "trancado":
 		aviso("Trancado. Precisa de uma chave (leia o bilhete aqui perto).", UiTema.TEXTO, 3.0)
 		return

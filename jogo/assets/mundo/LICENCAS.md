@@ -49,3 +49,4 @@ Cada modelo: arquivo | nome original | autor | licença | origem | tamanho | fac
 | brutos/props/military_guard_tower_watchtower.glb | Military Guard Tower / Watchtower | BogDo | CC Attribution | https://sketchfab.com/3d-models/military-guard-tower-watchtower-77a6527379494b269442a317a1cc6564 | 7.1 MB | 301 | sim | obrigatória |
 | brutos/props/small_guard_booth.glb | Small Guard Booth | Arsen Ismailov | CC Attribution | https://sketchfab.com/3d-models/small-guard-booth-422ec83e0bd64687a0026c67abb6bc07 | 2.2 MB | 960 | sim | obrigatória |
 | brutos/props/low_poly_military_floodlight.glb | Low Poly Military Floodlight | DGS | CC Attribution | https://sketchfab.com/3d-models/low-poly-military-floodlight-0615acfee17b47599fc1c6ac91c53cbf | 0.1 MB | 540 | sim | obrigatória |
+| brutos/props/chg_c4.glb | ChG C4 | Artem48k | CC Attribution | https://sketchfab.com/3d-models/chg-c4-e10e0c4206854c708191470637b59ebd | 0.2 MB | 376 | sim | obrigatória |

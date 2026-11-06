@@ -14,6 +14,8 @@ const LARGURA: float = 1.3
 const ALTURA: float = 2.15
 ## Largura desta porta (a das casas de modelo segue o vão do modelo).
 var largura: float = LARGURA
+## Portão blindado (quarentena, 07/11): não abre com USAR nem quebra com soco; só a bomba arromba (Bomba).
+var blindada: bool = false
 ## Cor da folha (madeira; o portão da quarentena é grade de metal escura).
 var cor: Color = Color(0.36, 0.25, 0.16)
 
@@ -104,6 +106,8 @@ func arrombada() -> bool:
 func acao() -> String:
 	if arrombada():
 		return ""
+	if blindada:
+		return "trancado: precisa de BOMBA"
 	return "fechar porta" if aberta else "abrir porta"
 
 
@@ -122,7 +126,7 @@ static func perto(arvore: SceneTree, pos: Vector3) -> Porta:
 
 ## Servidor: alguém pediu para abrir/fechar.
 func alterna_por(j: Jogador) -> void:
-	if arrombada() or j.vida <= 0:
+	if arrombada() or j.vida <= 0 or blindada:
 		return
 	var d: Vector3 = centro() - j.global_position
 	if Vector2(d.x, d.z).length() > ALCANCE + 0.6:
@@ -132,7 +136,7 @@ func alterna_por(j: Jogador) -> void:
 
 ## Servidor: soco de zumbi na porta fechada.
 func leva_soco(dano: int) -> void:
-	if aberta or arrombada():
+	if aberta or arrombada() or blindada:
 		return
 	vida = maxi(0, vida - dano)
 	var t := create_tween()  # treme
@@ -144,7 +148,7 @@ func leva_soco(dano: int) -> void:
 
 
 func _process(dt: float) -> void:
-	if arrombada() and (not multiplayer.has_multiplayer_peer() or multiplayer.is_server()):
+	if arrombada() and not blindada and (not multiplayer.has_multiplayer_peer() or multiplayer.is_server()):  # explodido fica aberto
 		_conserto_t -= dt
 		if _conserto_t <= 0.0:
 			vida = VIDA_MAX

@@ -87,6 +87,10 @@ Ordem pensada: primeiro a cara e o pronto (muda o jogo inteiro), depois estrutur
   2 torres de vigia; PORTÃO (pedido do dono) = 4 folhas de grade (Porta: USAR abre/fecha, zumbi soca); 4 tendas
   militares com baú de loot raro e 8 zumbis soldados (pontos_raid). Planta: "quarentena" no JSON. Malha refeita.
   Render Média 367 chamadas, 313 mil tri. test_bairro/raid/nascer/portas ok.
+  + (dono) portão BLINDADO: USAR não abre, zumbi não quebra; item novo BOMBA (C4 pronto CC BY; loot raro 0,5,
+  loja 450): perto do portão arma, bipa, explode em 5 s (arromba as 4 folhas, fere perto, barulho 70 m chama zumbi);
+  dentro: 8 saqueadores armados (Corvo) no lugar dos soldados. Rede.VERSAO 48. test_bomba 6/6; portas/raid/mochila/
+  baus/loja ok; test_rede ok (1ª rodada falhou no tempo, 2ª passou).
   Era: QUARENTENA MILITAR (regras 1/4): muro de contêineres cortando a cidade, checkpoint (sacos de areia, guarita,
   holofote), tendas médicas com loot militar e zumbis soldados — modelos prontos.
 - [ ] E5 CONSTRUÇÕES NOVAS (regra 4): posto de gasolina com loja, escola barricada, torre de água (subir e ver longe),

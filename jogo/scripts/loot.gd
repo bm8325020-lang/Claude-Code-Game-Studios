@@ -35,6 +35,7 @@ const TABELA: Array = [
 	["fuzil", 0.6, 1, 1, RARO],
 	["sniper", 0.4, 1, 1, RARO],
 	["receita_smg", 1, 1, 1, RARO],
+	["bomba", 0.5, 1, 1, RARO],  # 07/11: abre a quarentena (Porta.blindada)
 ]
 ## peças de arma (para fabricar, prompt 6)
 const PECAS: Array[String] = ["mola", "gatilho", "cano", "cabo", "ferrolho", "carregador"]

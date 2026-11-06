@@ -147,6 +147,8 @@ func _monta_modelo() -> void:
 		_modelo("res://assets/sketchfab/garrafa_agua.glb", 0.24, Vector3(0, 0, 90))  # deitada
 	elif tipo == "antibiotico":
 		_monta_remedio()
+	elif tipo == "bomba":
+		_modelo("res://assets/mundo/props/bomba/bomba.gltf", 0.18, Vector3.ZERO)
 	elif tipo == "chave":  # chave velha de latão: argola, haste e dente
 		var latao := StandardMaterial3D.new()
 		latao.albedo_color = Color(0.72, 0.58, 0.25)

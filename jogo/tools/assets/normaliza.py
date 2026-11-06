@@ -39,6 +39,7 @@ MODELOS = {
     "torre_vigia": ("props/military_guard_tower_watchtower.glb", "props", 7.0, False),
     "guarita": ("props/small_guard_booth.glb", "props", 2.6, False),
     "holofote": ("props/low_poly_military_floodlight.glb", "props", 4.0, False),
+    "bomba": ("props/chg_c4.glb", "props", 0.09, False),  # item: explode o portão blindado da quarentena
     # 07/11 (E2b): casas prontas (fechadas: só por fora); tools/blender/casa_pronta.py vira ruína do jogo (assets/ruinas)
     "casa_p1": ("casas/suburban_shabby_house_low_poly.glb", "casas", 8.5, False, 7000),
     "casa_p2": ("casas/suburban_house.glb", "casas", 7.5, False, 7000),
