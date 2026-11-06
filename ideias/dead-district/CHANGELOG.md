@@ -23,3 +23,9 @@
   (Longe_* por pedaço, agora posicionado no meio do pedaço), "massinha" (caixa da cor da casa, Massa_*) longe.
   Árvores somem na névoa. Resolução dinâmica (main._resolucao_dinamica), shaders aquecidos atrás da tela de
   carregamento (main._aquece_shaders), zumbis vivos pela qualidade (Populacao.orcamento: 35/50/70).
+- 06/11: HISTÓRIA E CHEGADA. HISTORIA.md (Febre Cinzenta, quarentena, Dia 31). Abertura (scripts/abertura.gd): tela
+  preta, chiado, boletim da repórter Dana Price linha a linha, PULAR; tutorial "entre no carro" e "siga a estrada".
+  Nasce na estrada do leste (Bairro.entrada_pos, `entrada` no cidade.json; 175 m sem casa, só mata) ao lado do carro,
+  placa WELCOME TO SENOIA. Carro com o sedã pronto (MaG80, CC BY): rodas giram e esterçam, vidro estoura com tiro
+  (Carro.leva_tiro, vai pela rede). Tentativa com VehicleBody3D (física de rodas) travava dentro da cidade: ficou o
+  movimento antigo.

@@ -831,7 +831,15 @@ func _cria_zumbi(dados: Dictionary) -> Node:
 var _rng_nascer := RandomNumberGenerator.new()
 
 
+## Testes e ferramentas rodam com script na árvore: lá não tem abertura nem chegada pela estrada.
+func _testando() -> bool:
+	return get_tree().get_script() != null
+
+
 func _ponto_inicial(i: int) -> Vector3:
+	if nascer_no_bairro and bairro and bairro.entrada_pos != Vector3.INF and not _testando():
+		# quem chega vem pela estrada do leste, ao lado do carro (HISTORIA.md); os outros um pouco atrás
+		return bairro.entrada_pos - bairro.entrada_dir * 2.5 * i + Vector3(-bairro.entrada_dir.z, 0, bairro.entrada_dir.x) * 0.6
 	if nascer_no_bairro and bairro and not bairro.pontos_nascer.is_empty():
 		return ponto_nascer("", 1.0)  # a primeira vez nasce sempre num lugar bom (novato morria logo de cara)
 	return Vector3(2.0 * float(i % 6), 0.1, 2.0 * float(i / 6))
@@ -852,6 +860,12 @@ func _jogador_entrou(n: Node) -> void:
 	var j := n as Jogador
 	if j and j.local:
 		jogador = j
+		if bairro and bairro.entrada_pos != Vector3.INF and not _testando() and not Rede.servidor_sem_tela and not em_pvp():
+			var ab := Abertura.new()  # boletim da repórter + tutorial do carro
+			ab.jogador = j
+			add_child(ab)
+			if j.camera:  # olhando para a estrada, na direção da cidade
+				j.camera.virar(atan2(-bairro.entrada_dir.x, -bairro.entrada_dir.z), 0.0)
 		if _carregando:
 			_aquece_shaders(j)  # compila os materiais atrás da tela de carregamento (o engasgo vinha daí)
 			var c := _carregando

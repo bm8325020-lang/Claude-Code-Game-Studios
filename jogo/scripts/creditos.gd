@@ -6,6 +6,7 @@ const TEXTO := """DEAD DISTRICT — CRÉDITOS
 Modelos 3D, sons e texturas de terceiros usados no jogo. Obrigado aos autores!
 
 MUNDO (vegetação, construções)
+• "nome original" — autor (licença) — origem
 • "Realistic Cracked Tree Game-Ready prop" — Aliosa (CC Attribution) — sketchfab.com/3d-models/realistic-cracked-tree-game-ready-prop-b0edfdc157e94ea093ee959c65db38de
 • "Low Poly Forest Tree Pack" — 99.Miles (CC Attribution) — sketchfab.com/3d-models/low-poly-forest-tree-pack-5ff5a51e74324845a4e4905f182dfb2b
 • "Pine tree 01" — POLYSCAN (CC Attribution) — sketchfab.com/3d-models/pine-tree-01-ba7c8f8e1cb549b3a3a30f1221386c8c
@@ -22,6 +23,7 @@ MUNDO (vegetação, construções)
 • "Low-Poly AK-74" — TastyTony (CC Attribution) — sketchfab.com/3d-models/low-poly-ak-74-b27f9003622a4c7499bfd8d2a06dc47b
 • "Low Poly Mosin Sniper" — samanthacford (CC Attribution) — sketchfab.com/3d-models/low-poly-mosin-sniper-5472b7415ce14468bd19443422e30e08
 • "Low Poly Shotgun Shells" — mapleaber (CC Attribution) — sketchfab.com/3d-models/low-poly-shotgun-shells-7090d59effb14bd987eda7369a3da54a
+• "Medium sized sedan" — MaG80 (CC Attribution) — sketchfab.com/3d-models/medium-sized-sedan-cb8fdecbc30d4618a6109d1de0e30a9e
 
 ARMAS E OBJETOS
 Kenney (kenney.nl) — CC0: assets/sons/*.ogg

@@ -1577,6 +1577,7 @@ func entra_no_carro(c: Carro) -> void:
 	carro = c
 	no_carro = true
 	_colisor.disabled = true
+	c.add_collision_exception_with(self)  # o corpo do jogador fica dentro do carro: não pode segurar a física dele
 	velocity = Vector3.ZERO
 	mira_travada = false
 	_golpe = -1
@@ -1594,6 +1595,7 @@ func sai_do_carro() -> void:
 	carro = null
 	no_carro = false
 	_colisor.disabled = false
+	c.remove_collision_exception_with(self)
 	velocity = Vector3.ZERO
 	global_position = c.saida()
 	c.larga()

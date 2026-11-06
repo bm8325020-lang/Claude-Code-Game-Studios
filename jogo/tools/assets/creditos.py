@@ -18,10 +18,9 @@ partes = ["DEAD DISTRICT — CRÉDITOS", "", "Modelos 3D, sons e texturas de ter
 linhas = []
 for l in le(os.path.join(A, "mundo", "LICENCAS.md")).splitlines():
     c = [x.strip() for x in l.strip().strip("|").split("|")]
-    if len(c) < 9 or not c[0].startswith("brutos/"):
-        continue
-    arq = c[0][len("brutos/"):]
-    if arq not in usados:
+    if len(c) < 9 or c[0].startswith("../") or c[0].startswith("Arquivo") or c[0].startswith("---"):
+        continue  # "../" = já está em assets/LICENCAS.txt
+    if c[0].startswith("brutos/") and c[0][len("brutos/"):] not in usados:
         continue  # baixado mas recusado (não vai no jogo)
     url = re.sub(r"^https?://", "", c[4])
     linhas.append("• \"%s\" — %s (%s) — %s" % (c[1], c[2], c[3], url))

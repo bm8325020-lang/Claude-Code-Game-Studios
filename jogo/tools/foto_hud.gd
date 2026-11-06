@@ -17,6 +17,8 @@ func _init() -> void:
 		var p := Vector2(float(v[0]), float(v[1]))
 		main.jogador.global_position = Bairro.ORIGEM + Vector3(p.x, main.bairro.altura(p) + 0.2, p.y)
 		main.jogador.rotation.y = deg_to_rad(float(v[2])) if v.size() > 2 else 0.0
+		if main.jogador.camera:
+			main.jogador.camera.virar(deg_to_rad(float(v[2])) if v.size() > 2 else 0.0, 0.0)
 	if args.size() > 2:
 		var arma: String = args[2].get_slice(":", 0)
 		main.jogador.mochila.adicionar(arma, 1)

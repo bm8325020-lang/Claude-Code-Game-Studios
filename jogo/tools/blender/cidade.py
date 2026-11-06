@@ -697,12 +697,12 @@ def coreto(nome):
 
 
 def portico(nome):
-    """Pórtico da entrada da cidade: WELCOME TO RAVEN CREEK."""
+    """Pórtico da entrada da cidade: WELCOME TO SENOIA."""
     limpa()
     for s in (-1, 1):
         caixa("pilar_%d-col" % (s + 1), (s * 8.5, 0, 3.5), (1.2, 1.2, 7.0), "reboco_creme")
     caixa("viga", (0, 0, 7.4), (18.2, 1.0, 1.6), "reboco_creme")
-    letreiro("nome", "WELCOME TO RAVEN CREEK", (0, -0.52, 7.4), 15.0, 0.9, "placa_azul", 0, 0.08)
+    letreiro("nome", "WELCOME TO SENOIA", (0, -0.52, 7.4), 15.0, 0.9, "placa_azul", 0, 0.08)
     picha("picho", "VOLTEM", (-9.1, 0.5), (9.1, 0.5), 9.1, 7.4, -1, 3.0, 0.012)
     sai(nome)
 

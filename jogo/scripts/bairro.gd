@@ -145,6 +145,7 @@ func _ready() -> void:
 	_hidrantes_e_fogo()
 	_classifica()
 	_mais_carros_e_achados()
+	_entrada(dados)
 	_gavetas_e_cofres()
 	var enfeites := Enfeites.new()
 	enfeites.name = "Enfeites"
@@ -1522,6 +1523,31 @@ func _espalhados(n: int, larg_min: float, rng: RandomNumberGenerator = _rng) -> 
 ## Gerador próprio: não muda o sorteio do resto da cidade.
 const CARROS_EXTRA: int = 26
 const ACHADOS: int = 45
+## Entrada da cidade (06/11, HISTORIA.md): ponto da estrada do leste onde quem chega nasce (main._ponto_inicial), com
+## o carro dele parado no acostamento. Vazio (Vector3.INF) se o mapa não tem.
+var entrada_pos: Vector3 = Vector3.INF
+var entrada_dir: Vector3 = Vector3.FORWARD
+
+
+func _entrada(dados: Dictionary) -> void:
+	if not dados.has("entrada"):
+		return
+	var e: Dictionary = dados.entrada
+	var p := Vector2(e.p[0], e.p[1])
+	entrada_dir = Vector3(e.dir[0], 0, e.dir[1]).normalized()
+	entrada_pos = ORIGEM + Vector3(p.x, altura(p) + 0.1, p.y)
+	var lado := Vector3(-entrada_dir.z, 0, entrada_dir.x)
+	var cp: Vector3 = Vector3(p.x, altura(p), p.y) + entrada_dir * 6.0 + lado * 2.4
+	var v: Node3D = _veiculo("carro_r1", Color(0.2, 0.24, 0.3))
+	v.name = "Modelo"
+	var c := Carro.new()
+	c.position = cp
+	c.rotation.y = atan2(entrada_dir.x, entrada_dir.z)  # de frente para a cidade
+	add_child(c)
+	c.name = "CarroEntrada"
+	c.monta(v)
+
+
 func _mais_carros_e_achados() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 2031

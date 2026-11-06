@@ -329,7 +329,16 @@ def desloc(modelo):
     return 0.0, 0.0
 
 
+# Entrada (06/11, HISTORIA.md): você chega de carro pela estrada do leste. Os primeiros RURAL metros dela ficam sem
+# casa (mato e árvore dos dois lados) e a placa WELCOME TO SENOIA fica no fim desse trecho.
+ENTRADA = (480.0, 88.0)
+ENTRADA_DIR = (-0.9967, -0.0812)   # para dentro da cidade (a estrada do leste é quase reta)
+RURAL = 175.0
+
+
 def livre(cx, cz, ang, w, d):
+    if math.dist((cx, cz), ENTRADA) < RURAL:
+        return False
     cs = cantos(cx, cz, ang, w, d)
     if any(abs(c[0]) > LIM or abs(c[1]) > LIM for c in cs):
         return False
@@ -608,6 +617,22 @@ for a, b in zip(rio, rio[1:]):
                                                    "arbusto", "pedras_2"]),
                           "p": [round(q[0], 2), round(q[1], 2)], "r": round(RV.uniform(0, 6.28), 3)})
 
+# estrada da entrada: árvores e mato dos dois lados, a placa e o carro de quem chega
+for k in range(60):
+    t = RV.uniform(5, RURAL - 10)
+    lado = RV.choice((-1, 1))
+    off = RV.uniform(8, 26)
+    q = (ENTRADA[0] + ENTRADA_DIR[0] * t - ENTRADA_DIR[1] * lado * off, ENTRADA[1] + ENTRADA_DIR[1] * t + ENTRADA_DIR[0] * lado * off)
+    if not perto_rua(q, 2.0) and abs(q[0]) < LIM and abs(q[1]) < LIM:
+        props.append({"m": "veg:" + RV.choice(["pinheiro", "conifera_1", "conifera_3", "abeto_1", "outono_1", "betula", "arvore_morta"]),
+                      "p": [round(q[0], 2), round(q[1], 2)], "r": round(RV.uniform(0, 6.28), 3)})
+        for j in range(RV.randint(1, 3)):
+            props.append({"m": "veg:" + RV.choice(["capim_alto", "arbusto", "arbusto_2", "capim_seco"]),
+                          "p": [round(q[0] + RV.uniform(-3, 3), 2), round(q[1] + RV.uniform(-3, 3), 2)], "r": round(RV.uniform(0, 6.28), 3)})
+PLACA = (ENTRADA[0] + ENTRADA_DIR[0] * (RURAL - 15), ENTRADA[1] + ENTRADA_DIR[1] * (RURAL - 15))
+prop("portico", PLACA[0], PLACA[1], math.pi / 2)
+entrada = {"p": [ENTRADA[0] + ENTRADA_DIR[0] * 12, ENTRADA[1] + ENTRADA_DIR[1] * 12], "dir": list(ENTRADA_DIR)}
+
 # ---------------- a capital destruída ao longe (norte, depois do muro): só silhueta ----------------
 for (x, z, b, rot) in ((-480, 640, "building_03", 0.3), (-300, 700, "building_07", 0.0), (-120, 620, "building_01", 0.5),
                        (40, 720, "building_06", 0.1), (200, 640, "building_05", 0.8), (360, 700, "building_02", 0.2),
@@ -616,7 +641,7 @@ for (x, z, b, rot) in ((-480, 640, "building_03", 0.3), (-300, 700, "building_07
 
 out = {"origem": "Senoia, GA (OpenStreetMap, ODbL; tools/mapa/raven_creek.py CIDADE=senoia)" if SENOIA else "Raven Creek (tools/mapa/raven_creek.py)", "ruas": ruas, "predios": predios, "frestas": frestas, "bloqueios": bloqueios,
        "marcos": marcos, "muros": muros, "props": props, "areas": areas, "faixas": faixas, "postes": postes, "veiculos": veiculos,
-       "zumbis": zumbis, "longe": longe,
+       "zumbis": zumbis, "longe": longe, "entrada": entrada,
        "terreno": {"rio": {"p": rio, "larg": RIO_LARG, "fundo": 2.2, "agua": 1.5}, "morros": [MORRO]}}
 json.dump(out, open(sys.argv[1] if len(sys.argv) > 1 else "assets/mapa/cidade.json", "w"))
 cont = {}

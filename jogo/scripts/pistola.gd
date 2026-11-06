@@ -208,6 +208,7 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 			pegou.call("levar_golpe", dano_em(origem.distance_to(ponto), alt, cabeca), d, dono)
 		if not hit.is_empty() and hit.collider is Carro:
 			(hit.collider as Carro).dispara_alarme()  # tiro em carro: alarme chama a horda (Dying Light/L4D)
+			(hit.collider as Carro).leva_tiro(ponto)  # na altura da janela o vidro estoura
 		if k == 0 or (pegou and res.acertou == null):
 			res.ponto = ponto
 			res.acertou = pegou

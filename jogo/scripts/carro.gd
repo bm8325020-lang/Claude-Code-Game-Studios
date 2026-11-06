@@ -3,6 +3,8 @@
 # Rede: o servidor decide quem dirige (`motorista`, peer id; 0 = vazio). Quem dirige roda a física no aparelho dele e
 # manda a posição ao servidor (`_estado`), que confere e repassa a todos pelo sincronizador (`pos_rede`/`rot_rede`).
 # Frente do modelo = +Z. Rodas: raios de separação (sobe meio-fio sem travar a caixa).
+# 06/11 (dono: "coloque carros já prontos"): sedã pronto ("Medium sized sedan", MaG80, Sketchfab CC BY;
+# assets/mundo/veiculos/sedan.glb) com as rodas girando e virando, e vidro que estoura com tiro (`leva_tiro`).
 class_name Carro
 extends CharacterBody3D
 
@@ -22,6 +24,19 @@ var volante: float = 0.0
 const GRAVIDADE: float = 24.0
 const MANDA_A_CADA: float = 0.05
 const PULO_MAX: float = 30.0       # servidor: mais que isso por pacote é trapaça/erro e é ignorado
+const MODELO := "res://assets/mundo/veiculos/sedan.glb"
+const ESCALA: float = 0.465        # o arquivo vem em outra unidade: 9,9 de comprimento -> 4,6 m
+const RAIO_RODA: float = 0.35
+## vidro estourado (vai pela rede): some o vidro e fica caco no chão
+var vidro_quebrado: bool = false:
+	set(v):
+		if v and not vidro_quebrado and is_inside_tree():
+			_estoura()
+		vidro_quebrado = v
+var _vidros: Array[MeshInstance3D] = []
+var _rodas: Array[Node3D] = []  # FL, FR, RL, RR (as da frente esterçam)
+var _giro_roda: float = 0.0
+var _pintura: Color = Color(0.45, 0.12, 0.1)
 
 var motorista: int = 0:
 	set(v):
@@ -38,9 +53,39 @@ var _manda_t: float = 0.0
 
 ## Bairro: põe o modelo do Blender dentro e troca a colisão parada dele pela do carro.
 func monta(visual: Node3D) -> void:
-	for n: Node in visual.find_children("*_col", "StaticBody3D", true, false):
-		n.free()
-	visual.reparent(self, false)
+	for mi: MeshInstance3D in visual.find_children("*", "MeshInstance3D", true, false):
+		var m: Material = mi.get_active_material(0)
+		if m is BaseMaterial3D:
+			_pintura = (m as BaseMaterial3D).albedo_color
+			break
+	if not ResourceLoader.exists(MODELO):  # sem o sedã: fica o modelo velho
+		for n: Node in visual.find_children("*_col", "StaticBody3D", true, false):
+			n.free()
+		visual.reparent(self, false)
+		return
+	visual.free()
+	var modelo: Node3D = (load(MODELO) as PackedScene).instantiate()
+	modelo.scale = Vector3.ONE * ESCALA
+	modelo.position.y = 0.34  # roda do arquivo no chão
+	add_child(modelo)
+	for mi: MeshInstance3D in modelo.find_children("*", "MeshInstance3D", true, false):
+		var nome: String = String(mi.name)
+		if nome.begins_with("Shadow"):
+			mi.visible = false  # sombra pintada do Sketchfab: o jogo tem sombra de verdade
+		elif nome.contains("Glass") and not nome.contains("Light"):
+			_vidros.append(mi)
+		elif nome.contains("CarPaint"):
+			var p := (mi.get_active_material(0) as BaseMaterial3D).duplicate() as BaseMaterial3D
+			p.albedo_color = _pintura.lerp(Color(0.5, 0.5, 0.5), 0.2)
+			p.roughness = 0.75  # pintura velha, sem brilho de concessionária
+			mi.set_surface_override_material(0, p)
+	for n: String in ["WheelFL", "WheelFR", "WheelRL", "WheelRR"]:
+		var r: Node3D = modelo.find_child(n, true, false)
+		if r:
+			_rodas.append(r)
+	if vidro_quebrado:
+		for v: MeshInstance3D in _vidros:
+			v.visible = false
 
 
 func _ready() -> void:
@@ -68,7 +113,7 @@ func _ready() -> void:
 	pos_rede = position
 	rot_rede = rotation.y
 	var cfg := SceneReplicationConfig.new()
-	for p: String in [".:motorista", ".:pos_rede", ".:rot_rede"]:
+	for p: String in [".:motorista", ".:pos_rede", ".:rot_rede", ".:vidro_quebrado"]:
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	var sync := MultiplayerSynchronizer.new()
@@ -193,6 +238,7 @@ func dirige(mov: Vector2, dt: float) -> float:
 	velocity.y = 0.0 if is_on_floor() else velocity.y - GRAVIDADE * dt
 	move_and_slide()
 	vel = get_real_velocity().dot(frente)  # bateu: perde a velocidade que não andou
+	_gira_rodas(dt)
 	if multiplayer.is_server():
 		pos_rede = position
 		rot_rede = rotation.y
@@ -238,6 +284,85 @@ func _toca_alarme() -> void:
 			_alarme.stop())
 
 
+## Tiro pegou no carro em `ponto`: na altura das janelas o vidro estoura (em todos os aparelhos).
+func leva_tiro(ponto: Vector3) -> void:
+	if not vidro_quebrado and (ponto - global_position).dot(global_basis.y) > VAO + TAM.y * 0.55:
+		_quebra.rpc()
+
+
+@rpc("any_peer", "call_local", "reliable")
+func _quebra() -> void:
+	if multiplayer.is_server():
+		vidro_quebrado = true  # o servidor guarda e o sincronizador espalha (quem entrar depois vê quebrado)
+	elif not vidro_quebrado:
+		_estoura()
+
+
+# vidro some, cacos voam e o barulho de vidro estourando chama zumbi perto
+func _estoura() -> void:
+	for v: MeshInstance3D in _vidros:
+		v.visible = false
+	Zumbi.barulho(get_tree(), global_position, 18.0)
+	if Rede.servidor_sem_tela:
+		return
+	var cacos := CPUParticles3D.new()
+	cacos.one_shot = true
+	cacos.emitting = true
+	cacos.amount = 40
+	cacos.lifetime = 1.2
+	cacos.explosiveness = 0.95
+	cacos.position = Vector3(0, VAO + TAM.y * 0.8, 0)
+	cacos.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	cacos.emission_box_extents = Vector3(0.9, 0.2, 1.2)
+	cacos.direction = Vector3.UP
+	cacos.spread = 80.0
+	cacos.initial_velocity_min = 1.5
+	cacos.initial_velocity_max = 4.0
+	cacos.gravity = Vector3(0, -9.8, 0)
+	var q := BoxMesh.new()
+	q.size = Vector3(0.03, 0.005, 0.03)
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.7, 0.8, 0.85, 0.7)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.metallic = 0.5
+	m.roughness = 0.1
+	q.material = m
+	cacos.mesh = q
+	add_child(cacos)
+	var som := AudioStreamPlayer3D.new()
+	som.stream = Carro.som_vidro()
+	som.unit_size = 10.0
+	add_child(som)
+	som.play()
+	get_tree().create_timer(3.0).timeout.connect(func() -> void:
+		if is_instance_valid(cacos):
+			cacos.queue_free()
+		if is_instance_valid(som):
+			som.queue_free())
+
+
+static var _som_vidro: AudioStream
+
+
+## Estouro de vidro: arquivo gravado se existir (assets/sons/vidro.ogg), senão chiado curto.
+static func som_vidro() -> AudioStream:
+	if _som_vidro == null:
+		if ResourceLoader.exists("res://assets/sons/vidro.ogg"):
+			_som_vidro = load("res://assets/sons/vidro.ogg")
+		else:
+			var w := AudioStreamWAV.new()
+			w.mix_rate = 22050
+			w.format = AudioStreamWAV.FORMAT_8_BITS
+			var d := PackedByteArray()
+			var n: int = int(22050 * 0.35)
+			d.resize(n)
+			for i in n:
+				d[i] = int(randf_range(-1, 1) * 110.0 * exp(-float(i) / n * 6.0)) & 0xFF
+			w.data = d
+			_som_vidro = w
+	return _som_vidro
+
+
 ## Onde o jogador desce: do lado do motorista, do outro lado, atrás ou na frente (o primeiro livre).
 func saida() -> Vector3:
 	var forma := CapsuleShape3D.new()
@@ -258,8 +383,21 @@ func saida() -> Vector3:
 func _physics_process(dt: float) -> void:
 	if _dirijo():
 		return  # o Jogador chama dirige()
+	var antes: Vector3 = position
 	if position.distance_to(pos_rede) > 8.0:
 		position = pos_rede
 	else:
 		position = position.lerp(pos_rede, 1.0 - exp(-12.0 * dt))
 	rotation.y = lerp_angle(rotation.y, rot_rede, 1.0 - exp(-12.0 * dt))
+	vel = (position - antes).dot(global_basis.z) / maxf(dt, 0.001) if position.distance_to(antes) < 2.0 else vel
+	_gira_rodas(dt)
+
+
+# rodas do modelo pronto: rolam com a velocidade e as da frente esterçam com o volante
+func _gira_rodas(dt: float) -> void:
+	if _rodas.size() < 4:
+		return
+	_giro_roda += vel * dt / RAIO_RODA
+	for k in 4:
+		var esterco: float = -volante * 0.5 if k < 2 else 0.0
+		_rodas[k].rotation = Vector3(_giro_roda, esterco, 0)
