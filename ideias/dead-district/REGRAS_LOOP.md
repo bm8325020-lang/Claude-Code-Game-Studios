@@ -30,3 +30,16 @@ aprimorar o grupo Os Corvos; super operação no jogo inteiro; fazer tudo funcio
 ## Segurança (sempre)
 Nunca commitar export_presets.cfg, assets/mixamo/, chaves. Commit com o trailer da sessão. Não passar segredo no chat.
 Disco cheio: apagar só sobras próprias (APK já enviado, temporários de exportação).
+
+## 11. Ideias do Claude (aprovadas para o loop; encaixar nas seções seguintes, sempre com as regras 1-10)
+- Música e som que reagem: trilha tensa que sobe quando um zumbi te vê, silêncio pesado quando está seguro.
+- Sirene da cidade à noite chamando horda (aviso no rádio antes): evento que muda o jeito de jogar a noite.
+- Mapa grande (tela cheia) com marcadores: casas revistadas, porões, acampamentos dos Corvos, chamados do rádio.
+- Salvar e continuar no solo (fecha o app e volta onde estava, com a mochila).
+- Dificuldade (fácil/normal/difícil) e "primeira hora" guiada com objetivo claro (achar o rádio, chegar ao abrigo).
+- Vibração do celular ao levar dano/mordida (desligável nas configurações).
+- Conquistas simples (primeiro porão, matar o líder dos Corvos, sobreviver 3 noites) para dar motivo de voltar.
+- Diário do jogador: bilhetes e fitas achados contam a história da Febre Cinzenta (liga com a jornalista Dana Price).
+- LOJA (Play Store), obrigatório para postar: AAB com o pacote base até 200 MB (hoje o APK tem ~260 MB: cortar
+  texturas/sons ou usar Play Asset Delivery), política de privacidade (página simples), classificação etária,
+  ícone 512 px, 2+ capturas de tela e texto da loja em pt-BR e inglês. Chave de loja: do dono.
