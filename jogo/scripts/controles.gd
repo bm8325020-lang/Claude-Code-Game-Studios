@@ -48,6 +48,9 @@ var jogador: Jogador:
 var toque: bool = false  # mostra os controles de toque
 
 var _stick_id: int = -1
+## Carro no toque (06/11, dono): 4 botões (esquerda/direita à esquerda; freio-ré e acelerar à direita), vários dedos juntos
+var _pad: _PadCarro
+var _pad_toques: Dictionary = {}  # índice do dedo -> "esq"/"dir"/"freio"/"gas"
 var _stick_centro: Vector2
 var _stick_vec: Vector2 = Vector2.ZERO
 var _olhar_id: int = -1
@@ -287,7 +290,12 @@ func _process(dt: float) -> void:
 	if _espera.visible:
 		e["move"] = Vector2.ZERO  # tela de espera da sala: ninguém anda
 		return
-	if toque:
+	_modo_carro(toque and jogador.carro != null)
+	if toque and jogador.carro:
+		var a: Array = _pad_toques.values()  # segurar o freio para o carro e depois dá ré (Carro.dirige)
+		e["move"] = Vector2((1.0 if a.has("dir") else 0.0) - (1.0 if a.has("esq") else 0.0),
+			(1.0 if a.has("gas") else 0.0) - (1.0 if a.has("freio") else 0.0)) + _stick_vec
+	elif toque:
 		e["move"] = _stick_vec
 		e["correr"] = _stick_vec.length() > 0.92 and _stick_vec.y > 0.6 and not jogador.agachado  # polegar no fim, para a frente
 	else:
@@ -445,6 +453,19 @@ func _input(ev: InputEvent) -> void:
 				jogador.entrada["atacar"] = true
 		return
 	var tela: Vector2 = get_viewport().get_visible_rect().size
+	if ev is InputEventScreenTouch and jogador.carro and _pad:
+		var tc := ev as InputEventScreenTouch
+		if not tc.pressed and _pad_toques.has(tc.index):
+			_pad_toques.erase(tc.index)
+			_pad.apertados = _pad_toques.values()
+			_pad.queue_redraw()
+			return
+		var qual: String = _pad.botao_em(tc.position, tela) if tc.pressed else ""
+		if qual != "":
+			_pad_toques[tc.index] = qual
+			_pad.apertados = _pad_toques.values()
+			_pad.queue_redraw()
+			return
 	if ev is InputEventScreenTouch:
 		var t := ev as InputEventScreenTouch
 		if t.pressed:
@@ -1295,6 +1316,68 @@ class _Barra:
 
 
 # botão só com ícone desenhado (círculo escuro com borda fina); `ligado` acende (agachado, mira, automático)
+var _no_carro_antes: bool = false
+
+
+## No carro: some o bater/mirar/pular/agachar/trocar/recarga e aparecem os 4 botões do carro (sair = botão de pegar).
+func _modo_carro(no_carro: bool) -> void:
+	if _pad == null:
+		_pad = _PadCarro.new()
+		_pad.top_level = true
+		_pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		add_child(_pad)
+	_pad.visible = no_carro
+	if no_carro == _no_carro_antes and not no_carro:
+		return
+	for b: Variant in [_btn_atacar, _btn_mira, _btn_agachar, _btn_recarregar, _btn_modo, _btn_deitar, _btn_dominar,
+			get_node_or_null("Pular"), get_node_or_null("Trocar")]:
+		if b and is_instance_valid(b):
+			if no_carro:
+				(b as Control).visible = false
+			elif not _no_carro_antes == no_carro and b in [_btn_atacar, _btn_mira, _btn_agachar, get_node_or_null("Pular"), get_node_or_null("Trocar")]:
+				(b as Control).visible = true  # desceu do carro: os de sempre voltam (os de contexto se acertam sozinhos)
+	if not no_carro:
+		_pad_toques.clear()
+	_no_carro_antes = no_carro
+
+
+class _PadCarro extends Control:
+	const TAM: float = 140.0
+	var apertados: Array = []
+
+	func rects(tela: Vector2) -> Dictionary:
+		return {"esq": Rect2(30, tela.y - TAM - 40, TAM, TAM), "dir": Rect2(30 + TAM + 24, tela.y - TAM - 40, TAM, TAM),
+			"freio": Rect2(tela.x - 2 * TAM - 70, tela.y - TAM - 40, TAM, TAM),
+			"gas": Rect2(tela.x - TAM - 30, tela.y - TAM - 60, TAM, TAM + 20)}
+
+	func botao_em(p: Vector2, tela: Vector2) -> String:
+		var r: Dictionary = rects(tela)
+		for k: String in r:
+			if (r[k] as Rect2).grow(14.0).has_point(p):
+				return k
+		return ""
+
+	func _draw() -> void:
+		var r: Dictionary = rects(get_viewport_rect().size)
+		var fonte: Font = get_theme_default_font()
+		for k: String in r:
+			var q: Rect2 = r[k]
+			var on: bool = apertados.has(k)
+			draw_rect(q, Color(0, 0, 0, 0.55 if on else 0.35))
+			draw_rect(q, Color(1, 0.75, 0.3) if on else Color(1, 1, 1, 0.7), false, 3.0)
+			var c: Vector2 = q.get_center()
+			match k:
+				"esq":
+					draw_colored_polygon(PackedVector2Array([c + Vector2(-34, 0), c + Vector2(22, -32), c + Vector2(22, 32)]), Color(1, 1, 1, 0.9))
+				"dir":
+					draw_colored_polygon(PackedVector2Array([c + Vector2(34, 0), c + Vector2(-22, -32), c + Vector2(-22, 32)]), Color(1, 1, 1, 0.9))
+				"gas", "freio":
+					var t: String = "ACELERAR" if k == "gas" else "FREIO / RÉ"
+					var w: float = fonte.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
+					draw_string(fonte, c + Vector2(-w * 0.5, 7), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 1, 1, 0.95))
+
+
 class _Icone:
 	extends Button
 
