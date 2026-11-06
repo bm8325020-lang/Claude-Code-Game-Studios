@@ -61,7 +61,14 @@ Ordem pensada: primeiro a cara e o pronto (muda o jogo inteiro), depois estrutur
   chamadas (+5%), 335 mil tri (=). test_clima/zumbi ok. Falta da ideia: chuva com poças (vai para a próxima seção).
   Era: CARA NOVA (regra 5): direção de arte própria — paleta (ferrugem/âmbar das luzes contra azul-petróleo da noite,
   não cinza), céu com nuvens prontas (HDRI Poly Haven CC0), névoa colorida, chuva/poças; foto antes/depois de 4 lugares.
-- [ ] E2 PRONTO NO LUGAR DO FEITO À MÃO (regra 7): levantar o que é feito à mão (casas_us, ruinas, cidade.py, porão,
+- [x] E2 (07/11 7:31) Levantamento: feito à mão mais visto = 272 casas casa_us (interior, gavetas e porões presos a
+  elas), 65 sobrados, veículos carro_r2/van_r1, ônibus, barricadas, postes. Trocados agora: queimado (Burned Car), van
+  (Graffiti Van) e enferrujado novo (Car Wreck) do Sketchfab CC BY (créditos ok); dirigíveis já eram o sedã pronto.
+  _veiculo acha o comprimento e a colisão pelo tamanho do modelo; tinta escura no queimado. Planta com o mesmo sorteio
+  (cidade igual), malha refeita. Render Média 437 chamadas (+7,6%), 341 mil tri. test_bairro/carro/porta_malas ok.
+- [ ] E2b Casas e lojas prontas: achar kit de casas americanas CC0/CC BY com interior (ou fachadas prontas por cima do
+  interior atual, mantendo os nomes de móvel que as gavetas usam); ônibus e barricadas prontos.
+  Era: PRONTO NO LUGAR DO FEITO À MÃO (regra 7): levantar o que é feito à mão (casas_us, ruinas, cidade.py, porão,
   postes, barricadas); trocar os mais vistos por modelos prontos CC0/CC BY (começar pelas casas e lojas do centro).
 - [ ] E3 ESTRUTURA (regra 1): centro bombardeado (prédios desabados prontos, crateras, entulho), bairro incendiado,
   rodovia de entrada engarrafada, parque virado vala comum. Planta + minimapa + malha.

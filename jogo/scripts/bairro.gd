@@ -1217,6 +1217,10 @@ func _carros() -> void:
 			pontos_zumbi.append(ORIGEM + Vector3(p.x, 0.1, p.y) + Vector3(d.y, 0, -d.x) * 3.0)
 
 
+const TINTA_VEICULO: Dictionary = {"queimado": Color(0.42, 0.36, 0.34)}
+var _tintas: Dictionary = {}  # material do arquivo -> cópia tingida
+
+
 func _veiculo(arq: String, cor: Color) -> Node3D:
 	if arq.begins_with("mundo:"):  # carro pronto baixado (normaliza.py): comprimento virado para Z, colisão do tamanho dele
 		var nome: String = arq.substr(6)
@@ -1229,6 +1233,16 @@ func _veiculo(arq: String, cor: Color) -> Node3D:
 			cx = a if cx.size == Vector3.ZERO else cx.merge(a)
 		if cx.size.x > cx.size.z:
 			m.rotation.y = PI * 0.5
+		if TINTA_VEICULO.has(nome):  # 07/11: a ferrugem do queimado vinha laranja-lava; escurece (material dividido entre as cópias)
+			for mi: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
+				for k in mi.mesh.get_surface_count():
+					var orig: Material = mi.mesh.surface_get_material(k)
+					if orig is BaseMaterial3D:
+						if not _tintas.has(orig):
+							var t: BaseMaterial3D = orig.duplicate()
+							t.albedo_color *= TINTA_VEICULO[nome]
+							_tintas[orig] = t
+						mi.set_surface_override_material(k, _tintas[orig])
 		raiz.add_child(m)
 		var corpo := StaticBody3D.new()
 		var cs := CollisionShape3D.new()
