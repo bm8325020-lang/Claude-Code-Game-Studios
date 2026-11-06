@@ -72,6 +72,27 @@ var _resiste_t: float = 0.0
 var _onda_t: float = 0.0
 var _heli: Node3D
 var _salvo: String = ""
+var _cap: String = ""
+
+
+## Cartão do capítulo no meio da tela (aparece, fica e some), como nos jogos de história.
+func _cartao(texto: String) -> void:
+	var c := CanvasLayer.new()
+	c.layer = 20
+	var l := UiTema.rotulo(texto, 52, Color(1.0, 0.72, 0.25))
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	l.add_theme_color_override("font_outline_color", Color.BLACK)
+	l.add_theme_constant_override("outline_size", 10)
+	l.modulate.a = 0.0
+	c.add_child(l)
+	get_tree().root.add_child(c)
+	var tw := c.create_tween()
+	tw.tween_property(l, "modulate:a", 1.0, 0.8)
+	tw.tween_interval(2.6)
+	tw.tween_property(l, "modulate:a", 0.0, 1.0)
+	tw.tween_callback(c.queue_free)
 
 
 func _ready() -> void:
@@ -125,6 +146,10 @@ func _comeca() -> void:
 		var r: Array = ROTEIRO[_i]
 		_atual = [r[2], r[3], r[1]]
 		_titulo.text = "HISTÓRIA · CAP. " + String(r[0])
+		if String(r[0]) != _cap:
+			if _cap != "":
+				_cartao("CAPÍTULO " + String(r[0]))
+			_cap = String(r[0])
 		_prepara(String(r[5]))
 		_alvo = _onde(String(r[4]))
 		Minimapa.destino = _alvo
