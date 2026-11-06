@@ -28,10 +28,12 @@ const NOMES_QUALIDADE: Array[String] = ["Batata", "Média", "Alta", "Ultra"]
 ## aparecem os detalhes pequenos (molduras, tábuas, galhos).
 const QUALIDADE: Array[Dictionary] = [
 	# 31/10 (dono: "otimize"): visão mais curta (a neblina já esconde), Alta sem antisserrilhado e um pouco menor
-	{"sombra": 0, "resolucao": 0.6, "msaa": Viewport.MSAA_DISABLED, "longe": 120.0, "detalhe": 12.0},
-	{"sombra": 1024, "resolucao": 0.75, "msaa": Viewport.MSAA_DISABLED, "longe": 200.0, "detalhe": 25.0},
-	{"sombra": 2048, "resolucao": 0.9, "msaa": Viewport.MSAA_DISABLED, "longe": 280.0, "detalhe": 40.0},
-	{"sombra": 4096, "resolucao": 1.0, "msaa": Viewport.MSAA_2X, "longe": 450.0, "detalhe": 90.0},
+	# 07/11 (dono: "zumbis e o render travam"): lod = quantos pixels de erro o Godot aceita para trocar por malha mais
+	# simples (as LODs vêm do import); zumbi = até onde zumbi aparece; sombra_zumbi = zumbi faz sombra
+	{"sombra": 0, "resolucao": 0.6, "msaa": Viewport.MSAA_DISABLED, "longe": 100.0, "detalhe": 12.0, "lod": 8.0, "zumbi": 32.0, "sombra_zumbi": false},
+	{"sombra": 1024, "resolucao": 0.75, "msaa": Viewport.MSAA_DISABLED, "longe": 150.0, "detalhe": 25.0, "lod": 4.0, "zumbi": 45.0, "sombra_zumbi": false},
+	{"sombra": 2048, "resolucao": 0.9, "msaa": Viewport.MSAA_DISABLED, "longe": 280.0, "detalhe": 40.0, "lod": 2.0, "zumbi": 70.0, "sombra_zumbi": true},
+	{"sombra": 4096, "resolucao": 1.0, "msaa": Viewport.MSAA_2X, "longe": 450.0, "detalhe": 90.0, "lod": 1.0, "zumbi": 90.0, "sombra_zumbi": true},
 ]
 
 static var v: Dictionary = PADRAO.duplicate()
@@ -49,6 +51,8 @@ static func carrega(caminho: String = ARQUIVO) -> void:
 		v[k] = cf.get_value("jogo", k, PADRAO[k])
 	v.cfg_versao = cf.get_value("jogo", "cfg_versao", 0)  # arquivo de antes da troca não tem a chave
 	_padrao_celular()
+	if OS.get_environment("DD_QUALIDADE") != "":  # ferramentas de medida (tools/peso_*.gd): qualidade antes do mapa montar
+		v.qualidade = int(OS.get_environment("DD_QUALIDADE"))
 
 
 ## Celular (anti-travamento 06/11): Média e 30 quadros por segundo estáveis (60 que o aparelho não sustenta fica
@@ -109,10 +113,16 @@ static func aplica(arvore: SceneTree) -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(float(v.volume), 0.0001)))
 	arvore.root.scaling_3d_scale = float(v.resolucao)
 	arvore.root.msaa_3d = qualidade().msaa
+	arvore.root.mesh_lod_threshold = qualidade().lod
+	Zumbi.VE_ATE = qualidade().zumbi
+	Zumbi.SOMBRA = qualidade().sombra_zumbi
 	if qualidade().sombra > 0:
 		RenderingServer.directional_shadow_atlas_set_size(qualidade().sombra, true)
 	for sol: Node in arvore.get_nodes_in_group("sol"):
 		(sol as DirectionalLight3D).shadow_enabled = bool(v.sombras)
+		# 07/11: sombra em 4 fatias = cena desenhada 4 vezes a mais; Batata/Média uma fatia só, Alta duas
+		(sol as DirectionalLight3D).directional_shadow_mode = [DirectionalLight3D.SHADOW_ORTHOGONAL, DirectionalLight3D.SHADOW_ORTHOGONAL,
+			DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS, DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS][clampi(int(v.qualidade), 0, 3)]
 	var cam := arvore.root.get_camera_3d()
 	if cam:
 		cam.far = qualidade().longe

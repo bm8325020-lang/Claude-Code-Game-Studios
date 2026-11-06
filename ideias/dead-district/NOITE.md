@@ -32,3 +32,8 @@
 - [x] C2 HUD: buscas "o que está perto" (~5000 gavetas/itens/portas) a cada 0,15 s em vez de todo quadro: 3,5 -> 1 ms.
   Zumbi: caminho só refeito quando o destino anda 1 m, raio de porta 5x/s, parado/morto no chão sem move_and_slide.
   Total 11 -> 5,7 ms por quadro neste PC. test_zumbi/portas/horda ok.
+- [x] C3 Desenho (dono: "zumbis e o render travam"); medido com tools/peso_render.gd (DD_QUALIDADE=1, 4 pontos):
+  Média 543 -> 386 chamadas, 671 -> 336 mil triângulos. Zumbi sem camada vermelha fixa (só no piscar), sem sombra e
+  até 45 m na Média; mesh_lod_threshold pela qualidade (LODs do import); sombra do sol 1 fatia na Batata/Média;
+  árvores grandes com versão de longe (normaliza.py *_lod, folhas rareadas) em quadrados de 50 m; casca dos prédios
+  troca pela caixa mais cedo na Batata/Média.

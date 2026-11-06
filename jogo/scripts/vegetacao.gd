@@ -15,6 +15,14 @@ const ESPECIES: Dictionary = {
 	"arvore_velha": ["trees/arvore_velha", "", Color(0.7, 0.68, 0.62), 0.2, 0.3],
 	"arvore_morta": ["trees/arvore_morta", "", Color(0.75, 0.72, 0.68), 0.15, 0.3],
 	"toco": ["trees/arvore_rachada", "", Color(0.8, 0.8, 0.78), 0.0, 0.6],
+	# 07/11 anti-travamento: versões de longe (normaliza.py *_lod: folhas rareadas, tronco simples); Planta troca pela
+	# distância. Mesma tinta e balanço da inteira.
+	"arvore_lod": ["trees/arvore_lod", "", Color(0.82, 0.86, 0.74), 0.6, 0.0],
+	"betula_lod": ["trees/betula_lod", "", Color(0.8, 0.84, 0.72), 0.7, 0.0],
+	"pinheiro_lod": ["trees/pinheiro_lod", "", Color(0.78, 0.82, 0.76), 0.4, 0.0],
+	"arvore_velha_lod": ["trees/arvore_velha_lod", "", Color(0.7, 0.68, 0.62), 0.2, 0.0],
+	"arvore_morta_lod": ["trees/arvore_morta_lod", "", Color(0.75, 0.72, 0.68), 0.15, 0.0],
+	"toco_lod": ["trees/arvore_rachada_lod", "", Color(0.8, 0.8, 0.78), 0.0, 0.0],
 	# pacote de floresta (poucos triângulos: serve para mata fechada)
 	"conifera_1": ["trees/floresta", "floresta_0", Color(0.85, 0.88, 0.82), 0.4, 0.2],
 	"outono_1": ["trees/floresta", "floresta_1", Color(0.85, 0.82, 0.75), 0.5, 0.2],

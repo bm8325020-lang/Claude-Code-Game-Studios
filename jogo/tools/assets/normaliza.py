@@ -22,6 +22,13 @@ MODELOS = {
     "moita": ("vegetation/plants/grass_bushes_game_ready_asset.glb", "vegetation/plants", 0.8, False),
     "carcaca": ("veiculos/abandoned_generic_sedan_2_game_ready.glb", "veiculos", 1.45, False, 6000),  # carro abandonado
     "capim_seco": ("vegetation/plants/dry_realistic_grass_lods_1.glb", "vegetation/plants", 0.6, False, 500),
+    # 07/11 anti-travamento: versão de longe das árvores grandes (Planta: perto a inteira, longe esta)
+    "arvore_lod": ("vegetation/trees/realistic_tree.glb", "vegetation/trees", 10.0, False, 500),
+    "betula_lod": ("vegetation/trees/birch_tree.glb", "vegetation/trees", 13.0, False, 400),
+    "pinheiro_lod": ("vegetation/trees/pine_tree_01.glb", "vegetation/trees", 14.0, False, 600),
+    "arvore_velha_lod": ("vegetation/trees/old_tree.glb", "vegetation/trees", 10.0, False, 400),
+    "arvore_morta_lod": ("vegetation/trees/low_poly_dead_tree.glb", "vegetation/trees", 7.5, False, 300),
+    "arvore_rachada_lod": ("vegetation/trees/realistic_cracked_tree_game_ready_prop.glb", "vegetation/trees", 7.0, False, 300),
 }
 # recusados na foto (05/11): carvalho e carvalho_torto (folha de desenho animado), samambaia_moita (planta tropical),
 # samambaia_alta (5 MB de textura para 40 cm). Os brutos continuam em assets/mundo/brutos.
@@ -94,8 +101,47 @@ def _folha(o):
     return False
 
 
-def reduz(o, maximo):
-    """Decimate (colapso) separado: folhas (cartões com alfa) levam o corte grande, tronco no máximo metade."""
+def _rareia(p, fica):
+    """Versão de longe: cartão de folha não colapsa (quadrado solto); apaga ilhas ao acaso (fica = fração que sobra)
+    e aumenta as que ficam para a copa continuar cheia."""
+    import bmesh, random
+    rnd = random.Random(7)
+    bm = bmesh.new()
+    bm.from_mesh(p.data)
+    bm.faces.ensure_lookup_table()
+    vistos, ilhas = set(), []
+    for f in bm.faces:
+        if f.index in vistos:
+            continue
+        ilha, pilha = [], [f]
+        vistos.add(f.index)
+        while pilha:
+            g = pilha.pop()
+            ilha.append(g)
+            for e in g.edges:
+                for h in e.link_faces:
+                    if h.index not in vistos:
+                        vistos.add(h.index)
+                        pilha.append(h)
+        ilhas.append(ilha)
+    escala = min(2.0, 1.0 / max(fica, 0.05) ** 0.5)
+    apagar = []
+    for ilha in ilhas:
+        if rnd.random() > fica:
+            apagar.extend(ilha)
+            continue
+        vs = {v for g in ilha for v in g.verts}
+        c = sum((v.co for v in vs), Vector()) / len(vs)
+        for v in vs:
+            v.co = c + (v.co - c) * escala
+    bmesh.ops.delete(bm, geom=list(set(apagar)), context="FACES")
+    bm.to_mesh(p.data)
+    bm.free()
+
+
+def reduz(o, maximo, longe=False):
+    """Decimate (colapso) separado: folhas (cartões com alfa) levam o corte grande, tronco no máximo metade.
+    longe (versão *_lod): folhas rareadas (_rareia) e tronco cortado mais forte."""
     if not maximo or _tris(o) <= maximo:
         return o
     nome = o.name
@@ -110,9 +156,15 @@ def reduz(o, maximo):
     fixo = sum(_tris(p) for p in partes if p not in folhas)
     ft = sum(_tris(p) for p in folhas)
     # tronco: no máximo metade dos triângulos some (colapso forte faz caixote); folhas: o que sobrar do orçamento
-    r_tronco = max(0.5, min(1.0, maximo * 0.5 / max(fixo, 1)))
-    ratio = max(0.1, min(1.0, (maximo - fixo * r_tronco) / max(ft, 1)))
+    r_tronco = max(0.1 if longe else 0.5, min(1.0, maximo * 0.5 / max(fixo, 1)))
+    ratio = max(0.03 if longe else 0.1, min(1.0, (maximo - fixo * r_tronco) / max(ft, 1)))
+    if longe and folhas is not partes:
+        for p in folhas:
+            _rareia(p, ratio)
+        folhas = []  # já cortadas
     for p in partes:
+        if p not in folhas and longe and _folha(p):
+            continue
         d = p.modifiers.new("reduz", "DECIMATE")
         d.ratio = ratio if p in folhas else r_tronco
         d.use_collapse_triangulate = True
@@ -215,7 +267,7 @@ def faz(nome):
     if not pacote:
         o = junta(list(bpy.data.objects), nome)
         assenta(o, altura)
-        o = reduz(o, maximo)
+        o = reduz(o, maximo, nome.endswith("_lod"))
         exporta(o, os.path.join(RAIZ, pasta, nome, nome + ".gltf"))
         return
     # pacote: desce pela raiz até o nó com vários filhos; filhos com o pé a menos de 2,5 m um do outro são a mesma

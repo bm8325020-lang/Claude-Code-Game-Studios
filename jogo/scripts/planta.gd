@@ -216,6 +216,22 @@ static func _lote(b: Bairro, modelo: String, pedacos: Dictionary) -> void:
 		cena.free()
 	else:
 		return
+	# 07/11 anti-travamento: árvore grande com versão de longe vai em quadrados de SUB m: perto a inteira, longe a leve
+	var leves: Array = Vegetacao.malhas(modelo.substr(4) + "_lod") if modelo.begins_with("veg:") and not pequena and not Rede.servidor_sem_tela else []
+	if not leves.is_empty():
+		var perto: float = float(Config.qualidade().detalhe) * 1.5 + SUB * 0.71
+		var fim: float = float(Config.qualidade().longe) * 0.8 + SUB * 0.71
+		var subs: Dictionary = {}
+		for chave: Vector2i in pedacos:
+			for t: Transform3D in pedacos[chave]:
+				var k := Vector2i(floori(t.origin.x / SUB), floori(t.origin.z / SUB))
+				if not subs.has(k):
+					subs[k] = []
+				subs[k].append(t)
+		for k: Vector2i in subs:
+			_mm(b, "Lote_%s_%d_%d" % [modelo, k.x, k.y], malhas, subs[k], 0.0, perto, true)
+			_mm(b, "Longe_%s_%d_%d" % [modelo, k.x, k.y], leves, subs[k], perto, fim, false)
+		malhas = []  # já postas; o laço de baixo só põe a colisão
 	for chave: Vector2i in pedacos:
 		var ts: Array = pedacos[chave]
 		for par: Array in malhas:
@@ -245,6 +261,28 @@ static func _lote(b: Bairro, modelo: String, pedacos: Dictionary) -> void:
 				cs.transform = f[1]
 				corpo.add_child(cs)
 			b.add_child(corpo)
+
+
+const SUB: float = 50.0
+
+
+## Uma MultiMesh por malha das cópias `ts`, aparecendo de `ini` a `fim` m (do meio do quadrado).
+static func _mm(b: Bairro, nome: String, malhas: Array, ts: Array, ini: float, fim: float, sombra: bool) -> void:
+	for par: Array in malhas:
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = par[0]
+		mm.instance_count = ts.size()
+		for i in ts.size():
+			mm.set_instance_transform(i, (ts[i] as Transform3D) * (par[1] as Transform3D))
+		var mi := MultiMeshInstance3D.new()
+		mi.name = nome
+		mi.multimesh = mm
+		mi.visibility_range_begin = ini
+		mi.visibility_range_end = fim
+		if not sombra:
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		b.add_child(mi)
 
 
 static func _rel(n: Node3D, raiz: Node) -> Transform3D:

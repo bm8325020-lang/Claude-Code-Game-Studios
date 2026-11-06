@@ -301,7 +301,8 @@ func _ready() -> void:
 	_mat_pele.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_mat_pele.albedo_color = Color(0.85, 0.15, 0.1, 0.0)
 	for m: MeshInstance3D in modelo.find_children("*", "MeshInstance3D", true, false):
-		m.material_overlay = _mat_pele
+		if not SOMBRA:
+			m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	if armado and not Rede.servidor_sem_tela:
 		_poe_arma()
 	anim = AnimationPlayer.new()
@@ -1155,9 +1156,17 @@ func _aplica(dano: int, dir: Vector3) -> void:
 
 
 func _pisca() -> void:
+	# 07/11: a camada vermelha só existe durante o piscar (ligada sempre, cada malha era desenhada duas vezes)
+	_camada(_mat_pele)
 	var t := create_tween()
 	t.tween_property(_mat_pele, "albedo_color:a", 0.45, 0.04)
 	t.tween_property(_mat_pele, "albedo_color:a", 0.0, 0.18)
+	t.tween_callback(_camada.bind(null))
+
+
+func _camada(m: Material) -> void:
+	for mi: MeshInstance3D in modelo.find_children("*", "MeshInstance3D", true, false):
+		mi.material_overlay = m
 
 
 func _morre() -> void:
@@ -1259,6 +1268,8 @@ func _monta_torto(rr: RandomNumberGenerator) -> void:
 ## segundo; longe demais não anima nem aparece.
 const ANIMA_PERTO: float = 18.0
 const ANIMA_LONGE: float = 55.0
+static var VE_ATE: float = 70.0  # m: além disso o zumbi não é desenhado (Config.aplica, pela qualidade)
+static var SOMBRA: bool = true  # zumbi faz sombra (Batata/Média não: sombra de malha animada custa o dobro)
 var _anima_acum: float = 0.0
 var _anima_quadro: int = 0
 
@@ -1273,7 +1284,7 @@ func _process(dt: float) -> void:
 	if cam:
 		var d: Vector3 = global_position - cam.global_position
 		var dist: float = d.length()
-		modelo.visible = dist < ANIMA_LONGE * 1.3  # celular: de longe a neblina já esconde
+		modelo.visible = dist < VE_ATE  # celular: de longe a neblina já esconde
 		if dist > ANIMA_LONGE:
 			pulo = 8
 		elif dist > ANIMA_PERTO or (dist > 6.0 and d.dot(-cam.global_basis.z) < 0.0):

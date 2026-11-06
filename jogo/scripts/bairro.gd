@@ -385,7 +385,9 @@ func _junta_quad(q: Array, m: Material, n: Vector3) -> void:
 
 
 func _fecha_juntas() -> void:
-	var meio: float = maxf(float(Config.qualidade().longe) * 0.55, 90.0)  # até aqui (do meio do pedaço) a casca de fora
+	# até aqui (do meio do pedaço) a casca de fora; depois a caixa. 07/11: Batata/Média trocam mais cedo (a casca era
+	# ~300 mil triângulos na tela; a névoa esconde a troca)
+	var meio: float = float(Config.qualidade().longe) * 0.4 if int(Config.v.qualidade) <= 1 else maxf(float(Config.qualidade().longe) * 0.55, 90.0)
 	for chave: String in _juntas_longe:
 		var ml := MeshInstance3D.new()
 		ml.name = "Longe_%d" % get_child_count()
