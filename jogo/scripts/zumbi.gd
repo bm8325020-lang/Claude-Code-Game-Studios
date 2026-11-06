@@ -573,7 +573,9 @@ func _physics_process(dt: float) -> void:
 	if _procura_t <= 0.0:
 		_procura_t = 0.3
 		_escolhe_alvo()
-		_calcula_cerco()
+		_cerco_n += 1
+		if not humano() and _cerco_n % 3 == 0:  # anti-lag (06/11): o cerco olha o bando todo; 1x a cada 0,9 s (Corvo não cerca)
+			_calcula_cerco()
 	var desejada := Vector3.ZERO
 	if _levantando >= 0.0:
 		_levantando -= dt
@@ -900,6 +902,9 @@ func _escolhe_alvo() -> void:
 
 # divide a volta do alvo entre os zumbis que estão atrás dele: ordena pelo ângulo em que cada um já está e
 # espalha por igual, girando o conjunto o mínimo possível
+var _cerco_n: int = 0
+
+
 func _calcula_cerco() -> void:
 	_cerco_ang = NAN
 	if alvo == null:
@@ -1054,14 +1059,16 @@ func _tiro_fx(ate: Vector3) -> void:
 	if Rede.servidor_sem_tela:
 		return
 	var de: Vector3 = _arma.global_position if _arma else global_position + Vector3(0, 1.4, 0)
-	var luz := OmniLight3D.new()
-	luz.light_color = Color(1, 0.8, 0.5)
-	luz.light_energy = 3.0
-	luz.omni_range = 5.0
 	var fora: Node = get_parent().get_parent()  # fora da lista de zumbis (laços tipados de Zumbi quebravam com luz/som lá)
-	fora.add_child(luz)
-	luz.global_position = de
-	luz.create_tween().tween_property(luz, "light_energy", 0.0, 0.08).finished.connect(luz.queue_free)
+	var vista: Camera3D = get_viewport().get_camera_3d()
+	if vista and vista.global_position.distance_to(de) < 30.0:  # anti-lag: clarão (luz dinâmica) só perto de quem vê
+		var luz := OmniLight3D.new()
+		luz.light_color = Color(1, 0.8, 0.5)
+		luz.light_energy = 3.0
+		luz.omni_range = 5.0
+		fora.add_child(luz)
+		luz.global_position = de
+		luz.create_tween().tween_property(luz, "light_energy", 0.0, 0.08).finished.connect(luz.queue_free)
 	var som := AudioStreamPlayer3D.new()
 	if _estampido == null:
 		_estampido = Pistola._gera_estampido()
