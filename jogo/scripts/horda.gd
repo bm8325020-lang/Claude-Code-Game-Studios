@@ -50,6 +50,8 @@ func solta(m: Node, n: int) -> bool:
 	for tentativa in 10:
 		var ang: float = _rng.randf() * TAU
 		var quer: Vector3 = j.global_position + Vector3(sin(ang), 0, cos(ang)) * NASCE_LONGE
+		if vivos.any(func(o: Jogador) -> bool: return o.global_position.distance_to(quer) < LONGE_DE_TODOS - 8.0):
+			continue  # barato antes do ponto na malha (~3 ms cada, varre a malha da cidade)
 		var p: Vector3 = NavigationServer3D.map_get_closest_point(mapa, quer)
 		if Vector2(p.x - quer.x, p.z - quer.z).length() > 8.0:
 			continue  # fora da malha (rio, dentro de prédio)

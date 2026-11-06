@@ -168,12 +168,30 @@ var _dorme_t: float = 0.0
 # nada para fazer: sem alvo, sem patrulha, sem barulho para ir ver, sem procurar nem voltar, sem raid
 const CAMINHO_REFAZ: float = 1.0  # m que o destino anda até pedir caminho novo
 const PORTA_A_CADA: float = 0.2
+const REFAZ_PERTO: float = 0.25    # s entre caminhos novos com o destino perto
+const REFAZ_LONGE: float = 1.5     # e longe (o tempo cresce com a distância)
+var _refaz_t: float = 0.0
+## no máximo isso de caminhos novos por quadro de física, somando todos os zumbis (cada um custa ~5 ms no PC: a busca
+## do polígono mais perto varre a malha da cidade); quem não coube segue o caminho velho e pede no próximo quadro
+const PEDIDOS_POR_QUADRO: int = 1
+static var _pedidos: int = 0
+static var _pedidos_q: int = -1
+const RETO_ATE: float = 25.0      # m: até aqui, com o caminho livre, vai reto sem a malha
+var _reto: bool = false  # perto e sem nada no meio: vai reto sem a malha
 var _porta_t: float = 0.0
 
 
 func _quieto() -> bool:
 	return alvo == null and raid == 0 and horda <= 0 and rota.is_empty() and not _indo_ouvir and _olhando_t <= 0.0 and not _voltando \
 		and _foge_t <= 0.0 and _ataque_t < 0.0
+
+
+## distância do jogador mais perto (INF = nenhum)
+func _mais_perto() -> float:
+	var d2: float = INF
+	for j: Node3D in get_tree().get_nodes_in_group("jogadores"):
+		d2 = minf(d2, j.global_position.distance_squared_to(global_position))
+	return sqrt(d2)
 
 
 func _alguem_perto(dist: float) -> bool:
@@ -498,8 +516,9 @@ func _physics_process(dt: float) -> void:
 		# zumbi sem alvo e longe de todos os jogadores dorme (não pensa nem anda) até alguém chegar
 		_dorme_t -= dt
 		if _dorme_t <= 0.0:
-			_dorme_t = 1.0
-			_dormindo = _quieto() and not _alguem_perto(DORME_DIST)
+			_dorme_t = 0.5
+			_dist_jog = _mais_perto()
+			_dormindo = _quieto() and _dist_jog > DORME_DIST
 		if _dormindo and _quieto() and vida > 0:  # morto conta o tempo de voltar mesmo longe (só volta longe de todos)
 			return
 	if not _pensa_aqui():
@@ -684,7 +703,7 @@ func _physics_process(dt: float) -> void:
 	velocity.x = plano.x
 	velocity.z = plano.z
 	if not (plano.length_squared() < 0.0001 and is_on_floor() and velocity.y <= 0.0):
-		move_and_slide()  # parado no chão não precisa mexer na física
+		_move_lod()  # parado no chão não precisa mexer na física no chão não precisa mexer na física
 	if _ataque_t < 0.0 and _cambaleio <= 0.0 and _grito_t < 0.0 and _levantando < 0.0:
 		var v: float = plano.length()
 		var nomes: Dictionary = {"andar": "andar", "correr": "correr"} if chefe else TIPOS[tipo]
@@ -694,13 +713,59 @@ func _physics_process(dt: float) -> void:
 	_publica()
 
 
+## 08/11 horda: longe (> FISICA_LONGE m) de todos os jogadores, a física do zumbi roda em metade dos quadros com o
+## dobro do passo (ninguém vê de perto; move_and_slide é o que mais pesa com dezenas de zumbis). Cada um num quadro.
+const FISICA_LONGE: float = 25.0
+var _dist_jog: float = 0.0
+var _fis_quadro: int = 0
+
+
+func _move_lod() -> void:
+	_fis_quadro += 1
+	if _dist_jog < FISICA_LONGE or not is_on_floor():
+		move_and_slide()
+		return
+	if (_fis_quadro + get_instance_id()) % 2 == 0:
+		return  # este quadro fica para o próximo
+	var v: Vector3 = velocity
+	velocity = Vector3(v.x * 2.0, v.y, v.z * 2.0)
+	move_and_slide()
+	velocity = Vector3(velocity.x * 0.5, velocity.y, velocity.z * 0.5)
+
+
 # velocidade desejada para ir até `destino` pela malha de navegação
 func _caminho(destino: Vector3, vel: float, dt: float) -> Vector3:
 	# 07/11 anti-travamento: trocar o alvo do agente pede um caminho novo; alvo andando = pedido todo quadro. Só troca
 	# quando o destino andou CAMINHO_REFAZ m (ou perto do fim, onde a precisão importa)
-	if _agente.target_position.distance_squared_to(destino) > CAMINHO_REFAZ * CAMINHO_REFAZ \
-			or global_position.distance_squared_to(destino) < 16.0:
-		_agente.target_position = destino
+	# 08/11 (horda travando): set_target_position refaz o caminho SEMPRE (mesmo destino igual); perto (< 4 m) isso era
+	# todo quadro em cada zumbi colado no jogador (13 ms com 40). Agora cada um refaz no máximo a cada `_refaz_t`
+	# (mais longe = mais raro) e só se o destino andou (perto basta 0,3 m)
+	_refaz_t -= dt
+	if _refaz_t <= 0.0:
+		var d2: float = global_position.distance_squared_to(destino)
+		var perto: bool = d2 < 16.0
+		var estava_reto: bool = _reto
+		_reto = false
+		if d2 < RETO_ATE * RETO_ATE:
+			# nada no meio (raio na altura do joelho): vai reto, sem pedir caminho (cada pedido custa 1 a 4 ms na cidade)
+			var de: Vector3 = global_position + Vector3(0, 0.5, 0)
+			var q := PhysicsRayQueryParameters3D.create(de, destino + Vector3(0, 0.5, 0), 1 | Porta.CAMADA)
+			_reto = get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+		var anda: float = 0.3 if perto else CAMINHO_REFAZ
+		var quer: bool = not _reto and (estava_reto or _agente.target_position.distance_squared_to(destino) > anda * anda)
+		if quer and _pedidos_quadro() >= PEDIDOS_POR_QUADRO:
+			_refaz_t = randf_range(0.03, 0.1)  # fila: tenta de novo daqui a pouco (e segue o caminho velho)
+			_reto = estava_reto
+		elif quer:
+			_pedidos += 1
+			_agente.target_position = destino
+		if _refaz_t <= 0.0:
+			_refaz_t = (REFAZ_PERTO if perto else clampf(sqrt(d2) / 20.0, REFAZ_PERTO, REFAZ_LONGE)) * randf_range(0.8, 1.2)
+	if _reto:
+		var r: Vector3 = destino - global_position
+		r.y = 0.0
+		_vira_para(r, dt)
+		return r.normalized() * vel
 	var prox: Vector3 = _agente.get_next_path_position() - global_position
 	prox.y = 0.0
 	if prox.length() < 0.05:
@@ -708,6 +773,13 @@ func _caminho(destino: Vector3, vel: float, dt: float) -> Vector3:
 		prox.y = 0.0
 	_vira_para(prox, dt)
 	return prox.normalized() * vel
+
+
+static func _pedidos_quadro() -> int:
+	if _pedidos_q != Engine.get_physics_frames():
+		_pedidos_q = Engine.get_physics_frames()
+		_pedidos = 0
+	return _pedidos
 
 
 # vai para o ponto atual da rota, devagar; chegando, para de 1,5 a 3,5 s e segue para o próximo
@@ -891,8 +963,6 @@ func _acha_abrigo() -> Vector3:
 		for k in 16:
 			var a: float = TAU * k / 16.0
 			var p: Vector3 = global_position + Vector3(sin(a), 0, cos(a)) * raio
-			if mapa.is_valid():
-				p = NavigationServer3D.map_get_closest_point(mapa, p)
 			if _plano(p - alvo.global_position) < maxf(4.0, _plano(global_position - alvo.global_position) - 1.0):
 				continue  # não se esconde indo na direção de quem atira
 			var q := PhysicsRayQueryParameters3D.create(olho, p + Vector3(0, 1.0, 0), 1 | Porta.CAMADA, [alvo.get_rid()])
@@ -904,14 +974,15 @@ func _acha_abrigo() -> Vector3:
 				melhor = p
 		if melhor != Vector3.INF:
 			break  # o mais perto que serve
+	if melhor != Vector3.INF and mapa.is_valid():
+		melhor = NavigationServer3D.map_get_closest_point(mapa, melhor)  # um só no fim (~3 ms cada na cidade)
 	return melhor
 
 
 # comprimento do caminho até `p`; INF se o caminho passa a menos de 3 m do alvo (não corre do lado de quem atira)
-func _custo_caminho(mapa: RID, p: Vector3) -> float:
-	if not mapa.is_valid():
-		return _plano(p - global_position)
-	var cam: PackedVector3Array = NavigationServer3D.map_get_path(mapa, global_position, p, true)
+# 08/11 horda: linha reta em vez do caminho na malha (64 pedidos de ~5 ms davam um tranco de 300 ms no Corvo ferido)
+func _custo_caminho(_mapa: RID, p: Vector3) -> float:
+	var cam := PackedVector3Array([global_position, p])
 	var total: float = 0.0
 	for i in range(1, cam.size()):
 		var meio: Vector3 = Geometry3D.get_closest_point_to_segment(alvo.global_position, cam[i - 1], cam[i])
@@ -1337,6 +1408,24 @@ const ANIMA_LONGE: float = 55.0
 static var VE_ATE: float = 70.0  # m: além disso o zumbi não é desenhado (Config.aplica, pela qualidade)
 static var SOMBRA: bool = true  # zumbi faz sombra (Batata/Média não: sombra de malha animada custa o dobro)
 var _anima_acum: float = 0.0
+## 08/11 horda: com muitos zumbis na tela, só os ANIMA_CHEIOS mais perto da câmera animam todo quadro (os outros de 2
+## em 2). `_limiar` = distância do ANIMA_CHEIOS-ésimo mais perto no quadro anterior.
+const ANIMA_CHEIOS: int = 8
+static var _dists: PackedFloat32Array = PackedFloat32Array()
+static var _dists_q: int = -1
+static var _limiar: float = INF
+
+
+static func _conta_perto(dist: float) -> void:
+	var q: int = Engine.get_process_frames()
+	if _dists_q != q:
+		_dists_q = q
+		_limiar = INF
+		if _dists.size() > ANIMA_CHEIOS:
+			_dists.sort()
+			_limiar = _dists[ANIMA_CHEIOS - 1]
+		_dists.clear()
+	_dists.append(dist)
 var _anima_quadro: int = 0
 
 
@@ -1353,10 +1442,13 @@ func _process(dt: float) -> void:
 		modelo.visible = dist < VE_ATE  # celular: de longe a neblina já esconde
 		if not modelo.visible:
 			return  # invisível não anima (o tempo acumula e anda tudo de uma vez quando aparecer)
+		_conta_perto(dist)
 		if dist > ANIMA_LONGE:
 			pulo = 8
 		elif dist > ANIMA_PERTO or (dist > 6.0 and d.dot(-cam.global_basis.z) < 0.0):
 			pulo = 3
+		elif dist > _limiar:
+			pulo = 2  # horda: só os ANIMA_CHEIOS mais perto animam todo quadro
 	if _anima_quadro % pulo != 0:
 		return
 	anim.advance(minf(_anima_acum, 2.0))

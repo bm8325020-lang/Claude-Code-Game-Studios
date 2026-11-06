@@ -36,6 +36,8 @@ func _init() -> void:
 	z.position = Vector3(30, 0, -12)
 	z.casa = z.position
 	main.zumbis.add_child(z)
+	await frames(2)
+	z.come = false  # comendo um corpo não ronda (o sorteio do nome às vezes dá)
 	await frames(60 * 25)
 	var andou: float = Vector2(z.global_position.x - 30, z.global_position.z + 12).length()
 	ok(andou > 1.0 and andou < Zumbi.RONDA_RAIO + 3.0, "ronda em volta de casa (%.1f m)" % andou)

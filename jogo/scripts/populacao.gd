@@ -58,18 +58,28 @@ func solta(m: Node, j: Jogador, n: int) -> bool:
 	for tentativa in 8:
 		var ang: float = _rng.randf() * TAU
 		var quer: Vector3 = j.global_position + Vector3(sin(ang), 0, cos(ang)) * _rng.randf_range(NASCE_MIN, NASCE_MAX)
+		# 08/11 horda travando: o ponto mais perto na malha custa ~3 ms (varre a malha da cidade); antes dele, o que é
+		# barato descarta (fora da cidade, perto de alguém, à vista)
+		if not dentro(quer) or _perto_de_alguem(m, quer, NASCE_MIN - 8.0) or _a_vista(espaco, j, quer):
+			continue
 		var p: Vector3 = NavigationServer3D.map_get_closest_point(mapa, quer)
 		if Vector2(p.x - quer.x, p.z - quer.z).length() > 8.0 or not dentro(p):
 			continue  # fora da malha (rio, dentro de prédio) ou fora da cidade
-		if m.jogadores.get_children().any(func(o: Jogador) -> bool: return o.global_position.distance_to(p) < NASCE_MIN):
-			continue
-		var q := PhysicsRayQueryParameters3D.create(j.global_position + Vector3(0, 1.6, 0), p + Vector3(0, 1.2, 0), 1)
-		if espaco.intersect_ray(q).is_empty():
+		if _perto_de_alguem(m, p, NASCE_MIN) or _a_vista(espaco, j, p):
 			continue  # dá para ver de onde ele está: nasceria na tela
 		for k in n:
 			m.spawner_zumbis.spawn({"pos": p + Vector3(_rng.randf_range(-3, 3), 0.1, _rng.randf_range(-3, 3)), "horda": Zumbi.AMBIENTE})
 		return true
 	return false
+
+
+static func _perto_de_alguem(m: Node, p: Vector3, dist: float) -> bool:
+	return m.jogadores.get_children().any(func(o: Jogador) -> bool: return o.global_position.distance_to(p) < dist)
+
+
+static func _a_vista(espaco: PhysicsDirectSpaceState3D, j: Jogador, p: Vector3) -> bool:
+	var q := PhysicsRayQueryParameters3D.create(j.global_position + Vector3(0, 1.6, 0), p + Vector3(0, 1.2, 0), 1)
+	return espaco.intersect_ray(q).is_empty()
 
 
 ## Está dentro da cidade (Raven Creek)? A pista de teste e o resto ficam de fora.
