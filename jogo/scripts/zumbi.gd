@@ -22,7 +22,16 @@ class_name Zumbi
 extends CharacterBody3D
 
 const VIDA_MAX: int = 150  # dono: zumbis estavam fracos (era 100)
-const VISAO: float = 30.0          # m: vê o jogador a essa distância (se nada tapa)
+const VISAO: float = 18.0          # m: vê o jogador a essa distância (se nada tapa); 07/11 dono: "detecta muito longe" (era 30)
+const VISAO_CONE: float = 0.35     # só vê na frente (cos ~70°); mais perto que VISAO_PERTO sente de qualquer lado
+const VISAO_PERTO: float = 4.0
+## 07/11 (dono: "coloca eles pra rondar, meio mortos"): zumbi sem nada a fazer anda devagar em volta de casa
+const RONDA_RAIO: float = 22.0
+const RONDA_VEL: float = 0.55      # m/s, arrastando o pé
+const RONDA_A_CADA: Vector2 = Vector2(8.0, 20.0)
+var _ronda_t: float = 0.0
+static var ronda_ligada: bool = true  # testes que medem posição desligam
+var _rondando: bool = false
 const OUVE: float = 6.5            # m: percebe mesmo sem ver (passos, barulho); 9 ouvia longe demais
 const DESISTE: float = 50.0        # m: perde o alvo
 const ANDAR: float = 1.2           # m/s: alvo longe (1,4 antes; dono 31/10: "nerfe a velocidade")
@@ -642,7 +651,7 @@ func _physics_process(dt: float) -> void:
 			_indo_ouvir = false
 			_olhando_t = PROCURA
 		else:
-			desejada = _caminho(_ouvido, VAI_OUVIR * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
+			desejada = _caminho(_ouvido, (RONDA_VEL if _rondando else VAI_OUVIR) * Ciclo.forca_noite(get_tree(), NOITE_VEL), dt)
 	elif marcha.is_finite():  # horda: anda em bloco até o ponto que a Horda manda
 		_voltando = false
 		if _plano(marcha - global_position) > 1.5:
@@ -744,6 +753,7 @@ func ouve(ponto: Vector3, raio: float) -> void:
 			return
 		_acorda()
 	_ouvido = ponto
+	_rondando = false  # barulho de verdade: vai rápido (a ronda liga de novo logo depois de chamar isto)
 	_indo_ouvir = true
 	_olhando_t = 0.0
 	_voltando = false
@@ -787,11 +797,21 @@ func _escolhe_alvo() -> void:
 		if j == null or j.vida <= 0 or j.segura:
 			continue
 		var dist: float = j.global_position.distance_to(global_position)
-		if dist < melhor and (dist < Zumbi.ouve_de(j, ouve) or (dist < visao and _ve(j))):
+		var na_frente: bool = dist < VISAO_PERTO or modelo.global_basis.z.dot((j.global_position - global_position).normalized()) > VISAO_CONE
+		if dist < melhor and (dist < Zumbi.ouve_de(j, ouve) or (dist < visao and (na_frente or humano()) and _ve(j))):
 			melhor = dist
 			alvo = j
 	if alvo == null and humano():
 		_caca()
+	elif ronda_ligada and alvo == null and not _deitado and not chefe and rota.is_empty() and horda <= 0 and not _indo_ouvir and not _comendo():
+		_ronda_t -= 0.3
+		if _ronda_t <= 0.0:  # ronda: um passo arrastado até um ponto perto de casa
+			_ronda_t = randf_range(RONDA_A_CADA.x, RONDA_A_CADA.y)
+			var a: float = randf() * TAU
+			ouve(casa + Vector3(cos(a), 0, sin(a)) * randf_range(4.0, RONDA_RAIO), INF)
+			_rondando = true
+	if _indo_ouvir == false:
+		_rondando = false
 	if alvo:
 		_indo_ouvir = false
 		_olhando_t = 0.0

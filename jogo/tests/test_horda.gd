@@ -25,6 +25,7 @@ func _init() -> void:
 	root.add_child(main)
 	await frames(10)
 	main.iniciar_solo("Teste")
+	Zumbi.ronda_ligada = false  # 07/11: zumbi rondando muda as posições que este teste mede
 	await frames(30)
 	var j: Jogador = main.jogador
 	main.controles.jogador = null

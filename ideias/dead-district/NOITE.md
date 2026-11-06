@@ -124,3 +124,10 @@ Ordem pensada: primeiro a cara e o pronto (muda o jogo inteiro), depois estrutur
   > 4 m/s, zumbi na frente leva 14 x m/s de dano e voa). Dentro do carro zumbi/saqueador não machuca. Zumbi morto só
   volta depois de 5 min e só sem jogador a 70 m (era 8 s); morto não dorme. Achados na rua 45 -> 160.
   test_atropela 2/2, test_zumbi 50/50, carro/raid/bairro/itens ok. APK 1.04.
+- [x] (dono 07/11 "falta objetivo, tá chato; raids no mapa; zumbi rondando; vê menos") BUG: os 4 raids marcavam o mesmo
+  ponto (posição do nó-pai na origem) -> agora a do prédio (por isso o dono não achava o raid). HISTÓRIA no lugar das
+  tarefas (tarefas.gd): capítulos 1-5 (comida, refúgio, hospital da Mia, Corvos e bomba, quarentena, torre do sinal,
+  amanhecer) com destino marcado sozinho no mapa e fala da história ao fechar; depois tarefas sorteadas. Mapa grande com
+  nome dos raids e da quarentena. Zumbi: vê 18 m (era 30) e só na frente (~70°; colado sente), ronda devagar em volta
+  de casa (0,55 m/s). Minimapa: zumbi só se está na sua frente a até 30 m (ou colado 6 m); saqueador segue de longe.
+  test_tarefas 7/7, test_ronda 3/3, test_zumbi 50/50, horda/raid/bairro/bomba ok.

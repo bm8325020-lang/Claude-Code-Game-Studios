@@ -99,8 +99,12 @@ func _draw() -> void:
 		draw_texture_rect(_img, Rect2(na_tela(Vector2(-meia, -meia)), Vector2.ONE * METROS_IMG * _zoom), false)
 	var b: Bairro = get_tree().get_first_node_in_group("principal").bairro if get_tree().get_first_node_in_group("principal") else null
 	if b:
-		for r: Dictionary in b.raids:
+		for r: Dictionary in b.raids:  # raids com o nome (dono 07/11: "deixe no mapa os locais que têm raid")
 			_ponto(r.pos, Minimapa.COR_RAID, 9.0, true)
+			var q: Vector2 = _local(r.pos)
+			draw_string(ThemeDB.fallback_font, q + Vector2(14, 6), "RAID: " + String(r.nome), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 0.4, 0.3))
+		if b.marcos_pos.has("quarentena"):
+			draw_string(ThemeDB.fallback_font, _local(b.marcos_pos.quarentena) + Vector2(12, -10), "QUARENTENA (portão: BOMBA)", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 0.85, 0.3))
 		for k: String in b.marcos_pos:
 			_ponto(b.marcos_pos[k], Minimapa.COR_MARCO, 7.0, false)
 	if Minimapa.destino.is_finite():

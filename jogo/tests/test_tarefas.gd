@@ -1,4 +1,4 @@
-# Tarefas (31/10): o painel começa em "pegue comida", anda com os eventos certos (e não com os errados) e dá XP.
+# História (07/11; era Tarefas 31/10): começa em "pegue comida", anda com os eventos certos, marca o destino no mapa.
 #   godot --headless --path . --fixed-fps 60 -s res://tests/test_tarefas.gd
 extends SceneTree
 
@@ -27,10 +27,14 @@ func _init() -> void:
 	ok(t._i == 0, "evento errado não conta")
 	j.ganhar("comida", 1)
 	await physics_frame
-	ok(t._i == 1 and t._linha.text.contains("gavetas"), "pegou comida: vai para as gavetas (%s)" % t._linha.text)
-	ok(j.prog.xp + j.prog.nivel * 1000 > xp0, "tarefa feita dá XP")
-	for k in 3:
-		j.revistou.emit()
-	ok(t._i == 2 and t._linha.text.contains("zumbis"), "3 gavetas: vai para os zumbis (%s)" % t._linha.text)
+	ok(t._i == 1 and t._linha.text.contains("refúgio"), "pegou comida: história pede o refúgio (%s)" % t._linha.text)
+	ok(j.prog.xp + j.prog.nivel * 1000 > xp0, "passo feito dá XP")
+	ok(Minimapa.destino.is_finite(), "o refúgio fica marcado no mapa (07/11)")
+	j.entrou_segura.emit(true)
+	await physics_frame
+	ok(t._i == 2 and t._linha.text.contains("HOSPITAL") and Minimapa.destino.is_finite(), "refúgio: vai para o hospital, marcado (%s)" % t._linha.text)
+	j.global_position = t._alvo + Vector3(0, 0.3, 0)
+	for i in 40: await physics_frame
+	ok(t._i == 3 and t._linha.text.contains("Revistar"), "chegou no hospital: revistar (%s)" % t._linha.text)
 	print("TAREFAS: %d checks, %d falhas -> %s" % [checks, falhas, "PASS" if falhas == 0 else "FAIL"])
 	quit(0 if falhas == 0 else 1)

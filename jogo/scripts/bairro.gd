@@ -713,7 +713,8 @@ const RAID_ZUMBIS: Dictionary = {"HOSPITAL MUNICIPAL": 12, "OS CORVOS": 5, "IGRE
 func _monta_raid(no: Node3D, titulo: String, tipo: String = "zumbi_policial") -> void:
 	var m: Node3D = no.get_child(0)
 	var cabe: int = RAID_ZUMBIS.get(titulo, 99)
-	raids.append({"nome": titulo, "pos": no.global_position if no.is_inside_tree() else ORIGEM + no.position + m.position})
+	# 07/11: era no.global_position (o nó fica na origem; quem anda é o modelo m): os 4 raids marcavam o mesmo lugar
+	raids.append({"nome": titulo, "pos": m.global_position if m.is_inside_tree() else ORIGEM + no.position + m.position})
 	for e: Node in m.get_children():
 		var n: String = e.name
 		if not e is Node3D or e is MeshInstance3D:

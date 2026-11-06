@@ -33,6 +33,7 @@ func _init() -> void:
 	root.add_child(main)
 	await frames(10)
 	main.iniciar_solo("Teste")
+	Zumbi.ronda_ligada = false  # 07/11: zumbi rondando muda as posições que este teste mede
 	await frames(5)
 	j = main.jogador
 	j._jogo_t = Jogador.NOVATO_T  # sem o desconto de dano do começo da partida
@@ -65,6 +66,7 @@ func _init() -> void:
 func _persegue_e_ataca() -> void:
 	j.global_position = Vector3(30, 0.1, -20)
 	z.global_position = Vector3(30, 0, -12)
+	z.modelo.rotation.y = PI  # de frente para o jogador (07/11: zumbi só vê na frente)
 	await frames(30)
 	var d0: float = plano(z.global_position, j.global_position)
 	await frames(90)
@@ -211,6 +213,7 @@ func _chama_horda() -> void:
 	z.come = false
 	z.chance_grito = 1.0  # no jogo só GRITO_CHANCE das vezes; senão rosna baixo
 	z.global_position = Vector3(30, 0, -12)  # vê o jogador (13 m)
+	z.modelo.rotation.y = atan2(j.global_position.x - 30.0, j.global_position.z + 12.0)  # de frente (07/11: só vê na frente)
 	amigo.global_position = Vector3(38, 0, -4)  # 11 m do que grita (GRITO_RAIO)
 	amigo.come = true  # de cabeça baixa num corpo: não vê o jogador sozinho, só vem pelo grito
 	amigo.casa = amigo.global_position

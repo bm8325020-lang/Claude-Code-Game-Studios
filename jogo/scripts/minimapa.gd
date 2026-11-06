@@ -10,7 +10,8 @@ const IMAGEM := "res://assets/mapa/minimapa.png"
 const TAM := Vector2(230, 170)
 const METROS := 150.0  # largura mostrada a pé (no carro x2)
 const CENTRO := Vector2(0.5, 0.62)  # onde fica o jogador no quadro
-const ZUMBI_VE := 45.0  # zumbi aparece a até esta distância
+const ZUMBI_VE := 30.0  # zumbi aparece a até esta distância, se estiver na sua frente (07/11, era 45 em volta toda)
+const VISTA_CONE := 0.45  # cos do meio campo de visão (~63°)
 const SAQUEADOR_VE := 160.0  # saqueador (Corvo) aparece bem mais longe
 const COR_RAID := Color(0.9, 0.2, 0.15)
 const COR_MARCO := Color(1.0, 0.8, 0.2)
@@ -78,6 +79,17 @@ func _bairro() -> Bairro:
 	return m.bairro if m and "bairro" in m else null
 
 
+func _na_vista(w: Vector3) -> bool:
+	var cam: Camera3D = get_viewport().get_camera_3d()
+	if cam == null:
+		return true
+	var d: Vector3 = w - cam.global_position
+	d.y = 0.0
+	var f: Vector3 = -cam.global_basis.z
+	f.y = 0.0
+	return f.normalized().dot(d.normalized()) > VISTA_CONE
+
+
 ## Ponto do mundo -> posição no quadro (px). Gira ao contrário da câmera: a frente fica para cima.
 func no_quadro(w: Vector3) -> Vector2:
 	var d: Vector3 = w - jogador.global_position
@@ -119,7 +131,7 @@ func _draw() -> void:
 						var pts := PackedVector2Array([qs + Vector2(0, -5.5), qs + Vector2(5.5, 0), qs + Vector2(0, 5.5), qs + Vector2(-5.5, 0)])
 						draw_colored_polygon(pts, Color(1.0, 0.55, 0.1))
 						draw_polyline(pts + PackedVector2Array([pts[0]]), Color(0.05, 0.05, 0.05), 1.5)
-			elif dz < ZUMBI_VE:
+			elif dz < 6.0 or (dz < ZUMBI_VE and _na_vista(zz.global_position)):  # 07/11: só o que você vê (ou ouve colado)
 				var q: Vector2 = no_quadro(zz.global_position)
 				if Rect2(Vector2.ZERO, TAM).has_point(q):
 					draw_circle(q, 3.2, Color(0.95, 0.15, 0.1))
