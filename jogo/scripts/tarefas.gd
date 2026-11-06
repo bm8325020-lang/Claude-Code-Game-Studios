@@ -132,6 +132,8 @@ const MOMENTO: Dictionary = {
 	"remedio_fim": ["RÁDIO · DANA", "Último minuto! Corre com esse remédio!"],
 	"noite_meio": ["RÁDIO · DANA", "Estou ouvindo o helicóptero! Aguenta mais um pouco!"],
 	"noite_fim": ["RÁDIO · DANA", "Mais trinta segundos! Não deixa eles subirem!"],
+	"morte": ["RÁDIO · DANA", "Levanta! Eu ainda preciso de você aí fora!"],
+	"mercer": ["RÁDIO · DANA", "É o Mercer... ele virou um deles. Mira na cabeça!"],
 }
 var _momentos: Dictionary = {}  # o que já foi dito neste passo
 var _tommy_ms: int = 0
@@ -685,6 +687,7 @@ func _process(dt: float) -> void:
 			_stats.mortes += 1
 			_morreu_no_passo = true
 			if _i < ROTEIRO.size():
+				_momento("morte", false)
 				legenda("VOCÊ MORREU", "Volta no último checkpoint. Objetivo: " + String(ROTEIRO[_i][1]).replace(" (%d/%d)", "").replace(" (%d/3)", "").replace(" (%d/5)", ""), 5.0, false)
 		_morto = true
 	elif _morto:
@@ -942,8 +945,8 @@ func _chefe_ui() -> void:
 	if not vivo:
 		return
 	_chefe_nome.text = "WADE HARLAN — LÍDER DOS CORVOS" if qual == "wade" else "SARGENTO COLE MERCER"
-	if qual == "wade" and _j.global_position.distance_to(z.global_position) < 35.0:
-		_momento("wade")  # o chefe provoca quando você chega
+	if _j.global_position.distance_to(z.global_position) < 35.0:
+		_momento(qual)  # Wade provoca; no Mercer a Dana avisa pelo rádio
 	_chefe_barra.max_value = z._vida_max
 	_chefe_barra.value = z.vida
 	if not _chefe_fase and z.vida < z._vida_max * 0.5 and _servidor():
