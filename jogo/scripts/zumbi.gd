@@ -244,6 +244,8 @@ var _deitado: bool = false
 var _levantando: float = -1.0
 var _forma: CollisionShape3D
 var alvo: Jogador
+## Zumbi da luta obrigatória da história (Tarefas): não desiste de você (nem no refúgio, nem de longe).
+var luta: bool = false
 
 var modelo: Node3D
 var anim: AnimationPlayer
@@ -844,10 +846,10 @@ func _vira_para(d: Vector3, dt: float) -> void:
 
 # o jogador vivo mais perto que dá para ver (ou que está bem perto)
 func _escolhe_alvo() -> void:
-	if alvo and is_instance_valid(alvo) and alvo.segura:
-		alvo = null  # entrou na sala segura (refúgio): desiste e volta
+	if alvo and is_instance_valid(alvo) and alvo.segura and not luta:
+		alvo = null  # entrou na sala segura (refúgio): desiste e volta (zumbi da luta da história não: veio te pegar no refúgio)
 		_voltando = true
-	if alvo and (not is_instance_valid(alvo) or alvo.vida <= 0 or alvo.global_position.distance_to(global_position) > DESISTE):
+	if alvo and (not is_instance_valid(alvo) or alvo.vida <= 0 or (alvo.global_position.distance_to(global_position) > DESISTE and not luta)):
 		if is_instance_valid(alvo) and alvo.vida > 0:
 			ouve(alvo.global_position, INF)  # perdeu de vista: vai procurar onde viu por último
 		alvo = null

@@ -33,5 +33,16 @@ func _init() -> void:
 	j.entrou_segura.emit(true)
 	await physics_frame
 	ok(t._i == 3 and t._linha.text.contains("DEFENDA") and t._onda_total > 0, "refúgio: luta obrigatória para defender (%s)" % t._linha.text)
+	# 06/11 (dono travou em 9/15): no refúgio (sala segura) os zumbis da luta não desistem; perdido longe volta perto
+	j.segura = true
+	for i in 60 * 4: await physics_frame
+	ok(t._onda_nos.size() > 0, "onda nasceu (%d)" % t._onda_nos.size())
+	var todos_caçam: bool = t._onda_nos.all(func(z: Zumbi) -> bool: return z.luta and z.alvo == j)
+	ok(todos_caçam, "zumbis da luta caçam quem está no refúgio")
+	if t._onda_nos.size() > 0:
+		var z0: Zumbi = t._onda_nos[0]
+		z0.global_position = j.global_position + Vector3(250, 0, 0)
+		for i in 90: await physics_frame
+		ok(z0.global_position.distance_to(j.global_position) < 30.0, "zumbi da luta perdido longe volta perto (%.0f m)" % z0.global_position.distance_to(j.global_position))
 	print("TAREFAS: %d checks, %d falhas -> %s" % [checks, falhas, "PASS" if falhas == 0 else "FAIL"])
 	quit(0 if falhas == 0 else 1)

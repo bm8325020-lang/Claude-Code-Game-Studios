@@ -684,6 +684,7 @@ func _luta(dt: float) -> void:
 			_onda_nos.erase(z)
 			_onda_mortos += 1
 			_mostra()
+	_cutuca_onda(dt)
 	if _onda_centro.distance_to(_j.global_position) > float(_cfg.raio) * 2.2 and _j.carro == null:
 		var c2 := get_parent()  # fugiu da luta (também entre as ondas): volta
 		if c2 and c2.has_method("aviso"):
@@ -706,10 +707,44 @@ func _luta(dt: float) -> void:
 					var z: Zumbi = principal.spawner_zumbis.spawn({"pos": _chao(_onda_centro + Vector3(cos(a), 0, sin(a)) * float(_cfg.raio) * randf_range(0.6, 0.95)) + Vector3(0, 0.1, 0), "horda": Zumbi.DO_MORTO})
 					if z:
 						z.alvo = _j
+						z.luta = true
 						_onda_nos.append(z)
 			var c := get_parent()
 			if c and c.has_method("aviso"):
 				c.aviso("ONDA %d/%d" % [int(_cfg.ondas) - _onda_resta, int(_cfg.ondas)], Color(1.0, 0.4, 0.3), 2.0)
+
+
+## Zumbi da onda nunca some do jogo (dono 06/11: travou em 9/15 porque um ficou preso/perdido e a onda seguinte não vinha):
+## todo segundo ele volta a te caçar; quem não chega perto em PRESO_T s (preso em parede, dormindo longe, perdido)
+## reaparece no chão andável a uns 14 m de você.
+const PRESO_T: float = 18.0
+var _cutuca_t: float = 0.0
+
+
+func _cutuca_onda(dt: float) -> void:
+	_cutuca_t -= dt
+	if _cutuca_t > 0.0 or _j == null or _j.vida <= 0:
+		return
+	_cutuca_t = 1.0
+	for z: Variant in _onda_nos:
+		if z == null or not is_instance_valid(z) or (z as Zumbi).vida <= 0:
+			continue
+		var zz: Zumbi = z
+		zz.alvo = _j
+		var d: float = zz.global_position.distance_to(_j.global_position)
+		var melhor: float = float(zz.get_meta("luta_d", INF))
+		if d < melhor - 1.0 or d < 6.0:  # está chegando: zera o relógio
+			zz.set_meta("luta_d", d)
+			zz.set_meta("luta_t", 0.0)
+			continue
+		var t: float = float(zz.get_meta("luta_t", 0.0)) + 1.0
+		zz.set_meta("luta_t", t)
+		if t >= PRESO_T or d > float(_cfg.raio) * 2.5:
+			var a: float = randf() * TAU
+			zz.global_position = _chao(_j.global_position + Vector3(cos(a), 0, sin(a)) * 14.0) + Vector3(0, 0.1, 0)
+			zz.velocity = Vector3.ZERO
+			zz.set_meta("luta_d", INF)
+			zz.set_meta("luta_t", 0.0)
 
 
 ## Barra de vida do chefe no alto; na metade da vida ele chama reforço (Wade: Corvos; Mercer: zumbis).
