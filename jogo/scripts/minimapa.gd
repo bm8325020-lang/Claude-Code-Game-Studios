@@ -47,7 +47,7 @@ func _ready() -> void:
 
 func _process(dt: float) -> void:
 	var b: Bairro = _bairro()
-	visible = jogador != null and b != null and not Bairro.vazio and ResourceLoader.exists(IMAGEM)
+	visible = jogador != null and b != null and ResourceLoader.exists(IMAGEM)
 	if not visible:
 		return
 	var cam: Camera3D = get_viewport().get_camera_3d()

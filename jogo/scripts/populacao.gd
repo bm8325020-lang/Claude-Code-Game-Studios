@@ -24,7 +24,7 @@ func passa(m: Node, dt: float) -> void:
 	if _t > 0.0:
 		return
 	_t = A_CADA
-	if m.em_pvp() or Bairro.vazio or m.bairro == null:
+	if m.em_pvp() or m.bairro == null:
 		return
 	var na_cidade: Array = m.jogadores.get_children().filter(func(j: Jogador) -> bool:
 		return j.vida > 0 and not j.segura and dentro(j.global_position))

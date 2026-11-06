@@ -174,7 +174,7 @@ Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
   eventos item_pego/revistou/abateu/entrou_segura/bilhete/amanheceu/marco via `Bairro.marcos_pos`), barra de vida verde
   com número (`_Barra.texto`). Arma `taco_pregos` (Blender, Armas.BRANCAS, pegada diagonal `Maos.POSE`); nas salas já vem
   na mão (`main.arma_inicial`); testes seguem com o facão.
-- MODO CONSTRUÇÃO (31/10, 0.88; dono: "quero montar meu mapa"): catálogo `assets/catalogo/catalogo.json` (~2100 peças;
+- MODO CONSTRUÇÃO: removido em 06/11 (pedido do dono). Só sobrou assets/catalogo/majadroid (capital ao longe).
   Kenney CC0 17 kits, Poly Haven CC0 164, Majadroid CC0 ruínas, Atomic Realm grátis com crédito (FORA do git:
   tools/catalogo/baixa_atomic.sh), mais ruínas/móveis/sketchfab do jogo e "jogo:*"); refazer: gera_lista.py -> mede.gd ->
   junta.py (ESCALA por kit da Kenney). `mapa_custom.gd` (MapaCustom: lista/item, carrega/salva user://meu_mapa.json,

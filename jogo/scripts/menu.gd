@@ -43,7 +43,6 @@ func _ready() -> void:
 		_status.text = "Procurando salas..."
 		main.abre_relay()
 		main.relay.lista())
-	_liga(ini, UiTema.botao("MODO CONSTRUÇÃO"), func() -> void: _mostra("construir"))
 	_liga(ini, UiTema.botao("CONFIGURAÇÕES"), func() -> void: _mostra("config"))
 	_liga(ini, UiTema.botao("CRÉDITOS"), func() -> void: _mostra("creditos"))
 	var cre := _pagina(raiz, "creditos", 900.0)  # CC BY pede o nome dos autores no jogo (tools/assets/creditos.py)
@@ -52,19 +51,6 @@ func _ready() -> void:
 	txt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	cre.add_child(txt)
 	_voltar(cre)
-	var con := _pagina(raiz, "construir", 560.0)
-	con.add_child(UiTema.titulo("MODO CONSTRUÇÃO", 40, UiTema.DESTAQUE))
-	con.add_child(UiTema.rotulo("Monte o seu mapa com mais de 2 mil peças. Salve, jogue nele e compartilhe.", 20, UiTema.APAGADO))
-	_liga(con, UiTema.botao("COMEÇAR DO ZERO (TERRENO VAZIO)", true), func() -> void: main.construir(false, "vazio"))
-	_liga(con, UiTema.botao("CONSTRUIR EM CIMA DA CIDADE"), func() -> void: main.construir(false, "cidade"))
-	_liga(con, UiTema.botao("CONTINUAR MEU MAPA"), func() -> void: main.construir(true))
-	_liga(con, UiTema.botao("JOGAR NO MEU MAPA"), func() -> void:
-		main.nick_local = _nick.text.strip_edges()
-		main.jogar_meu_mapa())
-	var cred := UiTema.rotulo("Peças: Kenney, Poly Haven e Majadroid (CC0). Modelos pós-apocalípticos: Atomic Realm (atomicrealm.itch.io).", 14, UiTema.APAGADO)
-	cred.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # crédito pedido pela licença da Atomic Realm
-	con.add_child(cred)
-	_voltar(con)
 	_monta_criar(raiz)
 	_monta_entrar(raiz)
 	var cfg := _pagina(raiz, "config", 760.0)

@@ -28,7 +28,7 @@ for l in le(os.path.join(A, "mundo", "LICENCAS.md")).splitlines():
 if linhas:
     partes += ["MUNDO (vegetação, construções)"] + linhas + [""]
 for nome, titulo in (("LICENCAS.txt", "ARMAS E OBJETOS"), ("zumbis/CREDITOS.txt", "ZUMBIS"),
-                     ("moveis/CREDITOS.txt", "MÓVEIS"), ("catalogo/CREDITOS.txt", "MODO CONSTRUÇÃO"),
+                     ("moveis/CREDITOS.txt", "MÓVEIS"), ("catalogo/CREDITOS.txt", "CAPITAL AO LONGE"),
                      ("sons/amb/CREDITOS.txt", "SONS")):
     p = os.path.join(A, nome)
     if os.path.exists(p):

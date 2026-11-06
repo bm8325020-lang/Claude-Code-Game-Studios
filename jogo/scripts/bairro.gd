@@ -56,9 +56,6 @@ func _ready() -> void:
 	position = ORIGEM
 	var dados: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(MAPA))
 	_terreno(dados.get("terreno", {}))
-	if vazio:  # modo construção do zero: só o chão (morro e rio) e o muro da borda
-		_borda()
-		return
 	for r: Dictionary in dados.ruas:
 		_rua(r)
 	_pontes()  # depois das ruas: ponte onde cada uma cruza o rio
@@ -1512,8 +1509,6 @@ func _mais_carros_e_achados() -> void:
 ## bilhete no cofre dizendo para que lado e a quantos metros (31/10, ideias do teste com novato). Gerador próprio.
 ## onde ficam os marcos (tipo -> posição no mundo): Tarefas manda o jogador até eles
 var marcos_pos: Dictionary = {}
-## modo construção "do zero" (MapaCustom): a cidade não é montada
-static var vazio: bool = false
 const COFRES: int = 10
 ## Tipo de loja de cada sobrado (ordem de LOJAS em tools/blender/cidade.py) para o loot (Loot.LUGAR)
 const LOJA_DO_SOBRADO: Dictionary = {"sobrado_1": "farmacia", "sobrado_2": "comida", "sobrado_3": "comida", "sobrado_4": "comida",
