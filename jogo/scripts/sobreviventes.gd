@@ -83,6 +83,8 @@ func _refugio(casa: Node3D) -> void:
 	add_child(luz)
 	var lamp := MeshInstance3D.new()
 	var esf := SphereMesh.new()
+	esf.radial_segments = 12  # anti-lag: o padrão do Godot é 64
+	esf.rings = 6
 	esf.radius = 0.09
 	esf.height = 0.2
 	lamp.mesh = esf

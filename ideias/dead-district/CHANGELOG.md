@@ -15,3 +15,11 @@
   (tools/mapa/osm/senoia.json, ODbL: "© colaboradores do OpenStreetMap"). 83 prédios reais no lugar e do tamanho deles
   (casa → casa americana, comércio → sobrado, igreja → igreja); os outros lotes preenchidos pelas regras; delegacia,
   hospital, mercado e escola no 1º lote livre. Raven Creek continua: sem CIDADE (ou CIDADE=raven) volta.
+- 06/11: CAMPANHA ANTI-LAG. Medido (foto_cidade, Média, com sombra): triângulos 1,47-2,04 mi → 0,18-0,66 mi
+  (−66% a −88%), chamadas −2% a −20%, sem mudar a vista de perto. Culpados achados: chão de 3 m projetando sombra
+  (1,2 mi com as cascatas) → 6 m e sem sombra; corpo do zumbi comendo (cápsulas de 64 lados) → 8 lados e some a 45 m;
+  esferas/cilindros padrão do Godot (64 lados) → 12; móveis Poly Haven (cama 50 mil) → 2500 (tools/assets/reduz.py);
+  zumbis Sketchfab → 9 mil; capim 1200 → 500 e 25% dos tufos. Casa em 3 níveis: inteira perto, casca de fora no meio
+  (Longe_* por pedaço, agora posicionado no meio do pedaço), "massinha" (caixa da cor da casa, Massa_*) longe.
+  Árvores somem na névoa. Resolução dinâmica (main._resolucao_dinamica), shaders aquecidos atrás da tela de
+  carregamento (main._aquece_shaders), zumbis vivos pela qualidade (Populacao.orcamento: 35/50/70).

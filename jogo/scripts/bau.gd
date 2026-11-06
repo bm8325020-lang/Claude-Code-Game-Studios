@@ -225,6 +225,8 @@ func _monta_saco() -> void:
 	lona.roughness = 0.95
 	var mi := MeshInstance3D.new()
 	var c := CapsuleMesh.new()
+	c.radial_segments = 12  # anti-lag: o padrão do Godot é 64
+	c.rings = 2
 	c.radius = 0.2
 	c.height = 0.62
 	mi.mesh = c

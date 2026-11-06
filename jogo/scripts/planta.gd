@@ -224,6 +224,8 @@ static func _lote(b: Bairro, modelo: String, pedacos: Dictionary) -> void:
 			if pequena:
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				mi.visibility_range_end = clampf(float(Config.qualidade().detalhe) * 3.0, 70.0, 220.0) + PEDACO * 0.7
+			elif modelo.begins_with("veg:"):  # árvore: some na névoa (anti-lag 06/11)
+				mi.visibility_range_end = float(Config.qualidade().longe) * 0.8 + PEDACO * 0.7
 			b.add_child(mi)
 		if formas.is_empty():
 			continue

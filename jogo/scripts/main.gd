@@ -305,7 +305,62 @@ func _status(caminho: String) -> void:
 				"memoria_mb": snappedf(OS.get_static_memory_usage() / 1048576.0, 0.1), "versao": Rede.VERSAO})))
 
 
+# --- Campanha anti-lag (06/11) ---
+## Anti-engasgo: no celular o shader de um material compila na primeira vez que ele aparece (trava 100-300 ms). Aqui,
+## com a tela de carregamento por cima, um quadradinho de cada material da cidade é desenhado na frente da câmera.
+func _aquece_shaders(j: Jogador) -> void:
+	if Rede.servidor_sem_tela or j.camera == null or j.camera.cam == null:
+		return
+	var vistos: Dictionary = {}
+	for g: Node in find_children("*", "GeometryInstance3D", true, false):
+		var lista: Array = []
+		if g is GeometryInstance3D and (g as GeometryInstance3D).material_override:
+			lista.append((g as GeometryInstance3D).material_override)
+		var malha: Mesh = (g as MeshInstance3D).mesh if g is MeshInstance3D else ((g as MultiMeshInstance3D).multimesh.mesh if g is MultiMeshInstance3D and (g as MultiMeshInstance3D).multimesh else null)
+		if malha:
+			for i in malha.get_surface_count():
+				if malha.surface_get_material(i):
+					lista.append(malha.surface_get_material(i))
+		for m: Material in lista:
+			vistos[m.get_instance_id()] = m
+	var raiz := Node3D.new()
+	j.camera.cam.add_child(raiz)
+	var q := QuadMesh.new()
+	q.size = Vector2(0.02, 0.02)
+	var k: int = 0
+	for id: int in vistos:
+		var mi := MeshInstance3D.new()
+		mi.mesh = q
+		mi.material_override = vistos[id]
+		mi.position = Vector3((k % 20) * 0.021 - 0.2, (k / 20 % 20) * 0.021 - 0.2, -0.5)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		raiz.add_child(mi)
+		k += 1
+	get_tree().create_timer(0.3).timeout.connect(raiz.queue_free)
+
+
+## Resolução dinâmica: o FPS caiu do alvo, a imagem 3D fica um pouco menor (o HUD não muda); melhorou, volta.
+var _res_t: float = 0.0
+var _res_escala: float = 1.0
+
+
+func _resolucao_dinamica(dt: float) -> void:
+	_res_t += dt
+	if _res_t < 2.0 or jogador == null:
+		return
+	_res_t = 0.0
+	var alvo: float = float(Config.v.fps) if int(Config.v.fps) > 0 else 60.0
+	var fps: float = Engine.get_frames_per_second()
+	if fps < alvo * 0.85:
+		_res_escala = maxf(_res_escala - 0.07, 0.6)
+	elif fps > alvo * 0.97:
+		_res_escala = minf(_res_escala + 0.05, 1.0)
+	get_tree().root.scaling_3d_scale = float(Config.v.resolucao) * _res_escala
+
+
 func _process(dt: float) -> void:
+	if not Rede.servidor_sem_tela:
+		_resolucao_dinamica(dt)
 	if relay and multiplayer.multiplayer_peer != relay:
 		relay.poll()  # na tela de salas (ainda não é a conexão do jogo)
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
@@ -798,7 +853,11 @@ func _jogador_entrou(n: Node) -> void:
 	if j and j.local:
 		jogador = j
 		if _carregando:
-			_carregando.queue_free()  # o nosso jogador chegou: pronto para jogar
+			_aquece_shaders(j)  # compila os materiais atrás da tela de carregamento (o engasgo vinha daí)
+			var c := _carregando
+			get_tree().create_timer(0.4).timeout.connect(func() -> void:
+				if is_instance_valid(c):
+					c.queue_free())  # o nosso jogador chegou: pronto para jogar
 		j.nick = nick_local
 		controles.jogador = j
 		if arma_inicial != "":

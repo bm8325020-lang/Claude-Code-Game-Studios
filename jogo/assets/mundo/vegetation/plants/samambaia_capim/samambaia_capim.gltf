@@ -113,61 +113,61 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":1054,
+			"count":606,
 			"max":[
-				0.8439136147499084,
-				0.44999998807907104,
-				0.8029919266700745
+				0.8421087265014648,
+				0.4395943284034729,
+				0.8067836761474609
 			],
 			"min":[
-				-0.44215863943099976,
-				0,
-				-0.5794853568077087
+				-0.4382013976573944,
+				0.017449703067541122,
+				-0.5765413641929626
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":1054,
+			"count":606,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":1054,
+			"count":606,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5123,
-			"count":2700,
+			"count":1350,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":12648,
+			"byteLength":7272,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":12648,
-			"byteOffset":12648,
+			"byteLength":7272,
+			"byteOffset":7272,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":8432,
-			"byteOffset":25296,
+			"byteLength":4848,
+			"byteOffset":14544,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":5400,
-			"byteOffset":33728,
+			"byteLength":2700,
+			"byteOffset":19392,
 			"target":34963
 		}
 	],
@@ -179,7 +179,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":39128,
+			"byteLength":22092,
 			"uri":"samambaia_capim.bin"
 		}
 	]

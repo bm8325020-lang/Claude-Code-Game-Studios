@@ -212,7 +212,7 @@ func altura(p: Vector2) -> float:
 
 
 func _malha_chao() -> void:
-	var passo: int = 3
+	var passo: int = 6  # anti-lag 06/11: era 3 (268 mil triângulos, 4x mais com as sombras); a colisão segue de 1 m
 	var n: int = (_lado_mapa - 1) / passo + 1
 	var meio: float = (_lado_mapa - 1) * 0.5
 	var st := SurfaceTool.new()
@@ -236,6 +236,7 @@ func _malha_chao() -> void:
 	var mi := MeshInstance3D.new()
 	mi.name = "MalhaChao"
 	mi.mesh = st.commit()
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # o chão só recebe sombra
 	mi.material_override = Enfeites.chao()
 	add_child(mi)
 
@@ -382,13 +383,31 @@ func _junta_quad(q: Array, m: Material, n: Vector3) -> void:
 
 
 func _fecha_juntas() -> void:
+	var meio: float = maxf(float(Config.qualidade().longe) * 0.55, 90.0)  # até aqui (do meio do pedaço) a casca de fora
 	for chave: String in _juntas_longe:
 		var ml := MeshInstance3D.new()
 		ml.name = "Longe_%d" % get_child_count()
 		ml.mesh = (_juntas_longe[chave][0] as SurfaceTool).commit()
 		ml.material_override = _juntas_longe[chave][1]
+		ml.position = _juntas_longe[chave][2]
+		ml.visibility_range_end = meio + PEDACO_MALHA * 0.5
+		ml.visibility_range_end_margin = 8.0
 		add_child(ml)
 	_juntas_longe.clear()
+	var m_massa := StandardMaterial3D.new()
+	m_massa.vertex_color_use_as_albedo = true
+	m_massa.roughness = 1.0
+	for pedaco: String in _massas:
+		var mm := MeshInstance3D.new()
+		mm.name = "Massa_%s" % pedaco.replace("|", "_").replace("-", "m")
+		mm.mesh = (_massas[pedaco][0] as SurfaceTool).commit()
+		mm.material_override = m_massa
+		mm.position = _massas[pedaco][1]
+		mm.visibility_range_begin = meio + PEDACO_MALHA * 0.5
+		mm.visibility_range_begin_margin = 8.0
+		mm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mm)
+	_massas.clear()
 	for chave: String in _juntas:
 		var mi := MeshInstance3D.new()
 		mi.name = "Junta_%d" % get_child_count()
@@ -589,18 +608,50 @@ func _junta_longe(no: Node3D, m: Node3D) -> void:
 		return
 	var c: Vector3 = no.position + m.position
 	var pedaco: String = "%d|%d" % [floori(c.x / PEDACO_MALHA), floori(c.z / PEDACO_MALHA)]
+	var centro := Vector3((floori(c.x / PEDACO_MALHA) + 0.5) * PEDACO_MALHA, 0, (floori(c.z / PEDACO_MALHA) + 0.5) * PEDACO_MALHA)
+	var caixa := AABB()
+	var cor := Color(0.5, 0.48, 0.45)
 	for nome: String in ["ext", "longe"]:
 		var mi := m.get_node_or_null(nome) as MeshInstance3D
 		if mi == null or mi.mesh == null or mi.get_child_count() > 0:
 			continue
-		var t: Transform3D = no.transform * m.transform * mi.transform
+		var t: Transform3D = Transform3D(Basis(), -centro) * no.transform * m.transform * mi.transform  # relativo ao pedaço
+		var a: AABB = t * mi.get_aabb()
+		caixa = a if caixa.size == Vector3.ZERO else caixa.merge(a)
 		for s in mi.mesh.get_surface_count():
 			var mat: Material = mi.get_active_material(s)
+			if nome == "ext" and s == 0 and mat is BaseMaterial3D:
+				cor = (mat as BaseMaterial3D).albedo_color * 0.42  # a textura escurece a cor de verdade
 			var chave: String = "%d|%s" % [mat.get_instance_id(), pedaco]
 			if not _juntas_longe.has(chave):
-				_juntas_longe[chave] = [SurfaceTool.new(), mat]
+				_juntas_longe[chave] = [SurfaceTool.new(), mat, centro]
 			(_juntas_longe[chave][0] as SurfaceTool).append_from(mi.mesh, s, t)
 		mi.free()
+	if caixa.size != Vector3.ZERO:
+		_massinha(pedaco, centro, caixa, cor)
+
+
+## LOD de longe (06/11, campanha anti-lag; dono: "longe você vê uma casa com bloco de massinha"): cada prédio vira uma
+## caixa da cor dele, todas do pedaço numa malha só. Perto = casa inteira; meio = casca de fora (Longe_*); longe = isto.
+var _massas: Dictionary = {}  # pedaço -> [SurfaceTool, centro]
+
+
+func _massinha(pedaco: String, centro: Vector3, a: AABB, cor: Color) -> void:
+	if not _massas.has(pedaco):
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		_massas[pedaco] = [st, centro]
+	var st: SurfaceTool = _massas[pedaco][0]
+	var bm := BoxMesh.new()
+	bm.size = a.size
+	var arr: Array = bm.get_mesh_arrays()
+	var cores := PackedColorArray()
+	cores.resize((arr[Mesh.ARRAY_VERTEX] as PackedVector3Array).size())
+	cores.fill(cor)
+	arr[Mesh.ARRAY_COLOR] = cores
+	var am := ArrayMesh.new()
+	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	st.append_from(am, 0, Transform3D(Basis(), a.get_center()))
 
 
 ## Raid: lê os pontos marcados no modelo (zumbi_k, zumbi_arm_k, bau_k), põe baús de loot raro e viaturas na frente.
@@ -1374,6 +1425,8 @@ func _hidrantes_e_fogo() -> void:
 		_cilindro(h, Vector3(0, 0.35, 0), 0.14, 0.7, verm)
 		var tampa := MeshInstance3D.new()
 		var esf := SphereMesh.new()
+		esf.radial_segments = 12  # anti-lag: o padrão do Godot é 64
+		esf.rings = 6
 		esf.radius = 0.16
 		esf.height = 0.2
 		tampa.mesh = esf

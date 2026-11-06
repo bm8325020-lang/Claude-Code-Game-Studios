@@ -124,7 +124,7 @@ func _poe_mato(p: Vector2) -> void:
 	if _rng.randf() < 0.3:
 		var m := Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * _rng.randf_range(0.8, 2.6)), Vector3(p.x, h + 0.03, p.y))
 		_guarda("musgo", m, Color(_rng.randf(), _rng.randf(), 0, 1))
-	if _rng.randf() > 0.4:
+	if _rng.randf() > 0.25:  # anti-lag 06/11: menos tufos (cada um é um modelo de verdade)
 		return
 	var esp: String = MATOS[_rng.randi() % MATOS.size()]
 	var t := Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * _rng.randf_range(0.7, 1.25)), Vector3(p.x, h, p.y))

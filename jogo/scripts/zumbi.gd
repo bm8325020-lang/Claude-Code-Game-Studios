@@ -1263,6 +1263,8 @@ func _poe_corpo() -> void:
 		var c := CapsuleMesh.new()
 		c.radius = p[1]
 		c.height = maxf(p[2], p[1] * 2.0)
+		c.radial_segments = 8  # anti-lag 06/11: o padrão (64 x 8) eram ~1000 triângulos por pedaço
+		c.rings = 2
 		mi.mesh = c
 		mi.material_override = p[3]
 		mi.position = p[0]
@@ -1276,8 +1278,13 @@ func _poe_corpo() -> void:
 	poca.mesh = cil
 	poca.material_override = sangue
 	poca.position = Vector3(0.1, 0.006, 0.15)
+	cil.radial_segments = 12
+	cil.rings = 1
 	poca.scale = Vector3(1.0, 1.0, 1.4)
 	corpo.add_child(poca)
+	for g: GeometryInstance3D in corpo.find_children("*", "GeometryInstance3D", true, false):
+		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		g.visibility_range_end = 45.0
 
 
 func _forma_deitada(sim: bool) -> void:

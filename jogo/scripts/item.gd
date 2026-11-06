@@ -168,6 +168,8 @@ func _monta_remedio() -> void:
 	for parte: Array in [[0.03, 0.09, 0.045, frasco], [0.032, 0.025, 0.1, branco], [0.0305, 0.04, 0.04, branco]]:
 		var mi := MeshInstance3D.new()
 		var c := CylinderMesh.new()
+		c.radial_segments = 12  # anti-lag: o padrão do Godot é 64
+		c.rings = 2
 		c.top_radius = parte[0]
 		c.bottom_radius = parte[0]
 		c.height = parte[1]
@@ -229,6 +231,8 @@ func _monta_peca() -> void:
 		"cano":
 			var mi := MeshInstance3D.new()
 			var c := CylinderMesh.new()
+			c.radial_segments = 12  # anti-lag: o padrão do Godot é 64
+			c.rings = 2
 			c.top_radius = 0.009
 			c.bottom_radius = 0.009
 			c.height = 0.11

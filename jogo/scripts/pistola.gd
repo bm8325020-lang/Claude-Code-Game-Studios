@@ -204,7 +204,8 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 			pegou = hit.collider
 			var altura: Variant = pegou.get("altura_cabeca")
 			cabeca = ponto.y - pegou.global_position.y > (float(altura) if altura != null else 1.65)
-			pegou.call("levar_golpe", dano_em(origem.distance_to(ponto), ponto.y - pegou.global_position.y, cabeca), d, dono)
+			var alt: float = 99.0 if pegou.get("_deitado") else ponto.y - pegou.global_position.y  # deitado não tem "perna"
+			pegou.call("levar_golpe", dano_em(origem.distance_to(ponto), alt, cabeca), d, dono)
 		if not hit.is_empty() and hit.collider is Carro:
 			(hit.collider as Carro).dispara_alarme()  # tiro em carro: alarme chama a horda (Dying Light/L4D)
 		if k == 0 or (pegou and res.acertou == null):
@@ -394,6 +395,8 @@ static func sangue(arvore: SceneTree, ponto: Vector3, dir: Vector3) -> void:
 func _faisca(p: Vector3) -> void:
 	var f := MeshInstance3D.new()
 	var e := SphereMesh.new()
+	e.radial_segments = 12  # anti-lag: o padrão do Godot é 64
+	e.rings = 6
 	e.radius = 0.06
 	e.height = 0.12
 	var m := StandardMaterial3D.new()

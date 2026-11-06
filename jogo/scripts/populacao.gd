@@ -33,7 +33,7 @@ func passa(m: Node, dt: float) -> void:
 		if z.horda == Zumbi.AMBIENTE and z.alvo == null and z.vida > 0 \
 				and not m.jogadores.get_children().any(func(o: Jogador) -> bool: return o.global_position.distance_to(z.global_position) < SOME):
 			z.queue_free()
-	if zs.size() >= ORCAMENTO or na_cidade.is_empty():
+	if zs.size() >= orcamento() or na_cidade.is_empty():
 		return
 	var j: Jogador = null  # quem tem menos zumbis perto ganha o grupo
 	var menos: int = ALVO_PERTO
@@ -43,7 +43,12 @@ func passa(m: Node, dt: float) -> void:
 			menos = n
 			j = o
 	if j:
-		solta(m, j, mini(_rng.randi_range(2, 4), ORCAMENTO - zs.size()))
+		solta(m, j, mini(_rng.randi_range(2, 4), orcamento() - zs.size()))
+
+
+## Teto pela qualidade (anti-lag 06/11): celular fraco segura menos zumbis vivos ao mesmo tempo.
+static func orcamento() -> int:
+	return [35, 50, ORCAMENTO, ORCAMENTO][clampi(int(Config.v.qualidade), 0, 3)] if not Rede.servidor_sem_tela else ORCAMENTO
 
 
 ## Solta `n` zumbis perto de `j`, fora da vista. Devolve se achou lugar.

@@ -16,11 +16,11 @@ MODELOS = {
     "arvore_rachada": ("vegetation/trees/realistic_cracked_tree_game_ready_prop.glb", "vegetation/trees", 7.0, False),
     "arvore_morta": ("vegetation/trees/low_poly_dead_tree.glb", "vegetation/trees", 7.5, False),
     "floresta": ("vegetation/trees/low_poly_forest_tree_pack.glb", "vegetation/trees", 0.0, True),
-    "capim": ("vegetation/plants/realistics_grass_06.glb", "vegetation/plants", 0.55, False, 1200),
-    "samambaia_capim": ("vegetation/plants/fern_grass_02.glb", "vegetation/plants", 0.45, False, 900),
-    "samambaia": ("vegetation/plants/realistic_beech_fern_plant_games_film.glb", "vegetation/plants", 0.6, False, 1200),
+    "capim": ("vegetation/plants/realistics_grass_06.glb", "vegetation/plants", 0.55, False, 500),
+    "samambaia_capim": ("vegetation/plants/fern_grass_02.glb", "vegetation/plants", 0.45, False, 450),
+    "samambaia": ("vegetation/plants/realistic_beech_fern_plant_games_film.glb", "vegetation/plants", 0.6, False, 500),
     "moita": ("vegetation/plants/grass_bushes_game_ready_asset.glb", "vegetation/plants", 0.8, False),
-    "capim_seco": ("vegetation/plants/dry_realistic_grass_lods_1.glb", "vegetation/plants", 0.6, False, 1200),
+    "capim_seco": ("vegetation/plants/dry_realistic_grass_lods_1.glb", "vegetation/plants", 0.6, False, 500),
 }
 # recusados na foto (05/11): carvalho e carvalho_torto (folha de desenho animado), samambaia_moita (planta tropical),
 # samambaia_alta (5 MB de textura para 40 cm). Os brutos continuam em assets/mundo/brutos.

@@ -132,15 +132,15 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":3600,
+			"count":1965,
 			"max":[
 				0.7846254110336304,
-				0.5540831685066223,
+				0.5509402751922607,
 				0.7964448928833008
 			],
 			"min":[
 				-0.8024954199790955,
-				0.008285417221486568,
+				0.017973197624087334,
 				-0.7691638469696045
 			],
 			"type":"VEC3"
@@ -148,45 +148,45 @@
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":3600,
+			"count":1965,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":3600,
+			"count":1965,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5123,
-			"count":3600,
+			"count":1965,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":43200,
+			"byteLength":23580,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":43200,
-			"byteOffset":43200,
+			"byteLength":23580,
+			"byteOffset":23580,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":28800,
-			"byteOffset":86400,
+			"byteLength":15720,
+			"byteOffset":47160,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":7200,
-			"byteOffset":115200,
+			"byteLength":3930,
+			"byteOffset":62880,
 			"target":34963
 		}
 	],
@@ -198,7 +198,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":122400,
+			"byteLength":66812,
 			"uri":"capim.bin"
 		}
 	]

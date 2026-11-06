@@ -56,6 +56,8 @@ func _ready() -> void:
 	_folha.add_child(mi)
 	var mac := MeshInstance3D.new()  # maçaneta
 	var e := SphereMesh.new()
+	e.radial_segments = 12  # anti-lag: o padrão do Godot é 64
+	e.rings = 6
 	e.radius = 0.035
 	e.height = 0.07
 	mac.mesh = e

@@ -28,6 +28,8 @@ func _ready() -> void:
 	_mat.albedo_color = Color(0.72, 0.6, 0.42)  # saco de estopa
 	var poste := MeshInstance3D.new()
 	var cil := CylinderMesh.new()
+	cil.radial_segments = 12  # anti-lag: o padrão do Godot é 64
+	cil.rings = 2
 	cil.top_radius = 0.06
 	cil.bottom_radius = 0.08
 	cil.height = 1.9
@@ -36,6 +38,8 @@ func _ready() -> void:
 	_corpo.add_child(poste)
 	var tronco := MeshInstance3D.new()
 	var cap_m := CapsuleMesh.new()
+	cap_m.radial_segments = 12  # anti-lag: o padrão do Godot é 64
+	cap_m.rings = 2
 	cap_m.radius = 0.3
 	cap_m.height = 1.0
 	tronco.mesh = cap_m
@@ -44,6 +48,8 @@ func _ready() -> void:
 	_corpo.add_child(tronco)
 	var cabeca := MeshInstance3D.new()
 	var esf := SphereMesh.new()
+	esf.radial_segments = 12  # anti-lag: o padrão do Godot é 64
+	esf.rings = 6
 	esf.radius = 0.18
 	esf.height = 0.36
 	cabeca.mesh = esf
