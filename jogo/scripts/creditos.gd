@@ -83,6 +83,9 @@ texturas limitadas a 512 px na importação (celular). Modelos: ver as pastas.
 CAPITAL AO LONGE
 Prédios da capital destruída ao longe: Majadroid (CC0, domínio público), pasta majadroid/.
 
+MAPA DA CIDADE
+Senoia, Geórgia (EUA): ruas e prédios do OpenStreetMap — © colaboradores do OpenStreetMap, licença ODbL (openstreetmap.org/copyright).
+
 SONS
 Sons de ambiente (OpenGameArt, todos CC0):
 passo_*    — "Footsteps" (opengameart.org/content/footsteps-0)

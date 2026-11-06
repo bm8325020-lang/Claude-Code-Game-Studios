@@ -10,3 +10,8 @@
   americanas, letreiros em inglês, planta 1 km² (raven_creek.py), Bairro TAMANHO 1000 / ORIGEM (0,0,-550).
   São Jorge preservado no commit 8693847c (tools/mapa/cidade_v2.py continua no repositório).
 - 05/11: (antes) casas brasileiras, sistemas dos mods do GTA V (horda, noturno, porta-malas, zumbi do saco).
+- 06/11: SENOIA (cidade real). `CIDADE=senoia python3 tools/mapa/raven_creek.py` (padrão do pipeline) monta a cidade
+  com as ruas e os prédios reais de Senoia, Geórgia (EUA; Woodbury de The Walking Dead), do OpenStreetMap
+  (tools/mapa/osm/senoia.json, ODbL: "© colaboradores do OpenStreetMap"). 83 prédios reais no lugar e do tamanho deles
+  (casa → casa americana, comércio → sobrado, igreja → igreja); os outros lotes preenchidos pelas regras; delegacia,
+  hospital, mercado e escola no 1º lote livre. Raven Creek continua: sem CIDADE (ou CIDADE=raven) volta.

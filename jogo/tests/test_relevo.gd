@@ -33,7 +33,12 @@ func _init() -> void:
 		z.free()
 	var b: Bairro = main.bairro
 	var pontes: Array = b.find_children("Ponte_*", "StaticBody3D", false, false)
-	ok(pontes.size() >= 2, "pontes onde as ruas cruzam o rio (%d)" % pontes.size())  # Raven Creek: Route 9 e Center St
+	var real: bool = String(JSON.parse_string(FileAccess.get_file_as_string(Bairro.MAPA)).origem).begins_with("Senoia")
+	ok(real or pontes.size() >= 2, "pontes onde as ruas cruzam o rio (%d)" % pontes.size())  # Senoia (cidade real) não tem rio
+	if real:  # cidade real sem rio nem morro: o resto do teste (ponte, água, encosta) não se aplica
+		print("PASS: %d checks, %d falhas (Senoia: sem rio nem morro)" % [checks, falhas])
+		quit(1 if falhas else 0)
+		return
 	var dados: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Bairro.MAPA))
 	var m: Dictionary = dados.terreno.morros[0]
 	var topo := Vector2(m.p[0], m.p[1])
