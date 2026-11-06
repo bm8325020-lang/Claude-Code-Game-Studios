@@ -104,6 +104,25 @@ const RADIO_EV: Dictionary = {
 	"sede": ["Ache água. Sem água você não aguenta muito tempo.", 240.0],
 }
 var _radio_ev_ms: Dictionary = {}
+## 06/11 (dono: "aprimore o modo história"): com o rádio quieto, a Dana conta pedaços da história, um de cada vez;
+## Corvos por perto = você pega o rádio deles (Wade falando com o bando).
+const LORE: Array = [
+	"Sabe o que mais me assusta? A Halverson ainda não mandou ninguém procurar sobreviventes. Só as amostras.",
+	"Eu cobria a feira do milho todo ano. Senoia era tranquila. Ninguém trancava a porta.",
+	"Se achar algum documento da Halverson, guarde. Cada papel conta.",
+	"O Exército passou por aqui na terceira noite. Atiraram em quem tossia. Em todo mundo que tossia.",
+	"Às vezes eu pego rádio de outras cidades. Depois, só chiado.",
+	"Promete uma coisa: se eu não sair daqui, conta a história por mim.",
+]
+const CORVOS_RADIO: Array = [
+	"Aqui é o Wade. Tem um forasteiro andando pela nossa cidade. Quem trouxer a mochila dele ganha munição.",
+	"Corvos, atenção: os mortos estão vindo para o mercado. Segurem a porta e não desperdicem bala.",
+	"Ouvi tiro no centro. Se for o forasteiro, quero ele vivo. Ele sabe onde a jornalista está.",
+]
+const LORE_QUIETO: float = 200.0
+var _quieto_t: float = 0.0
+var _lore_i: int = 0
+var _corvos_ms: int = -10000000
 
 
 func _radio_ev(chave: String) -> void:
@@ -123,7 +142,7 @@ const EXTRAS: Array = ["MIA|...Alex... não estou... aguentando...", "WADE|Corvo
 ## Quem fala (para escolher a voz) pelo nome que aparece na legenda.
 static func quem(nome: String) -> String:
 	var n: String = nome.to_upper()
-	for par: Array in [["MILITAR", "militar"], ["DANA", "dana"], ["MIA", "mia"], ["TOMMY", "tommy"], ["WADE", "wade"],
+	for par: Array in [["MILITAR", "militar"], ["CORVOS", "wade"], ["DANA", "dana"], ["MIA", "mia"], ["TOMMY", "tommy"], ["WADE", "wade"],
 			["FITA", "okafor"], ["OKAFOR", "okafor"]]:
 		if n.contains(par[0]):
 			return par[1]
@@ -676,6 +695,17 @@ func _process(dt: float) -> void:
 	_t = 0.4
 	if _j.vida > 0 and _j.vida < 30:
 		_radio_ev("vida_baixa")
+	_quieto_t = _quieto_t + 0.4 if _legenda_t <= 0.0 and _fila_radio.is_empty() else 0.0
+	if _quieto_t > LORE_QUIETO and _i > 5 and _lore_i < LORE.size():
+		_quieto_t = 0.0
+		legenda("RÁDIO · DANA", String(LORE[_lore_i]), 7.0)
+		_lore_i += 1
+	if Time.get_ticks_msec() - _corvos_ms > 300000:
+		for z: Node in get_tree().get_nodes_in_group("zumbis"):
+			if (z as Zumbi).humano() and (z as Zumbi).vida > 0 and (z as Node3D).global_position.distance_to(_j.global_position) < 70.0:
+				_corvos_ms = Time.get_ticks_msec()
+				legenda("RÁDIO DOS CORVOS · WADE", String(CORVOS_RADIO[randi() % CORVOS_RADIO.size()]), 7.0)
+				break
 	if _j.carro:
 		_radio_ev("carro")
 	if _j.fome < 20.0:

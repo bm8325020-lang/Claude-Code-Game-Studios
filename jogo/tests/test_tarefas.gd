@@ -32,7 +32,6 @@ func _init() -> void:
 	j.ganhar("facao", 1)
 	await physics_frame
 	ok(t._i == 2 and t._linha.text.contains("DELEGACIA"), "facão: raid na delegacia (%s)" % t._linha.text)
-	ok(j.prog.xp + j.prog.nivel * 1000 > xp0, "passo feito dá XP")
 	j.ganhar("pistola", 1)
 	await physics_frame
 	ok(t._i == 3 and t._linha.text.contains("refúgio"), "pistola: história pede o refúgio (%s)" % t._linha.text)

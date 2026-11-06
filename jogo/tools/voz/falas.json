@@ -265,6 +265,51 @@
 		"voz": "dana"
 	},
 	{
+		"id": "169d961007aa",
+		"texto": "Sabe o que mais me assusta? A Halverson ainda não mandou ninguém procurar sobreviventes. Só as amostras.",
+		"voz": "dana"
+	},
+	{
+		"id": "47bc66203d66",
+		"texto": "Eu cobria a feira do milho todo ano. Senoia era tranquila. Ninguém trancava a porta.",
+		"voz": "dana"
+	},
+	{
+		"id": "5cc061c10548",
+		"texto": "Se achar algum documento da Halverson, guarde. Cada papel conta.",
+		"voz": "dana"
+	},
+	{
+		"id": "d6ad10d62007",
+		"texto": "O Exército passou por aqui na terceira noite. Atiraram em quem tossia. Em todo mundo que tossia.",
+		"voz": "dana"
+	},
+	{
+		"id": "432ec4e27dd0",
+		"texto": "Às vezes eu pego rádio de outras cidades. Depois, só chiado.",
+		"voz": "dana"
+	},
+	{
+		"id": "41baf2b8b5ae",
+		"texto": "Promete uma coisa: se eu não sair daqui, conta a história por mim.",
+		"voz": "dana"
+	},
+	{
+		"id": "f343ebe112b2",
+		"texto": "Aqui é o Wade. Tem um forasteiro andando pela nossa cidade. Quem trouxer a mochila dele ganha munição.",
+		"voz": "wade"
+	},
+	{
+		"id": "9e7227cb71a0",
+		"texto": "Corvos, atenção: os mortos estão vindo para o mercado. Segurem a porta e não desperdicem bala.",
+		"voz": "wade"
+	},
+	{
+		"id": "a1934323cd7a",
+		"texto": "Ouvi tiro no centro. Se for o forasteiro, quero ele vivo. Ele sabe onde a jornalista está.",
+		"voz": "wade"
+	},
+	{
 		"id": "7e8353a2bd7a",
 		"texto": "Nossa! Quantos foram? Continue assim, mas não faça barulho demais.",
 		"voz": "dana"

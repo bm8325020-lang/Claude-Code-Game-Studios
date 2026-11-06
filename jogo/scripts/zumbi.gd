@@ -87,7 +87,7 @@ const DANO_CHEFE: int = 55  # era 35
 ## Corredora: rápida e frágil, dá um BOTE de longe. Policial: médio, o soco AGARRA (deixa o jogador lento).
 ## Soldado: lento e duro, BLINDADO (leva menos dano e não cambaleia com golpe fraco).
 const TIPOS: Dictionary = {
-	"zumbi_mulher": {"nome": "Corredora", "vida": 110, "dano": 20, "vel": 1.25, "andar": "andar_rapido", "correr": "correr_rapido", "skill": "bote"},
+	"zumbi_mulher": {"nome": "Corredora", "vida": 110, "dano": 20, "vel": 1.1, "andar": "andar_rapido", "correr": "correr_rapido", "skill": "bote"},
 	"zumbi_policial": {"nome": "Policial", "vida": VIDA_MAX, "dano": DANO, "vel": 1.0, "andar": "andar", "correr": "correr", "skill": "agarrao"},
 	"zumbi_soldado": {"nome": "Soldado", "vida": 300, "dano": 38, "vel": 0.75, "andar": "andar_lento", "correr": "correr_lento", "skill": "blindado"},
 	# 31/10: sem as pernas, se arrasta; perto vem de quatro, rápido. Baixinho: some atrás de carro e mato
@@ -574,6 +574,8 @@ func _physics_process(dt: float) -> void:
 	if _procura_t <= 0.0:
 		_procura_t = 0.3
 		_escolhe_alvo()
+		if humano() and alvo == null:
+			_procura_zumbi()
 		_cerco_n += 1
 		if not humano() and _cerco_n % 3 == 0:  # anti-lag (06/11): o cerco olha o bando todo; 1x a cada 0,9 s (Corvo não cerca)
 			_calcula_cerco()
@@ -594,6 +596,8 @@ func _physics_process(dt: float) -> void:
 		_atualiza_ataque(dt)
 	elif _mirando >= 0.0:
 		_mira_e_atira(dt)
+	elif humano() and alvo == null and _alvo_z and is_instance_valid(_alvo_z) and _alvo_z.vida > 0:
+		_atira_no_zumbi(dt)
 	elif _foge_t > 0.0 and alvo:
 		_foge_t -= dt
 		var corre: float = CORRER * 1.2 * (1.0 if chefe else _vel) * Ciclo.forca_noite(get_tree(), NOITE_VEL)
@@ -1346,6 +1350,45 @@ func _camada(m: Material) -> void:
 
 
 const ATAQUE_FURTIVO: int = 3
+## 06/11 (dono): Corvo também atira nos zumbis (sem jogador por perto): para, mira e atira no mais perto que vê.
+const CORVO_ZUMBI_ATE: float = 22.0
+const CORVO_ZUMBI_DANO: int = 45
+var _alvo_z: Zumbi
+var _tiro_z_t: float = 0.0
+
+
+func _procura_zumbi() -> void:
+	if _alvo_z and is_instance_valid(_alvo_z) and _alvo_z.vida > 0 and _alvo_z.global_position.distance_to(global_position) < CORVO_ZUMBI_ATE:
+		return
+	_alvo_z = null
+	var melhor: float = CORVO_ZUMBI_ATE
+	for n: Node in get_tree().get_nodes_in_group("zumbis"):
+		var z := n as Zumbi
+		if z == null or z == self or z.humano() or z.vida <= 0:
+			continue
+		var d: float = z.global_position.distance_to(global_position)
+		if d < melhor:
+			var olho: Vector3 = global_position + Vector3(0, 1.5, 0)
+			var q := PhysicsRayQueryParameters3D.create(olho, z.global_position + Vector3(0, 1.2, 0), 1 | Porta.CAMADA)
+			if get_world_3d().direct_space_state.intersect_ray(q).is_empty():
+				melhor = d
+				_alvo_z = z
+
+
+func _atira_no_zumbi(dt: float) -> void:
+	_vira_para(_alvo_z.global_position - global_position, dt * 3.0)
+	_tiro_z_t -= dt
+	_toca("pistola_mira" if _tiro_z_t > 0.15 else "pistola_tiro", 0.12)
+	if _tiro_z_t > 0.0:
+		return
+	_tiro_z_t = CORVO_TIRO_INTERVALO * randf_range(0.9, 1.4)
+	var mira: Vector3 = _alvo_z.global_position + Vector3(0, 1.3, 0)
+	if randf() < 0.6:
+		_alvo_z.levar_golpe(CORVO_ZUMBI_DANO, (_alvo_z.global_position - global_position).normalized() * 0.3, self)
+	else:
+		mira += Vector3(randf_range(-1.0, 1.0), randf_range(-0.4, 0.8), randf_range(-1.0, 1.0))
+	Zumbi.barulho(get_tree(), global_position, Pistola.BARULHO * 0.6)  # o tiro chama os outros mortos
+	_tiro_fx.rpc(mira)
 
 
 func _morre() -> void:
