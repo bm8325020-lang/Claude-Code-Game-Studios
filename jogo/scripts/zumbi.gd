@@ -156,6 +156,11 @@ var _dorme_t: float = 0.0
 
 
 # nada para fazer: sem alvo, sem patrulha, sem barulho para ir ver, sem procurar nem voltar, sem raid
+const CAMINHO_REFAZ: float = 1.0  # m que o destino anda até pedir caminho novo
+const PORTA_A_CADA: float = 0.2
+var _porta_t: float = 0.0
+
+
 func _quieto() -> bool:
 	return alvo == null and raid == 0 and horda <= 0 and rota.is_empty() and not _indo_ouvir and _olhando_t <= 0.0 and not _voltando \
 		and _foge_t <= 0.0 and _ataque_t < 0.0
@@ -481,7 +486,8 @@ func _physics_process(dt: float) -> void:
 			vida = _vida_max
 		velocity.x = 0.0
 		velocity.z = 0.0
-		move_and_slide()
+		if not is_on_floor():
+			move_and_slide()  # corpo já deitado no chão não mexe na física
 		_publica()
 		return
 	if _deitado:
@@ -618,7 +624,9 @@ func _physics_process(dt: float) -> void:
 		if alvo and rumo.length() < 0.01:
 			rumo = alvo.global_position - global_position
 			rumo.y = 0.0
-		if rumo.length() > 0.01:
+		_porta_t -= dt
+		if rumo.length() > 0.01 and (_porta_t <= 0.0 or _porta_alvo != null):
+			_porta_t = PORTA_A_CADA  # raio de porta 5x por segundo basta (era todo quadro em cada zumbi)
 			porta = _porta_na_frente(rumo)
 	if porta:
 		desejada = Vector3.ZERO
@@ -628,7 +636,8 @@ func _physics_process(dt: float) -> void:
 	var plano := Vector3(velocity.x, 0, velocity.z).move_toward(desejada, 18.0 * dt)
 	velocity.x = plano.x
 	velocity.z = plano.z
-	move_and_slide()
+	if not (plano.length_squared() < 0.0001 and is_on_floor() and velocity.y <= 0.0):
+		move_and_slide()  # parado no chão não precisa mexer na física
 	if _ataque_t < 0.0 and _cambaleio <= 0.0 and _grito_t < 0.0 and _levantando < 0.0:
 		var v: float = plano.length()
 		var nomes: Dictionary = {"andar": "andar", "correr": "correr"} if chefe else TIPOS[tipo]
@@ -640,7 +649,11 @@ func _physics_process(dt: float) -> void:
 
 # velocidade desejada para ir até `destino` pela malha de navegação
 func _caminho(destino: Vector3, vel: float, dt: float) -> Vector3:
-	_agente.target_position = destino
+	# 07/11 anti-travamento: trocar o alvo do agente pede um caminho novo; alvo andando = pedido todo quadro. Só troca
+	# quando o destino andou CAMINHO_REFAZ m (ou perto do fim, onde a precisão importa)
+	if _agente.target_position.distance_squared_to(destino) > CAMINHO_REFAZ * CAMINHO_REFAZ \
+			or global_position.distance_squared_to(destino) < 16.0:
+		_agente.target_position = destino
 	var prox: Vector3 = _agente.get_next_path_position() - global_position
 	prox.y = 0.0
 	if prox.length() < 0.05:

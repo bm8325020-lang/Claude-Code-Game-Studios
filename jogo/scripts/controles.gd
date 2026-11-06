@@ -248,6 +248,11 @@ func _acoes() -> void:
 			InputMap.action_add_event(acao, ev)
 
 
+const PERTO_A_CADA: float = 0.15
+var _perto_t: float = 0.0
+var _perto: Array = [null, null, null, null, null, null, null]
+
+
 func _process(dt: float) -> void:
 	if jogador == null:
 		return
@@ -332,13 +337,29 @@ func _process(dt: float) -> void:
 		_relogio.text = ("AMANHECE EM %d:%02d" if ciclo.e_noite() else "NOITE EM %d:%02d") % [f / 60, f % 60]
 		_relogio.add_theme_color_override("font_color", Color(0.65, 0.75, 1.0) if ciclo.e_noite() else (Color(1, 0.75, 0.4) if f < 60 else Color.WHITE))
 	_vermelho.color.a = move_toward(_vermelho.color.a, 0.35 if jogador.vida <= 0 else 0.0, dt * 0.8)
-	var it: Item = jogador.item_perto()
-	var bau: Bau = jogador.bau_perto() if it == null else null
-	var banc: Bancada = jogador.bancada_perto() if it == null and bau == null else null
-	var loja: Lojista = jogador.lojista_perto() if it == null and bau == null and banc == null else null
-	var gav: Gaveta = jogador.gaveta_perto() if it == null and bau == null and banc == null and loja == null else null
-	var porta: Porta = jogador.porta_perto() if it == null and bau == null and banc == null and loja == null and gav == null else null
-	var carro: Carro = jogador.carro_perto() if it == null and bau == null and banc == null and loja == null and porta == null and gav == null else null
+	# 07/11 anti-travamento: as buscas "o que está perto" varrem ~5000 objetos (gavetas, itens, portas...); a dica do
+	# botão USAR não precisa mudar todo quadro: busca de PERTO_A_CADA em PERTO_A_CADA s
+	_perto_t -= dt
+	if _perto_t <= 0.0:
+		_perto_t = PERTO_A_CADA
+		var it0: Item = jogador.item_perto()
+		var bau0: Bau = jogador.bau_perto() if it0 == null else null
+		var banc0: Bancada = jogador.bancada_perto() if it0 == null and bau0 == null else null
+		var loja0: Lojista = jogador.lojista_perto() if it0 == null and bau0 == null and banc0 == null else null
+		var gav0: Gaveta = jogador.gaveta_perto() if it0 == null and bau0 == null and banc0 == null and loja0 == null else null
+		var porta0: Porta = jogador.porta_perto() if it0 == null and bau0 == null and banc0 == null and loja0 == null and gav0 == null else null
+		var carro0: Carro = jogador.carro_perto() if it0 == null and bau0 == null and banc0 == null and loja0 == null and porta0 == null and gav0 == null else null
+		_perto = [it0, bau0, banc0, loja0, gav0, porta0, carro0]
+	for k in _perto.size():
+		if _perto[k] != null and not is_instance_valid(_perto[k]):
+			_perto[k] = null
+	var it: Item = _perto[0]
+	var bau: Bau = _perto[1]
+	var banc: Bancada = _perto[2]
+	var loja: Lojista = _perto[3]
+	var gav: Gaveta = _perto[4]
+	var porta: Porta = _perto[5]
+	var carro: Carro = _perto[6]
 	_dica_pegar.visible = it != null or porta != null or bau != null or banc != null or loja != null or carro != null or jogador.carro != null or gav != null
 	_saldo.text = "$ %d    NV %d  %d/%d XP" % [jogador.dinheiro, jogador.prog.nivel, jogador.prog.xp, Progresso.xp_para(jogador.prog.nivel)]
 	if jogador.carro:

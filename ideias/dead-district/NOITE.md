@@ -25,3 +25,10 @@
   atirar, se escondem e fogem feridos; fogueira e pichação na frente; caveira no minimapa; ninguém nasce lá. Rede 47.
   test_raid 12/12. 07/11: andam, correm e miram com os clipes do jogador (Zumbi.HUMANO). Noite mais clara (luar).
 - [x] B6 APK 0.99-terror (257 MB) mandado ao dono com resumo. Plano da noite completo.
+
+## C. Travamento, 2ª rodada (07/11)
+- [x] C1 Medida certa: Performance.TIME_PROCESS mentia no headless (50-400 ms aleatório); peso_cpu.gd agora mede o
+  relógio de parede por quadro e cronometra cada script (DESLIGA, DESLIGA_CLASSE, DESLIGA_TUDO). Base: 11 ms/quadro.
+- [x] C2 HUD: buscas "o que está perto" (~5000 gavetas/itens/portas) a cada 0,15 s em vez de todo quadro: 3,5 -> 1 ms.
+  Zumbi: caminho só refeito quando o destino anda 1 m, raio de porta 5x/s, parado/morto no chão sem move_and_slide.
+  Total 11 -> 5,7 ms por quadro neste PC. test_zumbi/portas/horda ok.
