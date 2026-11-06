@@ -9,10 +9,11 @@
   física. Processo 12,6 → 8,8-9,6 ms, física 7,9 → 5,9 ms (este PC; o celular é ~5x mais lento).
 - [x] A3 Celular: padrão Média e 30 FPS estáveis (60 irregular = travadinho), migra a config de quem já tinha; 1 zumbi por
   ponto fixo na Média/Batata.
-- [ ] A4 APK de teste "anti-travamento".
+- [x] A4 APK 0.98 mandado ao dono.
 
 ## B. Cidade nova com cara de terror
-- [ ] B1 Noite mais longa e escura, lanterna importante; dia nublado e cinza; névoa que fecha a visão.
+- [x] B1 Dia 420 s cinza de chumbo, noite 360 s quase preta (sol 0,16, ambiente 0,26), névoa 0,02-0,04, lanterna mais forte
+  e trêmula (pilha velha). Foto: de noite só se vê o que a lanterna pega.
 - [ ] B2 Cidade abandonada de verdade: carros batidos atravessados, cercas caídas, barricadas, sangue, corpos, fogo.
 - [ ] B3 Luzes que piscam (postes queimando), rádio chiando, sons de terror ao longe (grito, porta batendo).
 - [ ] B4 Lugares de medo: hospital escuro, igreja com velas, porão; menos casas, mais vazio e silêncio.

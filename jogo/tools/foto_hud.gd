@@ -11,7 +11,7 @@ func _init() -> void:
 	for i in 10: await process_frame
 	main.iniciar_solo("Foto")
 	for i in 40: await process_frame
-	main.ciclo.tempo = 100.0
+	main.ciclo.tempo = float(OS.get_environment("HORA")) if OS.get_environment("HORA") != "" else 100.0
 	if args.size() > 1:
 		var v: PackedStringArray = args[1].split(",")
 		var p := Vector2(float(v[0]), float(v[1]))

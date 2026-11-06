@@ -5,8 +5,8 @@
 class_name Ciclo
 extends Node
 
-const DIA: float = 480.0
-const NOITE: float = 300.0
+const DIA: float = 420.0   # 06/11 terror: dia mais curto, noite mais longa
+const NOITE: float = 360.0
 const TRANSICAO: float = 30.0
 ## provisório para testar: a partida começa com a noite chegando em 1 min 30 s
 const INICIO: float = DIA - 90.0
@@ -24,8 +24,8 @@ var _rng_clima := RandomNumberGenerator.new()
 ## Fim do mundo: de dia nuvem cinza-marrom e poeira alaranjada no horizonte; de noite quase preto com o horizonte
 ## avermelhado dos incêndios.
 # 31/10 (dono: "não gosto desse céu, pegada feia"): saiu o poeirão laranja; dia nublado frio, cinza-azulado, e noite azul-escura
-const CEU_TOPO: Array[Color] = [Color(0.4, 0.46, 0.54), Color(0.03, 0.04, 0.07)]
-const CEU_HORIZONTE: Array[Color] = [Color(0.66, 0.69, 0.71), Color(0.09, 0.1, 0.13)]
+const CEU_TOPO: Array[Color] = [Color(0.34, 0.37, 0.4), Color(0.015, 0.02, 0.035)]  # dia de chumbo, noite quase preta
+const CEU_HORIZONTE: Array[Color] = [Color(0.55, 0.57, 0.58), Color(0.05, 0.055, 0.07)]
 
 
 func _ready() -> void:
@@ -68,7 +68,7 @@ func _process(dt: float) -> void:
 		_clima.passa(clima, dt)
 		flash = _clima.flash
 	if sol:
-		sol.light_energy = lerpf(0.78, 0.42, n) * float(c[3]) + flash * 2.5  # noite de luar: escura, mas dá para jogar (pedido do dono)
+		sol.light_energy = lerpf(0.62, 0.16, n) * float(c[3]) + flash * 2.5  # 06/11 terror: noite escura (a lanterna manda)  # noite de luar: escura, mas dá para jogar (pedido do dono)
 		sol.light_color = Color(1.0, 0.95, 0.88).lerp(Color(0.55, 0.6, 0.85), n)  # sol de dia nublado; luar azulado
 	if ambiente:
 		var ceu: Color = CEU_HORIZONTE[0].lerp(CEU_HORIZONTE[1], n)
@@ -78,10 +78,10 @@ func _process(dt: float) -> void:
 		if mat:
 			mat.set_shader_parameter("topo", CEU_TOPO[0].lerp(CEU_TOPO[1], n))
 			mat.set_shader_parameter("horizonte", ceu)
-		ambiente.ambient_light_color = Color(0.7, 0.72, 0.75).lerp(Color(0.42, 0.47, 0.62), n)
-		ambiente.ambient_light_energy = lerpf(0.42, 0.52, n)  # 06/11: dia escurecido (dono: "muito claro"); a noite segue jogável
+		ambiente.ambient_light_color = Color(0.66, 0.68, 0.7).lerp(Color(0.3, 0.35, 0.48), n)
+		ambiente.ambient_light_energy = lerpf(0.4, 0.26, n)  # 06/11: dia escurecido (dono: "muito claro"); a noite segue jogável
 		# 06/11 (dono: "bastante atmosfera"): névoa mais grossa e cerração rente ao chão
-		ambiente.fog_density = lerpf(0.014, 0.026, n) * float(c[2])
+		ambiente.fog_density = lerpf(0.02, 0.04, n) * float(c[2])  # a névoa fecha a visão
 		ambiente.fog_height = 3.0
 		ambiente.fog_height_density = lerpf(0.06, 0.12, n)
 
