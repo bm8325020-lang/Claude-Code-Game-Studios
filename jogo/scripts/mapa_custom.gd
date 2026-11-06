@@ -18,6 +18,8 @@ static var _lista: Array = []
 static func lista() -> Array:
 	if _lista.is_empty():
 		_lista = JSON.parse_string(FileAccess.get_file_as_string(CATALOGO))
+		# peça cujo modelo não veio no pacote (Atomic Realm fica fora do APK): não aparece no catálogo
+		_lista = _lista.filter(func(it: Dictionary) -> bool: return String(it.id).begins_with("jogo:") or ResourceLoader.exists(String(it.get("cena", ""))))
 		for it: Dictionary in _lista:
 			_cat[String(it.id)] = it
 	return _lista
