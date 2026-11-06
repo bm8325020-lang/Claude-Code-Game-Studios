@@ -23,6 +23,7 @@ const AMARGO: Array[String] = [
 ]
 
 var bom: bool = true
+var stats: String = ""  # tempo, mortos, mortes, fitas, troféus (Tarefas)
 var _linhas: Array[String] = []
 var _i: int = 0
 var _t: float = 0.0
@@ -45,7 +46,7 @@ func _ready() -> void:
 	_texto.custom_minimum_size = Vector2(1000, 120)
 	_texto.position -= Vector2(500, 60)
 	add_child(_texto)
-	_creditos = UiTema.rotulo("DEAD DISTRICT\n\nFIM\n\n" + Creditos.TEXTO, 20, Color(0.85, 0.85, 0.82))
+	_creditos = UiTema.rotulo("DEAD DISTRICT\n\nFIM\n\n" + stats + "\n\n" + Creditos.TEXTO, 20, Color(0.85, 0.85, 0.82))
 	_creditos.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_creditos.autowrap_mode = TextServer.AUTOWRAP_WORD
 	_creditos.size = Vector2(1100, 6000)

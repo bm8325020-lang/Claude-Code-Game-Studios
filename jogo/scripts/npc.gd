@@ -9,6 +9,10 @@ const POR_FALA: float = 4.5
 var nome: String = ""
 var falas: Array = []
 var falou: bool = false
+## Escolta (07/11): seguindo alguém pela malha de navegação, a 2,5 m dele.
+var segue: Node3D
+const VEL: float = 4.6
+var _anim: AnimationPlayer
 var _i: int = -1
 var _t: float = 0.0
 
@@ -24,6 +28,7 @@ func _ready() -> void:
 	anim.add_animation_library("", Anims.adaptada(Anims.biblioteca(), Anims.JOGADOR))
 	if anim.has_animation("parado"):
 		anim.play("parado")
+	_anim = anim
 	var l := Label3D.new()
 	l.text = nome
 	l.modulate = Color(0.55, 0.85, 1.0)
@@ -34,6 +39,22 @@ func _ready() -> void:
 
 
 func _process(dt: float) -> void:
+	if segue and is_instance_valid(segue):
+		var d: float = global_position.distance_to(segue.global_position)
+		var andando: bool = d > 2.5
+		if andando:
+			var mapa: RID = get_world_3d().navigation_map
+			var cam: PackedVector3Array = NavigationServer3D.map_get_path(mapa, global_position, segue.global_position, true)
+			var prox: Vector3 = cam[1] if cam.size() > 1 else segue.global_position
+			var dir: Vector3 = prox - global_position
+			dir.y = 0.0
+			global_position += dir.normalized() * minf(VEL * (1.6 if d > 12.0 else 1.0) * dt, dir.length())
+			global_position.y = prox.y
+			rotation.y = atan2(dir.x, dir.z)
+		if _anim:
+			var c: String = "andar" if andando else "parado"
+			if _anim.current_animation != c and _anim.has_animation(c):
+				_anim.play(c, 0.2)
 	var principal := get_tree().get_first_node_in_group("principal")
 	var j: Jogador = principal.jogador if principal else null
 	if j == null or falou:

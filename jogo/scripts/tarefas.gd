@@ -16,34 +16,63 @@ const NOITE_FINAL_T: float = 150.0  # s aguentando no heliponto até o helicópt
 const ONDA_A_CADA: float = 18.0
 const ONDA_ZUMBIS: int = 7
 const HELIPONTO_RAIO: float = 26.0
-## [capítulo, objetivo, evento, quantos, alvo no mapa, preparar ao começar, fala ao terminar]
+## [capítulo, objetivo, evento, quantos, alvo no mapa, preparar ao começar, fala ao terminar, config]
+## config (opcional): ondas/zumbis/raio/centro = luta obrigatória; timer = s para cumprir (senão recomeça o passo);
+## cena = câmera de cinema mostrando o lugar; susto = zumbis atrás de você e um grito; premio = [tipo, qtd, ...];
+## chefe = barra de vida + fase na metade (reforço); local = linha embaixo do cartão do capítulo.
 const ROTEIRO: Array = [
 	["0 · A ESTRADA", "Entre no carro e siga a estrada até Senoia", "chegou", 1, "", "",
-		"Senoia. 4 mil habitantes. Nenhum vivo à vista."],
-	["1 · A PRIMEIRA NOITE", "Pegue uma lata de comida", "comida", 1, "", "", ""],
-	["1 · A PRIMEIRA NOITE", "Ache um refúgio (casa com tábuas e lampião)", "segura", 1, "refugio", "",
-		"RÁDIO (Dana Price): \"Se alguém estiver ouvindo... estou na van da TV, na praça. Venha.\""],
-	["2 · A VAN DA TV", "Vá até a van da TV no centro e fale com a Dana", "fala:dana", 1, "dana", "dana",
-		"A Dana te deu a frequência do rádio dela. Agora: o hospital."],
-	["3 · O HOSPITAL", "Vá ao HOSPITAL atrás da sua irmã Mia", "chegar", 1, "raid:HOSPITAL MUNICIPAL", "hospital", ""],
+		"Senoia. 4 mil habitantes. Nenhum vivo à vista.", {"local": "Estrada 16, entrada de Senoia"}],
+	["1 · A PRIMEIRA NOITE", "Pegue uma lata de comida", "comida", 1, "", "", "", {"local": "Senoia, Geórgia"}],
+	["1 · A PRIMEIRA NOITE", "Ache um refúgio (casa com tábuas e lampião)", "segura", 1, "refugio", "", ""],
+	["1 · A PRIMEIRA NOITE", "Os mortos te ouviram! DEFENDA O REFÚGIO (%d/%d)", "limpou", 1, "refugio", "", 
+		"RÁDIO (Dana Price): \"Se alguém estiver ouvindo... estou na van da TV, na praça. Venha.\"",
+		{"ondas": 3, "zumbis": 4, "raio": 30.0, "centro": "eu", "premio": ["municao", 24, "bandagem", 2]}],
+	["2 · A VAN DA TV", "Vá até a van da TV no centro e fale com a Dana", "fala:dana", 1, "dana", "dana", "",
+		{"local": "Centro de Senoia", "cena": "dana"}],
+	["2 · A VAN DA TV", "Alguém grita no rádio! SALVE O TOMMY, cercado na rua (%d/%d)", "limpou", 1, "tommy", "tommy", "",
+		{"ondas": 2, "zumbis": 5, "raio": 28.0, "centro": "tommy"}],
+	["2 · A VAN DA TV", "Leve o TOMMY vivo até a van da Dana", "escolta", 1, "dana", "",
+		"TOMMY: \"Valeu, cara... Eu vi a Mia. Levaram ela pro hospital, depois pros caminhões do Exército.\"",
+		{"premio": ["espingarda", 1, "cartucho", 12]}],
+	["3 · O HOSPITAL", "Vá ao HOSPITAL atrás da sua irmã Mia", "chegar", 1, "raid:HOSPITAL MUNICIPAL", "hospital", "",
+		{"local": "Hospital Municipal de Senoia", "cena": "raid:HOSPITAL MUNICIPAL"}],
 	["3 · O HOSPITAL", "Ache o DIÁRIO DA MIA no hospital", "diario", 1, "item:diario", "",
-		"DIÁRIO DA MIA: \"A Dra. Okafor vai nos levar para a QUARENTENA. Só os Corvos têm explosivo para abrir aquilo.\""],
+		"DIÁRIO DA MIA: \"A Dra. Okafor vai nos levar para a QUARENTENA. Só os Corvos têm explosivo para abrir aquilo.\"",
+		{"susto": true}],
 	["4 · OS CORVOS", "Mate WADE HARLAN, o líder dos Corvos, no mercado", "morto:wade", 1, "raid:OS CORVOS", "wade",
-		"Wade cai. Na mochila dele: uma bomba do Exército e uma fita."],
+		"Wade cai. Na mochila dele: uma bomba do Exército e uma fita.",
+		{"local": "Mercado — território dos Corvos", "cena": "raid:OS CORVOS", "chefe": "wade", "premio": ["fuzil", 1, "municao_fuzil", 30]}],
 	["4 · OS CORVOS", "Pegue a BOMBA que o Wade largou", "bomba", 1, "item:bomba", "", ""],
-	["5 · A QUARENTENA", "Exploda o portão da QUARENTENA com a bomba", "portao", 1, "quarentena", "", ""],
+	["5 · A QUARENTENA", "Exploda o portão da QUARENTENA com a bomba", "portao", 1, "quarentena", "", "",
+		{"local": "Quarentena do Exército", "cena": "quarentena"}],
+	["5 · A QUARENTENA", "LIMPE AS TENDAS da quarentena (%d/%d)", "limpou", 1, "quarentena", "", "",
+		{"ondas": 2, "zumbis": 6, "raio": 32.0, "centro": "dentro"}],
 	["5 · A QUARENTENA", "Ache a MIA nas tendas da quarentena", "fala:mia", 1, "mia", "mia", ""],
-	["5 · A QUARENTENA", "Traga um ANTIBIÓTICO para a Mia (farmácia, hospital, baús)", "remedio", 1, "mia", "",
-		"MIA: \"Melhorou... Vai, o Mercer tem as peças do rádio. Eu te encontro no heliponto.\""],
+	["5 · A QUARENTENA", "A febre da Mia sobe! Traga um ANTIBIÓTICO a tempo", "remedio", 1, "mia", "",
+		"MIA: \"Melhorou... Vai, o Mercer tem as peças do rádio. Eu te encontro no heliponto.\"", {"timer": 300.0}],
 	["5 · A QUARENTENA", "Mate o SARGENTO MERCER (virou zumbi) no laboratório", "morto:mercer", 1, "item:mercer", "mercer",
-		"Mercer caiu. Uma peça do rádio militar e mais uma fita."],
-	["6 · O SINAL", "Junte as 3 PEÇAS DO RÁDIO: Mercer, ferro-velho e posto (%d/3)", "peca_radio", 3, "item:peca_radio", "pecas", ""],
+		"Mercer caiu. Uma peça do rádio militar e mais uma fita.", {"chefe": "mercer", "premio": ["bandagem", 3, "antibiotico", 1]}],
+	["6 · O SINAL", "Junte as 3 PEÇAS DO RÁDIO: Mercer, ferro-velho e posto (%d/3)", "peca_radio", 3, "item:peca_radio", "pecas", "",
+		{"local": "Ferro-velho e estrada"}],
 	["6 · O SINAL", "Suba na TORRE DE ÁGUA e chame o Exército pelo rádio", "torre", 1, "torre", "",
-		"RÁDIO MILITAR: \"...Senoia, entendido. Helicóptero no heliponto do hospital na próxima noite. Aguentem.\""],
-	["7 · AS FITAS", "Junte as fitas da Dra. Okafor (%d/5) e vá ao HELIPONTO do hospital", "chegar", 1, "heliponto", "fitas", ""],
-	["8 · A ÚLTIMA NOITE", "Aguente no heliponto até o helicóptero chegar", "sobreviveu", 1, "heliponto", "", ""],
+		"RÁDIO MILITAR: \"...Senoia, entendido. Helicóptero no heliponto do hospital na próxima noite. Aguentem.\"",
+		{"cena": "torre"}],
+	["7 · AS FITAS", "Junte as fitas da Dra. Okafor (%d/5) e vá ao HELIPONTO do hospital", "chegar", 1, "heliponto", "fitas", "",
+		{"local": "Escola e Igreja Matriz"}],
+	["8 · A ÚLTIMA NOITE", "Aguente no heliponto até o helicóptero chegar", "sobreviveu", 1, "heliponto", "", "",
+		{"local": "Heliponto do hospital"}],
 	["8 · A ÚLTIMA NOITE", "CORRA PARA O HELICÓPTERO!", "chegar", 1, "helicoptero", "helicoptero", ""],
 ]
+## O que cada fita conta (pega a fita -> legenda), na ordem em que você acha.
+const FITAS_TXT: Array = [
+	"Dia 3. Quarenta pacientes com febre e pele cinzenta. Todos comeram pão da padaria que usa o milho da Hollis Feed.",
+	"Dia 6. A Halverson Agro mandou dois homens buscar as amostras. Disseram que o milho era 'experimental'.",
+	"Dia 9. O primeiro morto levantou no necrotério. O Exército fechou as estradas na mesma noite.",
+	"Dia 12. O fungo está no milho. A Halverson sabia desde o lote 7. Tenho os papéis e o nome de quem assinou.",
+	"Dia 14. Se alguém achar isto: entregue à imprensa. A Mia, minha enfermeira, sabe onde estão as outras fitas.",
+]
+const TOMMY: Array = ["Socorro! Aqui! Eles estão por todo lado!"]
 const DEPOIS: Array = [["abateu", 5, "Mate zumbis (%d/%d)"], ["revistou", 5, "Revistar gavetas ou armários (%d/%d)"],
 	["agua", 2, "Pegue garrafas de água (%d/%d)"], ["comida", 2, "Pegue latas de comida (%d/%d)"]]
 
@@ -79,6 +108,23 @@ var _legenda_txt: RichTextLabel
 var _legenda_t: float = 0.0
 var _check: Vector3 = Vector3.INF  # checkpoint: onde volta ao morrer (último passo feito)
 var _morto: bool = false
+var _cfg: Dictionary = {}           # config do passo da vez (8ª coluna)
+var _onda_nos: Array = []           # zumbis vivos da luta obrigatória
+var _onda_resta: int = 0
+var _onda_mortos: int = 0
+var _onda_total: int = 0
+var _onda_centro: Vector3 = Vector3.INF
+var _onda_proxima: float = 0.0
+var _timer_t: float = -1.0
+var _chefe_barra: ProgressBar
+var _chefe_nome: Label
+var _chefe_fase: bool = false
+var _opcional: Label
+var _parado_t: float = 0.0          # tempo no passo (dica da Dana)
+var _stats := {"abates": 0, "mortes": 0, "tempo": 0.0}
+var _trofeus: Dictionary = {}
+var _morreu_no_passo: bool = false
+var _chiado: AudioStreamPlayer
 
 
 ## Cartão do capítulo no meio da tela (aparece, fica e some), como nos jogos de história.
@@ -138,6 +184,33 @@ func _ready() -> void:
 	_legenda.add_child(_legenda_txt)
 	_legenda.visible = false
 	add_child(_legenda)
+	fundo.size = Vector2(430, 84)
+	_opcional = UiTema.rotulo("", 14, Color(0.75, 0.78, 0.75))  # objetivo opcional (fitas), em cinza
+	_opcional.position = Vector2(14, 58)
+	_opcional.autowrap_mode = TextServer.AUTOWRAP_OFF
+	add_child(_opcional)
+	var topo := VBoxContainer.new()  # barra de vida do chefe no alto, no meio
+	topo.top_level = true
+	topo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	topo.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	topo.position = Vector2(-260, 70)
+	topo.custom_minimum_size = Vector2(520, 0)
+	_chefe_nome = UiTema.rotulo("", 22, Color(1.0, 0.45, 0.35))
+	_chefe_nome.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	topo.add_child(_chefe_nome)
+	_chefe_barra = ProgressBar.new()
+	_chefe_barra.custom_minimum_size = Vector2(520, 16)
+	_chefe_barra.show_percentage = false
+	var cheio := StyleBoxFlat.new()
+	cheio.bg_color = Color(0.75, 0.12, 0.1)
+	_chefe_barra.add_theme_stylebox_override("fill", cheio)
+	topo.add_child(_chefe_barra)
+	topo.visible = false
+	add_child(topo)
+	_chiado = AudioStreamPlayer.new()
+	_chiado.stream = load("res://assets/sons/amb/chiado.ogg")
+	_chiado.volume_db = -10.0
+	add_child(_chiado)
 
 
 ## Diálogo na legenda de baixo: "NOME: texto" (nome em cor), some depois de `tempo` s.
@@ -148,13 +221,24 @@ func legenda(nome: String, texto: String, tempo: float = 5.0) -> void:
 	var tela: Vector2 = get_viewport().get_visible_rect().size
 	_legenda.position = Vector2((tela.x - _legenda.size.x) * 0.5, tela.y - _legenda.size.y - 120.0)
 	_legenda_t = tempo
+	if nome.begins_with("RÁDIO") and _chiado.stream:  # fala pelo rádio: chiado curto
+		_chiado.play()
+		get_tree().create_timer(1.2).timeout.connect(_chiado.stop)
 
 
 func liga(j: Jogador) -> void:
 	_j = j
 	j.item_pego.connect(func(t: String, _q: int) -> void: evento(t))
 	j.revistou.connect(func() -> void: evento("revistou"))
-	j.abateu.connect(func() -> void: evento("abateu"))
+	j.abateu.connect(func() -> void:
+		_stats.abates += 1
+		evento("abateu"))
+	j.item_pego.connect(func(t: String, _q: int) -> void:
+		if t == "fita":  # cada fita conta um pedaço do que aconteceu
+			var n: int = _fitas()
+			legenda("FITA %d/5 · DRA. OKAFOR" % n, FITAS_TXT[clampi(n - 1, 0, FITAS_TXT.size() - 1)], 9.0)
+			if n >= FITAS:
+				_trofeu("Toda a verdade: as 5 fitas"))
 	j.entrou_segura.connect(func(sim: bool) -> void:
 		if sim:
 			evento("segura"))
@@ -167,6 +251,10 @@ func liga(j: Jogador) -> void:
 		if cf.load(_salvo) == OK:
 			_i = int(cf.get_value("historia", "passo", 0))
 			_check = cf.get_value("historia", "check", Vector3.INF)
+			_stats = cf.get_value("historia", "stats", _stats)
+			if _i > 1 and _i - 1 < ROTEIRO.size():  # voltando ao jogo: "anteriormente..."
+				var antes: String = String(ROTEIRO[_i - 1][6]) if String(ROTEIRO[_i - 1][6]) != "" else String(ROTEIRO[_i - 1][1])
+				get_tree().create_timer(2.5).timeout.connect(func() -> void: legenda("ANTERIORMENTE", antes.replace("%d", "?"), 7.0))
 	_comeca()
 
 
@@ -177,6 +265,7 @@ func _salva() -> void:
 	cf.set_value("historia", "passo", _i)
 	if _check.is_finite():
 		cf.set_value("historia", "check", _check)
+	cf.set_value("historia", "stats", _stats)
 	cf.save(_salvo)
 	var c := get_parent()
 	if c and c.has_method("aviso"):
@@ -190,14 +279,30 @@ func _comeca() -> void:
 	if _i < ROTEIRO.size():
 		var r: Array = ROTEIRO[_i]
 		_atual = [r[2], r[3], r[1]]
+		_cfg = r[7] if r.size() > 7 else {}
 		_titulo.text = "HISTÓRIA · CAP. " + String(r[0])
 		if String(r[0]) != _cap:
 			if _cap != "":
-				_cartao("CAPÍTULO " + String(r[0]))
+				_cartao("CAPÍTULO " + String(r[0]) + "\n" + _hora() + ("  ·  " + String(_cfg.local) if _cfg.has("local") else ""))
 			_cap = String(r[0])
 		_prepara(String(r[5]))
 		_alvo = _onde(String(r[4]))
 		Minimapa.destino = _alvo
+		_parado_t = 0.0
+		_morreu_no_passo = false
+		_timer_t = float(_cfg.get("timer", -1.0))
+		_chefe_fase = false
+		if _cfg.has("ondas"):
+			_comeca_luta()
+		if _cfg.has("cena") and _onde(String(_cfg.cena)).is_finite():
+			_cena(_onde(String(_cfg.cena)))
+		if _cfg.get("susto", false):
+			_susto()
+		var c := get_parent()
+		if c and c.has_method("aviso") and _i > 0:
+			get_tree().create_timer(2.4).timeout.connect(func() -> void:
+				if is_instance_valid(c):
+					c.aviso("NOVO OBJETIVO: " + String(r[1]).replace(" (%d/%d)", "").replace(" (%d/3)", "").replace(" (%d/5)", ""), Color(1.0, 0.85, 0.4), 3.0))
 		if String(r[2]) == "peca_radio" and _j:
 			_feito = _j.mochila.conta("peca_radio")
 	else:
@@ -209,11 +314,17 @@ func _comeca() -> void:
 
 func _mostra() -> void:
 	var texto: String = String(_atual[2])
-	if texto.count("%d") == 2:
+	if _atual[0] == "limpou":
+		texto = texto % [_onda_mortos, _onda_total]
+	elif texto.count("%d") == 2:
 		texto = texto % [_feito, int(_atual[1])]
 	elif texto.count("%d") == 1:
 		texto = texto % (_fitas() if _atual[0] == "chegar" else _feito)
+	if _timer_t >= 0.0:
+		texto += "  (%d:%02d)" % [int(_timer_t) / 60, int(_timer_t) % 60]
 	_linha.text = "•  " + texto
+	var achou: int = _fitas()
+	_opcional.text = "Opcional: fitas da Dra. Okafor %d/5" % achou if _i >= 8 and _i < ROTEIRO.size() and achou < FITAS else ""
 
 
 func _fitas() -> int:
@@ -247,6 +358,10 @@ func _onde(alvo: String) -> Vector3:
 		return s.baixo if s else Vector3.INF
 	elif alvo == "heliponto":
 		return _heliponto
+	elif alvo == "eu":
+		return _j.global_position if _j else Vector3.INF
+	elif alvo == "dentro" and b.marcos_pos.has("quarentena"):
+		return b.marcos_pos.quarentena + Vector3(0, 0, 30)
 	elif alvo == "helicoptero":
 		return _heli.global_position if _heli else _heliponto
 	elif _npc.has(alvo):
@@ -330,7 +445,15 @@ func _prepara(o_que: String) -> void:
 			var fr: Vector3 = b.get_node("Hospital").get_meta("frente") if b.has_node("Hospital") and b.get_node("Hospital").has_meta("frente") else h2 + Vector3(20, 0, 0)
 			_heliponto = _chao(fr + (fr - h2).normalized() * 10.0)
 			_marca_heliponto()
+		"tommy":  # sobrevivente cercado numa rua perto da van (luta + escolta)
+			var p2: Vector3 = _chao(_npc.dana.global_position + Vector3(70, 0, 40)) if _npc.has("dana") else _chao(Bairro.ORIGEM + Vector3(55, 0, 265))
+			_poe_npc("tommy", "TOMMY", TOMMY, p2)
 		"helicoptero":
+			for k: Array in [["dana", "DANA PRICE", Vector3(3, 0, 2)], ["mia", "MIA", Vector3(-3, 0, 2)]]:  # elas embarcam com você
+				if not _npc.has(k[0]):
+					_poe_npc(k[0], k[1], [], _heliponto + k[2])
+				(_npc[k[0]] as Npc).falou = true
+				(_npc[k[0]] as Node3D).global_position = _chao(_heliponto + k[2])
 			_heli = (load(Bairro.RUINAS % "helicoptero") as PackedScene).instantiate()
 			b.add_child(_heli)
 			var pouso: Vector3 = _chao(_heliponto + Vector3(25, 0, 0))
@@ -367,10 +490,22 @@ func evento(tipo: String) -> void:
 		c.aviso("OBJETIVO CONCLUÍDO  +%d XP" % XP, UiTema.DESTAQUE, 2.0)
 	if _j and _j.vida > 0 and _j.carro == null:
 		_check = _j.global_position
+	var premio: Array = _cfg.get("premio", [])
+	for k in range(0, premio.size(), 2):  # recompensa do passo (arma, munição...)
+		_j.ganhar(String(premio[k]), int(premio[k + 1]))
+	if premio.size() > 0 and c and c.has_method("aviso"):
+		get_tree().create_timer(4.5).timeout.connect(func() -> void:
+			if is_instance_valid(c):
+				c.aviso("RECOMPENSA: " + Mochila.NOMES.get(String(premio[0]), String(premio[0])), Color(0.55, 0.85, 1.0), 2.5))
+	if tipo == "limpou" and not _morreu_no_passo:
+		_trofeu("Sem um arranhão: luta sem morrer")
+	if tipo.begins_with("morto:"):
+		_trofeu("Derrubou " + ("Wade Harlan" if tipo == "morto:wade" else "o Sargento Mercer"))
 	if Minimapa.destino == _alvo:
 		Minimapa.destino = Vector3.INF
 	_i += 1
 	if _i == ROTEIRO.size():
+		_trofeu("Saiu de Senoia")
 		_fim()
 	_salva()
 	_comeca()
@@ -379,6 +514,8 @@ func evento(tipo: String) -> void:
 func _fim() -> void:
 	var f := Final.new()
 	f.bom = _fitas() >= FITAS
+	f.stats = "Tempo: %d min    Zumbis mortos: %d    Mortes: %d    Fitas: %d/5    Troféus: %d" % [
+		int(_stats.tempo / 60.0), _stats.abates, _stats.mortes, _fitas(), _trofeus.size()]
 	get_tree().root.add_child(f)
 
 
@@ -391,7 +528,13 @@ func _process(dt: float) -> void:
 		return
 	_marcador.jogador = _j
 	# checkpoint: morreu e voltou -> renasce no último passo feito da história
+	_stats.tempo += dt
 	if _j.vida <= 0:
+		if not _morto:
+			_stats.mortes += 1
+			_morreu_no_passo = true
+			if _i < ROTEIRO.size():
+				legenda("VOCÊ MORREU", "Volta no último checkpoint. Objetivo: " + String(ROTEIRO[_i][1]).replace(" (%d/%d)", "").replace(" (%d/3)", "").replace(" (%d/5)", ""), 5.0)
 		_morto = true
 	elif _morto:
 		_morto = false
@@ -404,6 +547,21 @@ func _process(dt: float) -> void:
 	var ev: String = String(_atual[0])
 	if ev == "sobreviveu":
 		_noite_final(dt)
+	if _timer_t >= 0.0:
+		_timer_t -= dt
+		if _timer_t <= 0.0:  # não deu tempo: recomeça o passo do checkpoint
+			_timer_t = float(_cfg.get("timer", 300.0))
+			legenda("MIA", "...Alex... não estou... aguentando... (tempo esgotado: tente de novo)", 5.0)
+			if _check.is_finite():
+				_j.global_position = _check + Vector3(0, 0.3, 0)
+	_chefe_ui()
+	if _onda_total > 0 and ev == "limpou":
+		_luta(dt)
+	_parado_t += dt
+	if _parado_t > 150.0 and _alvo.is_finite():  # perdido: a Dana dá a direção pelo rádio
+		_parado_t = 0.0
+		var rumo: Vector3 = _alvo - _j.global_position
+		legenda("RÁDIO (Dana)", "Ainda está aí? O que você procura fica ao %s, uns %d metros." % [Horda.lado(rumo), int(rumo.length() / 10.0) * 10], 6.0)
 	if _t > 0.0:
 		return
 	_t = 0.4
@@ -435,7 +593,17 @@ func _process(dt: float) -> void:
 			var p: Porta = b.get_node_or_null("Portao_0") as Porta if b else null
 			if p and p.arrombada():
 				evento("portao")
+		"escolta":
+			var tommy: Npc = _npc.get("tommy")
+			var dana: Node3D = _npc.get("dana")
+			if tommy and tommy.segue == null:
+				tommy.segue = _j
+			if tommy and dana and tommy.global_position.distance_to(dana.global_position) < PERTO:
+				tommy.segue = null
+				evento("escolta")
+			_mostra()
 		"remedio":
+			_mostra()
 			var mia: Node3D = _npc.get("mia")
 			if mia and mia.global_position.distance_to(_j.global_position) < 4.0 and _j.mochila.tem("antibiotico"):
 				_j.mochila.tirar("antibiotico", 1)
@@ -483,6 +651,156 @@ func _noite_final(dt: float) -> void:
 	if _resiste_t >= NOITE_FINAL_T:
 		evento("sobreviveu")
 
+
+
+## Hora do dia pelo relógio do jogo (o dia vai das 6h às 18h, a noite das 18h às 6h), para o cartão do capítulo.
+func _hora() -> String:
+	var ciclo := get_tree().get_first_node_in_group("ciclo") as Ciclo
+	if ciclo == null:
+		return "DIA 31"
+	var h: float = 6.0 + 12.0 * ciclo.tempo / Ciclo.DIA if ciclo.tempo < Ciclo.DIA else fmod(18.0 + 12.0 * (ciclo.tempo - Ciclo.DIA) / Ciclo.NOITE, 24.0)
+	return "DIA 31  ·  %02d:%02d" % [int(h), int((h - int(h)) * 60.0)]
+
+
+## Luta obrigatória: ondas de zumbis em volta do centro; o passo só fecha quando todas morrem. Fugiu da área: volta.
+func _comeca_luta() -> void:
+	var cen: String = String(_cfg.get("centro", "eu"))
+	_onda_centro = _onde(cen)
+	if not _onda_centro.is_finite() and _j:
+		_onda_centro = _j.global_position
+	var extra: int = int(String(ROTEIRO[_i][0]).left(1)) if String(ROTEIRO[_i][0]).left(1).is_valid_int() else 0
+	_onda_resta = int(_cfg.ondas)
+	_onda_mortos = 0
+	_onda_total = int(_cfg.ondas) * (int(_cfg.zumbis) + extra)  # cada capítulo, ondas um pouco maiores
+	_onda_nos.clear()
+	_onda_proxima = 2.0
+	_alvo = _onda_centro
+
+
+func _luta(dt: float) -> void:
+	for z: Variant in _onda_nos.duplicate():
+		if z == null or not is_instance_valid(z) or (z as Zumbi).vida <= 0:
+			_onda_nos.erase(z)
+			_onda_mortos += 1
+			_mostra()
+	if _onda_nos.is_empty():
+		if _onda_resta <= 0:
+			_onda_total = 0
+			evento("limpou")
+			return
+		_onda_proxima -= dt
+		if _onda_proxima <= 0.0:
+			_onda_proxima = 4.0
+			_onda_resta -= 1
+			var principal := get_tree().get_first_node_in_group("principal")
+			var n: int = _onda_total / int(_cfg.ondas)
+			if principal and _servidor():
+				for k in n:
+					var a: float = TAU * k / n + randf() * 0.4
+					var z: Zumbi = principal.spawner_zumbis.spawn({"pos": _chao(_onda_centro + Vector3(cos(a), 0, sin(a)) * float(_cfg.raio) * randf_range(0.6, 0.95)) + Vector3(0, 0.1, 0), "horda": Zumbi.DO_MORTO})
+					if z:
+						z.alvo = _j
+						_onda_nos.append(z)
+			var c := get_parent()
+			if c and c.has_method("aviso"):
+				c.aviso("ONDA %d/%d" % [int(_cfg.ondas) - _onda_resta, int(_cfg.ondas)], Color(1.0, 0.4, 0.3), 2.0)
+	elif _onda_centro.distance_to(_j.global_position) > float(_cfg.raio) * 2.2 and _j.carro == null:
+		var c2 := get_parent()  # fugiu da luta: volta
+		if c2 and c2.has_method("aviso"):
+			c2.aviso("NÃO DÁ PARA FUGIR: VOLTE PARA A LUTA", Color(1.0, 0.35, 0.3), 2.5)
+		_j.global_position = _chao(_onda_centro + (_j.global_position - _onda_centro).normalized() * float(_cfg.raio)) + Vector3(0, 0.3, 0)
+
+
+## Barra de vida do chefe no alto; na metade da vida ele chama reforço (Wade: Corvos; Mercer: zumbis).
+func _chefe_ui() -> void:
+	var qual: String = String(_cfg.get("chefe", ""))
+	var z: Zumbi = _chefe.get(qual) if qual != "" else null
+	var vivo: bool = z != null and is_instance_valid(z) and z.vida > 0
+	_chefe_barra.get_parent().visible = vivo and _j.global_position.distance_to(z.global_position) < 60.0
+	if not vivo:
+		return
+	_chefe_nome.text = "WADE HARLAN — LÍDER DOS CORVOS" if qual == "wade" else "SARGENTO COLE MERCER"
+	_chefe_barra.max_value = z._vida_max
+	_chefe_barra.value = z.vida
+	if not _chefe_fase and z.vida < z._vida_max * 0.5 and _servidor():
+		_chefe_fase = true
+		var principal := get_tree().get_first_node_in_group("principal")
+		for k in (3 if qual == "wade" else 6):
+			var a: float = TAU * k / 6.0
+			var d := {"pos": _chao(z.global_position + Vector3(cos(a), 0, sin(a)) * 10.0) + Vector3(0, 0.1, 0)}
+			if qual == "wade":
+				d.merge({"armado": true, "tipo": "corvo", "de_raid": true})
+			else:
+				d.horda = Zumbi.DO_MORTO
+			var r: Zumbi = principal.spawner_zumbis.spawn(d)
+			if r:
+				r.alvo = _j
+		legenda(qual.to_upper(), "Corvos, comigo!" if qual == "wade" else "(o Sargento solta um berro que ecoa pela quarentena)", 3.5)
+
+
+## Cena de cinema: a câmera gira em volta do lugar com as barras pretas, e volta para você.
+func _cena(onde: Vector3) -> void:
+	if _j == null or _j.camera == null or Rede.servidor_sem_tela:
+		return
+	var cam := Camera3D.new()
+	_bairro().add_child(cam)
+	cam.global_position = onde + Vector3(22, 14, 22)
+	cam.look_at(onde + Vector3(0, 2, 0))
+	cam.make_current()
+	var barras := CanvasLayer.new()
+	barras.layer = 15
+	for cima in [true, false]:
+		var r := ColorRect.new()
+		r.color = Color.BLACK
+		r.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE if cima else Control.PRESET_BOTTOM_WIDE)
+		r.custom_minimum_size = Vector2(0, 90)
+		if not cima:
+			r.position.y -= 90
+		barras.add_child(r)
+	get_tree().root.add_child(barras)
+	_j.set_physics_process(false)
+	var tw := cam.create_tween()
+	tw.tween_method(func(a: float) -> void:
+		cam.global_position = onde + Vector3(cos(a) * 30.0, 14.0, sin(a) * 30.0)
+		cam.look_at(onde + Vector3(0, 2, 0)), 0.8, 2.2, 4.5)
+	tw.tween_callback(func() -> void:
+		if is_instance_valid(_j):
+			_j.set_physics_process(true)
+			if _j.camera and _j.camera.cam:
+				_j.camera.cam.make_current()
+		cam.queue_free()
+		barras.queue_free())
+
+
+## Susto roteirizado: grito longe e zumbis atrás de você.
+func _susto() -> void:
+	var principal := get_tree().get_first_node_in_group("principal")
+	if principal == null or _j == null:
+		return
+	var s := AudioStreamPlayer.new()
+	s.stream = load("res://assets/sons/amb/grito.ogg")
+	add_child(s)
+	s.play()
+	s.finished.connect(s.queue_free)
+	if _j.camera:
+		_j.camera.tremer(0.5)
+	if _servidor():
+		var atras: Vector3 = -_j.global_basis.z
+		for k in 4:
+			var z: Zumbi = principal.spawner_zumbis.spawn({"pos": _chao(_j.global_position - atras * 7.0 + Vector3(k * 1.2 - 2.0, 0, 0)) + Vector3(0, 0.1, 0), "horda": Zumbi.DO_MORTO})
+			if z:
+				z.alvo = _j
+
+
+func _trofeu(nome: String) -> void:
+	if _trofeus.has(nome):
+		return
+	_trofeus[nome] = true
+	var c := get_parent()
+	if c and c.has_method("aviso"):
+		get_tree().create_timer(1.5).timeout.connect(func() -> void:
+			if is_instance_valid(c):
+				c.aviso("TROFÉU: " + nome, Color(1.0, 0.82, 0.25), 3.5))
 
 
 ## Alvo do objetivo na tela (como nos jogos de história): losango amarelo onde fica Minimapa.destino, com a distância;
