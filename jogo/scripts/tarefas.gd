@@ -93,6 +93,27 @@ const FITAS_TXT: Array = [
 	"Dia 14. Se alguém achar isto: entregue à imprensa. A Mia, minha enfermeira, sabe onde estão as outras fitas.",
 ]
 const TOMMY: Array = ["Socorro! Aqui! Eles estão por todo lado!"]
+## Rádio que reage ao que você faz (06/11): chave -> [fala, s até poder repetir]
+const RADIO_EV: Dictionary = {
+	"sequencia": ["Nossa! Quantos foram? Continue assim, mas não faça barulho demais.", 120.0],
+	"vida_baixa": ["Você está muito ferido. Use uma bandagem e saia daí.", 90.0],
+	"carro": ["Pegou um carro? Ótimo. Mas o motor chama atenção, cuidado.", 100000.0],
+	"amanheceu": ["Amanheceu. De dia eles ficam mais lentos. Aproveite.", 300.0],
+	"refugio": ["Aí dentro você está seguro. Descanse e se cure.", 400.0],
+	"fome": ["Você precisa comer alguma coisa. Procure nas cozinhas.", 240.0],
+	"sede": ["Ache água. Sem água você não aguenta muito tempo.", 240.0],
+}
+var _radio_ev_ms: Dictionary = {}
+
+
+func _radio_ev(chave: String) -> void:
+	var agora: int = Time.get_ticks_msec()
+	if agora - int(_radio_ev_ms.get(chave, -10000000)) < int(float(RADIO_EV[chave][1]) * 1000.0) or _i <= 0:
+		return
+	_radio_ev_ms[chave] = agora
+	legenda("RÁDIO · DANA", String(RADIO_EV[chave][0]), 6.0)
+
+
 const NOITE_VOZ: String = "Escureceu. De noite eles correm e ouvem mais longe. Fique perto de um refúgio."
 const DICA_VOZ: Array = ["Ainda está aí? Olhe o mapa: eu marquei para onde você tem que ir."]
 ## Falas soltas com voz ("QUEM|texto"; o que vai entre parênteses na legenda não é falado).
@@ -301,6 +322,8 @@ func liga(j: Jogador) -> void:
 		_stats.abates += 1
 		evento("abateu"))
 	j.item_pego.connect(func(t: String, _q: int) -> void:
+		if t == "sequencia" and _q >= 5:
+			_radio_ev("sequencia")
 		if t == "fita":  # cada fita conta um pedaço do que aconteceu
 			var n: int = _fitas()
 			legenda("FITA %d/5 · DRA. OKAFOR" % n, FITAS_TXT[clampi(n - 1, 0, FITAS_TXT.size() - 1)], 9.0, false)
@@ -308,6 +331,7 @@ func liga(j: Jogador) -> void:
 				_trofeu("Toda a verdade: as 5 fitas"))
 	j.entrou_segura.connect(func(sim: bool) -> void:
 		if sim:
+			_radio_ev("refugio")
 			evento("segura"))
 	var principal := get_tree().get_first_node_in_group("principal")
 	if principal and principal.has_method("_testando") and principal._testando():
@@ -641,11 +665,20 @@ func _process(dt: float) -> void:
 	if _t > 0.0:
 		return
 	_t = 0.4
+	if _j.vida > 0 and _j.vida < 30:
+		_radio_ev("vida_baixa")
+	if _j.carro:
+		_radio_ev("carro")
+	if _j.fome < 20.0:
+		_radio_ev("fome")
+	if _j.sede < 20.0:
+		_radio_ev("sede")
 	var ciclo := get_tree().get_first_node_in_group("ciclo") as Ciclo
 	if ciclo:
 		var noite: bool = ciclo.e_noite()
 		if _era_noite and not noite:
 			evento("amanheceu")
+			_radio_ev("amanheceu")
 		if noite and not _era_noite and _i > 0:  # 06/11: a Dana avisa a noite pelo rádio
 			legenda("RÁDIO · DANA", NOITE_VOZ, 6.0)
 		_era_noite = noite

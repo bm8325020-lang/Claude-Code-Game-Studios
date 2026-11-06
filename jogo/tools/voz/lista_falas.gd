@@ -27,6 +27,8 @@ func _init() -> void:
 	for t: String in Tarefas.TOMMY: poe.call("tommy", t)
 	for t: String in Tarefas.DICA_VOZ: poe.call("dana", t)
 	poe.call("dana", Tarefas.NOITE_VOZ)
+	for k: String in Tarefas.RADIO_EV:
+		poe.call("dana", String(Tarefas.RADIO_EV[k][0]))
 	for t: String in Tarefas.EXTRAS: poe.call(Tarefas.quem(t.get_slice("|", 0)), t.get_slice("|", 1))
 	for t: String in Final.BOM + Final.AMARGO: poe.call("dana", t)
 	var f := FileAccess.open(OS.get_cmdline_user_args()[0], FileAccess.WRITE)

@@ -51,6 +51,9 @@ var _stick_id: int = -1
 ## Carro no toque (06/11, dono): 4 botões (esquerda/direita à esquerda; freio-ré e acelerar à direita), vários dedos juntos
 var _pad: _PadCarro
 var _espreita_lbl: Label
+var _info_lbl: Label
+var _info_t: float = 0.0
+var _stats_lbl: Label
 var _pad_toques: Dictionary = {}  # índice do dedo -> "esq"/"dir"/"freio"/"gas"
 var _stick_centro: Vector2
 var _stick_vec: Vector2 = Vector2.ZERO
@@ -339,6 +342,23 @@ func _process(dt: float) -> void:
 		_espreita_lbl.position.x -= 200
 		add_child(_espreita_lbl)
 	_espreita_lbl.visible = jogador.espreitando()
+	_info_t -= get_process_delta_time()
+	if _info_t <= 0.0:  # 2x por segundo: fôlego e quantos zumbis estão vindo atrás de você (06/11)
+		_info_t = 0.5
+		if _info_lbl == null:
+			_info_lbl = UiTema.rotulo("", 17, Color(1.0, 0.75, 0.4))
+			_info_lbl.position = Vector2(14, 128)
+			add_child(_info_lbl)
+		var seguem: int = 0
+		for z: Node in get_tree().get_nodes_in_group("zumbis"):
+			if (z as Zumbi).alvo == jogador and (z as Zumbi).vida > 0:
+				seguem += 1
+		var t: String = ""
+		if jogador.folego < 99.0:
+			t = ("SEM FÔLEGO" if jogador.cansado else "FÔLEGO %d%%" % int(jogador.folego))
+		if seguem > 0:
+			t += ("   " if t != "" else "") + "%d ZUMBI%s TE SEGUINDO" % [seguem, "S" if seguem > 1 else ""]
+		_info_lbl.text = t
 	if _btn_mira:
 		_btn_mira.ligado = jogador.mira_travada
 	_caiu.visible = jogador.vida <= 0
@@ -470,6 +490,9 @@ func _input(ev: InputEvent) -> void:
 			return
 		var qual: String = _pad.botao_em(tc.position, tela) if tc.pressed else ""
 		if qual != "":
+			if qual == "buzina":
+				jogador.carro.buzina()
+				return
 			_pad_toques[tc.index] = qual
 			_pad.apertados = _pad_toques.values()
 			_pad.queue_redraw()
@@ -532,6 +555,9 @@ func aviso(texto: String, cor: Color = UiTema.DESTAQUE, tempo: float = 3.0) -> v
 ## Abre/fecha a pausa. O jogo não para (é em rede): só tira os controles da mão e mostra o mouse.
 func pausa(abrir: bool) -> void:
 	_pausa.visible = abrir
+	if abrir and _stats_lbl and _tarefas:  # 06/11: estatísticas da história na pausa
+		var st: Dictionary = _tarefas._stats
+		_stats_lbl.text = "Zumbis mortos: %d   ·   Mortes: %d   ·   Tempo: %d min" % [int(st.abates), int(st.mortes), int(float(st.tempo) / 60.0)]
 	if not toque:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if abrir else Input.MOUSE_MODE_CAPTURED
 	if jogador and abrir:
@@ -739,6 +765,8 @@ func _monta_pausa() -> void:
 	var col := UiTema.painel_central(_pausa, 520.0)
 	col.add_child(UiTema.rotulo("PAUSA", 34, UiTema.DESTAQUE))
 	col.add_child(UiTema.rotulo("O jogo continua para os outros.", 20, UiTema.APAGADO))
+	_stats_lbl = UiTema.rotulo("", 18, UiTema.TEXTO)
+	col.add_child(_stats_lbl)
 	var cont := UiTema.botao("CONTINUAR", true)
 	cont.pressed.connect(func() -> void: pausa(false))
 	col.add_child(cont)
@@ -978,6 +1006,9 @@ func _acertou(forte: bool) -> void:
 
 
 func _pegou(tipo: String, qtd: int) -> void:
+	if tipo == "cabeca":
+		aviso("TIRO NA CABEÇA!  +5 XP", Color(1.0, 0.45, 0.3), 1.2)
+		return
 	if tipo == "antibiotico" and jogador and not jogador.infectado:
 		aviso("Antibiótico tomado: a infecção parou", Color(0.45, 0.75, 0.4))
 		return
@@ -1336,6 +1367,9 @@ func _modo_carro(no_carro: bool) -> void:
 		_pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(_pad)
 	_pad.visible = no_carro
+	if no_carro and jogador.carro and int(absf(jogador.carro.vel) * 3.6) != _pad.kmh:
+		_pad.kmh = int(absf(jogador.carro.vel) * 3.6)
+		_pad.queue_redraw()
 	if no_carro == _no_carro_antes and not no_carro:
 		return
 	for b: Variant in [_btn_atacar, _btn_mira, _btn_agachar, _btn_recarregar, _btn_modo, _btn_deitar, _btn_dominar,
@@ -1357,7 +1391,8 @@ class _PadCarro extends Control:
 	func rects(tela: Vector2) -> Dictionary:
 		return {"esq": Rect2(30, tela.y - TAM - 40, TAM, TAM), "dir": Rect2(30 + TAM + 24, tela.y - TAM - 40, TAM, TAM),
 			"freio": Rect2(tela.x - 2 * TAM - 70, tela.y - TAM - 40, TAM, TAM),
-			"gas": Rect2(tela.x - TAM - 30, tela.y - TAM - 60, TAM, TAM + 20)}
+			"gas": Rect2(tela.x - TAM - 30, tela.y - TAM - 60, TAM, TAM + 20),
+			"buzina": Rect2(tela.x * 0.5 - 60, tela.y - 110, 120, 70)}
 
 	func botao_em(p: Vector2, tela: Vector2) -> String:
 		var r: Dictionary = rects(tela)
@@ -1366,9 +1401,13 @@ class _PadCarro extends Control:
 				return k
 		return ""
 
+	var kmh: int = 0
+
 	func _draw() -> void:
 		var r: Dictionary = rects(get_viewport_rect().size)
 		var fonte: Font = get_theme_default_font()
+		var vt: String = "%d km/h" % kmh  # velocímetro (06/11)
+		draw_string(fonte, Vector2(get_viewport_rect().size.x * 0.5 - 40, get_viewport_rect().size.y - 130), vt, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color(1, 1, 1, 0.9))
 		for k: String in r:
 			var q: Rect2 = r[k]
 			var on: bool = apertados.has(k)
@@ -1380,8 +1419,8 @@ class _PadCarro extends Control:
 					draw_colored_polygon(PackedVector2Array([c + Vector2(-34, 0), c + Vector2(22, -32), c + Vector2(22, 32)]), Color(1, 1, 1, 0.9))
 				"dir":
 					draw_colored_polygon(PackedVector2Array([c + Vector2(34, 0), c + Vector2(-22, -32), c + Vector2(-22, 32)]), Color(1, 1, 1, 0.9))
-				"gas", "freio":
-					var t: String = "ACELERAR" if k == "gas" else "FREIO / RÉ"
+				"gas", "freio", "buzina":
+					var t: String = {"gas": "ACELERAR", "freio": "FREIO / RÉ", "buzina": "BUZINA"}[k]
 					var w: float = fonte.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
 					draw_string(fonte, c + Vector2(-w * 0.5, 7), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 1, 1, 0.95))
 

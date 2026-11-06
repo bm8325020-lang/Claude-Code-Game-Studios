@@ -1294,6 +1294,9 @@ func _pede_golpe(dano: int, dir: Vector3) -> void:
 func _aplica(dano: int, dir: Vector3) -> void:
 	if imune:
 		return  # líder da horda: só morre depois dos outros
+	if alvo == null and not chefe and not _deitado and _ultimo is Jogador:
+		dano *= ATAQUE_FURTIVO  # 06/11: pegou de surpresa (não te viu): golpe triplo
+		(_ultimo as Jogador).ganhar("xp", 10)  # e XP extra por chegar sem ser visto
 	if _deitado and _no_chao_t > 0.0:
 		dano = roundi(dano * QUEDA_MAIS)  # caído: acabe com ele
 	elif _deitado:
@@ -1342,7 +1345,14 @@ func _camada(m: Material) -> void:
 		mi.material_overlay = m
 
 
+const ATAQUE_FURTIVO: int = 3
+
+
 func _morre() -> void:
+	if humano() and _manda():  # 06/11: Corvo morto larga munição da pistola dele
+		var principal := get_tree().get_first_node_in_group("principal")
+		if principal:
+			principal.solta_item("municao", 8, global_position + Vector3(0.6, 0.3, 0), 120.0)
 	remove_from_group("golpeavel")
 	collision_layer = 0
 	_ataque_t = -1.0

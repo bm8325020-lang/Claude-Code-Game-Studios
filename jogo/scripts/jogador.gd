@@ -482,7 +482,13 @@ func _physics_process(dt: float) -> void:
 	_atualiza_golpe(dt)
 	_encara -= dt
 	_tiro_t += dt
-	correndo = bool(entrada.get("correr", false)) and not agachado and not mira_travada and mov.y > 0.3
+	correndo = bool(entrada.get("correr", false)) and not agachado and not mira_travada and mov.y > 0.3 and not cansado
+	# 06/11: fôlego da corrida: acaba correndo, volta parado/andando; zerou = cansado até recuperar 35
+	folego = clampf(folego + (-FOLEGO_GASTO if correndo else FOLEGO_VOLTA) * dt, 0.0, 100.0)
+	if folego <= 0.0:
+		cansado = true
+	elif cansado and folego >= 35.0:
+		cansado = false
 
 	# direção relativa à câmera (só o giro horizontal)
 	var yaw: float = camera.yaw if camera else 0.0
@@ -580,6 +586,12 @@ func mirando_em(ponto: Vector3, graus: float) -> bool:
 signal acertou_alvo(forte: bool)
 
 
+const FOLEGO_GASTO: float = 11.0
+const FOLEGO_VOLTA: float = 14.0
+var folego: float = 100.0
+var cansado: bool = false
+
+
 ## "Em combate" = bateu/atirou em alguém há menos de COMBATE_T s (botão de voltar ao início fica travado).
 const COMBATE_T: float = 20.0
 var bateu_ms: int = -100000
@@ -592,6 +604,9 @@ func _confirma_acerto(forte: bool, cabeca: bool) -> void:
 	_som.pitch_scale = 0.75 if cabeca else randf_range(1.2, 1.35)
 	_som.volume_db = 2.0 if cabeca else -6.0
 	_som.play()
+	if cabeca and is_multiplayer_authority():  # 06/11: tiro na cabeça avisa e dá XP
+		item_pego.emit("cabeca", 0)
+		_recebe("xp", 5)
 
 
 ## Item ao alcance agora (para o botão PEGAR), ou null.
@@ -863,6 +878,8 @@ func _recebe(tipo: String, qtd: int) -> void:
 	if tipo == "abate":
 		abates += qtd  # registro de zumbis mortos
 		abateu.emit()
+		if is_multiplayer_authority():
+			Input.vibrate_handheld(35)  # 06/11: tremidinha ao matar
 		sequencia = sequencia + 1 if _seq_t > 0.0 else 1
 		_seq_t = SEQUENCIA_T
 		if sequencia >= 2:

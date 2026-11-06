@@ -265,6 +265,41 @@
 		"voz": "dana"
 	},
 	{
+		"id": "7e8353a2bd7a",
+		"texto": "Nossa! Quantos foram? Continue assim, mas não faça barulho demais.",
+		"voz": "dana"
+	},
+	{
+		"id": "539a1606be06",
+		"texto": "Você está muito ferido. Use uma bandagem e saia daí.",
+		"voz": "dana"
+	},
+	{
+		"id": "b33eaab51e82",
+		"texto": "Pegou um carro? Ótimo. Mas o motor chama atenção, cuidado.",
+		"voz": "dana"
+	},
+	{
+		"id": "400ad7ac8a46",
+		"texto": "Amanheceu. De dia eles ficam mais lentos. Aproveite.",
+		"voz": "dana"
+	},
+	{
+		"id": "a30a15d8172a",
+		"texto": "Aí dentro você está seguro. Descanse e se cure.",
+		"voz": "dana"
+	},
+	{
+		"id": "85f25344eace",
+		"texto": "Você precisa comer alguma coisa. Procure nas cozinhas.",
+		"voz": "dana"
+	},
+	{
+		"id": "9052596efc6f",
+		"texto": "Ache água. Sem água você não aguenta muito tempo.",
+		"voz": "dana"
+	},
+	{
 		"id": "367c00c3992f",
 		"texto": "...Alex... não estou... aguentando...",
 		"voz": "mia"

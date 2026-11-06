@@ -5,6 +5,12 @@ class_name Carregando
 extends CanvasLayer
 
 const DICAS: Array[String] = [
+	"Agachado e grudado numa parede, os zumbis quase não te veem: é o jeito de passar por um bando.",
+	"Zumbi que não te viu leva golpe triplo: chegue por trás.",
+	"Correr gasta fôlego. Sem fôlego, você só anda até recuperar.",
+	"A buzina do carro chama os zumbis: use para tirar o bando do caminho.",
+	"Toque no rádio do canto para ouvir de novo a última fala.",
+	"Preso em algum lugar? Pausa -> PRESO? VOLTAR AO CHECKPOINT.",
 	"Zumbi armado da delegacia erra mais se você estiver agachado.",
 	"Zumbi não atravessa a tábua entre os telhados. Suba pela escada de incêndio.",
 	"No rio todo mundo fica lento, inclusive os zumbis.",

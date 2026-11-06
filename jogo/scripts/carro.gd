@@ -238,8 +238,14 @@ func dirige(mov: Vector2, dt: float) -> float:
 	velocity.x = frente.x * vel
 	velocity.z = frente.z * vel
 	velocity.y = 0.0 if is_on_floor() else velocity.y - GRAVIDADE * dt
+	var v0: float = vel
 	move_and_slide()
 	vel = get_real_velocity().dot(frente)  # bateu: perde a velocidade que não andou
+	if absf(v0) - absf(vel) > 6.0:  # 06/11: batida forte faz barulho (chama zumbi) e treme o celular
+		Input.vibrate_handheld(200)
+		if multiplayer.is_server():
+			Zumbi.barulho(get_tree(), global_position, 30.0)
+	_farois()
 	_gira_rodas(dt)
 	if multiplayer.is_server():
 		pos_rede = position
@@ -250,6 +256,39 @@ func dirige(mov: Vector2, dt: float) -> float:
 			_manda_t = MANDA_A_CADA
 			_estado.rpc_id(1, position, rotation.y)
 	return giro
+
+
+## Faróis (06/11): só no carro que você dirige, ligam à noite (uma luz só, sem sombra: celular).
+var _farol: SpotLight3D
+
+
+func _farois() -> void:
+	var ciclo := get_tree().get_first_node_in_group("ciclo") as Ciclo
+	var liga: bool = ciclo != null and ciclo.noite() > 0.3 and not Rede.servidor_sem_tela
+	if liga and _farol == null:
+		_farol = SpotLight3D.new()
+		_farol.position = Vector3(0, 0.9, 2.2)
+		_farol.rotation.y = PI  # SpotLight aponta para -Z; a frente do carro é +Z
+		_farol.rotation.x = -0.12
+		_farol.spot_range = 32.0
+		_farol.spot_angle = 32.0
+		_farol.light_energy = 3.0
+		_farol.light_color = Color(1.0, 0.95, 0.8)
+		add_child(_farol)
+	if _farol:
+		_farol.visible = liga
+
+
+## Buzina (06/11): chama os zumbis em volta (servidor decide) e toca para todos.
+func buzina() -> void:
+	if multiplayer.is_server():
+		Zumbi.barulho(get_tree(), global_position, 45.0)
+	var s := AudioStreamPlayer3D.new()
+	s.stream = load("res://assets/sons/buzina.wav")
+	s.unit_size = 20.0
+	add_child(s)
+	s.finished.connect(s.queue_free)
+	s.play()
 
 
 ## Atropelar (dono 07/11): acima de ATROPELA_VEL, zumbi na frente do carro leva dano pela velocidade e voa; o carro
