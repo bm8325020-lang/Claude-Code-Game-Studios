@@ -151,7 +151,7 @@ var _dorme_t: float = 0.0
 
 # nada para fazer: sem alvo, sem patrulha, sem barulho para ir ver, sem procurar nem voltar, sem raid
 func _quieto() -> bool:
-	return alvo == null and raid == 0 and horda == 0 and rota.is_empty() and not _indo_ouvir and _olhando_t <= 0.0 and not _voltando \
+	return alvo == null and raid == 0 and horda <= 0 and rota.is_empty() and not _indo_ouvir and _olhando_t <= 0.0 and not _voltando \
 		and _foge_t <= 0.0 and _ataque_t < 0.0
 
 

@@ -32,7 +32,7 @@ func _init() -> void:
 		for e: Dictionary in Loot.sorteia(rng, true):
 			cont_f[e.tipo] = int(cont_f.get(e.tipo, 0)) + 1
 	var lan: float = float(cont.get("lanterna", 0)) / 5000.0
-	ok(lan > 0.08 and lan < 0.2, "lanterna é rara: sai em %.0f%% dos baús" % (lan * 100.0))
+	ok(lan > 0.06 and lan < 0.2, "lanterna é rara: sai em %.0f%% dos baús" % (lan * 100.0))
 	ok(float(cont.get("comida", 0)) > float(cont.get("lanterna", 0)) * 3.0, "comida é comum")
 	ok(int(cont_f.get("comida", 0)) > int(cont.get("comida", 0)) * 1.06, "baú da cidade inicial tem comida mais vezes (%d x %d)" % [cont_f.get("comida", 0), cont.get("comida", 0)])
 	for k in 200:

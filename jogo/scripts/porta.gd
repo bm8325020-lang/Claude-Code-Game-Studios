@@ -22,6 +22,7 @@ var aberta: bool = false:
 var vida: int = VIDA_MAX:
 	set(v):
 		vida = v
+		set_process(v <= 0)  # anti-travamento: só conta o conserto quando está arrombada
 		if _mat:
 			_mat.albedo_color = Color(0.36, 0.25, 0.16).lerp(Color(0.2, 0.14, 0.09), 1.0 - float(v) / VIDA_MAX)
 var _folha: AnimatableBody3D
@@ -32,6 +33,7 @@ var _tw: Tween
 
 func _ready() -> void:
 	add_to_group("portas")
+	set_process(vida <= 0)
 	# dobradiça na origem; a folha vai para +X e abre girando para dentro (-Z local)
 	_folha = AnimatableBody3D.new()
 	_folha.collision_layer = CAMADA

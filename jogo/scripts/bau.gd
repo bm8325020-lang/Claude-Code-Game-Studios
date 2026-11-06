@@ -28,7 +28,10 @@ var trava: bool = false
 var cofre: bool = false
 var gaveta_chave: Gaveta
 ## [{"tipo", "qtd"}] — vai pela rede quando muda
-var conteudo: Array = []
+var conteudo: Array = []:
+	set(v):
+		conteudo = v
+		set_process(true)  # anti-travamento: só roda enquanto a tampa mexe ou vai reencher (desliga sozinho)
 var _vazio_t: float = 0.0
 var _tampa: Node3D
 var _rng := RandomNumberGenerator.new()
@@ -121,6 +124,8 @@ func _process(dt: float) -> void:
 				queue_free()
 		return
 	_tampa.rotation.x = lerp_angle(_tampa.rotation.x, deg_to_rad(-100.0) if conteudo.is_empty() else 0.0, 1.0 - exp(-6.0 * dt))
+	if not conteudo.is_empty() and absf(_tampa.rotation.x) < 0.01:
+		set_process(false)  # cheio e fechado: nada para fazer até alguém mexer
 	if _manda() and conteudo.is_empty() and not de_faccao:
 		_vazio_t -= dt
 		if _vazio_t <= 0.0:

@@ -16,6 +16,7 @@ var ativo: bool = true:
 	set(v):
 		ativo = v
 		visible = v
+		set_process(solto or not v)  # anti-travamento: só conta tempo quando precisa
 var _volta_t: float = 0.0
 ## Largado por alguém (não faz parte do mapa): some ao ser pego ou depois de SOME segundos.
 var solto: bool = false
@@ -28,6 +29,7 @@ var so_visual: bool = false
 
 
 func _ready() -> void:
+	set_process(solto or not ativo)
 	_monta_modelo()
 	if so_visual:
 		return

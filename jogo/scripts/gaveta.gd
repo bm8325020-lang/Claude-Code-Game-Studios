@@ -28,6 +28,7 @@ var aberta: bool = false:
 		if v == aberta:
 			return
 		aberta = v
+		set_process(v)  # anti-travamento: 3900 gavetas contando tempo todo quadro custavam 1/3 do processador
 		_anima()
 var _t: float = 0.0
 var _caixa: Node3D
@@ -37,6 +38,7 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	add_to_group("gavetas")
+	set_process(aberta)
 	var m: Array = MOVEIS[movel]
 	var madeira := StandardMaterial3D.new()
 	madeira.albedo_color = Color(0.3, 0.22, 0.15)

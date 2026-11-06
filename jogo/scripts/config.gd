@@ -18,6 +18,7 @@ const PADRAO: Dictionary = {
 	"botoes_tamanho": 1.0,
 	"botoes_opacidade": 0.35,
 	"mira_cor": 0,              # índice em CORES_MIRA
+	"cfg_versao": 2,            # 2 = já passou pela troca de padrão do celular (anti-travamento 06/11)
 }
 const CORES_MIRA: Array[Color] = [Color(1, 1, 1), Color(0.3, 1, 0.35), Color(1, 0.85, 0.2), Color(0.35, 0.85, 1)]
 const NOMES_MIRA: Array[String] = ["Branca", "Verde", "Amarela", "Azul"]
@@ -40,9 +41,25 @@ static func carrega(caminho: String = ARQUIVO) -> void:
 	v = PADRAO.duplicate()
 	var cf := ConfigFile.new()
 	if cf.load(caminho) != OK:
+		if OS.has_feature("mobile"):  # instalação nova no celular já começa leve
+			v.qualidade = 1
+			v.fps = 30
 		return
 	for k: String in PADRAO:
 		v[k] = cf.get_value("jogo", k, PADRAO[k])
+	v.cfg_versao = cf.get_value("jogo", "cfg_versao", 0)  # arquivo de antes da troca não tem a chave
+	_padrao_celular()
+
+
+## Celular (anti-travamento 06/11): Média e 30 quadros por segundo estáveis (60 que o aparelho não sustenta fica
+## irregular, que é o "travadinho"). Vale uma vez para quem já tinha configuração salva; depois o jogador muda se quiser.
+static func _padrao_celular() -> void:
+	if int(v.get("cfg_versao", 0)) >= 2:
+		return
+	v.cfg_versao = 2
+	if OS.has_feature("mobile"):
+		v.qualidade = mini(int(v.qualidade), 1)
+		v.fps = 30
 
 
 static func salva(caminho: String = ARQUIVO) -> void:

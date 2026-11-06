@@ -383,6 +383,10 @@ func saida() -> Vector3:
 func _physics_process(dt: float) -> void:
 	if _dirijo():
 		return  # o Jogador chama dirige()
+	if position.distance_squared_to(pos_rede) < 0.0001 and absf(angle_difference(rotation.y, rot_rede)) < 0.001:
+		if vel != 0.0:
+			vel = 0.0
+		return  # parado onde devia: não mexe no corpo (62 carros mexendo todo quadro pesavam na física)
 	var antes: Vector3 = position
 	if position.distance_to(pos_rede) > 8.0:
 		position = pos_rede

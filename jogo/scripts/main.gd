@@ -795,7 +795,7 @@ func _poe_zumbis() -> void:
 			pedacos.append(nav_b)
 	_liga_pedacos(pedacos, n)
 	for p: Vector3 in bairro.pontos_zumbi:  # em bando de BANDO (dono 30/10: muito fácil)
-		for k: int in BANDO:
+		for k: int in (1 if int(Config.v.qualidade) <= 1 else BANDO):  # celular fraco: 1 por ponto (anti-travamento)
 			spawner_zumbis.spawn({"pos": p + Vector3(k * 1.3, 0.1, k * 0.7)})
 	for r: Dictionary in bairro.pontos_raid:  # raids: delegacia (policiais), hospital, mercado, igreja; mortos ficam mortos
 		var dz := {"pos": r.pos, "armado": r.armado, "de_raid": true}
