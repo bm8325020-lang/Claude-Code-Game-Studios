@@ -929,6 +929,9 @@ func _luz() -> void:
 	som_amb.name = "SomAmbiente"
 	som_amb.principal = self
 	add_child(som_amb)
+	var postes := PostesPiscam.new()  # 06/11 terror: postes velhos piscando de noite
+	postes.principal = self
+	add_child(postes)
 	var bichos := Bichos.new()  # corvos e papel voando
 	bichos.name = "Bichos"
 	bichos.principal = self

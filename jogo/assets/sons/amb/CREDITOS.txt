@@ -12,3 +12,5 @@ corvos     — "Crows singing" (opengameart.org/content/crows-singing)
 alarme.wav — feito no próprio projeto (CC0)
 
 06/11: passaros (birds-isaiah658, "Ambient Bird Sounds"), corvos ("Crows singing"), corvo_1 ("Crow caw"), pingos ("Dripping water loop"), agua ("Sea and river wave sounds", VistulaShort) — OpenGameArt CC0.
+
+06/11 (terror): grito ("Female Scream 1"), porta_bate ("Door Open, Door Close Set"), explosao_longe ("Muffled Distant Explosion", NenadSimic), chiado ("Frequency Static Sound Effects"), radio ("Zombie news in Radio") — OpenGameArt CC0; cortados/equalizados aqui.

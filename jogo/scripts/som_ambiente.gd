@@ -28,6 +28,8 @@ var _geme_t: float = 0.0
 var _vozes: Dictionary = {}  # Zumbi -> AudioStreamPlayer3D
 var _eco: int = -1
 var _rng := RandomNumberGenerator.new()
+var _radio: AudioStreamPlayer3D
+var _radio_t: float = 0.0
 
 
 func _ready() -> void:
@@ -97,6 +99,7 @@ func _process(dt: float) -> void:
 	_passos(j, dentro)
 	_coracao_bate(j, dt)
 	_sustos(j, dt, noite)
+	_radio_perto(j, dt)
 	_gemidos(j, dt)
 
 
@@ -154,12 +157,18 @@ func _sustos(j: Jogador, dt: float, noite: float) -> void:
 	var s := AudioStreamPlayer3D.new()
 	var r: float = _rng.randf()
 	var nome: String
-	if r < 0.3:
+	if r < 0.22:
 		nome = "sombra_%d" % _rng.randi_range(1, 5)
-	elif r < 0.5:
+	elif r < 0.36:
 		nome = "rangido"
-	elif r < 0.8:
+	elif r < 0.6:
 		nome = "gemido_%d" % _rng.randi_range(0, 5)
+	elif r < 0.7 + noite * 0.08:  # 06/11 terror: grito de gente ao longe (mais de noite)
+		nome = "grito"
+	elif r < 0.82:
+		nome = "porta_bate"
+	elif r < 0.88:
+		nome = "explosao_longe"
 	else:
 		nome = ""  # tiro distante
 	if nome == "":
@@ -175,6 +184,53 @@ func _sustos(j: Jogador, dt: float, noite: float) -> void:
 	s.global_position = p
 	s.finished.connect(s.queue_free)
 	s.play()
+
+
+# 06/11 terror: rádio esquecido ligado numa casa em cada RADIO_CADA, chiando e dando a notícia da Febre Cinzenta em
+# loop; um só tocador muda para a casa com rádio mais perto (até RADIO_PERTO m)
+const RADIO_CADA: int = 7
+const RADIO_PERTO: float = 30.0
+func _radio_perto(j: Jogador, dt: float) -> void:
+	_radio_t -= dt
+	if _radio_t > 0.0:
+		return
+	_radio_t = 1.0
+	if _radio == null:
+		_radio = AudioStreamPlayer3D.new()
+		var st: AudioStreamOggVorbis = som("radio").duplicate()
+		st.loop = true
+		_radio.stream = st
+		_radio.unit_size = 4.0
+		_radio.max_distance = RADIO_PERTO
+		_radio.volume_db = -4.0
+		var chiado := AudioStreamPlayer3D.new()
+		var ch: AudioStreamOggVorbis = som("chiado").duplicate()
+		ch.loop = true
+		chiado.stream = ch
+		chiado.unit_size = 3.0
+		chiado.max_distance = RADIO_PERTO
+		chiado.volume_db = -12.0
+		_radio.add_child(chiado)
+		add_child(_radio)
+	var melhor: Node3D = null
+	var md: float = RADIO_PERTO * RADIO_PERTO
+	for casa: Node3D in get_tree().get_nodes_in_group("casas"):
+		if absi(hash(casa.name)) % RADIO_CADA != 0:
+			continue
+		var d: float = casa.global_position.distance_squared_to(j.global_position)
+		if d < md:
+			md = d
+			melhor = casa
+	var chiado: AudioStreamPlayer3D = _radio.get_child(0)
+	if melhor == null:
+		if _radio.playing:
+			_radio.stop()
+			chiado.stop()
+		return
+	_radio.global_position = melhor.global_position + Vector3(0, 1.0, 0)
+	if not _radio.playing:
+		_radio.play(_rng.randf() * 60.0)
+		chiado.play()
 
 
 # zumbis perto gemem (sem alvo) ou rosnam (vindo atrás de alguém); a voz fica presa no zumbi

@@ -45,6 +45,7 @@ var _lado_mapa: int = 0
 var _rio: Array = []  # [[a, b]] pedaços do rio
 const AGUA_Y: float = -0.9  # nível da água do rio (abaixo disso: dentro d'água)
 var _infos: Dictionary = {}  # ruína -> tamanho no chão
+var lampadas: Array[Vector3] = []  # alto de cada poste da Planta (PostesPiscam acende os de perto)
 var postes_da_planta: bool = false  # planta nova: postes de concreto e fiação da Planta (Enfeites não põe os de madeira)
 var _fechados: Dictionary = {}  # ruína -> só de fora (prédio de apartamento: marca "fechado" no modelo)
 var _poligonos: Array = [] # polígonos (PackedVector2Array) de todas as construções, para não pôr nada dentro

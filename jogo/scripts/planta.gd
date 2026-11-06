@@ -31,6 +31,7 @@ static func monta(b: Bairro, dados: Dictionary) -> void:
 		var ant: Array = []
 		for q: Array in cadeia:
 			var t: Transform3D = _guarda(b, por, "poste_trafo" if int(q[3]) == 1 else "poste", Vector2(q[0], q[1]), float(q[2]))
+			b.lampadas.append(t * Vector3(0, FIO_Y - 1.2, 0))
 			var pontas: Array = FIO_X.map(func(x: float) -> Vector3: return t * Vector3(x, FIO_Y, 0))
 			if not ant.is_empty():
 				for k in pontas.size():

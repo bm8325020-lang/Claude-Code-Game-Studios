@@ -16,7 +16,8 @@
   e trêmula (pilha velha). Foto: de noite só se vê o que a lanterna pega.
 - [x] B2 26 acidentes (2-3 carros atravessados: carcaça pronta do Sketchfab, queimado, van) com zumbi em volta; 1 em
   3 queimados ainda arde; 110 sacos de corpo (eram 40).
-- [ ] B3 Luzes que piscam (postes queimando), rádio chiando, sons de terror ao longe (grito, porta batendo).
+- [x] B3 Postes velhos piscando de noite (4 luzes andam pelos postes vivos mais perto; metade queimou), rádio esquecido
+  ligado em 1 de cada 7 casas (notícia da Febre + chiado), sustos novos: grito, porta batendo, explosão longe. test_som ok.
 - [ ] B4 Lugares de medo: hospital escuro, igreja com velas, porão; menos casas, mais vazio e silêncio.
 - [ ] B5 Sobreviventes inimigos (saqueadores "Os Corvos" no mercado).
 - [ ] B6 APK final + resumo para o dono.
