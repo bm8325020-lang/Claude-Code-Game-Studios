@@ -121,6 +121,12 @@ func _draw() -> void:
 			seta[i] = c + seta[i].rotated(a)
 		draw_colored_polygon(seta, Color.WHITE)
 		draw_polyline(seta + PackedVector2Array([seta[0]]), Color.BLACK, 2.0)
+	var hist: Tarefas = get_parent()._tarefas if get_parent() and "_tarefas" in get_parent() else null
+	if hist and jogador:  # diário da história no canto do mapa
+		draw_rect(Rect2(16, 16, 470, 120), Color(0, 0, 0, 0.65))
+		draw_string(ThemeDB.fallback_font, Vector2(28, 46), hist._titulo.text, HORIZONTAL_ALIGNMENT_LEFT, 450, 20, Color(1.0, 0.72, 0.25))
+		draw_string(ThemeDB.fallback_font, Vector2(28, 76), hist._linha.text, HORIZONTAL_ALIGNMENT_LEFT, 450, 18, Color.WHITE)
+		draw_string(ThemeDB.fallback_font, Vector2(28, 106), "Fitas da Dra. Okafor: %d/5    Peças do rádio: %d/3" % [jogador.mochila.conta("fita"), jogador.mochila.conta("peca_radio")], HORIZONTAL_ALIGNMENT_LEFT, 450, 17, Color(0.8, 0.85, 0.8))
 	draw_string(ThemeDB.fallback_font, Vector2(20, size.y - 24), "Arraste para mexer · toque para marcar o destino", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(1, 1, 1, 0.8))
 
 

@@ -56,4 +56,4 @@ func _process(dt: float) -> void:
 
 func _diz(principal: Node) -> void:
 	if principal.controles and _i < falas.size():
-		principal.controles.aviso("%s: %s" % [nome, falas[_i]], Color(0.6, 0.88, 1.0), POR_FALA)
+		principal.controles._tarefas.legenda(nome, String(falas[_i]), POR_FALA)  # legenda de diálogo embaixo

@@ -89,3 +89,10 @@ marcador, rádio/bilhete), sempre usando o que já existe no mundo (refúgios, p
 18. Recompensa por capítulo (arma nova, mochila maior, chave de lugar novo) para dar vontade de seguir.
 19. Final alternativo e "Novo Jogo+" (recomeçar com o que achou no diário, cidade mais perigosa).
 20. Co-op na história: até 4 na sala jogando o capítulo de quem criou; cada um vê as falas.
+
+## 15. LOBBY (dono 07/11, SÓ NOS PLANOS por enquanto; fazer depois do modo história completo)
+- Abrir o jogo: sem a tela do Godot (capa do DEAD DISTRICT), LOGIN, aceitar os TERMOS (texto de termos e privacidade).
+- Nome fixo da conta (não dá para trocar); adicionar AMIGO pelo nome; convidar para o lobby e começar a história junto.
+- Só modo história (sozinho ou com amigos). Segurança: senha nunca guardada em texto puro (hash no servidor), conexão
+  cifrada (wss/https), o servidor decide tudo (vida, dano, loot, posição conferida) para ninguém trapacear, nenhum dado
+  de outro jogador vai para o aparelho além do nome e da posição no jogo; termos dizendo o que é guardado.

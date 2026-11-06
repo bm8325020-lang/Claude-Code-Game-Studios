@@ -73,6 +73,12 @@ var _onda_t: float = 0.0
 var _heli: Node3D
 var _salvo: String = ""
 var _cap: String = ""
+var _marcador: _Marcador
+var _legenda: PanelContainer
+var _legenda_txt: RichTextLabel
+var _legenda_t: float = 0.0
+var _check: Vector3 = Vector3.INF  # checkpoint: onde volta ao morrer (último passo feito)
+var _morto: bool = false
 
 
 ## Cartão do capítulo no meio da tela (aparece, fica e some), como nos jogos de história.
@@ -111,6 +117,37 @@ func _ready() -> void:
 	_linha.size = Vector2(412, 28)
 	_linha.clip_text = true
 	add_child(_linha)
+	_marcador = _Marcador.new()  # 07/11: alvo do objetivo na tela com a distância (jogo de história)
+	_marcador.top_level = true
+	_marcador.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_marcador)
+	_legenda = PanelContainer.new()  # legenda do diálogo embaixo, com o nome de quem fala
+	_legenda.top_level = true
+	_legenda.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var est := StyleBoxFlat.new()
+	est.bg_color = Color(0, 0, 0, 0.7)
+	est.set_content_margin_all(14)
+	est.set_corner_radius_all(6)
+	_legenda.add_theme_stylebox_override("panel", est)
+	_legenda_txt = RichTextLabel.new()
+	_legenda_txt.bbcode_enabled = true
+	_legenda_txt.fit_content = true
+	_legenda_txt.custom_minimum_size = Vector2(760, 0)
+	_legenda_txt.add_theme_font_size_override("normal_font_size", 22)
+	_legenda_txt.add_theme_font_size_override("bold_font_size", 22)
+	_legenda.add_child(_legenda_txt)
+	_legenda.visible = false
+	add_child(_legenda)
+
+
+## Diálogo na legenda de baixo: "NOME: texto" (nome em cor), some depois de `tempo` s.
+func legenda(nome: String, texto: String, tempo: float = 5.0) -> void:
+	_legenda_txt.text = ("[b][color=#9fd8ff]%s:[/color][/b] %s" % [nome, texto]) if nome != "" else texto
+	_legenda.visible = true
+	_legenda.reset_size()
+	var tela: Vector2 = get_viewport().get_visible_rect().size
+	_legenda.position = Vector2((tela.x - _legenda.size.x) * 0.5, tela.y - _legenda.size.y - 120.0)
+	_legenda_t = tempo
 
 
 func liga(j: Jogador) -> void:
@@ -129,6 +166,7 @@ func liga(j: Jogador) -> void:
 		var cf := ConfigFile.new()
 		if cf.load(_salvo) == OK:
 			_i = int(cf.get_value("historia", "passo", 0))
+			_check = cf.get_value("historia", "check", Vector3.INF)
 	_comeca()
 
 
@@ -137,7 +175,14 @@ func _salva() -> void:
 		return
 	var cf := ConfigFile.new()
 	cf.set_value("historia", "passo", _i)
+	if _check.is_finite():
+		cf.set_value("historia", "check", _check)
 	cf.save(_salvo)
+	var c := get_parent()
+	if c and c.has_method("aviso"):
+		get_tree().create_timer(7.5).timeout.connect(func() -> void:
+			if is_instance_valid(c):
+				c.aviso("JOGO SALVO", Color(0.6, 0.9, 0.6), 1.5))
 
 
 func _comeca() -> void:
@@ -315,8 +360,13 @@ func evento(tipo: String) -> void:
 		_j._recebe("xp", XP)
 	var fala: String = String(ROTEIRO[_i][6]) if _i < ROTEIRO.size() else ""
 	var c := get_parent()
+	if fala != "":
+		var dois: int = fala.find(": ")
+		legenda(fala.left(dois) if dois > 0 and dois < 24 else "", fala.substr(dois + 2) if dois > 0 and dois < 24 else fala, 8.0)
 	if c and c.has_method("aviso"):
-		c.aviso(fala if fala != "" else "FEITO  +%d XP" % XP, UiTema.DESTAQUE, 7.0 if fala != "" else 2.0)
+		c.aviso("OBJETIVO CONCLUÍDO  +%d XP" % XP, UiTema.DESTAQUE, 2.0)
+	if _j and _j.vida > 0 and _j.carro == null:
+		_check = _j.global_position
 	if Minimapa.destino == _alvo:
 		Minimapa.destino = Vector3.INF
 	_i += 1
@@ -334,8 +384,23 @@ func _fim() -> void:
 
 func _process(dt: float) -> void:
 	_t -= dt
+	if _legenda_t > 0.0:
+		_legenda_t -= dt
+		_legenda.visible = _legenda_t > 0.0
 	if _j == null or not is_instance_valid(_j) or _atual.is_empty():
 		return
+	_marcador.jogador = _j
+	# checkpoint: morreu e voltou -> renasce no último passo feito da história
+	if _j.vida <= 0:
+		_morto = true
+	elif _morto:
+		_morto = false
+		if _check.is_finite() and _j.carro == null:
+			_j.global_position = _check + Vector3(0, 0.3, 0)
+			_j.velocity = Vector3.ZERO
+			var c := get_parent()
+			if c and c.has_method("aviso"):
+				c.aviso("DE VOLTA AO ÚLTIMO CHECKPOINT", UiTema.DESTAQUE, 2.5)
 	var ev: String = String(_atual[0])
 	if ev == "sobreviveu":
 		_noite_final(dt)
@@ -417,3 +482,38 @@ func _noite_final(dt: float) -> void:
 				z.alvo = _j
 	if _resiste_t >= NOITE_FINAL_T:
 		evento("sobreviveu")
+
+
+
+## Alvo do objetivo na tela (como nos jogos de história): losango amarelo onde fica Minimapa.destino, com a distância;
+## atrás de você ou fora da tela, fica preso na borda.
+class _Marcador extends Control:
+	var jogador: Jogador
+
+	func _ready() -> void:
+		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	func _process(_dt: float) -> void:
+		queue_redraw()
+
+	func _draw() -> void:
+		if jogador == null or not is_instance_valid(jogador) or not Minimapa.destino.is_finite():
+			return
+		var cam: Camera3D = get_viewport().get_camera_3d()
+		if cam == null:
+			return
+		var alvo: Vector3 = Minimapa.destino + Vector3(0, 1.6, 0)
+		var tela: Vector2 = get_viewport().get_visible_rect().size
+		var atras: bool = cam.is_position_behind(alvo)
+		var q: Vector2 = cam.unproject_position(alvo)
+		if atras:
+			q = tela - q  # atrás: aparece do lado oposto
+		var m := Rect2(Vector2(40, 90), tela - Vector2(80, 220))
+		var dentro: bool = not atras and m.has_point(q)
+		q = q.clamp(m.position, m.end)
+		var d: float = Vector2(Minimapa.destino.x - jogador.global_position.x, Minimapa.destino.z - jogador.global_position.z).length()
+		var r: float = 11.0 if dentro else 9.0
+		var pts := PackedVector2Array([q + Vector2(0, -r), q + Vector2(r, 0), q + Vector2(0, r), q + Vector2(-r, 0)])
+		draw_colored_polygon(pts, Color(1.0, 0.85, 0.2, 0.9))
+		draw_polyline(pts + PackedVector2Array([pts[0]]), Color(0, 0, 0, 0.8), 2.0)
+		draw_string(ThemeDB.fallback_font, q + Vector2(-30, r + 22), "%d m" % roundi(d), HORIZONTAL_ALIGNMENT_CENTER, 60, 18, Color(1, 0.92, 0.5))
