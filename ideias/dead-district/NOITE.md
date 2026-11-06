@@ -37,3 +37,13 @@
   até 45 m na Média; mesh_lod_threshold pela qualidade (LODs do import); sombra do sol 1 fatia na Batata/Média;
   árvores grandes com versão de longe (normaliza.py *_lod, folhas rareadas) em quadrados de 50 m; casca dos prédios
   troca pela caixa mais cedo na Batata/Média.
+
+## D. Próximos passos (loop automático a partir das 6:31 de 07/11; dono: "tá começando a ficar agradável")
+Cada rodada: ler isto, fazer o próximo [ ], medir, poucos testes (só da área), commit + push, marcar [x].
+- [ ] D1 Zumbis que se ajustam ao aparelho: se o quadro passar do tempo (30 FPS), diminui sozinho a distância dos
+  zumbis e o tanto que acordam juntos; volta quando folgar. Medir com peso_cpu/peso_render.
+- [ ] D2 Porão: em ~1 de cada 8 casas, alçapão no chão da cozinha -> escada -> porão escuro (só a lanterna), loot raro
+  e 1-2 zumbis deitados (tocaia). Medo + motivo para explorar.
+- [ ] D3 Corvos vivos de verdade: patrulha em dupla em volta do mercado, gritam o aviso com voz (som), fogem para dentro,
+  baú do acampamento com loot de saqueador; matar todos libera o mercado (aviso no HUD).
+- [ ] D4 APK + resumo curto para o dono.
