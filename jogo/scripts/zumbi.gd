@@ -310,6 +310,12 @@ func _ready() -> void:
 		cap.radius = RAIO
 		cs.position.y = 0.375
 		altura_cabeca = 0.45
+	# 07/11 (ideia aprovada): zumbi gordo, mesmo em todo aparelho pelo nome; morre explodindo em gás que cega
+	gordo = not chefe and not lider and tocaia == false and TIPOS[tipo].skill in ["agarrao", "bote"] and absi(hash(String(name) + "gordo")) % 12 == 0
+	if gordo:
+		_vida_max = roundi(_vida_max * 1.6)
+		vida = _vida_max
+		_vel *= 0.8
 	var rr := RandomNumberGenerator.new()
 	rr.seed = hash(String(name) + "jeito")
 	_passo = rr.randf_range(0.82, 1.18)
@@ -323,7 +329,7 @@ func _ready() -> void:
 	# cada um com corpo próprio (nada de clones): altura e largura sorteadas pelo nome, igual em todo aparelho
 	var r := RandomNumberGenerator.new()
 	r.seed = hash(String(name) + "corpo")
-	var largo: float = 1.0 if chefe else r.randf_range(0.94, 1.12)
+	var largo: float = 1.0 if chefe else r.randf_range(0.94, 1.12) * (1.45 if gordo else 1.0)
 	modelo.scale = Vector3(largo, 1.0 if chefe else r.randf_range(0.92, 1.08), largo) * k
 	add_child(modelo)
 	_mat_pele = StandardMaterial3D.new()  # por cima da roupa: pisca vermelho ao levar golpe
@@ -1350,6 +1356,39 @@ func _camada(m: Material) -> void:
 
 
 const ATAQUE_FURTIVO: int = 3
+const GAS_RAIO: float = 5.0
+const GAS_DANO: int = 12
+var gordo: bool = false
+
+
+## Todos: nuvem verde onde o gordo estourou; quem é daqui e está perto fica com a tela verde.
+@rpc("authority", "call_local", "reliable")
+func _gas_fx(p: Vector3) -> void:
+	if Rede.servidor_sem_tela:
+		return
+	var nuvem := MeshInstance3D.new()
+	var esf := SphereMesh.new()
+	esf.radius = 1.0
+	esf.height = 2.0
+	esf.radial_segments = 12
+	esf.rings = 6
+	nuvem.mesh = esf
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.45, 0.7, 0.2, 0.55)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	nuvem.material_override = m
+	get_parent().get_parent().add_child(nuvem)
+	nuvem.global_position = p + Vector3(0, 1.0, 0)
+	var tw := nuvem.create_tween()
+	tw.tween_property(nuvem, "scale", Vector3.ONE * GAS_RAIO, 0.6)
+	tw.parallel().tween_property(m, "albedo_color:a", 0.0, 3.5)
+	tw.tween_callback(nuvem.queue_free)
+	var principal := get_tree().get_first_node_in_group("principal")
+	var j: Jogador = principal.jogador if principal else null
+	if j and j.global_position.distance_to(p) < GAS_RAIO and principal.controles:
+		principal.controles.cega(4.0)
 ## 06/11 (dono): Corvo também atira nos zumbis (sem jogador por perto): para, mira e atira no mais perto que vê.
 const CORVO_ZUMBI_ATE: float = 22.0
 const CORVO_ZUMBI_DANO: int = 45
@@ -1399,6 +1438,12 @@ func _atira_no_zumbi(dt: float) -> void:
 
 
 func _morre() -> void:
+	if gordo and _manda():  # estoura: gás em volta machuca quem estiver perto
+		for jn: Node in get_tree().get_nodes_in_group("jogadores"):
+			var jj := jn as Jogador
+			if jj and jj.vida > 0 and jj.global_position.distance_to(global_position) < GAS_RAIO:
+				jj.levar_dano(GAS_DANO, (jj.global_position - global_position).normalized() * 0.5)
+		_gas_fx.rpc(global_position)
 	if humano() and _manda():  # 06/11: Corvo morto larga munição da pistola dele
 		var principal := get_tree().get_first_node_in_group("principal")
 		if principal:

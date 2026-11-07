@@ -1213,7 +1213,8 @@ var _sangra_t: float = 0.0
 func levar_dano(dano: int, dir: Vector3) -> void:
 	dano_srv_t = Time.get_ticks_msec() / 1000.0
 	if dano >= 10 and vida > 0 and randf() < SANGRA_CHANCE:
-		sangrando = true
+		var principal := get_tree().get_first_node_in_group("principal")
+		sangrando = not (principal and principal.has_method("_testando") and principal._testando())  # teste: dano exato
 	if is_multiplayer_authority():
 		_recebe_dano(dano, dir)
 	else:

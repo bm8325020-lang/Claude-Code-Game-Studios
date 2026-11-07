@@ -1070,6 +1070,20 @@ func _pegou(tipo: String, qtd: int) -> void:
 	_aviso_t = 1.6
 
 
+## Gás do zumbi gordo (07/11): tela verde que some devagar.
+func cega(s: float) -> void:
+	var v := ColorRect.new()
+	v.color = Color(0.35, 0.55, 0.12, 0.85)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(v)
+	var tw := v.create_tween()
+	tw.tween_interval(s * 0.4)
+	tw.tween_property(v, "color:a", 0.0, s * 0.6)
+	tw.tween_callback(v.queue_free)
+	aviso("GÁS! VOCÊ NÃO ENXERGA", Color(0.6, 0.9, 0.3), 2.0)
+
+
 func _levou_dano(dano: int) -> void:
 	_vermelho.color.a = clampf(0.15 + dano * 0.012, 0.0, 0.45)
 	Input.vibrate_handheld(clampi(40 + dano * 4, 60, 260))  # 06/11 (dono): celular vibra ao levar dano (mordida: mais forte)
