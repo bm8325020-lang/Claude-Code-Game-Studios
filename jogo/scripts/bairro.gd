@@ -429,7 +429,7 @@ func _junta_quad(q: Array, m: Material, n: Vector3) -> void:
 func _fecha_juntas() -> void:
 	# até aqui (do meio do pedaço) a casca de fora; depois a caixa. 07/11: Batata/Média trocam mais cedo (a casca era
 	# ~300 mil triângulos na tela; a névoa esconde a troca)
-	var meio: float = float(Config.qualidade().longe) * 0.4 if int(Config.v.qualidade) <= 1 else maxf(float(Config.qualidade().longe) * 0.55, 90.0)
+	var meio: float = float(Config.qualidade().longe) * 0.5 if int(Config.v.qualidade) <= 1 else maxf(float(Config.qualidade().longe) * 0.55, 90.0)
 	for chave: String in _juntas_longe:
 		var ml := MeshInstance3D.new()
 		ml.name = "Longe_%d" % get_child_count()
@@ -656,7 +656,7 @@ func _junta_longe(no: Node3D, m: Node3D) -> void:
 	var pedaco: String = "%d|%d" % [floori(c.x / PEDACO_MALHA), floori(c.z / PEDACO_MALHA)]
 	var centro := Vector3((floori(c.x / PEDACO_MALHA) + 0.5) * PEDACO_MALHA, 0, (floori(c.z / PEDACO_MALHA) + 0.5) * PEDACO_MALHA)
 	var caixa := AABB()
-	var cor := Color(0.5, 0.48, 0.45)
+	var cor := Color(0.36, 0.34, 0.32)
 	for nome: String in ["ext", "longe"]:
 		var mi := m.get_node_or_null(nome) as MeshInstance3D
 		if mi == null or mi.mesh == null or mi.get_child_count() > 0:
@@ -667,7 +667,7 @@ func _junta_longe(no: Node3D, m: Node3D) -> void:
 		for s in mi.mesh.get_surface_count():
 			var mat: Material = mi.get_active_material(s)
 			if nome == "ext" and s == 0 and mat is BaseMaterial3D:
-				cor = (mat as BaseMaterial3D).albedo_color * 0.42  # a textura escurece a cor de verdade
+				cor = (mat as BaseMaterial3D).albedo_color * 0.3  # 07/11: mais escura (0,42 brilhava na névoa: "prédio fantasma")
 			var chave: String = "%d|%s" % [mat.get_instance_id(), pedaco]
 			if not _juntas_longe.has(chave):
 				_juntas_longe[chave] = [SurfaceTool.new(), mat, centro]
@@ -689,7 +689,7 @@ func _massinha(pedaco: String, centro: Vector3, a: AABB, cor: Color) -> void:
 		_massas[pedaco] = [st, centro]
 	var st: SurfaceTool = _massas[pedaco][0]
 	var bm := BoxMesh.new()
-	bm.size = a.size
+	bm.size = a.size * Vector3(0.92, 0.96, 0.92)  # a caixa pegava marquise e escada de incêndio: ficava maior que o prédio
 	var arr: Array = bm.get_mesh_arrays()
 	var cores := PackedColorArray()
 	cores.resize((arr[Mesh.ARRAY_VERTEX] as PackedVector3Array).size())
