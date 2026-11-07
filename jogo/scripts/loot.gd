@@ -19,7 +19,8 @@ const TABELA: Array = [
 	["sinalizador", 7, 1, 1, INCOMUM],
 	["molotov", 4, 1, 1, RARO],  # 07/11
 	["armadilha", 8, 1, 2, INCOMUM],
-	["tabuas", 9, 1, 2, COMUM],  # 07/11: tira o bando do caminho  # 07/11: lanterna gasta pilha
+	["tabuas", 9, 1, 2, COMUM],
+	["colete", 2, 1, 1, RARO],  # 07/11: mais forte com loot  # 07/11: tira o bando do caminho  # 07/11: lanterna gasta pilha
 	["antibiotico", 4, 1, 1, RARO],
 	["faca", 6, 1, 1, INCOMUM],
 	["taco", 4, 1, 1, INCOMUM],

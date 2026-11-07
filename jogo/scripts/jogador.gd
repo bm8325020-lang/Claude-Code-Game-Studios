@@ -966,6 +966,11 @@ func usar_espaco(i: int) -> void:
 				mochila.tirar("sinalizador", 1)
 				_joga_a_frente(Sinalizador.new(), 8.0)
 				item_pego.emit("sinalizador_usado", 0)
+		"colete":
+			if colete < 100.0:
+				colete = 100.0
+				mochila.tirar("colete", 1)
+				item_pego.emit("colete_vestido", 0)
 		"tabuas":  # 07/11: barrica a porta fechada mais perto (zumbi demora 4x para arrombar)
 			var pt: Porta = porta_perto()
 			if pt and not pt.aberta and not pt.arrombada() and not pt.barricada:
@@ -1214,6 +1219,11 @@ func toma_antibiotico() -> void:
 	item_pego.emit("antibiotico", 1)
 
 
+## 07/11: colete à prova de balas (loot raro): vestido, segura 35% do dano até a resistência acabar.
+const COLETE_SEGURA: float = 0.35
+var colete: float = 0.0
+
+
 const QUEDA_VEL: float = 11.0  # m/s na hora de bater no chão
 const MANCA_T: float = 20.0
 var manca_t: float = 0.0
@@ -1251,6 +1261,12 @@ func _recebe_dano(dano: int, dir: Vector3) -> void:
 	var principal := get_tree().get_first_node_in_group("principal")
 	if _jogo_t < NOVATO_T and not (principal and principal.em_pvp()):  # no PvP o servidor conta a morte pelo dano cheio
 		dano = ceili(dano * NOVATO_DANO)  # primeiros minutos da partida: os zumbis batem menos
+	if colete > 0.0 and dano > 0:  # 07/11: colete segura COLETE_SEGURA do golpe e se gasta
+		var segura_dano: int = roundi(dano * COLETE_SEGURA)
+		dano -= segura_dano
+		colete = maxf(colete - segura_dano * 1.5, 0.0)
+		if colete <= 0.0:
+			item_pego.emit("colete_quebrou", 0)
 	vida = maxi(0, vida - dano)
 	if randf() < CHANCE_INFECTAR:
 		infecta(0.0)

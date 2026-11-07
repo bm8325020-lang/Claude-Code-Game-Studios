@@ -356,6 +356,8 @@ func _process(dt: float) -> void:
 		var t: String = ""
 		if jogador.folego < 99.0:
 			t = ("SEM FÔLEGO" if jogador.cansado else "FÔLEGO %d%%" % int(jogador.folego))
+		if jogador.colete > 0.0:
+			t += ("   " if t != "" else "") + "COLETE %d%%" % int(jogador.colete)
 		if jogador.sangrando:
 			t += ("   " if t != "" else "") + "SANGRANDO: USE UMA BANDAGEM"
 		if seguem > 0:
@@ -1008,6 +1010,12 @@ func _acertou(forte: bool) -> void:
 
 
 func _pegou(tipo: String, qtd: int) -> void:
+	if tipo == "colete_vestido":
+		aviso("COLETE VESTIDO", Color(0.6, 0.75, 0.95), 2.0)
+		return
+	if tipo == "colete_quebrou":
+		aviso("SEU COLETE SE DESFEZ", Color(1.0, 0.5, 0.3), 2.5)
+		return
 	if tipo == "barricou":
 		aviso("PORTA BARRICADA", Color(0.8, 0.7, 0.5), 2.0)
 		return

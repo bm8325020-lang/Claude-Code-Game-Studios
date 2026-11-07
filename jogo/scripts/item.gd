@@ -55,7 +55,7 @@ func nome() -> String:
 			return "antibiótico" + (" (%d)" % quantidade if quantidade > 1 else "")
 		"agua":
 			return "garrafa de água"
-		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador", "receita_pistola", "smg", "receita_smg", "espingarda", "fuzil", "sniper", "cartucho", "municao_fuzil", "bandagem", "silenciador", "pilha", "sinalizador", "molotov", "armadilha", "tabuas":
+		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador", "receita_pistola", "smg", "receita_smg", "espingarda", "fuzil", "sniper", "cartucho", "municao_fuzil", "bandagem", "silenciador", "pilha", "sinalizador", "molotov", "armadilha", "tabuas", "colete":
 			return Mochila.NOMES[tipo].to_lower() + (" (%d)" % quantidade if quantidade > 1 else "")
 	return "lanterna"
 
@@ -172,7 +172,7 @@ func _monta_modelo() -> void:
 		_modelo("res://assets/sketchfab/lanterna.glb", 0.2, Vector3.ZERO)
 
 
-const _PROPRIOS: Array[String] = ["tabuas", "armadilha", "molotov", "sinalizador", "pilha", "bandagem", "municao_fuzil", "silenciador", "livro", "fita", "peca_radio", "diario"]
+const _PROPRIOS: Array[String] = ["colete", "tabuas", "armadilha", "molotov", "sinalizador", "pilha", "bandagem", "municao_fuzil", "silenciador", "livro", "fita", "peca_radio", "diario"]
 
 
 func _mat(cor: Color, rug: float = 0.7, metal: float = 0.0, brilho: float = 0.0) -> StandardMaterial3D:
@@ -206,6 +206,9 @@ func _cilindro(pos: Vector3, raio: float, alt: float, m: Material, deitado: bool
 
 func _monta_proprio() -> void:
 	match tipo:
+		"colete":  # colete preto dobrado com a faixa POLICE amarela
+			_bloco(Vector3(0, 0.03, 0), Vector3(0.36, 0.06, 0.3), _mat(Color(0.12, 0.13, 0.15), 0.8))
+			_bloco(Vector3(0, 0.061, 0), Vector3(0.3, 0.003, 0.06), _mat(Color(0.9, 0.78, 0.15)))
 		"tabuas":  # três tábuas empilhadas
 			for k in 3:
 				_bloco(Vector3(0, 0.012 + k * 0.022, 0), Vector3(0.5, 0.02, 0.09), _mat(Color(0.5, 0.36, 0.22).darkened(k * 0.08), 1.0)).rotation_degrees.y = k * 7.0
