@@ -16,6 +16,7 @@ func _ready() -> void:
 	_desliza(col, "Mirando com o facão", "sens_mira_facao", 0.2, 1.5, 0.05, true)
 	_chave(col, "Inverter olhar para cima/baixo", "inverter_y")
 	_desliza(col, "Campo de visão", "fov", 60.0, 90.0, 1.0)
+	_escolhe(col, "Dificuldade", "dificuldade", Config.NOMES_DIFICULDADE, [0, 1, 2])
 	_secao(col, "SOM")
 	_desliza(col, "Volume", "volume", 0.0, 1.0, 0.05, true)
 	_secao(col, "IMAGEM")

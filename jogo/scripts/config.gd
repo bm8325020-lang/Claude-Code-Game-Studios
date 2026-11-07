@@ -18,8 +18,13 @@ const PADRAO: Dictionary = {
 	"botoes_tamanho": 1.0,
 	"botoes_opacidade": 0.35,
 	"mira_cor": 0,              # índice em CORES_MIRA
+	"dificuldade": 1,           # 07/11: 0 Fácil, 1 Normal, 2 Difícil (DANO_RECEBIDO / DANO_NO_ZUMBI)
 	"cfg_versao": 2,            # 2 = já passou pela troca de padrão do celular (anti-travamento 06/11)
 }
+const NOMES_DIFICULDADE: Array[String] = ["Fácil", "Normal", "Difícil"]
+## quanto do dano você leva / quanto do seu dano o zumbi sente, por dificuldade
+const DANO_RECEBIDO: Array[float] = [0.6, 1.0, 1.4]
+const DANO_NO_ZUMBI: Array[float] = [1.4, 1.0, 0.75]
 const CORES_MIRA: Array[Color] = [Color(1, 1, 1), Color(0.3, 1, 0.35), Color(1, 0.85, 0.2), Color(0.35, 0.85, 1)]
 const NOMES_MIRA: Array[String] = ["Branca", "Verde", "Amarela", "Azul"]
 
