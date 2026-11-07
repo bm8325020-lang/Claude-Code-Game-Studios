@@ -19,7 +19,38 @@ var _t: float = COMECA
 var _rng := RandomNumberGenerator.new()
 
 
+## 07/11 (ideia aprovada): passou colado num carro abandonado: às vezes um zumbi sai de trás dele gritando (uma vez por carro).
+const SUSTO_CARRO_DIST: float = 3.5
+const SUSTO_CARRO_CHANCE: float = 0.18
+var _susto_t: float = 0.0
+
+
+func _susto_carro(m: Node, dt: float) -> void:
+	_susto_t -= dt
+	if _susto_t > 0.0:
+		return
+	_susto_t = 0.5
+	for j: Jogador in m.jogadores.get_children():
+		if j.vida <= 0 or j.carro or j.segura:
+			continue
+		for c: Node in m.get_tree().get_nodes_in_group("carros"):
+			var car := c as Node3D
+			if car == null or car.has_meta("susto") or car.global_position.distance_to(j.global_position) > SUSTO_CARRO_DIST:
+				continue
+			car.set_meta("susto", true)
+			if _rng.randf() > SUSTO_CARRO_CHANCE:
+				continue
+			var atras: Vector3 = car.global_position + (car.global_position - j.global_position).normalized() * 2.2
+			var z: Zumbi = m.spawner_zumbis.spawn({"pos": atras + Vector3(0, 0.2, 0), "horda": Zumbi.DO_MORTO})
+			if z:
+				z.alvo = j
+				z.call_deferred("_grita")
+			return
+
+
 func passa(m: Node, dt: float) -> void:
+	if not m.em_pvp() and m.bairro != null and not m._testando():  # teste não pode ganhar zumbi surpresa
+		_susto_carro(m, dt)
 	_t -= dt
 	if _t > 0.0:
 		return
