@@ -158,6 +158,7 @@ func _radio_ev(chave: String) -> void:
 	legenda("RÁDIO · DANA", String(RADIO_EV[chave][0]), 6.0)
 
 
+const SIRENE_VOZ: String = "Escuta isso? Alguém ligou a sirene. Todos os mortos da cidade vão para lá."
 const NEBLINA_VOZ: String = "Tem uma névoa vermelha descendo sobre a cidade. Eles estão diferentes hoje, mais rápidos. Se esconde."
 const NOITE_VOZ: String = "Escureceu. De noite eles correm e ouvem mais longe. Fique perto de um refúgio."
 const DICA_VOZ: Array = ["Ainda está aí? Olhe o mapa: eu marquei para onde você tem que ir."]
@@ -755,6 +756,13 @@ func _process(dt: float) -> void:
 			_radio_ev("amanheceu")
 		if noite and not _era_noite and _i > 0:  # 06/11: a Dana avisa a noite pelo rádio
 			legenda("RÁDIO · DANA", NEBLINA_VOZ if ciclo.clima == "neblina_vermelha" else NOITE_VOZ, 6.0)
+			if randf() < 0.25 and _servidor():  # 07/11: sirene da cidade chama a horda para um ponto (às vezes)
+				var a: float = randf() * TAU
+				var p: Vector3 = _chao(_j.global_position + Vector3(cos(a), 0, sin(a)) * randf_range(60.0, 120.0))
+				var sr := Sirene.new()
+				get_tree().get_first_node_in_group("principal").add_child(sr)
+				sr.global_position = p
+				legenda("RÁDIO · DANA", SIRENE_VOZ + " (fica ao %s, uns %d m)" % [Horda.lado(p - _j.global_position), int(p.distance_to(_j.global_position) / 10.0) * 10], 6.0)
 		_era_noite = noite
 	if _alvo.is_finite() and Minimapa.destino != _alvo and Minimapa.destino.is_finite() == false:
 		Minimapa.destino = _alvo
