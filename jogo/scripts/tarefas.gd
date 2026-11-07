@@ -97,6 +97,7 @@ const TOMMY: Array = ["Socorro! Aqui! Eles estão por todo lado!"]
 const RADIO_EV: Dictionary = {
 	"sequencia": ["Nossa! Quantos foram? Continue assim, mas não faça barulho demais.", 120.0],
 	"vida_baixa": ["Você está muito ferido. Use uma bandagem e saia daí.", 90.0],
+	"sangrando": ["Isso é sangue? Amarra uma bandagem nisso antes que piore.", 150.0],
 	"carro": ["Pegou um carro? Ótimo. Mas o motor chama atenção, cuidado.", 100000.0],
 	"amanheceu": ["Amanheceu. De dia eles ficam mais lentos. Aproveite.", 300.0],
 	"refugio": ["Aí dentro você está seguro. Descanse e se cure.", 400.0],
@@ -737,6 +738,8 @@ func _process(dt: float) -> void:
 				_corvos_ms = Time.get_ticks_msec()
 				legenda("RÁDIO DOS CORVOS · WADE", String(CORVOS_RADIO[randi() % CORVOS_RADIO.size()]), 7.0)
 				break
+	if _j.sangrando:
+		_radio_ev("sangrando")
 	if _j.carro:
 		_radio_ev("carro")
 	if _j.fome < 20.0:

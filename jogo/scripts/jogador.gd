@@ -531,6 +531,8 @@ func _physics_process(dt: float) -> void:
 		alvo_vel *= 0.3  # golpeando quase não anda
 	if agarrado_t > 0.0:
 		alvo_vel *= 0.45  # agarrado pelo zumbi policial
+	if manca_t > 0.0:
+		alvo_vel = minf(alvo_vel, ANDAR * 1.1)  # 07/11: perna machucada da queda: só anda
 	if global_position.y < Bairro.AGUA_Y + 0.3:
 		alvo_vel = minf(alvo_vel, ANDAR * 0.8)  # dentro do rio: água pela cintura, anda devagar
 	var desejada: Vector3 = dir.normalized() * alvo_vel * clampf(forca / 0.55, 0.0, 1.0) if forca > 0.08 else Vector3.ZERO
@@ -561,11 +563,17 @@ func _physics_process(dt: float) -> void:
 		velocity.y -= GRAVIDADE * dt
 		_no_ar_desde += dt
 	var estava_no_ar: bool = not is_on_floor()
+	var vel_antes: float = velocity.y
+	manca_t = maxf(manca_t - dt, 0.0)
 	if is_on_floor() and _subindo < 0.0:
 		_degrau(dt)
 	move_and_slide()
 	if estava_no_ar and is_on_floor() and _no_ar_desde > 0.35:
 		_pousando = 0.22
+		if vel_antes < -QUEDA_VEL and not no_carro:  # 07/11: queda alta (~6 m+) machuca e faz mancar
+			_recebe_dano(roundi((-vel_antes - QUEDA_VEL) * 9.0), Vector3.ZERO)
+			manca_t = MANCA_T
+			item_pego.emit("manca", 0)
 	if is_on_floor():
 		_no_ar_desde = 0.0
 	elif _subindo < 0.0 and _beirada(mov):
@@ -1169,6 +1177,11 @@ func toma_antibiotico() -> void:
 	infeccao = maxf(0.0, infeccao - CURA_ANTIBIOTICO)
 	infectado = false  # parou de subir; outro golpe com azar infecta de novo
 	item_pego.emit("antibiotico", 1)
+
+
+const QUEDA_VEL: float = 11.0  # m/s na hora de bater no chão
+const MANCA_T: float = 20.0
+var manca_t: float = 0.0
 
 
 ## 07/11: golpe forte (zumbi) pode abrir ferimento: perde SANGRA_DANO a cada SANGRA_A_CADA s até usar bandagem.

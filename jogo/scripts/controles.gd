@@ -1008,6 +1008,9 @@ func _acertou(forte: bool) -> void:
 
 
 func _pegou(tipo: String, qtd: int) -> void:
+	if tipo == "manca":
+		aviso("QUEDA FEIA: VOCÊ VAI MANCAR UM POUCO", Color(1.0, 0.5, 0.3), 2.0)
+		return
 	if tipo == "cabeca":
 		aviso("TIRO NA CABEÇA!", Color(1.0, 0.45, 0.3), 1.2)
 		return
