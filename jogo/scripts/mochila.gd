@@ -10,11 +10,11 @@ signal mudou
 const ESPACOS: int = 24
 const BARRA: int = 6
 ## tamanho da pilha por espaço (o que não está aqui não empilha)
-const PILHA: Dictionary = {"bandagem": 5, "municao": 48, "cartucho": 24, "municao_fuzil": 60, "comida": 5, "agua": 5, "antibiotico": 3, "mola": 10, "gatilho": 10, "cano": 10, "cabo": 10,
-	"ferrolho": 10, "carregador": 10, "receita_pistola": 5, "receita_smg": 5, "chave": 5, "bomba": 2, "fita": 5, "peca_radio": 3}
-## quanto dá para carregar no total (provisório, até existir peso)
-const LIMITE: Dictionary = {"bandagem": 10, "silenciador": 1, "livro": 1, "municao": 96, "cartucho": 48, "municao_fuzil": 120, "espingarda": 1, "fuzil": 1, "sniper": 1, "comida": 5, "agua": 5, "antibiotico": 3, "lanterna": 1, "facao": 1, "pistola": 1,
-	"faca": 1, "taco": 1, "machado": 1, "mola": 30, "gatilho": 30, "cano": 30, "cabo": 30, "ferrolho": 30, "carregador": 30, "receita_pistola": 5, "smg": 1, "receita_smg": 5, "chave": 5, "taco_pregos": 1, "bomba": 2, "fita": 5, "peca_radio": 3, "diario": 1}
+const PILHA: Dictionary = {"bandagem": 10, "municao": 96, "cartucho": 48, "municao_fuzil": 120, "comida": 10, "agua": 10, "antibiotico": 6, "mola": 20, "gatilho": 20, "cano": 20, "cabo": 20,
+	"ferrolho": 20, "carregador": 20, "receita_pistola": 10, "receita_smg": 10, "chave": 10, "bomba": 4, "fita": 5, "peca_radio": 3}
+## quanto dá para carregar no total (07/11, dono: limites dobrados; arma continua 1 de cada)
+const LIMITE: Dictionary = {"bandagem": 20, "silenciador": 1, "livro": 1, "municao": 192, "cartucho": 96, "municao_fuzil": 240, "espingarda": 1, "fuzil": 1, "sniper": 1, "comida": 10, "agua": 10, "antibiotico": 6, "lanterna": 1, "facao": 1, "pistola": 1,
+	"faca": 1, "taco": 1, "machado": 1, "mola": 60, "gatilho": 60, "cano": 60, "cabo": 60, "ferrolho": 60, "carregador": 60, "receita_pistola": 10, "smg": 1, "receita_smg": 10, "chave": 10, "taco_pregos": 1, "bomba": 4, "fita": 5, "peca_radio": 3, "diario": 1}
 ## não dá para largar (são a mão do jogador por enquanto)
 const PRESOS: Array[String] = ["facao", "pistola"]
 const NOMES: Dictionary = {"chave": "Chave", "municao": "Munição", "comida": "Lata de comida", "agua": "Garrafa de água", "antibiotico": "Antibiótico",

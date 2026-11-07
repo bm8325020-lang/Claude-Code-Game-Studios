@@ -18,19 +18,19 @@ func _init() -> void:
 	var avisos: Array[int] = [0]
 	m.mudou.connect(func() -> void: avisos[0] += 1)
 	ok(m.adicionar("facao", 1) == 1 and m.espacos[0].tipo == "facao", "facão vai no primeiro espaço (barra 1)")
-	ok(m.adicionar("municao", 30) == 30 and m.conta("municao") == 30, "pega 30 balas")
-	ok(m.adicionar("municao", 30) == 30 and m.conta("municao") == 60, "empilha até 48 e abre outra pilha (60)")
+	ok(m.adicionar("municao", 60) == 60 and m.conta("municao") == 60, "pega 60 balas")
+	ok(m.adicionar("municao", 60) == 60 and m.conta("municao") == 120, "empilha até 96 e abre outra pilha (120)")
 	var pilhas: int = m.espacos.filter(func(e: Variant) -> bool: return e != null and e.tipo == "municao").size()
-	ok(pilhas == 2, "60 balas = 2 pilhas (%d)" % pilhas)
-	ok(m.adicionar("municao", 100) == 36 and m.conta("municao") == Mochila.LIMITE.municao, "não passa do limite de %d" % Mochila.LIMITE.municao)
+	ok(pilhas == 2, "120 balas = 2 pilhas (%d)" % pilhas)
+	ok(m.adicionar("municao", 100) == 72 and m.conta("municao") == Mochila.LIMITE.municao, "não passa do limite de %d" % Mochila.LIMITE.municao)
 	ok(m.adicionar("lanterna", 1) == 1 and m.adicionar("lanterna", 1) == 0, "só uma lanterna")
-	ok(m.tirar("municao", 50) == 50 and m.conta("municao") == 46, "gasta 50 balas")
+	ok(m.tirar("municao", 50) == 50 and m.conta("municao") == 142, "gasta 50 balas")
 	m.definir("comida", 3)
 	ok(m.conta("comida") == 3, "definir o total de comida")
 	m.definir("comida", 1)
 	ok(m.conta("comida") == 1, "definir para menos tira")
 	var i_mun: int = m.onde("municao")
-	ok(m.dividir(i_mun) and m.conta("municao") == 46, "dividir não muda o total")
+	ok(m.dividir(i_mun) and m.conta("municao") == 142, "dividir não muda o total")
 	var i_fac: int = m.onde("facao")
 	ok(m.tirar_espaco(i_fac).is_empty() and m.tem("facao"), "facão não sai da mochila")
 	var i_lan: int = m.onde("lanterna")
@@ -46,7 +46,7 @@ func _init() -> void:
 			b = k
 			break
 	m.mover(b, a)
-	ok(m.conta("municao") == 46 and m.espacos[a].qtd == 46, "mover pilha em cima de outra junta (%d)" % m.espacos[a].qtd)
+	ok(m.conta("municao") == 142 and m.espacos[a].qtd == Mochila.PILHA.municao, "mover pilha em cima de outra junta até encher (%d)" % m.espacos[a].qtd)
 	var cheia := Mochila.new()
 	for k in Mochila.ESPACOS:
 		cheia.espacos[k] = {"tipo": "pedra%d" % k, "qtd": 1}

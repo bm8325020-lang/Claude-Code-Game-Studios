@@ -147,6 +147,8 @@ func _monta_modelo() -> void:
 		_modelo("res://assets/sketchfab/garrafa_agua.glb", 0.24, Vector3(0, 0, 90))  # deitada
 	elif tipo == "antibiotico":
 		_monta_remedio()
+	elif tipo in _PROPRIOS:  # 07/11 (dono): cada item com cara própria (antes caíam no modelo da lanterna)
+		_monta_proprio()
 	elif tipo in ["fita", "peca_radio", "diario"]:  # itens da história: caixinha com cor (brilha um pouco para achar)
 		var cor := {"fita": Color(0.1, 0.1, 0.1), "peca_radio": Color(0.2, 0.42, 0.22), "diario": Color(0.45, 0.25, 0.12)}[tipo] as Color
 		var m := StandardMaterial3D.new()
@@ -168,6 +170,69 @@ func _monta_modelo() -> void:
 		_bloco(Vector3(0.04, 0.005, 0.01), Vector3(0.012, 0.006, 0.02), latao)
 	else:
 		_modelo("res://assets/sketchfab/lanterna.glb", 0.2, Vector3.ZERO)
+
+
+const _PROPRIOS: Array[String] = ["bandagem", "municao_fuzil", "silenciador", "livro", "fita", "peca_radio", "diario"]
+
+
+func _mat(cor: Color, rug: float = 0.7, metal: float = 0.0, brilho: float = 0.0) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = cor
+	m.roughness = rug
+	m.metallic = metal
+	if brilho > 0.0:  # itens da história brilham um pouco para achar no chão
+		m.emission_enabled = true
+		m.emission = Color(1.0, 0.75, 0.3)
+		m.emission_energy_multiplier = brilho
+	return m
+
+
+func _cilindro(pos: Vector3, raio: float, alt: float, m: Material, deitado: bool = false) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var c := CylinderMesh.new()
+	c.radial_segments = 14
+	c.rings = 1
+	c.top_radius = raio
+	c.bottom_radius = raio
+	c.height = alt
+	mi.mesh = c
+	mi.material_override = m
+	mi.position = pos
+	if deitado:
+		mi.rotation_degrees.z = 90
+	add_child(mi)
+	return mi
+
+
+func _monta_proprio() -> void:
+	match tipo:
+		"bandagem":  # rolo branco com a cruz vermelha
+			_cilindro(Vector3(0, 0.035, 0), 0.04, 0.07, _mat(Color(0.93, 0.92, 0.88), 1.0))
+			_bloco(Vector3(0, 0.071, 0), Vector3(0.05, 0.003, 0.014), _mat(Color(0.8, 0.1, 0.1)))
+			_bloco(Vector3(0, 0.071, 0), Vector3(0.014, 0.003, 0.05), _mat(Color(0.8, 0.1, 0.1)))
+		"municao_fuzil":  # caixa de papelão marrom com faixa amarela e balas compridas em cima
+			_bloco(Vector3(0, 0.04, 0), Vector3(0.2, 0.08, 0.12), _mat(Color(0.45, 0.32, 0.18), 0.9))
+			_bloco(Vector3(0, 0.04, 0.061), Vector3(0.2, 0.025, 0.002), _mat(Color(0.9, 0.75, 0.15)))
+			for k in 4:
+				_cilindro(Vector3(-0.06 + k * 0.04, 0.09, 0), 0.006, 0.07, _mat(Color(0.78, 0.6, 0.25), 0.4, 0.8), true)
+		"silenciador":  # tubo preto fosco com rosca prateada
+			_cilindro(Vector3(0, 0.02, 0), 0.02, 0.17, _mat(Color(0.08, 0.08, 0.09), 0.6, 0.3), true)
+			_cilindro(Vector3(0.09, 0.02, 0), 0.012, 0.02, _mat(Color(0.7, 0.7, 0.72), 0.3, 0.9), true)
+		"livro":  # capa vermelha e páginas brancas
+			_bloco(Vector3(0, 0.02, 0), Vector3(0.16, 0.04, 0.22), _mat(Color(0.55, 0.12, 0.1), 0.8))
+			_bloco(Vector3(0.005, 0.02, 0), Vector3(0.155, 0.032, 0.21), _mat(Color(0.92, 0.9, 0.82), 1.0))
+		"fita":  # fita cassete: corpo preto, etiqueta clara e dois carretéis
+			_bloco(Vector3(0, 0.01, 0), Vector3(0.1, 0.02, 0.064), _mat(Color(0.08, 0.08, 0.08), 0.5, 0.0, 0.35))
+			_bloco(Vector3(0, 0.0205, 0), Vector3(0.08, 0.002, 0.03), _mat(Color(0.92, 0.88, 0.75), 1.0))
+			for x: float in [-0.022, 0.022]:
+				_cilindro(Vector3(x, 0.022, 0.0), 0.008, 0.004, _mat(Color(0.35, 0.3, 0.25)))
+		"peca_radio":  # módulo verde-militar com antena e botão
+			_bloco(Vector3(0, 0.04, 0), Vector3(0.14, 0.08, 0.1), _mat(Color(0.2, 0.42, 0.22), 0.7, 0.0, 0.35))
+			_cilindro(Vector3(0.05, 0.12, 0.03), 0.004, 0.09, _mat(Color(0.15, 0.15, 0.15), 0.5, 0.6))
+			_cilindro(Vector3(-0.03, 0.082, 0.02), 0.012, 0.01, _mat(Color(0.75, 0.1, 0.1)))
+		"diario":  # caderno de couro com elástico
+			_bloco(Vector3(0, 0.015, 0), Vector3(0.15, 0.03, 0.2), _mat(Color(0.45, 0.25, 0.12), 0.9, 0.0, 0.35))
+			_bloco(Vector3(0.05, 0.031, 0), Vector3(0.008, 0.002, 0.2), _mat(Color(0.1, 0.1, 0.1)))
 
 
 # frasco de remédio laranja meio transparente com tampa branca e rótulo

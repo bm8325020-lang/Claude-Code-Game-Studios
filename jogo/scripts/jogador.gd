@@ -125,7 +125,7 @@ const FOME_TEMPO: float = 900.0     # s de cheio (100) até zerar
 const SEDE_TEMPO: float = 600.0
 const DANO_FOME: int = 2            # vida perdida a cada INTERVALO_FOME com fome ou sede zerada
 const INTERVALO_FOME: float = 3.0
-const COMIDA_MAX: int = 5
+const COMIDA_MAX: int = 10
 const ENCHE: float = 45.0           # quanto uma lata/garrafa enche
 var fome: float = 100.0
 ## Infecção (0–100): cada golpe de zumbi tem CHANCE_INFECTAR; a mordida no pescoço infecta sempre. Infectado, sobe
