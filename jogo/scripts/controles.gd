@@ -1010,6 +1010,9 @@ func _acertou(forte: bool) -> void:
 
 
 func _pegou(tipo: String, qtd: int) -> void:
+	if tipo == "tregua_quebrada":
+		aviso("VOCÊ QUEBROU A TRÉGUA COM OS CORVOS", Color(1.0, 0.3, 0.25), 3.0)
+		return
 	if tipo == "colete_vestido":
 		aviso("COLETE VESTIDO", Color(0.6, 0.75, 0.95), 2.0)
 		return

@@ -29,6 +29,7 @@ func _init() -> void:
 	poe.call("dana", Tarefas.NOITE_VOZ)
 	poe.call("dana", Tarefas.NEBLINA_VOZ)
 	poe.call("dana", Tarefas.SIRENE_VOZ)
+	poe.call("wade", Tarefas.PEDAGIO_VOZ)
 	for t: String in Tarefas.LORE: poe.call("dana", t)
 	for k: String in Tarefas.MOMENTO:
 		poe.call(Tarefas.quem(String(Tarefas.MOMENTO[k][0])), String(Tarefas.MOMENTO[k][1]))

@@ -93,6 +93,23 @@ const FITAS_TXT: Array = [
 	"Dia 14. Se alguém achar isto: entregue à imprensa. A Mia, minha enfermeira, sabe onde estão as outras fitas.",
 ]
 const TOMMY: Array = ["Socorro! Aqui! Eles estão por todo lado!"]
+## 07/11: pedágio dos Corvos ("uma lata por pessoa"): perto da base deles com comida, paga sozinho e ganha trégua até
+## amanhecer. Não vale no capítulo de matar o Wade.
+func _pedagio() -> void:
+	var c := get_tree().get_first_node_in_group("ciclo") as Ciclo
+	var b: Bairro = _bairro()
+	if c == null or b == null or _j.tregua_dia == c.dia or _j.mochila.conta("comida") < 1:
+		return
+	if _i < ROTEIRO.size() and String(ROTEIRO[_i][2]) == "morto:wade":
+		return
+	var base: Node3D = b.get_node_or_null("Mercado")
+	if base == null or not base.has_meta("frente") or (base.get_meta("frente") as Vector3).distance_to(_j.global_position) > 22.0:
+		return
+	_j.mochila.tirar("comida", 1)
+	_j.tregua_dia = c.dia
+	legenda("WADE", PEDAGIO_VOZ, 6.0, false)
+
+
 ## Rádio que reage ao que você faz (06/11): chave -> [fala, s até poder repetir]
 const RADIO_EV: Dictionary = {
 	"sequencia": ["Nossa! Quantos foram? Continue assim, mas não faça barulho demais.", 120.0],
@@ -159,6 +176,7 @@ func _radio_ev(chave: String) -> void:
 
 
 const SIRENE_VOZ: String = "Escuta isso? Alguém ligou a sirene. Todos os mortos da cidade vão para lá."
+const PEDAGIO_VOZ: String = "Uma lata. Pode passar, forasteiro. Até o sol nascer, ninguém aqui encosta em você."
 const NEBLINA_VOZ: String = "Tem uma névoa vermelha descendo sobre a cidade. Eles estão diferentes hoje, mais rápidos. Se esconde."
 const NOITE_VOZ: String = "Escureceu. De noite eles correm e ouvem mais longe. Fique perto de um refúgio."
 const DICA_VOZ: Array = ["Ainda está aí? Olhe o mapa: eu marquei para onde você tem que ir."]
@@ -742,6 +760,7 @@ func _process(dt: float) -> void:
 				break
 	if _j.sangrando:
 		_radio_ev("sangrando")
+	_pedagio()
 	if _j.carro:
 		_radio_ev("carro")
 	if _j.fome < 20.0:

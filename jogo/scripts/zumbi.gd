@@ -859,6 +859,8 @@ func _vira_para(d: Vector3, dt: float) -> void:
 
 # o jogador vivo mais perto que dá para ver (ou que está bem perto)
 func _escolhe_alvo() -> void:
+	if humano() and alvo and is_instance_valid(alvo) and alvo.tem_tregua():
+		alvo = null  # 07/11: pagou o pedágio: o Corvo deixa passar
 	if alvo and is_instance_valid(alvo) and alvo.segura and not luta:
 		alvo = null  # entrou na sala segura (refúgio): desiste e volta (zumbi da luta da história não: veio te pegar no refúgio)
 		_voltando = true
@@ -881,7 +883,7 @@ func _escolhe_alvo() -> void:
 	var visao: float = (CORVO_VISAO if humano() else VISAO) * (COMENDO_VE if _comendo() else 1.0)
 	for n: Node in get_tree().get_nodes_in_group("jogadores"):
 		var j := n as Jogador
-		if j == null or j.vida <= 0 or j.segura:
+		if j == null or j.vida <= 0 or j.segura or (humano() and j.tem_tregua()):
 			continue
 		var dist: float = j.global_position.distance_to(global_position)
 		var na_frente: bool = dist < VISAO_PERTO or modelo.global_basis.z.dot((j.global_position - global_position).normalized()) > VISAO_CONE
@@ -1281,6 +1283,9 @@ func resultado_mordida(escapou: bool) -> void:
 func levar_golpe(dano: int, dir: Vector3, quem: Node) -> void:
 	if vida <= 0:
 		return
+	if humano() and quem is Jogador and (quem as Jogador).tem_tregua():
+		(quem as Jogador).tregua_dia = -1  # bateu num Corvo: acabou a trégua
+		(quem as Jogador).item_pego.emit("tregua_quebrada", 0)
 	_pisca()
 	if _manda():
 		if quem is Jogador:

@@ -1222,6 +1222,13 @@ func toma_antibiotico() -> void:
 ## 07/11: colete à prova de balas (loot raro): vestido, segura 35% do dano até a resistência acabar.
 const COLETE_SEGURA: float = 0.35
 var colete: float = 0.0
+## 07/11: dia (Ciclo.dia) em que pagou o pedágio dos Corvos; nesse dia eles não atacam (-1 = sem trégua)
+var tregua_dia: int = -1
+
+
+func tem_tregua() -> bool:
+	var c := get_tree().get_first_node_in_group("ciclo") as Ciclo
+	return c != null and tregua_dia == c.dia
 
 
 const QUEDA_VEL: float = 11.0  # m/s na hora de bater no chão
