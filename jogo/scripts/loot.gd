@@ -14,7 +14,7 @@ const TABELA: Array = [
 	["comida", 26, 1, 2, COMUM],
 	["agua", 26, 1, 2, COMUM],
 	["municao", 8, 24, 36, INCOMUM],
-	["lanterna", 4, 1, 1, RARO],
+	["lanterna", 5, 1, 1, RARO],
 	["pilha", 14, 1, 2, COMUM],
 	["sinalizador", 7, 1, 1, INCOMUM],
 	["molotov", 4, 1, 1, RARO],  # 07/11
