@@ -79,6 +79,18 @@ func _refugio(casa: Node3D) -> void:
 	add_child(bar)
 	_b._pinta(bar, Color(0.75, 0.72, 0.66))
 	casa.set_meta("refugio", true)
+	var saco := MeshInstance3D.new()  # 07/11: saco de dormir no chão do refúgio (deitar: cura; sozinho à noite, dorme até de manhã)
+	var bx := BoxMesh.new()
+	bx.size = Vector3(0.8, 0.14, 1.9)
+	saco.mesh = bx
+	var mt := StandardMaterial3D.new()
+	mt.albedo_color = Color(0.25, 0.32, 0.2)
+	mt.roughness = 1.0
+	saco.material_override = mt
+	saco.name = "SacoDormir_" + casa.name
+	saco.position = _b.dentro_da(String(casa.name)) - Bairro.ORIGEM + Vector3(0.8, 0.07, 0.6)
+	saco.add_to_group("camas_refugio")
+	add_child(saco)
 	# sala segura (31/10): luz quente de lampião lá dentro; zumbi não persegue quem está aqui e a vida volta devagar
 	var luz := OmniLight3D.new()
 	luz.name = "Lampiao_" + casa.name

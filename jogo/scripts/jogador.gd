@@ -1317,6 +1317,9 @@ var _cama_de: Vector3
 
 ## A cama da casa da minha facção a menos de 1,8 m (posição dela), ou Vector3.INF.
 func cama_perto() -> Vector3:
+	for c: Node3D in get_tree().get_nodes_in_group("camas_refugio"):  # 07/11: saco de dormir do refúgio (qualquer um)
+		if vida > 0 and c.global_position.distance_to(global_position) < 1.8:
+			return c.global_position
 	var principal := get_tree().get_first_node_in_group("principal")
 	var f: String = principal.faccao_de(nick) if principal else ""
 	if f == "" or vida <= 0:
@@ -1345,11 +1348,19 @@ func deitar() -> void:
 
 func _cama(dt: float) -> void:
 	if not deitado:
+		_dormindo_t = 0.0
 		return
 	velocity = Vector3.ZERO
 	if (entrada.get("move", Vector2.ZERO) as Vector2).length() > 0.3 or vida <= 0:
 		deitar()  # mexeu: levanta
 		return
+	_dormindo_t += dt
+	var ciclo := get_tree().get_first_node_in_group("ciclo") as Ciclo
+	if ciclo and ciclo.e_noite() and _dormindo_t > 3.0 and multiplayer.get_peers().is_empty():
+		ciclo.tempo = 0.0  # 07/11: sozinho, dormir à noite passa até amanhecer
+		vida = vida_max()
+		_dormindo_t = 0.0
+		item_pego.emit("dormiu", 0)
 	_cura_acum += CURA_CAMA * dt
 	if _cura_acum >= 1.0:
 		vida = mini(vida_max(), vida + int(_cura_acum))
@@ -1400,6 +1411,9 @@ func _larga_tudo() -> void:
 		get_tree().get_first_node_in_group("principal").solta_saco(tudo, global_position)
 	else:
 		_pede_saco.rpc_id(1, tudo)
+
+
+var _dormindo_t: float = 0.0
 
 
 ## O que não se perde ao morrer: armas (brancas e de fogo), munição e silenciador.
