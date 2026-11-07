@@ -1383,33 +1383,28 @@ func levanta() -> void:
 
 ## Tudo da mochila (menos o facão) vira um saco no chão onde caiu; as balas do pente vão junto.
 func _larga_tudo() -> void:
-	# a arma da mão fica com você (novato, 31/10: perder tudo frustrava); o resto vai para o saco
-	var fica: String = arma
-	var tudo: Array = conteudo_para_saco(mochila, _balas_pentes())
-	for d: Dictionary in tudo:
-		if d.tipo == fica:
-			d.qtd -= 1
-	tudo = tudo.filter(func(d: Dictionary) -> bool: return d.qtd > 0)
-	var guardou: bool = false
+	# 07/11 (dono): armas e munição (com as balas no pente) ficam com você; o resto vai para o saco no chão
+	var junta: Dictionary = {}
 	for i in Mochila.ESPACOS:
 		var e: Variant = mochila.espacos[i]
-		if e and e.tipo == fica and not guardou:
-			guardou = true
-			e.qtd = 1
-		elif e and e.tipo != "facao":
+		if e and not fica_na_morte(String(e.tipo)):
+			junta[e.tipo] = int(junta.get(e.tipo, 0)) + int(e.qtd)
 			mochila.espacos[i] = null
-	if e_fogo(fica):
-		fogo().balas = 0  # as balas do pente foram para o saco
-	for t: String in fogos:
-		if not mochila.tem(t):
-			(fogos[t] as Pistola).balas = 0
 	mochila.mudou.emit()
+	var tudo: Array = []
+	for t: String in junta:
+		tudo.append({"tipo": t, "qtd": junta[t]})
 	if tudo.is_empty():
 		return
 	if not multiplayer.has_multiplayer_peer() or multiplayer.is_server():
 		get_tree().get_first_node_in_group("principal").solta_saco(tudo, global_position)
 	else:
 		_pede_saco.rpc_id(1, tudo)
+
+
+## O que não se perde ao morrer: armas (brancas e de fogo), munição e silenciador.
+static func fica_na_morte(t: String) -> bool:
+	return Armas.e_branca(t) or Pistola.FOGO.has(t) or t in ["pistola", "municao", "cartucho", "municao_fuzil", "silenciador"]
 
 
 ## O que vai para o saco: tudo menos o facão, juntando o mesmo tipo; `pentes` = munição -> balas nos pentes.

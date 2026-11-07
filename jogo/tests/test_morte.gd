@@ -54,9 +54,9 @@ func _init() -> void:
 		for e: Dictionary in saco.conteudo:
 			tem[e.tipo] = int(e.qtd)
 	ok(not tem.has("pistola") and tem.get("comida", 0) == 2 and tem.get("lanterna", 0) == 1, "no saco: comida e lanterna; a pistola da mão fica (%s)" % str(tem))
-	ok(tem.get("municao", 0) == reserva + balas, "a munição do pente vai junto (%d)" % tem.get("municao", 0))
+	ok(not tem.has("municao") and j.mochila.conta("municao") > 0, "07/11: a munição fica com ele, não vai para o saco (%d)" % tem.get("municao", 0))
 	ok(not tem.has("facao") and j.mochila.conta("facao") == 1 and j.mochila.conta("pistola") == 1, "o facão e a arma da mão ficam com ele")
-	ok(j.arma == "pistola" and j.pistola.balas == 0, "a pistola fica na mão, sem as balas do pente (%s, %d)" % [j.arma, j.pistola.balas])
+	ok(j.arma == "pistola" and j.pistola.balas == balas, "a pistola fica na mão, com as balas do pente (%s, %d)" % [j.arma, j.pistola.balas])
 	await frames(int(Jogador.RENASCE * 60) + 10)
 	ok(j.vida == Jogador.VIDA_MAX and not j.mochila.tem("comida"), "volta sem nada (só o facão)")
 	j.entrada["arma"] = "smg"

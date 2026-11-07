@@ -1403,6 +1403,10 @@ func _morre() -> void:
 		var principal := get_tree().get_first_node_in_group("principal")
 		if principal:
 			principal.solta_item("municao", 8, global_position + Vector3(0.6, 0.3, 0), 120.0)
+			if randf() < 0.12:  # 07/11: loot que deixa mais forte (a SMG dos Corvos)
+				principal.solta_item("smg", 1, global_position + Vector3(-0.6, 0.3, 0), 180.0)
+			if randf() < 0.25:
+				principal.solta_item("bandagem", 1, global_position + Vector3(0, 0.3, 0.6), 120.0)
 	remove_from_group("golpeavel")
 	collision_layer = 0
 	_ataque_t = -1.0
