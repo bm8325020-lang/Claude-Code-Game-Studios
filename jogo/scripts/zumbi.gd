@@ -1354,6 +1354,8 @@ const ATAQUE_FURTIVO: int = 3
 const CORVO_ZUMBI_ATE: float = 22.0
 const CORVO_ZUMBI_DANO: int = 45
 var _alvo_z: Zumbi
+const CORVO_MORDIDO_DPS: float = 9.0
+var _mordido_acc: float = 0.0
 var _tiro_z_t: float = 0.0
 
 
@@ -1377,6 +1379,11 @@ func _procura_zumbi() -> void:
 
 func _atira_no_zumbi(dt: float) -> void:
 	_vira_para(_alvo_z.global_position - global_position, dt * 3.0)
+	if _alvo_z.global_position.distance_to(global_position) < 1.7:  # 07/11: zumbi colado morde o Corvo (briga dos dois lados)
+		_mordido_acc += CORVO_MORDIDO_DPS * dt
+		if _mordido_acc >= 1.0:
+			_aplica(int(_mordido_acc), (global_position - _alvo_z.global_position).normalized() * 0.2)
+			_mordido_acc -= int(_mordido_acc)
 	_tiro_z_t -= dt
 	_toca("pistola_mira" if _tiro_z_t > 0.15 else "pistola_tiro", 0.12)
 	if _tiro_z_t > 0.0:
