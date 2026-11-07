@@ -144,6 +144,14 @@ func _draw() -> void:
 		if Rect2(Vector2.ZERO, TAM).has_point(qb):
 			draw_rect(Rect2(qb - Vector2(3.5, 3.5), Vector2(7, 7)), Color(1.0, 0.82, 0.2))
 			draw_rect(Rect2(qb - Vector2(3.5, 3.5), Vector2(7, 7)), Color(0.1, 0.1, 0.1), false, 1.2)
+	# 07/11: gavetas e armários ainda não revistados a até 15 m (pontinho azul)
+	for gn: Node in get_tree().get_nodes_in_group("gavetas"):
+		var gg := gn as Gaveta
+		if gg == null or gg.aberta or gg.movel == "porta_malas" or gg.global_position.distance_to(jogador.global_position) > 15.0:
+			continue
+		var qg: Vector2 = no_quadro(gg.global_position)
+		if Rect2(Vector2.ZERO, TAM).has_point(qg):
+			draw_circle(qg, 2.4, Color(0.4, 0.75, 1.0))
 	# salas seguras, marcos e raids (presos na borda quando longe)
 	for s: Node in get_tree().get_nodes_in_group("salas_seguras"):
 		_blip((s as Node3D).global_position, COR_SEGURA, "casa", false)
