@@ -460,6 +460,12 @@ func _tira_mochila(cf: ConfigFile) -> void:
 	_j.mochila.mudou.emit()
 
 
+## 07/11: app indo para o fundo (celular), janela fechando ou foco saindo: salva a mochila na hora.
+func _notification(what: int) -> void:
+	if what in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_APPLICATION_FOCUS_OUT]:
+		_salva_mochila()
+
+
 ## Salva só a mochila (sem mexer no passo nem avisar), de tempo em tempo.
 func _salva_mochila() -> void:
 	if _salvo == "" or _j == null or _j.vida <= 0:

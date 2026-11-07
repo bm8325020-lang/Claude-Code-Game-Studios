@@ -559,6 +559,8 @@ func aviso(texto: String, cor: Color = UiTema.DESTAQUE, tempo: float = 3.0) -> v
 ## Abre/fecha a pausa. O jogo não para (é em rede): só tira os controles da mão e mostra o mouse.
 func pausa(abrir: bool) -> void:
 	_pausa.visible = abrir
+	if abrir and _tarefas:
+		_tarefas._salva_mochila()  # abriu a pausa: salva a mochila
 	if abrir and _stats_lbl and _tarefas:  # 06/11: estatísticas da história na pausa
 		var st: Dictionary = _tarefas._stats
 		_stats_lbl.text = "Zumbis mortos: %d   ·   Mortes: %d   ·   Tempo: %d min\nBilhetes lidos: %d de %d" % [int(st.abates), int(st.mortes), int(float(st.tempo) / 60.0), _lidos.size(), get_tree().get_nodes_in_group("bilhetes").size()]
