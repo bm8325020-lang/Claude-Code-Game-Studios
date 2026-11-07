@@ -549,6 +549,8 @@ func _physics_process(dt: float) -> void:
 	else:
 		_coyote -= dt
 	_buffer -= dt
+	if _buffer > 0.0 and _coyote > 0.0 and _chuta():
+		_buffer = 0.0  # 07/11: zumbi colado na frente: o pulo vira chute
 	if _buffer > 0.0 and _coyote > 0.0:
 		if agachado and not _cabe_em_pe():
 			_buffer = 0.0
@@ -1479,6 +1481,36 @@ func _joga_a_frente(no: Node3D, dist: float) -> void:
 	var h: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
 	get_parent().get_parent().add_child(no)
 	no.global_position = h.position if not h.is_empty() else alvo
+
+
+## 07/11: chute — com zumbi a até CHUTE_DIST m na frente e fôlego, empurra ele longe (sai do cerco) e tira um pouco.
+const CHUTE_DIST: float = 1.7
+const CHUTE_FOLEGO: float = 20.0
+var _chute_cd: float = 0.0
+
+
+func _chuta() -> bool:
+	if folego < CHUTE_FOLEGO or Time.get_ticks_msec() < _chute_cd or vida <= 0:
+		return false
+	var fr: Vector3 = modelo.global_basis.z
+	fr.y = 0.0
+	fr = fr.normalized()
+	var acertou: bool = false
+	for n: Node in get_tree().get_nodes_in_group("zumbis"):
+		var z := n as Zumbi
+		if z == null or z.vida <= 0:
+			continue
+		var d: Vector3 = z.global_position - global_position
+		d.y = 0.0
+		if d.length() < CHUTE_DIST and d.normalized().dot(fr) > 0.4:
+			z.levar_golpe(10, d.normalized() * 7.0, self)
+			acertou = true
+	if acertou:
+		folego -= CHUTE_FOLEGO
+		_chute_cd = Time.get_ticks_msec() + 600
+		_toca("golpe1", 0.05)
+		item_pego.emit("chute", 0)
+	return acertou
 
 
 ## O que não se perde ao morrer: armas (brancas e de fogo), munição e silenciador.

@@ -1012,6 +1012,9 @@ func _acertou(forte: bool) -> void:
 
 
 func _pegou(tipo: String, qtd: int) -> void:
+	if tipo == "chute":
+		Input.vibrate_handheld(60)
+		return
 	if tipo == "tregua_quebrada":
 		aviso("VOCÊ QUEBROU A TRÉGUA COM OS CORVOS", Color(1.0, 0.3, 0.25), 3.0)
 		return
