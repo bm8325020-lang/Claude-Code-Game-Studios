@@ -135,6 +135,13 @@ func _draw() -> void:
 				var q: Vector2 = no_quadro(zz.global_position)
 				if Rect2(Vector2.ZERO, TAM).has_point(q):
 					draw_circle(q, 3.2, Color(0.95, 0.15, 0.1))
+	# 07/11: comerciante andarilho ($ verde, preso na borda quando longe)
+	for ln: Node in get_tree().get_nodes_in_group("lojista"):
+		if String(ln.name) == "Comerciante":
+			var ql: Vector2 = no_quadro((ln as Node3D).global_position)
+			ql = ql.clamp(Vector2(8, 8), TAM - Vector2(8, 8))
+			draw_circle(ql, 7.0, Color(0.15, 0.6, 0.25))
+			draw_string(get_theme_default_font(), ql + Vector2(-4, 5), "$", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
 	# 07/11: baús com loot a até 30 m (quadradinho amarelo; vazio não aparece)
 	for bn: Node in get_tree().get_nodes_in_group("baus"):
 		var bb := bn as Bau

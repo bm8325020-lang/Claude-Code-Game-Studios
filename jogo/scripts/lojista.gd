@@ -6,11 +6,12 @@ extends Node3D
 const ALCANCE: float = 2.4
 ## o que ele vende: tipo -> [quantidade por compra, preço]
 const VENDE: Dictionary = {"municao": [12, 30], "comida": [1, 15], "agua": [1, 10], "antibiotico": [1, 400], "cartucho": [6, 45],
-	"municao_fuzil": [10, 60]}
+	"municao_fuzil": [10, 60], "pilha": [1, 20], "bandagem": [1, 40], "sinalizador": [1, 60], "molotov": [1, 120], "armadilha": [1, 45]}
 ## quanto ele paga por unidade
 const PAGA: Dictionary = {"municao": 1, "comida": 5, "agua": 3, "lanterna": 25, "faca": 20, "taco": 30, "machado": 60,
 	"pistola": 120, "smg": 400, "mola": 4, "gatilho": 6, "cano": 12, "cabo": 12, "ferrolho": 40, "carregador": 40,
-	"receita_pistola": 50, "receita_smg": 200, "espingarda": 300, "fuzil": 600, "sniper": 700, "cartucho": 3, "municao_fuzil": 3, "bandagem": 8, "silenciador": 250, "bomba": 450}
+	"receita_pistola": 50, "receita_smg": 200, "espingarda": 300, "fuzil": 600, "sniper": 700, "cartucho": 3, "municao_fuzil": 3, "bandagem": 8, "silenciador": 250, "bomba": 450,
+	"pilha": 6, "sinalizador": 18, "molotov": 35, "armadilha": 12}
 
 var _anim: AnimationPlayer
 ## loja da facção (dentro da mansão): só o balcão com as caixas, sem vendedor; só membros da dona compram

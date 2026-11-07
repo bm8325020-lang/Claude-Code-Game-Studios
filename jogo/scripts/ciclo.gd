@@ -17,6 +17,7 @@ var sol: DirectionalLight3D
 var ambiente: Environment
 ## clima do dia (Clima.TIPOS): o servidor sorteia ao amanhecer e manda junto com o tempo
 var clima: String = "limpo"
+var dia: int = 0
 var _clima: Clima
 var _rng_clima := RandomNumberGenerator.new()
 
@@ -58,6 +59,8 @@ var _era_noite: bool = false
 func _process(dt: float) -> void:
 	tempo = fmod(tempo + dt, DIA + NOITE)
 	var agora: bool = e_noite()
+	if _era_noite and not agora:
+		dia += 1  # 07/11: conta os dias (o comerciante andarilho muda de lugar a cada amanhecer)
 	if _era_noite and not agora and multiplayer.is_server():  # amanheceu: quem está vivo ganha XP de sobrevivente
 		for j: Node in get_tree().get_nodes_in_group("jogadores"):
 			if (j as Jogador).vida > 0:

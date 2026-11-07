@@ -254,6 +254,28 @@ func _cerca_refugio(f: Vector2, fora: Vector2, lado: Vector2, nome: String) -> v
 
 
 ## Hospital, delegacia, mercado dos Corvos e igreja com cara de lugar (na frente de cada um) + bilhetes da história.
+## 07/11 (ideia aprovada): comerciante andarilho; fica num lugar seguro e troca de lugar a cada amanhecer.
+var _comerciante: Lojista
+var _dia_com: int = -1
+
+
+func _process(_dt: float) -> void:
+	if _b == null or _b.pontos_bons.is_empty():
+		return
+	var c := get_tree().get_first_node_in_group("ciclo") as Ciclo
+	var d: int = c.dia if c else 0
+	if d == _dia_com:
+		return
+	_dia_com = d
+	if _comerciante == null:
+		_comerciante = Lojista.new()
+		_comerciante.name = "Comerciante"
+		add_child(_comerciante)
+	var p: Vector3 = _b.pontos_bons[(d * 7919 + 13) % _b.pontos_bons.size()]
+	_comerciante.global_position = p
+	_comerciante.rotation.y = float(d) * 1.7
+
+
 func _lugares() -> void:
 	for nome: String in ["Hospital", "Delegacia", "Mercado", "Igreja"]:
 		var no: Node3D = _b.get_node_or_null(nome)
