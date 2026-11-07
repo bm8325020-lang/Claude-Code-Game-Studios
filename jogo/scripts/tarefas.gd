@@ -415,10 +415,59 @@ func liga(j: Jogador) -> void:
 			_i = int(cf.get_value("historia", "passo", 0))
 			_check = cf.get_value("historia", "check", Vector3.INF)
 			_stats = cf.get_value("historia", "stats", _stats)
+			_tira_mochila(cf)
+			if _check.is_finite():  # 07/11: voltando ao jogo, começa no último checkpoint da história
+				get_tree().create_timer(1.0).timeout.connect(func() -> void:
+					if _j and is_instance_valid(_j) and _j.vida > 0:
+						_j.global_position = _check + Vector3(0, 0.3, 0)
+						_j.velocity = Vector3.ZERO)
 			if _i > 1 and _i - 1 < ROTEIRO.size():  # voltando ao jogo: "anteriormente..."
 				var antes: String = String(ROTEIRO[_i - 1][6]) if String(ROTEIRO[_i - 1][6]) != "" else String(ROTEIRO[_i - 1][1])
 				get_tree().create_timer(2.5).timeout.connect(func() -> void: legenda("ANTERIORMENTE", antes.replace("%d", "?"), 7.0, false))
 	_comeca()
+
+
+## 07/11 (dono): fechar o app não perde mais o loot: a mochila (itens, balas no pente, colete, pilha) vai junto no salvo
+## da história, a cada passo e sozinha a cada MOCHILA_A_CADA s.
+const MOCHILA_A_CADA: float = 60.0
+var _mochila_t: float = MOCHILA_A_CADA
+
+
+func _poe_mochila(cf: ConfigFile) -> void:
+	if _j == null or not is_instance_valid(_j):
+		return
+	cf.set_value("mochila", "espacos", _j.mochila.espacos.duplicate(true))
+	var balas: Dictionary = {}
+	for t: String in _j.fogos:
+		balas[t] = (_j.fogos[t] as Pistola).balas
+	cf.set_value("mochila", "balas", balas)
+	cf.set_value("mochila", "colete", _j.colete)
+	cf.set_value("mochila", "carga", _j.carga)
+
+
+func _tira_mochila(cf: ConfigFile) -> void:
+	if not cf.has_section_key("mochila", "espacos"):
+		return
+	var esp: Array = cf.get_value("mochila", "espacos", [])
+	for k in mini(esp.size(), Mochila.ESPACOS):
+		_j.mochila.espacos[k] = esp[k]
+	var balas: Dictionary = cf.get_value("mochila", "balas", {})
+	for t: String in balas:
+		if _j.fogos.has(t):
+			(_j.fogos[t] as Pistola).balas = int(balas[t])
+	_j.colete = float(cf.get_value("mochila", "colete", 0.0))
+	_j.carga = float(cf.get_value("mochila", "carga", 100.0))
+	_j.mochila.mudou.emit()
+
+
+## Salva só a mochila (sem mexer no passo nem avisar), de tempo em tempo.
+func _salva_mochila() -> void:
+	if _salvo == "" or _j == null or _j.vida <= 0:
+		return
+	var cf := ConfigFile.new()
+	cf.load(_salvo)
+	_poe_mochila(cf)
+	cf.save(_salvo)
 
 
 func _salva() -> void:
@@ -429,6 +478,7 @@ func _salva() -> void:
 	if _check.is_finite():
 		cf.set_value("historia", "check", _check)
 	cf.set_value("historia", "stats", _stats)
+	_poe_mochila(cf)
 	cf.save(_salvo)
 	var c := get_parent()
 	if c and c.has_method("aviso"):
@@ -742,6 +792,10 @@ func _process(dt: float) -> void:
 		_parado_t = 0.0
 		var rumo: Vector3 = _alvo - _j.global_position
 		legenda("RÁDIO · DANA", DICA_VOZ[0] + " (fica ao %s, uns %d m)" % [Horda.lado(rumo), int(rumo.length() / 10.0) * 10], 6.0)
+	_mochila_t -= dt
+	if _mochila_t <= 0.0:
+		_mochila_t = MOCHILA_A_CADA
+		_salva_mochila()
 	if _t > 0.0:
 		return
 	_t = 0.4
