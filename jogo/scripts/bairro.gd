@@ -1068,9 +1068,11 @@ func _perto_da_borda(p: Vector2, poly: PackedVector2Array, dist: float) -> bool:
 func _vidro_janela() -> Material:
 	if not _mats.has("vidro"):
 		var m := StandardMaterial3D.new()
-		m.albedo_color = Color(0.12, 0.15, 0.17)
-		m.metallic = 0.6
-		m.roughness = 0.12
+		m.albedo_color = Color(0.3, 0.37, 0.42)  # 07/11: era quase preto e metálico; no GL Compatibility (sem reflexo) virava buraco preto
+		m.metallic = 0.1
+		m.roughness = 0.2
+		m.emission_enabled = true  # reflexo do céu fingido: um brilho fraco e frio
+		m.emission = Color(0.07, 0.09, 0.11)
 		_mats["vidro"] = m
 	return _mats["vidro"]
 
