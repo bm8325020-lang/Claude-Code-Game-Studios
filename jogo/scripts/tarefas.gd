@@ -415,6 +415,7 @@ func liga(j: Jogador) -> void:
 			_i = int(cf.get_value("historia", "passo", 0))
 			_check = cf.get_value("historia", "check", Vector3.INF)
 			_stats = cf.get_value("historia", "stats", _stats)
+			ng = int(cf.get_value("historia", "ng", 0))
 			_tira_mochila(cf)
 			if _check.is_finite():  # 07/11: voltando ao jogo, começa no último checkpoint da história
 				get_tree().create_timer(1.0).timeout.connect(func() -> void:
@@ -484,6 +485,7 @@ func _salva() -> void:
 	if _check.is_finite():
 		cf.set_value("historia", "check", _check)
 	cf.set_value("historia", "stats", _stats)
+	cf.set_value("historia", "ng", ng)
 	_poe_mochila(cf)
 	cf.save(_salvo)
 	var c := get_parent()
@@ -745,7 +747,34 @@ func _fim() -> void:
 	f.bom = _fitas() >= FITAS
 	f.stats = "Tempo: %d min    Zumbis mortos: %d    Mortes: %d    Fitas: %d/5    Troféus: %d" % [
 		int(_stats.tempo / 60.0), _stats.abates, _stats.mortes, _fitas(), _trofeus.size()]
+	f.novo_jogo_mais.connect(novo_jogo_mais)
 	get_tree().root.add_child(f)
+
+
+## 07/11 (ideia aprovada): Novo Jogo+: a história recomeça do capítulo 1 com a sua mochila; a cada volta (ng) os
+## zumbis batem e aguentam mais (Zumbi._aplica / Jogador._recebe_dano). Salvo junto com a história.
+static var ng: int = 0
+
+
+func novo_jogo_mais() -> void:
+	ng += 1
+	for n: Variant in _npc.values():
+		if n and is_instance_valid(n):
+			(n as Node).queue_free()
+	_npc.clear()
+	if _heli and is_instance_valid(_heli):
+		_heli.queue_free()
+	_heli = null
+	_itens.clear()
+	_chefe.clear()
+	_cap = ""
+	_i = 1
+	_check = _j.global_position
+	_comeca()
+	_salva()
+	var c := get_parent()
+	if c and c.has_method("aviso"):
+		c.aviso("NOVO JOGO+ %d: SENOIA ESTÁ MAIS PERIGOSA" % ng, Color(1.0, 0.4, 0.3), 4.0)
 
 
 func _process(dt: float) -> void:

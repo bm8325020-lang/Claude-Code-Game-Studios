@@ -1309,7 +1309,7 @@ func _pede_golpe(dano: int, dir: Vector3) -> void:
 func _aplica(dano: int, dir: Vector3) -> void:
 	if imune:
 		return  # líder da horda: só morre depois dos outros
-	dano = maxi(1, roundi(dano * Config.DANO_NO_ZUMBI[clampi(int(Config.v.get("dificuldade", 1)), 0, 2)]))  # 07/11: dificuldade
+	dano = maxi(1, roundi(dano * Config.DANO_NO_ZUMBI[clampi(int(Config.v.get("dificuldade", 1)), 0, 2)] * pow(0.88, Tarefas.ng)))  # 07/11: dificuldade e Novo Jogo+
 	if alvo == null and not chefe and not _deitado and _ultimo is Jogador:
 		dano *= ATAQUE_FURTIVO  # 06/11: pegou de surpresa (não te viu): golpe triplo
 		(_ultimo as Jogador).ganhar("xp", 10)  # e XP extra por chegar sem ser visto

@@ -22,6 +22,7 @@ const AMARGO: Array[String] = [
 	"Saímos vivos. Mas a verdade ficou lá embaixo, com os mortos.",
 ]
 
+signal novo_jogo_mais
 var bom: bool = true
 var stats: String = ""  # tempo, mortos, mortes, fitas, troféus (Tarefas)
 var _linhas: Array[String] = []
@@ -60,6 +61,14 @@ func _ready() -> void:
 	b.custom_minimum_size = Vector2(340, 70)
 	b.pressed.connect(queue_free)
 	add_child(b)
+	var ng := UiTema.botao("NOVO JOGO+ (MAIS PERIGOSO)", true)  # 07/11: recomeça a história com a mochila
+	ng.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	ng.position -= Vector2(760, 100)
+	ng.custom_minimum_size = Vector2(360, 70)
+	ng.pressed.connect(func() -> void:
+		novo_jogo_mais.emit()
+		queue_free())
+	add_child(ng)
 	if not DisplayServer.is_touchscreen_available():
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
