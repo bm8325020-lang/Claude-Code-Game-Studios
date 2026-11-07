@@ -378,6 +378,12 @@ func _monta_arma() -> void:
 
 func _physics_process(dt: float) -> void:
 	_passa_segura(dt)
+	_auto_t -= dt
+	if _auto_t <= 0.0 and is_multiplayer_authority() and vida > 0 and carro == null:  # 07/11: munição e bandagem pega sozinha
+		_auto_t = 0.3
+		var it: Item = item_perto()
+		if it and it.tipo in AUTO_PEGA:
+			_tenta_pegar()
 	if not local:
 		_segue_rede(dt)
 		return
@@ -591,6 +597,10 @@ const FOLEGO_GASTO: float = 11.0
 const FOLEGO_VOLTA: float = 14.0
 var folego: float = 100.0
 var cansado: bool = false
+
+
+const AUTO_PEGA: Array[String] = ["municao", "cartucho", "municao_fuzil", "bandagem"]
+var _auto_t: float = 0.0
 
 
 ## "Em combate" = bateu/atirou em alguém há menos de COMBATE_T s (botão de voltar ao início fica travado).
