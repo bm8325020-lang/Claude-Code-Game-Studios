@@ -966,6 +966,15 @@ func usar_espaco(i: int) -> void:
 				mochila.tirar("sinalizador", 1)
 				_joga_a_frente(Sinalizador.new(), 8.0)
 				item_pego.emit("sinalizador_usado", 0)
+		"armadilha":  # 07/11: arma no chão, aos seus pés; zumbi passou = latas batem e você é avisado
+			if vida > 0 and is_on_floor():
+				mochila.tirar("armadilha", 1)
+				var ar := Armadilha.new()
+				ar.dono = self
+				get_parent().get_parent().add_child(ar)
+				ar.global_position = global_position
+				ar.rotation.y = modelo.rotation.y
+				item_pego.emit("armadilha_armada", 0)
 		"molotov":  # 07/11: joga uns 9 m à frente; vira fogo que queima zumbi
 			if vida > 0:
 				mochila.tirar("molotov", 1)
