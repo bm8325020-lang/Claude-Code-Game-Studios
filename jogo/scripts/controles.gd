@@ -1008,6 +1008,12 @@ func _acertou(forte: bool) -> void:
 
 
 func _pegou(tipo: String, qtd: int) -> void:
+	if tipo == "barricou":
+		aviso("PORTA BARRICADA", Color(0.8, 0.7, 0.5), 2.0)
+		return
+	if tipo == "sem_porta":
+		aviso("Chegue perto de uma porta fechada para barricar", UiTema.TEXTO, 2.0)
+		return
 	if tipo == "armadilha_armada":
 		aviso("ARMADILHA ARMADA AQUI", Color(0.8, 0.85, 0.7), 1.5)
 		return

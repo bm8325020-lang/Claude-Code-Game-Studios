@@ -98,6 +98,43 @@ func centro() -> Vector3:
 	return global_transform * Vector3(largura * 0.5, 0, 0)
 
 
+## 07/11 (ideia aprovada): barricada de tábuas (item "tabuas" perto da porta fechada). Vale em todo aparelho.
+var barricada: bool = false
+var _tabuas: Array[MeshInstance3D] = []
+
+
+@rpc("any_peer", "call_local", "reliable")
+func barrica() -> void:
+	if arrombada() or blindada or barricada:
+		return
+	aberta = false
+	barricada = true
+	vida = VIDA_MAX
+	if Rede.servidor_sem_tela:
+		return
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.45, 0.33, 0.2)
+	m.roughness = 1.0
+	for k in 3:  # três tábuas cruzando a porta
+		var mi := MeshInstance3D.new()
+		var b := BoxMesh.new()
+		b.size = Vector3(LARGURA + 0.3, 0.16, 0.05)
+		mi.mesh = b
+		mi.material_override = m
+		mi.position = Vector3(0, 0.55 + k * 0.55, 0.08)
+		mi.rotation.z = [0.25, -0.2, 0.15][k]
+		add_child(mi)
+		_tabuas.append(mi)
+
+
+@rpc("any_peer", "call_local", "reliable")
+func _tira_tabuas() -> void:
+	barricada = false
+	for t: MeshInstance3D in _tabuas:
+		t.queue_free()
+	_tabuas.clear()
+
+
 func arrombada() -> bool:
 	return vida <= 0
 
@@ -128,6 +165,8 @@ static func perto(arvore: SceneTree, pos: Vector3) -> Porta:
 func alterna_por(j: Jogador) -> void:
 	if arrombada() or j.vida <= 0 or blindada:
 		return
+	if barricada:  # quem está dentro arranca as tábuas para sair
+		_tira_tabuas.rpc() if multiplayer.has_multiplayer_peer() else _tira_tabuas()
 	var d: Vector3 = centro() - j.global_position
 	if Vector2(d.x, d.z).length() > ALCANCE + 0.6:
 		return
@@ -138,7 +177,11 @@ func alterna_por(j: Jogador) -> void:
 func leva_soco(dano: int) -> void:
 	if aberta or arrombada() or blindada:
 		return
+	if barricada:
+		dano = maxi(1, dano / 4)  # 07/11: tábuas pregadas: o zumbi demora 4x mais
 	vida = maxi(0, vida - dano)
+	if vida <= 0 and barricada:
+		_tira_tabuas()
 	var t := create_tween()  # treme
 	t.tween_property(_folha, "rotation:y", deg_to_rad(-4.0), 0.05)
 	t.tween_property(_folha, "rotation:y", 0.0, 0.1)

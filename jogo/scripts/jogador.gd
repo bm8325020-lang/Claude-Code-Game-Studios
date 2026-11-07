@@ -966,6 +966,14 @@ func usar_espaco(i: int) -> void:
 				mochila.tirar("sinalizador", 1)
 				_joga_a_frente(Sinalizador.new(), 8.0)
 				item_pego.emit("sinalizador_usado", 0)
+		"tabuas":  # 07/11: barrica a porta fechada mais perto (zumbi demora 4x para arrombar)
+			var pt: Porta = porta_perto()
+			if pt and not pt.aberta and not pt.arrombada() and not pt.barricada:
+				mochila.tirar("tabuas", 1)
+				pt.barrica.rpc() if multiplayer.has_multiplayer_peer() else pt.barrica()
+				item_pego.emit("barricou", 0)
+			else:
+				item_pego.emit("sem_porta", 0)
 		"armadilha":  # 07/11: arma no chão, aos seus pés; zumbi passou = latas batem e você é avisado
 			if vida > 0 and is_on_floor():
 				mochila.tirar("armadilha", 1)
