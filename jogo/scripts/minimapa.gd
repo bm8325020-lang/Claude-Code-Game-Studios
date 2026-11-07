@@ -135,6 +135,15 @@ func _draw() -> void:
 				var q: Vector2 = no_quadro(zz.global_position)
 				if Rect2(Vector2.ZERO, TAM).has_point(q):
 					draw_circle(q, 3.2, Color(0.95, 0.15, 0.1))
+	# 07/11: baús com loot a até 30 m (quadradinho amarelo; vazio não aparece)
+	for bn: Node in get_tree().get_nodes_in_group("baus"):
+		var bb := bn as Bau
+		if bb == null or bb.conteudo.is_empty() or bb.global_position.distance_to(jogador.global_position) > 30.0:
+			continue
+		var qb: Vector2 = no_quadro(bb.global_position)
+		if Rect2(Vector2.ZERO, TAM).has_point(qb):
+			draw_rect(Rect2(qb - Vector2(3.5, 3.5), Vector2(7, 7)), Color(1.0, 0.82, 0.2))
+			draw_rect(Rect2(qb - Vector2(3.5, 3.5), Vector2(7, 7)), Color(0.1, 0.1, 0.1), false, 1.2)
 	# salas seguras, marcos e raids (presos na borda quando longe)
 	for s: Node in get_tree().get_nodes_in_group("salas_seguras"):
 		_blip((s as Node3D).global_position, COR_SEGURA, "casa", false)
