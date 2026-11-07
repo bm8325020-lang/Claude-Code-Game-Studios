@@ -24,6 +24,15 @@ const AMARGO: Array[String] = [
 
 signal novo_jogo_mais
 var bom: bool = true
+var dana_viva: bool = true
+## 07/11: a Dana morreu na última noite: quem fala é a Mia
+const SEM_DANA: Array[String] = [
+	"WSB CHANNEL 2 — EDIÇÃO EXTRAORDINÁRIA", "",
+	"Meu nome é Mia. A Dana Price não saiu de Senoia.",
+	"Ela segurou o heliponto sozinha para a gente poder subir.",
+	"Ela queria que todo mundo soubesse: a Halverson Agro fez isso.",
+	"Eu vou contar a história por ela. Prometo.",
+]
 var stats: String = ""  # tempo, mortos, mortes, fitas, troféus (Tarefas)
 var _linhas: Array[String] = []
 var _i: int = 0
@@ -37,7 +46,7 @@ var _dura: float = POR_LINHA
 
 func _ready() -> void:
 	layer = 50
-	_linhas = BOM if bom else AMARGO
+	_linhas = (BOM if bom else AMARGO) if dana_viva else SEM_DANA
 	var fundo := ColorRect.new()
 	fundo.color = Color.BLACK
 	fundo.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

@@ -681,6 +681,8 @@ func _prepara(o_que: String) -> void:
 			_poe_npc("tommy", "TOMMY", TOMMY, p2)
 		"helicoptero":
 			for k: Array in [["dana", "DANA PRICE", Vector3(3, 0, 2)], ["mia", "MIA", Vector3(-3, 0, 2)]]:  # elas embarcam com você
+				if k[0] == "dana" and dana_morreu:
+					continue  # 07/11: a Dana ficou na última noite
 				if not _npc.has(k[0]):
 					_poe_npc(k[0], k[1], [], _heliponto + k[2])
 				(_npc[k[0]] as Npc).falou = true
@@ -745,6 +747,7 @@ func evento(tipo: String) -> void:
 func _fim() -> void:
 	var f := Final.new()
 	f.bom = _fitas() >= FITAS
+	f.dana_viva = not dana_morreu
 	f.stats = "Tempo: %d min    Zumbis mortos: %d    Mortes: %d    Fitas: %d/5    Troféus: %d" % [
 		int(_stats.tempo / 60.0), _stats.abates, _stats.mortes, _fitas(), _trofeus.size()]
 	f.novo_jogo_mais.connect(novo_jogo_mais)
@@ -933,6 +936,13 @@ func _process(dt: float) -> void:
 
 
 ## Última noite: espera anoitecer no heliponto; de noite, perto dele, conta o tempo e chama ondas de zumbis.
+## 07/11: consequência — longe do heliponto mais que DANA_SOZINHA s durante a defesa, a Dana morre (final muda).
+const DANA_SOZINHA: float = 30.0
+const DANA_MORRE: String = "Eles entraram! Alex, eles estão em todo lugar... corre! Salva a Mia, por favor!"
+var dana_morreu: bool = false
+var _longe_t: float = 0.0
+
+
 func _noite_final(dt: float) -> void:
 	var ciclo := get_tree().get_first_node_in_group("ciclo") as Ciclo
 	var noite: bool = ciclo != null and ciclo.e_noite()
@@ -941,8 +951,18 @@ func _noite_final(dt: float) -> void:
 		_linha.text = "•  Espere ANOITECER no heliponto do hospital"
 		return
 	if not perto:
-		_linha.text = "•  Volte para o HELIPONTO! (%d s)" % int(NOITE_FINAL_T - _resiste_t)
+		_linha.text = "•  Volte para o HELIPONTO! A Dana está sozinha! (%d s)" % int(maxf(DANA_SOZINHA - _longe_t, 0.0))
+		if _resiste_t > 0.0 and not dana_morreu:  # 07/11: longe demais com a defesa começada: os mortos pegam a Dana
+			_longe_t += dt
+			if _longe_t > DANA_SOZINHA:
+				dana_morreu = true
+				legenda("RÁDIO · DANA", DANA_MORRE, 6.0)
+				var dn: Node = _npc.get("dana")
+				if dn and is_instance_valid(dn):
+					(dn as Node).queue_free()
+				_npc.erase("dana")
 		return
+	_longe_t = 0.0
 	_resiste_t += dt
 	if _resiste_t > NOITE_FINAL_T * 0.5:
 		_momento("noite_meio")

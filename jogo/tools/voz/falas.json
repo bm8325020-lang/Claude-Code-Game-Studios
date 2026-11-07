@@ -488,5 +488,30 @@
 		"id": "96ef264475ac",
 		"texto": "Saímos vivos. Mas a verdade ficou lá embaixo, com os mortos.",
 		"voz": "dana"
+	},
+	{
+		"id": "6eeb9f12a8bd",
+		"texto": "Meu nome é Mia. A Dana Price não saiu de Senoia.",
+		"voz": "mia"
+	},
+	{
+		"id": "959adaa586b8",
+		"texto": "Ela segurou o heliponto sozinha para a gente poder subir.",
+		"voz": "mia"
+	},
+	{
+		"id": "ab5c662c3da8",
+		"texto": "Ela queria que todo mundo soubesse: a Halverson Agro fez isso.",
+		"voz": "mia"
+	},
+	{
+		"id": "fa3b653e0aec",
+		"texto": "Eu vou contar a história por ela. Prometo.",
+		"voz": "mia"
+	},
+	{
+		"id": "2af2e2e38cf0",
+		"texto": "Eles entraram! Alex, eles estão em todo lugar... corre! Salva a Mia, por favor!",
+		"voz": "dana"
 	}
 ]

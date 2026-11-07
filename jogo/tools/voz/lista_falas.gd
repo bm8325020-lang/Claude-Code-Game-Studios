@@ -38,6 +38,8 @@ func _init() -> void:
 		poe.call("dana", String(Tarefas.RADIO_EV[k][0]))
 	for t: String in Tarefas.EXTRAS: poe.call(Tarefas.quem(t.get_slice("|", 0)), t.get_slice("|", 1))
 	for t: String in Final.BOM + Final.AMARGO: poe.call("dana", t)
+	for t: String in Final.SEM_DANA: poe.call("mia", t)
+	poe.call("dana", Tarefas.DANA_MORRE)
 	var f := FileAccess.open(OS.get_cmdline_user_args()[0], FileAccess.WRITE)
 	f.store_string(JSON.stringify(l, "\t"))
 	print("falas: ", l.size())
