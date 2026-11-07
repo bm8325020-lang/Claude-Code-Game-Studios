@@ -356,6 +356,8 @@ func _process(dt: float) -> void:
 		var t: String = ""
 		if jogador.folego < 99.0:
 			t = ("SEM FÔLEGO" if jogador.cansado else "FÔLEGO %d%%" % int(jogador.folego))
+		if jogador.sangrando:
+			t += ("   " if t != "" else "") + "SANGRANDO: USE UMA BANDAGEM"
 		if seguem > 0:
 			t += ("   " if t != "" else "") + "%d ZUMBI%s TE SEGUINDO" % [seguem, "S" if seguem > 1 else ""]
 		_info_lbl.text = t

@@ -378,6 +378,15 @@ func _monta_arma() -> void:
 
 func _physics_process(dt: float) -> void:
 	_passa_segura(dt)
+	if sangrando and vida > 0 and is_multiplayer_authority():
+		_sangra_t += dt
+		if _sangra_t >= SANGRA_A_CADA:
+			_sangra_t = 0.0
+			vida = maxi(vida - SANGRA_DANO, 1 if segura else 0)  # no refúgio não morre sangrando
+			if vida <= 0:
+				_cai()
+	elif vida <= 0:
+		sangrando = false
 	_auto_t -= dt
 	if _auto_t <= 0.0 and is_multiplayer_authority() and vida > 0 and carro == null:  # 07/11: munição e bandagem pega sozinha
 		_auto_t = 0.3
@@ -944,8 +953,9 @@ func usar_espaco(i: int) -> void:
 			toma_antibiotico()
 		"bomba":
 			planta_bomba()
-		"bandagem":  # Simple Zombies: bandagem cura um pouco na hora
-			if vida > 0 and vida < vida_max():
+		"bandagem":  # Simple Zombies: bandagem cura um pouco na hora (07/11: e estanca o sangramento)
+			if vida > 0 and (vida < vida_max() or sangrando):
+				sangrando = false
 				vida = mini(vida + CURA_BANDAGEM, vida_max())
 				mochila.tirar("bandagem", 1)
 				item_pego.emit("bandagem", CURA_BANDAGEM)
@@ -1161,8 +1171,18 @@ func toma_antibiotico() -> void:
 	item_pego.emit("antibiotico", 1)
 
 
+## 07/11: golpe forte (zumbi) pode abrir ferimento: perde SANGRA_DANO a cada SANGRA_A_CADA s até usar bandagem.
+const SANGRA_CHANCE: float = 0.25
+const SANGRA_DANO: int = 1
+const SANGRA_A_CADA: float = 2.0
+var sangrando: bool = false
+var _sangra_t: float = 0.0
+
+
 func levar_dano(dano: int, dir: Vector3) -> void:
 	dano_srv_t = Time.get_ticks_msec() / 1000.0
+	if dano >= 10 and vida > 0 and randf() < SANGRA_CHANCE:
+		sangrando = true
 	if is_multiplayer_authority():
 		_recebe_dano(dano, dir)
 	else:
