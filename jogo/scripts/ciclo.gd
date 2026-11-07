@@ -78,6 +78,8 @@ func _process(dt: float) -> void:
 		var ceu: Color = CEU_HORIZONTE[0].lerp(CEU_HORIZONTE[1], n)
 		ambiente.background_color = ceu
 		ambiente.fog_light_color = ceu.lerp(Color(0.85, 0.87, 0.9), 0.6) if clima == "nevasca" else ceu  # nevasca: névoa branca
+		if clima == "neblina_vermelha":
+			ambiente.fog_light_color = ceu.lerp(Color(0.75, 0.12, 0.08), 0.75)
 		var mat := ambiente.sky.sky_material as ShaderMaterial if ambiente.sky else null
 		if mat:
 			mat.set_shader_parameter("topo", CEU_TOPO[0].lerp(CEU_TOPO[1], n))
@@ -124,4 +126,9 @@ static func noite_de(arvore: SceneTree) -> float:
 ## Multiplicador da força dos zumbis agora (1 de dia; MAIS_FORTE com a noite fechada).
 static func forca_noite(arvore: SceneTree, mais_forte: float) -> float:
 	var c := arvore.get_first_node_in_group("ciclo") as Ciclo
-	return lerpf(1.0, mais_forte, c.noite()) if c else 1.0
+	if c == null:
+		return 1.0
+	var f: float = lerpf(1.0, mais_forte, c.noite())
+	if c.clima == "neblina_vermelha" and mais_forte > 1.0:
+		f = lerpf(f, f * 1.25, c.noite())  # noite de neblina vermelha: os mortos ainda mais fortes
+	return f

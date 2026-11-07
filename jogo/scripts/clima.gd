@@ -6,11 +6,13 @@ extends Node3D
 
 ## nome -> [chance, partículas ("" / "chuva" / "neve"), névoa ×, sol ×]
 const TIPOS: Dictionary = {
-	"limpo": [0.4, "", 1.0, 1.0],
+	"limpo": [0.34, "", 1.0, 1.0],
 	"chuva": [0.22, "chuva", 1.6, 0.7],
 	"tempestade": [0.12, "chuva", 2.2, 0.5],
 	"neblina": [0.14, "", 4.0, 0.8],
 	"nevasca": [0.12, "neve", 3.0, 0.8],
+	# 07/11 (ideia aprovada): raro; névoa vermelha e os mortos mais fortes à noite (Ciclo.forca_noite)
+	"neblina_vermelha": [0.06, "", 2.6, 0.6],
 }
 var _chuva: CPUParticles3D
 var _neve: CPUParticles3D

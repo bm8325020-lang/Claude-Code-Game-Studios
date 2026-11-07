@@ -158,6 +158,7 @@ func _radio_ev(chave: String) -> void:
 	legenda("RÁDIO · DANA", String(RADIO_EV[chave][0]), 6.0)
 
 
+const NEBLINA_VOZ: String = "Tem uma névoa vermelha descendo sobre a cidade. Eles estão diferentes hoje, mais rápidos. Se esconde."
 const NOITE_VOZ: String = "Escureceu. De noite eles correm e ouvem mais longe. Fique perto de um refúgio."
 const DICA_VOZ: Array = ["Ainda está aí? Olhe o mapa: eu marquei para onde você tem que ir."]
 ## Falas soltas com voz ("QUEM|texto"; o que vai entre parênteses na legenda não é falado).
@@ -753,7 +754,7 @@ func _process(dt: float) -> void:
 			evento("amanheceu")
 			_radio_ev("amanheceu")
 		if noite and not _era_noite and _i > 0:  # 06/11: a Dana avisa a noite pelo rádio
-			legenda("RÁDIO · DANA", NOITE_VOZ, 6.0)
+			legenda("RÁDIO · DANA", NEBLINA_VOZ if ciclo.clima == "neblina_vermelha" else NOITE_VOZ, 6.0)
 		_era_noite = noite
 	if _alvo.is_finite() and Minimapa.destino != _alvo and Minimapa.destino.is_finite() == false:
 		Minimapa.destino = _alvo
