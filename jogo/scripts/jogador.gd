@@ -964,15 +964,15 @@ func usar_espaco(i: int) -> void:
 		"sinalizador":  # 07/11: joga uns 8 m à frente; zumbis vão até a luz e o barulho
 			if vida > 0:
 				mochila.tirar("sinalizador", 1)
-				var fr: Vector3 = (-camera.cam.global_basis.z if camera else modelo.global_basis.z)
-				fr.y = 0.0
-				var alvo: Vector3 = global_position + fr.normalized() * 8.0
-				var q := PhysicsRayQueryParameters3D.create(alvo + Vector3(0, 3, 0), alvo - Vector3(0, 6, 0), 1)
-				var h: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
-				var s := Sinalizador.new()
-				get_parent().get_parent().add_child(s)
-				s.global_position = h.position if not h.is_empty() else alvo
+				_joga_a_frente(Sinalizador.new(), 8.0)
 				item_pego.emit("sinalizador_usado", 0)
+		"molotov":  # 07/11: joga uns 9 m à frente; vira fogo que queima zumbi
+			if vida > 0:
+				mochila.tirar("molotov", 1)
+				var mo := Molotov.new()
+				mo.dono = self
+				_joga_a_frente(mo, 9.0)
+				item_pego.emit("molotov_usado", 0)
 		"pilha":
 			if carga < 99.0:
 				carga = 100.0
@@ -1426,6 +1426,17 @@ func _larga_tudo() -> void:
 
 
 var _dormindo_t: float = 0.0
+
+
+## Põe `no` no chão a `dist` m à frente de onde se olha (sinalizador, molotov).
+func _joga_a_frente(no: Node3D, dist: float) -> void:
+	var fr: Vector3 = (-camera.cam.global_basis.z if camera else modelo.global_basis.z)
+	fr.y = 0.0
+	var alvo: Vector3 = global_position + fr.normalized() * dist
+	var q := PhysicsRayQueryParameters3D.create(alvo + Vector3(0, 3, 0), alvo - Vector3(0, 6, 0), 1)
+	var h: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
+	get_parent().get_parent().add_child(no)
+	no.global_position = h.position if not h.is_empty() else alvo
 
 
 ## O que não se perde ao morrer: armas (brancas e de fogo), munição e silenciador.

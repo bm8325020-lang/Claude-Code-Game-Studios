@@ -1008,6 +1008,9 @@ func _acertou(forte: bool) -> void:
 
 
 func _pegou(tipo: String, qtd: int) -> void:
+	if tipo == "molotov_usado":
+		aviso("MOLOTOV! QUEIMEM, DESGRAÇADOS", Color(1.0, 0.5, 0.15), 2.0)
+		return
 	if tipo == "sinalizador_usado":
 		aviso("SINALIZADOR ACESO: OS MORTOS VÃO ATÉ ELE", Color(1.0, 0.35, 0.3), 2.5)
 		return

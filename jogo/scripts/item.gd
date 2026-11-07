@@ -55,7 +55,7 @@ func nome() -> String:
 			return "antibiótico" + (" (%d)" % quantidade if quantidade > 1 else "")
 		"agua":
 			return "garrafa de água"
-		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador", "receita_pistola", "smg", "receita_smg", "espingarda", "fuzil", "sniper", "cartucho", "municao_fuzil", "bandagem", "silenciador", "pilha", "sinalizador":
+		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador", "receita_pistola", "smg", "receita_smg", "espingarda", "fuzil", "sniper", "cartucho", "municao_fuzil", "bandagem", "silenciador", "pilha", "sinalizador", "molotov":
 			return Mochila.NOMES[tipo].to_lower() + (" (%d)" % quantidade if quantidade > 1 else "")
 	return "lanterna"
 
@@ -172,7 +172,7 @@ func _monta_modelo() -> void:
 		_modelo("res://assets/sketchfab/lanterna.glb", 0.2, Vector3.ZERO)
 
 
-const _PROPRIOS: Array[String] = ["sinalizador", "pilha", "bandagem", "municao_fuzil", "silenciador", "livro", "fita", "peca_radio", "diario"]
+const _PROPRIOS: Array[String] = ["molotov", "sinalizador", "pilha", "bandagem", "municao_fuzil", "silenciador", "livro", "fita", "peca_radio", "diario"]
 
 
 func _mat(cor: Color, rug: float = 0.7, metal: float = 0.0, brilho: float = 0.0) -> StandardMaterial3D:
@@ -206,6 +206,10 @@ func _cilindro(pos: Vector3, raio: float, alt: float, m: Material, deitado: bool
 
 func _monta_proprio() -> void:
 	match tipo:
+		"molotov":  # garrafa verde com pano no gargalo
+			_cilindro(Vector3(0, 0.09, 0), 0.035, 0.18, _mat(Color(0.2, 0.4, 0.15, 1.0), 0.15, 0.1))
+			_cilindro(Vector3(0, 0.2, 0), 0.014, 0.05, _mat(Color(0.2, 0.4, 0.15), 0.15, 0.1))
+			_bloco(Vector3(0, 0.235, 0), Vector3(0.03, 0.04, 0.03), _mat(Color(0.75, 0.68, 0.55), 1.0))
 		"sinalizador":  # bastão vermelho com tampa branca
 			_cilindro(Vector3(0, 0.02, 0), 0.02, 0.2, _mat(Color(0.85, 0.1, 0.08), 0.6), true)
 			_cilindro(Vector3(0.105, 0.02, 0), 0.021, 0.02, _mat(Color(0.92, 0.9, 0.85)), true)
