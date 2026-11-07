@@ -616,7 +616,7 @@ var folego: float = 100.0
 var cansado: bool = false
 
 
-const AUTO_PEGA: Array[String] = ["municao", "cartucho", "municao_fuzil", "bandagem"]
+const AUTO_PEGA: Array[String] = ["municao", "cartucho", "municao_fuzil", "bandagem", "pilha"]
 var _auto_t: float = 0.0
 
 
@@ -961,6 +961,12 @@ func usar_espaco(i: int) -> void:
 			toma_antibiotico()
 		"bomba":
 			planta_bomba()
+		"pilha":
+			if carga < 99.0:
+				carga = 100.0
+				_avisou_pilha = false
+				mochila.tirar("pilha", 1)
+				item_pego.emit("pilha_trocada", 0)
 		"bandagem":  # Simple Zombies: bandagem cura um pouco na hora (07/11: e estanca o sangramento)
 			if vida > 0 and (vida < vida_max() or sangrando):
 				sangrando = false
@@ -2034,10 +2040,23 @@ func _cilindro(raio: float, alto: float, pos: Vector3, m: Material) -> MeshInsta
 	return mi
 
 
+## 07/11: a lanterna gasta pilha acesa (PILHA_GASTO %/s); vazia não acende; item "pilha" recarrega. Fraca, treme mais.
+const PILHA_GASTO: float = 0.22  # ~7,5 min de luz por pilha
+var carga: float = 100.0
+var _avisou_pilha: bool = false
+
+
 func _atualiza_lanterna() -> void:
 	_lanterna_mao.visible = tem_lanterna
 	var c := get_tree().get_first_node_in_group("ciclo") as Ciclo
-	var forca: float = clampf(c.noite() * 1.5 - 0.2, 0.0, 1.0) if c and tem_lanterna and vida > 0 else 0.0
+	var forca: float = clampf(c.noite() * 1.5 - 0.2, 0.0, 1.0) if c and tem_lanterna and vida > 0 and carga > 0.0 else 0.0
+	if forca > 0.0 and is_multiplayer_authority():
+		carga = maxf(carga - PILHA_GASTO * get_process_delta_time(), 0.0)
+		if carga < 15.0 and not _avisou_pilha:
+			_avisou_pilha = true
+			item_pego.emit("pilha_fraca", 0)
+		if carga < 15.0:
+			forca *= 0.55 + 0.45 * float(randf() > 0.04)  # pilha fraca: pisca
 	# 06/11 terror: lanterna mais forte e trêmula de leve (pilha velha); de noite ela é o que deixa ver
 	_lanterna.light_energy = (6.0 + sin(Time.get_ticks_msec() * 0.013) * 0.25 + (0.0 if randf() > 0.003 else -4.0)) * forca
 	_lanterna.visible = forca > 0.0
