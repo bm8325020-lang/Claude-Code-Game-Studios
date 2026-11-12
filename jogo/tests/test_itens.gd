@@ -32,6 +32,7 @@ func _init() -> void:
 	main.ciclo.set_process(false)
 	for z in main.zumbis.get_children():
 		z.free()
+	Jogador.auto_pega = false  # aqui se testa pegar com o botão
 	var caixa: Item = main.get_node("Item_0")
 	# longe: nada para pegar
 	j.global_position = caixa.global_position + Vector3(3, 0.1, 0)

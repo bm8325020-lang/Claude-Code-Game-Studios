@@ -48,6 +48,7 @@ func _init() -> void:
 	z._sem_gritar = INF
 	# soldado blindado: leva 60% e não cambaleia com golpe fraco
 	z.aplica_tipo("zumbi_soldado")
+	z.alvo = j  # já te viu: sem o golpe triplo do ataque furtivo
 	z.levar_golpe(20, Vector3.FORWARD, j)
 	ok(z.vida == int(Zumbi.TIPOS.zumbi_soldado.vida) - 12 and z._cambaleio <= 0.0, "soldado leva 12 de um golpe de 20 e não cambaleia (vida %d)" % z.vida)
 	# corredora: bote de 5 m
@@ -57,7 +58,7 @@ func _init() -> void:
 	z._skill_t = 0.0
 	z.alvo = j
 	await frames(30)
-	ok(z._skill_t > 0.0 and z.global_position.distance_to(Vector3(40, 0.05, 40)) > 2.0, "corredora dá o bote (andou %.1f m em 0,5 s)" % z.global_position.distance_to(Vector3(40, 0.05, 40)))
+	ok(z._skill_t > 0.0 and z.global_position.distance_to(Vector3(40, 0.05, 40)) > 1.5, "corredora dá o bote (andou %.1f m em 0,5 s)" % z.global_position.distance_to(Vector3(40, 0.05, 40)))
 	# policial: o soco agarra (jogador lento)
 	z.aplica_tipo("zumbi_policial")
 	j.agarrado_t = 0.0

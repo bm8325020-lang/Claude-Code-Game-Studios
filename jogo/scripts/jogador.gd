@@ -388,7 +388,7 @@ func _physics_process(dt: float) -> void:
 	elif vida <= 0:
 		sangrando = false
 	_auto_t -= dt
-	if _auto_t <= 0.0 and is_multiplayer_authority() and vida > 0 and carro == null:  # 07/11: munição e bandagem pega sozinha
+	if _auto_t <= 0.0 and is_multiplayer_authority() and vida > 0 and carro == null and auto_pega:  # 07/11: munição e bandagem pega sozinha
 		_auto_t = 0.3
 		var it: Item = item_perto()
 		if it and it.tipo in AUTO_PEGA:
@@ -620,6 +620,7 @@ var cansado: bool = false
 
 const AUTO_PEGA: Array[String] = ["municao", "cartucho", "municao_fuzil", "bandagem", "pilha"]
 var _auto_t: float = 0.0
+static var auto_pega: bool = true  # os testes de pegar na mão desligam
 
 
 ## "Em combate" = bateu/atirou em alguém há menos de COMBATE_T s (botão de voltar ao início fica travado).
@@ -1642,11 +1643,14 @@ func _degrau(dt: float) -> void:
 	if test_move(global_transform, cima):
 		return  # teto
 	var t2: Transform3D = global_transform.translated(cima)
-	if test_move(t2, frente):
-		return  # é parede, não degrau
+	# 12/11: a cápsula tem o pé redondo e "passava" por cima de beirada mais alta que o degrau (subia no parapeito da
+	# escada de incêndio e caía). Agora confere com o corpo inteiro em cima (RAIO + folga) e o topo tem que ser plano.
+	var dentro: Vector3 = h.normalized() * (RAIO + 0.06)
+	if test_move(t2, dentro):
+		return  # é parede ou beirada alta, não degrau
 	var col := KinematicCollision3D.new()
-	var t3: Transform3D = t2.translated(frente)
-	if test_move(t3, -cima, col):  # acha o topo do degrau e sobe só o necessário
+	var t3: Transform3D = t2.translated(dentro)
+	if test_move(t3, -cima, col) and col.get_normal().y > 0.9:  # topo plano: sobe só o necessário
 		var sobe: float = DEGRAU_MAX - col.get_travel().length()
 		if sobe > 0.08:  # degrau baixinho a própria cola do chão (floor_snap) resolve; sem pular o pé fica no chão
 			global_position.y += sobe

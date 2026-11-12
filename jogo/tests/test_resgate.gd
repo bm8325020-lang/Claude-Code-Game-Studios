@@ -72,6 +72,7 @@ func _init() -> void:
 	ok(j.vida == Jogador.RESGATE_VIDA and not j.resgate and sacos(main) == nsacos and j.mochila.conta("municao") >= 30, "matou todos: levanta com %d de vida sem largar nada" % Jogador.RESGATE_VIDA)
 	ok(j.dinheiro >= d0 + main.RESGATE_DINHEIRO, "e ganha a recompensa ($%d)" % (j.dinheiro - d0))
 	# o tempo acaba: morte normal
+	j.mochila.adicionar("comida", 1)  # 07/11: arma e munição ficam; o saco leva o resto
 	j.vida = 0
 	j.resgate = true
 	j._morto_t = 0.05
