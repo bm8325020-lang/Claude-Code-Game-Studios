@@ -382,6 +382,10 @@ func _physics_process(dt: float) -> void:
 		_sangra_t += dt
 		if _sangra_t >= SANGRA_A_CADA:
 			_sangra_t = 0.0
+			_sangra_n += 1
+			if _sangra_n >= SANGRA_MAX:  # 12/11 (dificuldade): estanca sozinho depois de 30 s; antes sangrava até morrer
+				sangrando = false
+				_sangra_n = 0
 			vida = maxi(vida - SANGRA_DANO, 1 if segura else 0)  # no refúgio não morre sangrando
 			if vida <= 0:
 				_cai()
@@ -1245,6 +1249,8 @@ const SANGRA_DANO: int = 1
 const SANGRA_A_CADA: float = 2.0
 var sangrando: bool = false
 var _sangra_t: float = 0.0
+const SANGRA_MAX: int = 15
+var _sangra_n: int = 0
 
 
 func levar_dano(dano: int, dir: Vector3) -> void:
