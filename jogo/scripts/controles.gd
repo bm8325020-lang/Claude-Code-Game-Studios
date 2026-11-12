@@ -129,6 +129,20 @@ func _ready() -> void:
 	toque = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
 	if toque:
 		_monta_toque()
+	if _btn_aliados == null:  # texto, não ícone: a ordem atual tem que dar para ler
+		_btn_aliados = Button.new()
+		_btn_aliados.text = "CORVOS: SEGUIR"
+		_btn_aliados.focus_mode = Control.FOCUS_NONE
+		_btn_aliados.add_theme_font_size_override("font_size", 18)
+		_btn_aliados.anchor_top = 0.5
+		_btn_aliados.anchor_bottom = 0.5
+		_btn_aliados.offset_left = 18.0
+		_btn_aliados.offset_top = -150.0
+		_btn_aliados.offset_right = 218.0
+		_btn_aliados.offset_bottom = -102.0
+		_btn_aliados.visible = false
+		_btn_aliados.pressed.connect(_troca_ordem)
+		add_child(_btn_aliados)
 	var borda := GradientTexture2D.new()
 	borda.fill = GradientTexture2D.FILL_RADIAL
 	borda.fill_from = Vector2(0.5, 0.5)
@@ -263,7 +277,9 @@ func _acoes() -> void:
 
 const PERTO_A_CADA: float = 0.15
 var _perto_t: float = 0.0
-var _perto: Array = [null, null, null, null, null, null, null]
+var _perto: Array = [null, null, null, null, null, null, null, null]
+var _btn_aliados: Button  # 12/11: ordem dos Corvos aliados (só aparece com aliado)
+var _t_antes: bool = false
 
 
 func _process(dt: float) -> void:
@@ -398,7 +414,10 @@ func _process(dt: float) -> void:
 		var gav0: Gaveta = jogador.gaveta_perto() if it0 == null and bau0 == null and banc0 == null and loja0 == null else null
 		var porta0: Porta = jogador.porta_perto() if it0 == null and bau0 == null and banc0 == null and loja0 == null and gav0 == null else null
 		var carro0: Carro = jogador.carro_perto() if it0 == null and bau0 == null and banc0 == null and loja0 == null and porta0 == null and gav0 == null else null
-		_perto = [it0, bau0, banc0, loja0, gav0, porta0, carro0]
+		var cv0: Zumbi = jogador.corvo_perto() if it0 == null and bau0 == null and banc0 == null and loja0 == null else null
+		_perto = [it0, bau0, banc0, loja0, gav0, porta0, carro0, cv0]
+		if _btn_aliados:
+			_btn_aliados.visible = not jogador.meus_aliados().is_empty() and jogador.vida > 0
 	for k in _perto.size():
 		if _perto[k] != null and not is_instance_valid(_perto[k]):
 			_perto[k] = null
@@ -409,7 +428,12 @@ func _process(dt: float) -> void:
 	var gav: Gaveta = _perto[4]
 	var porta: Porta = _perto[5]
 	var carro: Carro = _perto[6]
-	_dica_pegar.visible = it != null or porta != null or bau != null or banc != null or loja != null or carro != null or jogador.carro != null or gav != null
+	var cv: Zumbi = _perto[7]
+	var tecla_t: bool = not toque and Input.is_physical_key_pressed(KEY_T)
+	if tecla_t and not _t_antes and _btn_aliados and _btn_aliados.visible:
+		_troca_ordem()
+	_t_antes = tecla_t
+	_dica_pegar.visible = cv != null or it != null or porta != null or bau != null or banc != null or loja != null or carro != null or jogador.carro != null or gav != null
 	_saldo.text = "$ %d" % jogador.dinheiro
 	if jogador.carro:
 		_dica_pegar.text = ("SAIR DO CARRO" if toque else "[E] sair do carro")
@@ -419,6 +443,8 @@ func _process(dt: float) -> void:
 		_dica_pegar.text = ("BANCADA" if toque else "[E] usar a bancada")
 	elif loja:
 		_dica_pegar.text = ("LOJA" if toque else "[E] falar com o lojista")
+	elif cv:
+		_dica_pegar.text = ("CONTRATAR CORVO ($%d)" if toque else "[E] contratar o Corvo ($%d)") % Jogador.ALIADO_PRECO[mini(jogador.meus_aliados().size(), 2)]
 	elif bau and bau.trava:
 		_dica_pegar.text = ("DESTRANCAR (CHAVE)" if toque else "[E] destrancar com a chave") if jogador.mochila.tem("chave") else "TRANCADO: PRECISA DE CHAVE"
 	elif bau:
@@ -791,6 +817,15 @@ func _monta_pausa() -> void:
 		j.reset_physics_interpolation()
 		pausa(false))
 	col.add_child(desprende)
+	var dispensa := UiTema.botao("DISPENSAR CORVOS ALIADOS")
+	dispensa.pressed.connect(func() -> void:
+		if jogador == null or jogador.meus_aliados().is_empty():
+			aviso("VOCÊ NÃO TEM CORVOS ALIADOS", UiTema.TEXTO, 2.0)
+			return
+		jogador.ordena(-1)
+		aviso("OS CORVOS FORAM EMBORA", UiTema.TEXTO, 2.5)
+		pausa(false))
+	col.add_child(dispensa)
 	var cfg := UiTema.botao("CONFIGURAÇÕES")
 	col.add_child(cfg)
 	var col_cfg := UiTema.painel_central(_pausa, 760.0)
@@ -1015,6 +1050,22 @@ func _pegou(tipo: String, qtd: int) -> void:
 	if tipo == "chute":
 		Input.vibrate_handheld(60)
 		return
+	if tipo == "tregua_paga":
+		aviso("TRÉGUA ATÉ AMANHECER. CHEGUE PERTO DE UM CORVO PARA CONTRATAR", Color(0.35, 0.9, 0.45), 5.0)
+		return
+	if tipo == "aliado_novo":
+		aviso("CORVO CONTRATADO (%d DE %d). ELE TE SEGUE E TE PROTEGE" % [qtd, Zumbi.ALIADOS_MAX], Color(0.35, 0.9, 0.45), 3.5)
+		return
+	if tipo == "aliado_caro":
+		aviso("ELE QUER $%d. VOCÊ NÃO TEM" % qtd, Color(1.0, 0.5, 0.3), 2.5)
+		return
+	if tipo == "aliado_cheio":
+		aviso("VOCÊ JÁ TEM %d CORVOS. É O LIMITE" % Zumbi.ALIADOS_MAX, Color(1.0, 0.5, 0.3), 2.5)
+		return
+	if tipo == "aliado_morreu":
+		aviso("UM CORVO SEU MORREU", Color(1.0, 0.3, 0.25), 3.0)
+		Input.vibrate_handheld(120)
+		return
 	if tipo == "tregua_quebrada":
 		aviso("VOCÊ QUEBROU A TRÉGUA COM OS CORVOS", Color(1.0, 0.3, 0.25), 3.0)
 		return
@@ -1231,6 +1282,16 @@ func _botao(icone: String, desloc: Vector2, tam: float = BOTAO) -> _Icone:
 	add_child(b)
 	_toque_nos.append(b)
 	return b
+
+
+## Botão dos aliados (PC: T): SEGUIR -> PARADO -> ATACAR, para todos de uma vez.
+func _troca_ordem() -> void:
+	if jogador == null:
+		return
+	var o: int = (jogador.ordem_aliados + 1) % 3
+	jogador.ordena(o)
+	_btn_aliados.text = "CORVOS: " + ["SEGUIR", "PARADO", "ATACAR"][o]
+	aviso(["CORVOS: SIGAM-ME", "CORVOS: FIQUEM AQUI", "CORVOS: ATAQUEM"][o], Color(0.35, 0.9, 0.45), 1.5)
 
 
 func _circulo(diam: float, cor: Color) -> Panel:

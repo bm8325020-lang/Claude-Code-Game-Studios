@@ -108,6 +108,7 @@ func _pedagio() -> void:
 	_j.mochila.tirar("comida", 1)
 	_j.tregua_dia = c.dia
 	legenda("WADE", PEDAGIO_VOZ, 6.0, false)
+	_j.item_pego.emit("tregua_paga", 0)
 
 
 ## Rádio que reage ao que você faz (06/11): chave -> [fala, s até poder repetir]
@@ -444,6 +445,7 @@ func _poe_mochila(cf: ConfigFile) -> void:
 	cf.set_value("mochila", "balas", balas)
 	cf.set_value("mochila", "colete", _j.colete)
 	cf.set_value("mochila", "carga", _j.carga)
+	cf.set_value("mochila", "aliados", _j.meus_aliados().size())
 
 
 func _tira_mochila(cf: ConfigFile) -> void:
@@ -459,6 +461,19 @@ func _tira_mochila(cf: ConfigFile) -> void:
 	_j.colete = float(cf.get_value("mochila", "colete", 0.0))
 	_j.carga = float(cf.get_value("mochila", "carga", 100.0))
 	_j.mochila.mudou.emit()
+	var principal := get_tree().get_first_node_in_group("principal")
+	for k in mini(int(cf.get_value("mochila", "aliados", 0)), Zumbi.ALIADOS_MAX):  # os Corvos contratados voltam com você
+		principal.zumbi_na_fila({"pos": _j.global_position + Vector3(1.5, 0.2, 1.5), "armado": true, "tipo": "corvo"}, _volta_aliado)
+
+
+func _volta_aliado(z: Zumbi) -> void:
+	if z == null or _j == null or not is_instance_valid(_j):
+		return
+	var p: Vector3 = _j.global_position + Vector3(1.5, 0.0, 1.5)  # o jogador já foi para o checkpoint
+	var mapa: RID = _j.get_world_3d().navigation_map
+	z.global_position = (NavigationServer3D.map_get_closest_point(mapa, p) if mapa.is_valid() else p) + Vector3(0, 0.15, 0)
+	z.casa = z.global_position
+	z.vira_aliado(_j)
 
 
 ## 07/11: app indo para o fundo (celular), janela fechando ou foco saindo: salva a mochila na hora.

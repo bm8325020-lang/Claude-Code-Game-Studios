@@ -830,6 +830,9 @@ func _tenta_pegar() -> void:
 		else:
 			cf.trava = false  # já abre aqui; o servidor confirma
 			_pede_destrancar.rpc_id(1, get_path_to(cf))
+	if it == null and bau_perto() == null and corvo_perto() != null:
+		contrata()
+		return
 	if it == null and bau_perto() == null and gaveta_perto() != null:
 		var g: Gaveta = gaveta_perto()
 		revistou.emit()
@@ -1864,6 +1867,80 @@ func _passa_segura(dt: float) -> void:
 		if _cura_segura >= 1.0:
 			vida = mini(vida_max(), vida + int(_cura_segura))
 			_cura_segura -= int(_cura_segura)
+
+
+## 12/11 (dono): Corvos aliados. Com trégua (pedágio pago), chegar perto de um Corvo e USAR contrata (até 3, cada um
+## mais caro). Ordens para todos: Zumbi.Ordem (SEGUIR, PARADO, ATACAR); -1 dispensa.
+## shortcut: o servidor não confere o dinheiro do cliente (ele fica no aparelho); vale para jogo entre amigos.
+const ALIADO_PRECO: Array[int] = [200, 350, 500]
+var ordem_aliados: int = 0
+
+
+func meus_aliados() -> Array:
+	var r: Array = []
+	for n: Node in get_tree().get_nodes_in_group("aliados"):
+		if (n as Zumbi).dono_peer == get_multiplayer_authority():
+			r.append(n)
+	return r
+
+
+func corvo_perto() -> Zumbi:
+	if vida <= 0 or carro != null or not tem_tregua():
+		return null
+	for n: Node in get_tree().get_nodes_in_group("zumbis"):
+		var z := n as Zumbi
+		if z and z.vida > 0 and z.dono_peer == 0 and not z.lider and z.humano() and z.global_position.distance_to(global_position) < 3.5:
+			return z
+	return null
+
+
+func contrata() -> void:
+	var z: Zumbi = corvo_perto()
+	if z == null:
+		return
+	var n: int = meus_aliados().size()
+	if n >= Zumbi.ALIADOS_MAX:
+		item_pego.emit("aliado_cheio", 0)
+		return
+	if dinheiro < ALIADO_PRECO[n]:
+		item_pego.emit("aliado_caro", ALIADO_PRECO[n])
+		return
+	dinheiro -= ALIADO_PRECO[n]
+	item_pego.emit("aliado_novo", n + 1)
+	if multiplayer.is_server():
+		z.vira_aliado(self)
+	else:
+		_pede_contratar.rpc_id(1, get_path_to(z))
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _pede_contratar(caminho: NodePath) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority():
+		var z := get_node_or_null(caminho) as Zumbi
+		if z and z.vida > 0 and z.humano() and z.dono == null and not z.lider and meus_aliados().size() < Zumbi.ALIADOS_MAX:
+			z.vira_aliado(self)
+
+
+func ordena(o: int) -> void:
+	ordem_aliados = maxi(o, 0)
+	if multiplayer.is_server():
+		_aplica_ordem(o)
+	else:
+		_pede_ordem.rpc_id(1, o)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _pede_ordem(o: int) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority():
+		_aplica_ordem(o)
+
+
+func _aplica_ordem(o: int) -> void:
+	for z: Zumbi in meus_aliados():
+		if o < 0:
+			z.dispensa()
+		else:
+			z.recebe_ordem(o)
 
 
 func gaveta_perto() -> Gaveta:

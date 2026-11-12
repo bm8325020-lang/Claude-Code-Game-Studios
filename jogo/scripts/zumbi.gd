@@ -229,7 +229,7 @@ static func tique_sono() -> void:
 
 
 func _quieto() -> bool:
-	return alvo == null and raid == 0 and horda <= 0 and rota.is_empty() and not _indo_ouvir and _olhando_t <= 0.0 and not _voltando \
+	return (dono == null or ordem == Ordem.PARADO) and alvo == null and raid == 0 and horda <= 0 and rota.is_empty() and not _indo_ouvir and _olhando_t <= 0.0 and not _voltando \
 		and _foge_t <= 0.0 and _ataque_t < 0.0
 
 
@@ -417,8 +417,8 @@ func _ready() -> void:
 			_suja(-1, Color(0.22, 0.22, 0.25))  # roupa preta dos Corvos, sem cabeça torta nem sujeira
 			Anims.poe_mochila(modelo)
 			var nome := Label3D.new()
-			nome.text = "CORVO"
-			nome.modulate = Color(0.8, 0.15, 0.1)
+			nome.text = "ALIADO" if dono_peer != 0 else "CORVO"
+			nome.modulate = Color(0.35, 0.9, 0.45) if dono_peer != 0 else Color(0.8, 0.15, 0.1)
 			nome.font_size = 40
 			nome.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 			nome.position.y = 2.15
@@ -481,6 +481,199 @@ func _caca() -> void:
 			return
 	var a: float = randf() * TAU
 	ouve(casa + Vector3(cos(a), 0, sin(a)) * randf_range(15.0, CORVO_RONDA), INF)
+
+
+## 12/11 (dono: "um jeito de conseguir aliados... no máximo 3... inteligentes... só uma ajuda pra quem joga sozinho"):
+## Corvo ALIADO. Com trégua (pedágio pago) o jogador contrata um Corvo (Jogador.contrata). Ele segue o dono, atira nos
+## zumbis que vê e nos Corvos que caçam alguém, recua de zumbi colado, se cura fora de briga e se esconde de quem atira.
+## Ordens (Jogador.ordena): SEGUIR, PARADO, ATACAR. Mais fraco que o jogador de propósito (ALIADO_DANO/ACERTA/INTERVALO).
+enum Ordem { SEGUIR, PARADO, ATACAR }
+const ALIADOS_MAX: int = 3
+const ALIADO_VIDA: int = 220
+const ALIADO_DANO: int = 30
+const ALIADO_ACERTA: float = 0.5
+const ALIADO_INTERVALO: float = 1.7
+const ALIADO_VE: Array[float] = [16.0, 22.0, 30.0]  # m até onde procura briga, por ordem
+const ALIADO_RECUA: float = 4.5    # m: zumbi mais perto que isso -> corre para longe dele
+const ALIADO_LONGE: float = 28.0   # m do dono (seguindo): larga a briga e volta
+const ALIADO_SOME: float = 45.0    # m do dono: aparece do lado dele (ficou preso em algum lugar)
+const ALIADO_CURA: float = 3.0     # vida por segundo fora de briga
+var dono: Jogador                  # só no servidor
+var dono_peer: int = 0             # em todos (0 = não é aliado)
+var ordem: int = Ordem.SEGUIR
+var _posto: Vector3
+var _foi_aliado: bool = false
+var _cura_acc: float = 0.0
+var _aliado_i: int = 0
+var _vez_quadro: int = -100
+var _vez_sim: bool = false
+
+
+## Servidor: o Corvo passa a seguir `j`.
+func vira_aliado(j: Jogador) -> void:
+	dono = j
+	ordem = Ordem.SEGUIR
+	alvo = null
+	_alvo_z = null
+	de_raid = false
+	raid = 0
+	rota = []
+	_indo_ouvir = false
+	_voltando = false
+	_foge_t = 0.0
+	_mirando = -1.0
+	_foi_aliado = true
+	_vida_max = ALIADO_VIDA
+	vida = ALIADO_VIDA
+	_desperta()
+	_marca_aliado.rpc(j.get_multiplayer_authority())
+
+
+func recebe_ordem(o: int) -> void:
+	ordem = clampi(o, 0, 2)
+	_posto = global_position
+	_alvo_z = null
+	_desperta()
+
+
+## Servidor: dispensado, vai embora (some).
+func dispensa() -> void:
+	dono = null
+	_marca_aliado.rpc(0)
+	queue_free()
+
+
+@rpc("authority", "call_local", "reliable")
+func _marca_aliado(peer: int) -> void:
+	dono_peer = peer
+	if peer != 0:
+		add_to_group("aliados")
+	else:
+		remove_from_group("aliados")
+	if _fala_lbl:
+		_fala_lbl.text = "ALIADO" if peer != 0 else "CORVO"
+		_fala_lbl.modulate = Color(0.35, 0.9, 0.45) if peer != 0 else Color(0.8, 0.15, 0.1)
+
+
+func _ve_zumbi(z: Zumbi) -> bool:
+	var q0: int = Engine.get_physics_frames()
+	if q0 - _vez_quadro < VE_QUADROS * 2:
+		return _vez_sim
+	_vez_quadro = q0
+	var q := PhysicsRayQueryParameters3D.create(global_position + Vector3(0, 1.5, 0), z.global_position + Vector3(0, 1.2, 0), 1 | Porta.CAMADA)
+	_vez_sim = get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+	return _vez_sim
+
+
+## Aliado (a cada 0,3 s): escolhe em quem atirar. Zumbi atrás do dono vem primeiro; Corvo só se estiver caçando alguém.
+## ATACAR procura em volta do dono e aceita alvo que não vê (anda até ver).
+func _procura_ameaca() -> void:
+	_aliado_i = 0
+	for n: Node in get_tree().get_nodes_in_group("aliados"):
+		if n == self:
+			break
+		if (n as Zumbi).dono == dono:
+			_aliado_i += 1
+	var centro: Vector3 = dono.global_position if ordem == Ordem.ATACAR else global_position
+	var melhor: float = ALIADO_VE[ordem]
+	var achou: Zumbi = null
+	var cego: Zumbi = null
+	var espaco := get_world_3d().direct_space_state
+	for n: Node in get_tree().get_nodes_in_group("zumbis"):
+		var z := n as Zumbi
+		if z == null or z == self or z.vida <= 0 or z.dono != null or (z.humano() and z.alvo == null):
+			continue
+		var d: float = z.global_position.distance_to(centro) * (0.6 if z.alvo == dono else 1.0)
+		if d < melhor:
+			var q := PhysicsRayQueryParameters3D.create(global_position + Vector3(0, 1.5, 0), z.global_position + Vector3(0, 1.2, 0), 1 | Porta.CAMADA)
+			if espaco.intersect_ray(q).is_empty():
+				melhor = d
+				achou = z
+			elif ordem == Ordem.ATACAR and cego == null:
+				cego = z
+	_alvo_z = achou if achou else cego
+
+
+func _tiro_aliado(dt: float, z: Zumbi) -> void:
+	_tiro_z_t -= dt
+	_toca("pistola_mira" if _tiro_z_t > 0.15 else "pistola_tiro", 0.12)
+	if _tiro_z_t > 0.0:
+		return
+	_tiro_z_t = ALIADO_INTERVALO * randf_range(0.8, 1.3)
+	var mira: Vector3 = z.global_position + Vector3(0, 1.3, 0)
+	if randf() < ALIADO_ACERTA:
+		z.levar_golpe(ALIADO_DANO, (z.global_position - global_position).normalized() * 0.3, self)
+	else:
+		mira += Vector3(randf_range(-1.0, 1.0), randf_range(-0.4, 0.8), randf_range(-1.0, 1.0))
+	Zumbi.barulho(get_tree(), global_position, Pistola.BARULHO * 0.6)  # o tiro dele também chama os mortos
+	_tiro_fx.rpc(mira)
+
+
+## Aliado, todo quadro: devolve para onde andar (zero = fica).
+func _pensa_aliado(dt: float) -> Vector3:
+	var pd: Vector3 = dono.global_position
+	var dd: float = _plano(pd - global_position)
+	var z: Zumbi = _alvo_z if _alvo_z and is_instance_valid(_alvo_z) and _alvo_z.vida > 0 else null
+	if ordem != Ordem.PARADO and dd > ALIADO_SOME and dono.vida > 0:
+		var mapa: RID = _agente.get_navigation_map()
+		var p: Vector3 = pd + Vector3(1.6, 0.0, 1.6)
+		global_position = (NavigationServer3D.map_get_closest_point(mapa, p) if mapa.is_valid() else p) + Vector3(0, 0.15, 0)
+		velocity = Vector3.ZERO
+		_alvo_z = null
+		return Vector3.ZERO
+	if ordem == Ordem.SEGUIR and dd > ALIADO_LONGE:
+		z = null  # o dono foi embora: larga a briga e corre atrás
+	if z == null:
+		_foge_t = 0.0
+		if vida < _vida_max:
+			_cura_acc += ALIADO_CURA * dt
+			if _cura_acc >= 1.0:
+				vida = mini(_vida_max, vida + int(_cura_acc))
+				_cura_acc -= int(_cura_acc)
+	else:
+		var dz3: Vector3 = z.global_position - global_position
+		dz3.y = 0.0
+		var dz: float = dz3.length()
+		if z.humano():  # tiroteio com Corvo inimigo: fica atrás de algo, sai, atira e volta
+			if _foge_t > 0.0:
+				_foge_t -= dt
+				if _abrigo != Vector3.INF and _plano(_abrigo - global_position) > 0.6:
+					return _caminho(_abrigo, CORRER * 1.15 * _vel, dt)
+				_vira_para(dz3, dt * 4.0)
+				return Vector3.ZERO
+			if _cobre_cd <= 0.0:
+				_abrigo = _acha_abrigo(z)
+				_foge_t = CORVO_COBRE
+				_cobre_cd = 6.0
+		else:
+			if dz < 1.7:  # zumbi colado morde
+				_mordido_acc += CORVO_MORDIDO_DPS * dt
+				if _mordido_acc >= 1.0:
+					_aplica(int(_mordido_acc), -dz3.normalized() * 0.2)
+					_mordido_acc -= int(_mordido_acc)
+			if dz < ALIADO_RECUA or (vida < _vida_max * 0.35 and dz < 10.0):
+				# não troca soco com morto: corre para longe dele, puxando para o lado do dono
+				var foge: Vector3 = -dz3.normalized()
+				if ordem != Ordem.PARADO and dd > 2.0:
+					foge += (pd - global_position).normalized() * 0.7
+				foge.y = 0.0
+				return _caminho(global_position + foge.normalized() * 5.0, CORRER * 1.15 * _vel, dt)
+		if _ve_zumbi(z):
+			_vira_para(dz3, dt * 4.0)
+			_tiro_aliado(dt, z)
+			return Vector3.ZERO
+		if ordem != Ordem.PARADO:
+			return _caminho(z.global_position, CORRER * _vel, dt)  # sem linha de tiro: anda até ver
+		return Vector3.ZERO
+	if ordem == Ordem.PARADO:
+		return _caminho(_posto, ANDAR * 1.5, dt) if _plano(_posto - global_position) > 1.0 else Vector3.ZERO
+	if dd < 1.5:  # em cima do dono: sai da frente
+		var sai: Vector3 = global_position - pd
+		sai.y = 0.0
+		return (sai.normalized() if sai.length() > 0.05 else Vector3.RIGHT) * ANDAR * 1.5
+	if dd > 2.6 + 1.3 * float(_aliado_i):  # cada um na sua distância, atrás de quem anda
+		return _caminho(pd, clampf(dd * 0.9, ANDAR * 1.3, 6.5), dt)
+	return Vector3.ZERO
 
 
 func humano() -> bool:
@@ -595,7 +788,7 @@ func _physics_process(dt: float) -> void:
 	if vida <= 0:
 		_morto_t -= dt
 		if _morto_t <= 0.0 and _manda():  # só o servidor ressuscita (a vida é dele)
-			if horda != 0:
+			if horda != 0 or _foi_aliado:
 				queue_free()
 				return
 			# dono 07/11: "matou e já spawna de novo, não faz sentido": só levanta de novo longe dos jogadores
@@ -631,8 +824,14 @@ func _physics_process(dt: float) -> void:
 	_sem_gritar -= dt
 	if _procura_t <= 0.0:
 		_procura_t = 0.3
-		_escolhe_alvo()
-		if humano() and alvo == null:
+		if dono != null and not is_instance_valid(dono):
+			queue_free()  # o dono saiu do jogo
+			return
+		if dono != null:
+			_procura_ameaca()
+		else:
+			_escolhe_alvo()
+		if humano() and alvo == null and dono == null:
 			_procura_zumbi()
 		if not humano() and alvo != null:  # 12/11: medido (10 us com 20 zumbis): pode ser toda volta; só quem tem alvo cerca
 			_calcula_cerco()
@@ -651,6 +850,8 @@ func _physics_process(dt: float) -> void:
 			_vira_para(alvo.global_position - global_position, dt)
 	elif _ataque_t >= 0.0:
 		_atualiza_ataque(dt)
+	elif dono != null:
+		desejada = _pensa_aliado(dt)
 	elif _mirando >= 0.0:
 		_mira_e_atira(dt)
 	elif humano() and alvo == null and _alvo_z and is_instance_valid(_alvo_z) and _alvo_z.vida > 0:
@@ -751,7 +952,7 @@ func _physics_process(dt: float) -> void:
 			desejada = _caminho(casa, VOLTA, dt)
 	# porta fechada no caminho: para e soca a porta
 	var porta: Porta = null
-	if _ataque_t < 0.0 and _cambaleio <= 0.0 and _grito_t < 0.0 and _levantando < 0.0:
+	if _ataque_t < 0.0 and _cambaleio <= 0.0 and _grito_t < 0.0 and _levantando < 0.0 and dono == null:  # aliado não soca porta
 		var rumo: Vector3 = desejada
 		if alvo and rumo.length() < 0.01:
 			rumo = alvo.global_position - global_position
@@ -916,6 +1117,9 @@ func _vira_para(d: Vector3, dt: float) -> void:
 
 # o jogador vivo mais perto que dá para ver (ou que está bem perto)
 func _escolhe_alvo() -> void:
+	if dono != null:
+		alvo = null  # aliado nunca caça jogador
+		return
 	if humano() and alvo and is_instance_valid(alvo) and alvo.tem_tregua():
 		alvo = null  # 07/11: pagou o pedágio: o Corvo deixa passar
 	if alvo and is_instance_valid(alvo) and alvo.segura and not luta:
@@ -1031,9 +1235,11 @@ func _grita() -> void:
 
 
 # ponto perto (na malha) onde o alvo não enxerga o peito do zumbi, sem chegar mais perto dele; INF = nenhum
-func _acha_abrigo() -> Vector3:
+func _acha_abrigo(de: CollisionObject3D = null) -> Vector3:
+	if de == null:
+		de = alvo
 	var mapa: RID = _agente.get_navigation_map()
-	var olho: Vector3 = alvo.global_position + Vector3(0, 1.5, 0)
+	var olho: Vector3 = de.global_position + Vector3(0, 1.5, 0)
 	var espaco := get_world_3d().direct_space_state
 	var melhor := Vector3.INF
 	var custo: float = INF
@@ -1041,12 +1247,12 @@ func _acha_abrigo() -> Vector3:
 		for k in 16:
 			var a: float = TAU * k / 16.0
 			var p: Vector3 = global_position + Vector3(sin(a), 0, cos(a)) * raio
-			if _plano(p - alvo.global_position) < maxf(4.0, _plano(global_position - alvo.global_position) - 1.0):
+			if _plano(p - de.global_position) < maxf(4.0, _plano(global_position - de.global_position) - 1.0):
 				continue  # não se esconde indo na direção de quem atira
-			var q := PhysicsRayQueryParameters3D.create(olho, p + Vector3(0, 1.0, 0), 1 | Porta.CAMADA, [alvo.get_rid()])
+			var q := PhysicsRayQueryParameters3D.create(olho, p + Vector3(0, 1.0, 0), 1 | Porta.CAMADA, [de.get_rid()])
 			if espaco.intersect_ray(q).is_empty():
 				continue  # dali o alvo vê
-			var c: float = _custo_caminho(mapa, p)
+			var c: float = _custo_caminho(mapa, p, de)
 			if c < custo:
 				custo = c
 				melhor = p
@@ -1059,12 +1265,14 @@ func _acha_abrigo() -> Vector3:
 
 # comprimento do caminho até `p`; INF se o caminho passa a menos de 3 m do alvo (não corre do lado de quem atira)
 # 08/11 horda: linha reta em vez do caminho na malha (64 pedidos de ~5 ms davam um tranco de 300 ms no Corvo ferido)
-func _custo_caminho(_mapa: RID, p: Vector3) -> float:
+func _custo_caminho(_mapa: RID, p: Vector3, de: Node3D = null) -> float:
+	if de == null:
+		de = alvo
 	var cam := PackedVector3Array([global_position, p])
 	var total: float = 0.0
 	for i in range(1, cam.size()):
-		var meio: Vector3 = Geometry3D.get_closest_point_to_segment(alvo.global_position, cam[i - 1], cam[i])
-		if _plano(meio - alvo.global_position) < 3.0:
+		var meio: Vector3 = Geometry3D.get_closest_point_to_segment(de.global_position, cam[i - 1], cam[i])
+		if _plano(meio - de.global_position) < 3.0:
 			return INF
 		total += cam[i - 1].distance_to(cam[i])
 	return total
@@ -1338,7 +1546,7 @@ func resultado_mordida(escapou: bool) -> void:
 
 
 func levar_golpe(dano: int, dir: Vector3, quem: Node) -> void:
-	if vida <= 0:
+	if vida <= 0 or (dono_peer != 0 and quem is Jogador):  # bala do jogador não fere aliado
 		return
 	if humano() and quem is Jogador and (quem as Jogador).tem_tregua():
 		(quem as Jogador).tregua_dia = -1  # bateu num Corvo: acabou a trégua
@@ -1508,6 +1716,11 @@ func _morre() -> void:
 			if jj and jj.vida > 0 and jj.global_position.distance_to(global_position) < GAS_RAIO:
 				jj.levar_dano(GAS_DANO, (jj.global_position - global_position).normalized() * 0.5)
 		_gas_fx.rpc(global_position)
+	if dono_peer != 0 and _manda():
+		if dono and is_instance_valid(dono):
+			dono.item_pego.emit("aliado_morreu", 0)
+		dono = null
+		_marca_aliado.rpc(0)
 	if humano() and _manda():  # 06/11: Corvo morto larga munição da pistola dele
 		var principal := get_tree().get_first_node_in_group("principal")
 		if principal:
