@@ -64,7 +64,10 @@ func passa(m: Node, dt: float) -> void:
 		if z.horda == Zumbi.AMBIENTE and z.alvo == null and z.vida > 0 \
 				and not m.jogadores.get_children().any(func(o: Jogador) -> bool: return o.global_position.distance_to(z.global_position) < SOME):
 			z.queue_free()
-	if zs.size() >= orcamento() or na_cidade.is_empty():
+	# 12/11: o teto conta só quem está acordado. Os ~170 fixos da cidade dormem longe (custam quase nada desde o sono de
+	# verdade) e antes enchiam o teto sozinhos: a população em volta do jogador nunca nascia e a cidade ficava vazia.
+	var acordados: int = zs.filter(func(z: Zumbi) -> bool: return not z._no_sono).size()
+	if acordados >= orcamento() or na_cidade.is_empty():
 		return
 	var j: Jogador = null  # quem tem menos zumbis perto ganha o grupo
 	var menos: int = ALVO_PERTO
@@ -74,7 +77,7 @@ func passa(m: Node, dt: float) -> void:
 			menos = n
 			j = o
 	if j:
-		solta(m, j, mini(_rng.randi_range(2, 4), orcamento() - zs.size()))
+		solta(m, j, mini(_rng.randi_range(2, 4), orcamento() - acordados))
 
 
 ## Teto pela qualidade (anti-lag 06/11): celular fraco segura menos zumbis vivos ao mesmo tempo.
@@ -86,7 +89,22 @@ static func orcamento() -> int:
 func solta(m: Node, j: Jogador, n: int) -> bool:
 	var mapa: RID = (m as Node3D).get_world_3d().navigation_map
 	var espaco: PhysicsDirectSpaceState3D = (m as Node3D).get_world_3d().direct_space_state
-	for tentativa in 8:
+	# 12/11 anti-lag: primeiro tenta os pontos de zumbi da cidade (já estão no chão andável): nenhuma busca na malha
+	# (cada "ponto mais perto na malha" custava ~3 ms e eram até 8 por vez = solavanco a cada 4 s)
+	var anel: Array = []
+	if m.bairro:
+		for pz: Vector3 in m.bairro.pontos_zumbi:
+			var dz: float = pz.distance_to(j.global_position)
+			if dz >= NASCE_MIN and dz <= NASCE_MAX:
+				anel.append(pz)
+	for tentativa in mini(anel.size(), 6):
+		var pa: Vector3 = anel[_rng.randi() % anel.size()]
+		if _perto_de_alguem(m, pa, NASCE_MIN) or _a_vista(espaco, j, pa):
+			continue
+		for k in n:
+			m.zumbi_na_fila({"pos": pa + Vector3(_rng.randf_range(-1.2, 1.2), 0.0, _rng.randf_range(-1.2, 1.2)), "horda": Zumbi.AMBIENTE})
+		return true
+	for tentativa in 2:  # sem ponto bom no anel: o jeito antigo, mas só 2 buscas na malha por vez (era 8)
 		var ang: float = _rng.randf() * TAU
 		var quer: Vector3 = j.global_position + Vector3(sin(ang), 0, cos(ang)) * _rng.randf_range(NASCE_MIN, NASCE_MAX)
 		# 08/11 horda travando: o ponto mais perto na malha custa ~3 ms (varre a malha da cidade); antes dele, o que é
@@ -99,7 +117,7 @@ func solta(m: Node, j: Jogador, n: int) -> bool:
 		if _perto_de_alguem(m, p, NASCE_MIN) or _a_vista(espaco, j, p):
 			continue  # dá para ver de onde ele está: nasceria na tela
 		for k in n:
-			m.spawner_zumbis.spawn({"pos": p + Vector3(_rng.randf_range(-3, 3), 0.1, _rng.randf_range(-3, 3)), "horda": Zumbi.AMBIENTE})
+			m.zumbi_na_fila({"pos": p + Vector3(_rng.randf_range(-3, 3), 0.1, _rng.randf_range(-3, 3)), "horda": Zumbi.AMBIENTE})
 		return true
 	return false
 

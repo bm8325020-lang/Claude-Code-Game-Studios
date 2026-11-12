@@ -464,17 +464,41 @@ func _tira_mochila(cf: ConfigFile) -> void:
 ## 07/11: app indo para o fundo (celular), janela fechando ou foco saindo: salva a mochila na hora.
 func _notification(what: int) -> void:
 	if what in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_APPLICATION_FOCUS_OUT]:
-		_salva_mochila()
+		_salva_mochila(true)
 
 
 ## Salva só a mochila (sem mexer no passo nem avisar), de tempo em tempo.
-func _salva_mochila() -> void:
+## 12/11 anti-lag: o arquivo fica em memória e a gravação vai para outra linha de execução (gravar no celular trava o
+## quadro); `ja` = grava na hora (app indo para o fundo/fechando: pode não ter depois).
+static var _trava := Mutex.new()
+var _cf_salvo: ConfigFile
+
+
+func _salva_mochila(ja: bool = false) -> void:
 	if _salvo == "" or _j == null or _j.vida <= 0:
 		return
-	var cf := ConfigFile.new()
-	cf.load(_salvo)
-	_poe_mochila(cf)
-	cf.save(_salvo)
+	if _cf_salvo == null:
+		_cf_salvo = ConfigFile.new()
+		_cf_salvo.load(_salvo)
+	_poe_mochila(_cf_salvo)
+	_grava(_cf_salvo, ja)
+
+
+func _grava(cf: ConfigFile, ja: bool) -> void:
+	if ja:
+		_trava.lock()
+		cf.save(_salvo)
+		_trava.unlock()
+		return
+	var txt: String = cf.encode_to_text()
+	var caminho: String = _salvo
+	WorkerThreadPool.add_task(func() -> void:
+		_trava.lock()
+		var f := FileAccess.open(caminho, FileAccess.WRITE)
+		if f:
+			f.store_string(txt)
+			f.close()
+		_trava.unlock())
 
 
 func _salva() -> void:
@@ -487,7 +511,8 @@ func _salva() -> void:
 	cf.set_value("historia", "stats", _stats)
 	cf.set_value("historia", "ng", ng)
 	_poe_mochila(cf)
-	cf.save(_salvo)
+	_cf_salvo = cf
+	_grava(cf, false)
 	var c := get_parent()
 	if c and c.has_method("aviso"):
 		get_tree().create_timer(7.5).timeout.connect(func() -> void:
@@ -975,9 +1000,7 @@ func _noite_final(dt: float) -> void:
 		var principal := get_tree().get_first_node_in_group("principal")
 		for k in ONDA_ZUMBIS:
 			var a: float = randf() * TAU
-			var z: Zumbi = principal.spawner_zumbis.spawn({"pos": _chao(_heliponto + Vector3(cos(a), 0, sin(a)) * randf_range(28.0, 40.0)) + Vector3(0, 0.1, 0), "horda": Zumbi.DO_MORTO})
-			if z:
-				z.alvo = _j
+			principal.zumbi_na_fila({"pos": _chao(_heliponto + Vector3(cos(a), 0, sin(a)) * randf_range(28.0, 40.0)) + Vector3(0, 0.1, 0), "horda": Zumbi.DO_MORTO}, _da_alvo)
 	if _resiste_t >= NOITE_FINAL_T:
 		evento("sobreviveu")
 
@@ -1007,6 +1030,20 @@ func _comeca_luta() -> void:
 	_alvo = _onda_centro
 
 
+## Zumbi da fila de nascimento (main.zumbi_na_fila) chegou: vem atrás de você / entra na onda da luta.
+func _da_alvo(z: Zumbi) -> void:
+	if z and _j and is_instance_valid(_j):
+		z.alvo = _j
+
+
+func _entra_na_onda(z: Zumbi) -> void:
+	if z == null:
+		return
+	z.alvo = _j
+	z.luta = true
+	_onda_nos.append(z)
+
+
 func _luta(dt: float) -> void:
 	for z: Variant in _onda_nos.duplicate():
 		if z == null or not is_instance_valid(z) or (z as Zumbi).vida <= 0:
@@ -1033,11 +1070,11 @@ func _luta(dt: float) -> void:
 			if principal and _servidor():
 				for k in n:
 					var a: float = TAU * k / n + randf() * 0.4
-					var z: Zumbi = principal.spawner_zumbis.spawn({"pos": _chao(_onda_centro + Vector3(cos(a), 0, sin(a)) * float(_cfg.raio) * randf_range(0.6, 0.95)) + Vector3(0, 0.1, 0), "horda": Zumbi.DO_MORTO})
-					if z:
-						z.alvo = _j
-						z.luta = true
-						_onda_nos.append(z)
+					var dz := {"pos": _chao(_onda_centro + Vector3(cos(a), 0, sin(a)) * float(_cfg.raio) * randf_range(0.6, 0.95)) + Vector3(0, 0.1, 0), "horda": Zumbi.DO_MORTO}
+					if k == 0:
+						_entra_na_onda(principal.spawner_zumbis.spawn(dz))  # o primeiro já: a onda só acaba com a lista vazia
+					else:
+						principal.zumbi_na_fila(dz, _entra_na_onda)  # 12/11: o resto um por quadro
 			var c := get_parent()
 			if c and c.has_method("aviso"):
 				c.aviso("ONDA %d/%d" % [int(_cfg.ondas) - _onda_resta, int(_cfg.ondas)], Color(1.0, 0.4, 0.3), 2.0)
@@ -1099,9 +1136,7 @@ func _chefe_ui() -> void:
 				d.merge({"armado": true, "tipo": "corvo", "de_raid": true})
 			else:
 				d.horda = Zumbi.DO_MORTO
-			var r: Zumbi = principal.spawner_zumbis.spawn(d)
-			if r:
-				r.alvo = _j
+			principal.zumbi_na_fila(d, _da_alvo)
 		legenda(qual.to_upper(), "Corvos, comigo!" if qual == "wade" else "(o Sargento solta um berro que ecoa pela quarentena)", 3.5, false)
 
 
@@ -1154,9 +1189,7 @@ func _susto() -> void:
 	if _servidor():
 		var atras: Vector3 = -_j.global_basis.z
 		for k in 4:
-			var z: Zumbi = principal.spawner_zumbis.spawn({"pos": _chao(_j.global_position - atras * 7.0 + Vector3(k * 1.2 - 2.0, 0, 0)) + Vector3(0, 0.1, 0), "horda": Zumbi.DO_MORTO})
-			if z:
-				z.alvo = _j
+			principal.zumbi_na_fila({"pos": _chao(_j.global_position - atras * 7.0 + Vector3(k * 1.2 - 2.0, 0, 0)) + Vector3(0, 0.1, 0), "horda": Zumbi.DO_MORTO}, _da_alvo)
 
 
 func _trofeu(nome: String) -> void:

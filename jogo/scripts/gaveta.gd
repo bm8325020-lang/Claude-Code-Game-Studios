@@ -110,10 +110,48 @@ func _tampa() -> Node3D:
 
 
 ## A gaveta fechada mais perto de `pos` a até ALCANCE (null se nenhuma).
+## 12/11 anti-lag: eram 2.061 gavetas varridas 7x por segundo (1,3 ms cada vez = solavanco). As de móvel não andam:
+## ficam numa grade de CELULA m (refeita se o mundo mudar); só as de porta-malas (o carro anda) são olhadas uma a uma.
+const CELULA: float = 6.0
+static var _grade: Dictionary = {}
+static var _soltas: Array = []
+static var _grade_n: int = -1
+static var _grade_id: int = 0
+
+
+static func _monta_grade(arvore: SceneTree) -> void:
+	_grade.clear()
+	_soltas.clear()
+	var nos: Array = arvore.get_nodes_in_group("gavetas")
+	_grade_n = nos.size()
+	_grade_id = (nos[0] as Node).get_instance_id() if not nos.is_empty() else 0
+	for n: Node in nos:
+		var g := n as Gaveta
+		if g.movel == "porta_malas":
+			_soltas.append(g)
+			continue
+		var q: Vector3 = g.ponto()
+		var c := Vector2i(floori(q.x / CELULA), floori(q.z / CELULA))
+		if not _grade.has(c):
+			_grade[c] = []
+		(_grade[c] as Array).append(g)
+
+
 static func perto(arvore: SceneTree, pos: Vector3) -> Gaveta:
+	var prim: Node = arvore.get_first_node_in_group("gavetas")
+	if arvore.get_node_count_in_group("gavetas") != _grade_n or (prim.get_instance_id() if prim else 0) != _grade_id:
+		_monta_grade(arvore)
+	var cand: Array = _soltas.duplicate()
+	var c0 := Vector2i(floori(pos.x / CELULA), floori(pos.z / CELULA))
+	for dx in [-1, 0, 1]:
+		for dz in [-1, 0, 1]:
+			cand.append_array(_grade.get(c0 + Vector2i(dx, dz), []))
 	var melhor: Gaveta = null
 	var dist: float = ALCANCE
-	for n: Node in arvore.get_nodes_in_group("gavetas"):
+	for n: Variant in cand:
+		if not is_instance_valid(n):
+			_grade_n = -1  # alguém saiu do mundo: refaz na próxima
+			continue
 		var g := n as Gaveta
 		if g.aberta:
 			continue

@@ -181,6 +181,53 @@ var _reto: bool = false  # perto e sem nada no meio: vai reto sem a malha
 var _porta_t: float = 0.0
 
 
+## 12/11 anti-lag: zumbi dormindo (longe de todos e quieto) desliga o _process e o _physics_process dele; quem acorda é
+## o `tique_sono` (main chama todo quadro; olha 1/30 dos dorminhocos por vez = cada um a cada ~0,5 s). Antes os 170 do
+## mundo rodavam os dois todo quadro só para descobrir que estavam dormindo (~1/3 da CPU do jogo).
+static var _sono: Array = []
+static var _sono_i: int = 0
+var _no_sono: bool = false
+
+
+func _adormece() -> void:
+	if _no_sono:
+		return
+	_no_sono = true
+	_sono.append(self)
+	set_physics_process(false)
+	set_process(false)
+	if modelo and not Rede.servidor_sem_tela:
+		modelo.visible = _dist_jog < VE_ATE
+
+
+func _desperta() -> void:
+	if not _no_sono:
+		return
+	_no_sono = false
+	_sono.erase(self)
+	_dormindo = false
+	_dorme_t = 0.5
+	set_physics_process(true)
+	set_process(true)
+
+
+static func tique_sono() -> void:
+	for k in maxi(1, ceili(_sono.size() / 30.0)):
+		if _sono.is_empty():
+			return
+		_sono_i = (_sono_i + 1) % _sono.size()
+		var v: Variant = _sono[_sono_i]
+		if not is_instance_valid(v):
+			_sono.remove_at(_sono_i)
+			continue
+		var z: Zumbi = v
+		z._dist_jog = z._mais_perto()
+		if not z._pensa_aqui() or not z._quieto() or z._dist_jog <= DORME_DIST or z.vida <= 0:
+			z._desperta()
+		elif z.modelo and not Rede.servidor_sem_tela:
+			z.modelo.visible = z._dist_jog < VE_ATE
+
+
 func _quieto() -> bool:
 	return alvo == null and raid == 0 and horda <= 0 and rota.is_empty() and not _indo_ouvir and _olhando_t <= 0.0 and not _voltando \
 		and _foge_t <= 0.0 and _ataque_t < 0.0
@@ -346,6 +393,10 @@ func _ready() -> void:
 	# Corvo anda, corre e mira como gente (clipes do jogador com pistola); zumbi usa os dele
 	anim.add_animation_library("", Anims.adaptada(Anims.biblioteca() if humano() else Anims.biblioteca_zumbi(), cara))
 	_agente = NavigationAgent3D.new()
+	if "path_search_max_polygons" in _agente:
+		# 12/11 anti-lag: caminho para longe varria a malha da cidade inteira (3-5 ms no PC, pico no celular a cada zumbi
+		# da horda). Com o teto, a busca para cedo e devolve o trecho que chega mais perto; ele refaz ao chegar no fim.
+		_agente.set("path_search_max_polygons", BUSCA_MAX)
 	_agente.radius = RAIO + 0.05
 	_agente.height = ALTURA
 	_agente.path_desired_distance = 0.3  # 0,6 dava a quina por alcançada cedo e ele raspava na parede
@@ -529,6 +580,7 @@ func _physics_process(dt: float) -> void:
 			_dist_jog = _mais_perto()
 			_dormindo = _quieto() and _dist_jog > DORME_DIST
 		if _dormindo and _quieto() and vida > 0:  # morto conta o tempo de voltar mesmo longe (só volta longe de todos)
+			_adormece()
 			return
 	if not _pensa_aqui():
 		global_position = global_position.lerp(pos_rede, 1.0 - exp(-14.0 * dt))
@@ -582,8 +634,7 @@ func _physics_process(dt: float) -> void:
 		_escolhe_alvo()
 		if humano() and alvo == null:
 			_procura_zumbi()
-		_cerco_n += 1
-		if not humano() and _cerco_n % 3 == 0:  # anti-lag (06/11): o cerco olha o bando todo; 1x a cada 0,9 s (Corvo não cerca)
+		if not humano() and alvo != null:  # 12/11: medido (10 us com 20 zumbis): pode ser toda volta; só quem tem alvo cerca
 			_calcula_cerco()
 	var desejada := Vector3.ZERO
 	if _levantando >= 0.0:
@@ -749,6 +800,9 @@ func _move_lod() -> void:
 
 
 # velocidade desejada para ir até `destino` pela malha de navegação
+const BUSCA_MAX: int = 900
+
+
 func _caminho(destino: Vector3, vel: float, dt: float) -> Vector3:
 	# 07/11 anti-travamento: trocar o alvo do agente pede um caminho novo; alvo andando = pedido todo quadro. Só troca
 	# quando o destino andou CAMINHO_REFAZ m (ou perto do fim, onde a precisão importa)
@@ -768,6 +822,8 @@ func _caminho(destino: Vector3, vel: float, dt: float) -> Vector3:
 			_reto = get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 		var anda: float = 0.3 if perto else CAMINHO_REFAZ
 		var quer: bool = not _reto and (estava_reto or _agente.target_position.distance_squared_to(destino) > anda * anda)
+		if not _reto and not quer and d2 > 9.0 and _agente.is_navigation_finished():
+			quer = true  # chegou ao fim de um caminho parcial (busca com teto): pede o resto
 		if quer and _pedidos_quadro() >= PEDIDOS_POR_QUADRO:
 			_refaz_t = randf_range(0.03, 0.1)  # fila: tenta de novo daqui a pouco (e segue o caminho velho)
 			_reto = estava_reto
@@ -835,6 +891,7 @@ static func barulho(arvore: SceneTree, ponto: Vector3, raio: float) -> void:
 func ouve(ponto: Vector3, raio: float) -> void:
 	if vida <= 0 or alvo != null or global_position.distance_to(ponto) > raio:
 		return
+	_desperta()  # barulho alcança quem dorme longe (sirene, buzina)
 	if _deitado:
 		if global_position.distance_to(ponto) > ACORDA_BARULHO:
 			return
@@ -1307,6 +1364,7 @@ func _pede_golpe(dano: int, dir: Vector3) -> void:
 
 
 func _aplica(dano: int, dir: Vector3) -> void:
+	_desperta()  # levou golpe dormindo (tiro de longe): acorda para reagir/morrer
 	if imune:
 		return  # líder da horda: só morre depois dos outros
 	dano = maxi(1, roundi(dano * Config.DANO_NO_ZUMBI[clampi(int(Config.v.get("dificuldade", 1)), 0, 2)] * pow(0.88, Tarefas.ng)))  # 07/11: dificuldade e Novo Jogo+

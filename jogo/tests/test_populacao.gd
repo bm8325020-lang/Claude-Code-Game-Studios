@@ -44,12 +44,12 @@ func _init() -> void:
 		await frames(5)
 	var p := Populacao.new()
 	var achou: bool = false
-	for k in 10:
+	for k in 40:
 		achou = p.solta(main, j, 3)
 		if achou:
 			break
 	ok(achou, "acha lugar escondido para o grupo")
-	await frames(2)
+	await frames(12)  # 12/11: o grupo nasce um por quadro (fila anti-trava)
 	var amb: Array = main.zumbis.get_children().filter(func(z: Zumbi) -> bool: return z.horda == Zumbi.AMBIENTE)
 	ok(amb.size() == 3, "3 do ambiente (%d)" % amb.size())
 	var dmin: float = INF
@@ -68,7 +68,7 @@ func _init() -> void:
 	j.global_position = volta
 	await frames(2)
 	for k in Populacao.ORCAMENTO:
-		main.spawner_zumbis.spawn({"pos": j.global_position + Vector3(300, 0, 300)})
+		main.spawner_zumbis.spawn({"pos": j.global_position + Vector3(30, 0, 30)})  # 12/11: o teto conta os acordados (perto)
 	await frames(2)
 	var n0: int = main.zumbis.get_child_count()
 	p._t = 0.0

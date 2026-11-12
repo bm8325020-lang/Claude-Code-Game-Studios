@@ -51,9 +51,9 @@ func chamado(m: Node, armadilha: int = -1) -> bool:
 		var a: float = TAU * k / 5.0 + _rng.randf() * 0.5
 		var q: Vector3 = p + Vector3(cos(a), 0.1, sin(a)) * _rng.randf_range(4.0, 9.0)
 		if corvos:
-			m.spawner_zumbis.spawn({"pos": q, "armado": true, "tipo": "corvo", "de_raid": true})
+			m.zumbi_na_fila({"pos": q, "armado": true, "tipo": "corvo", "de_raid": true})
 		else:
-			m.spawner_zumbis.spawn({"pos": q, "horda": Zumbi.DO_MORTO})  # não renascem
+			m.zumbi_na_fila({"pos": q, "horda": Zumbi.DO_MORTO})  # não renascem
 	var rumo: Vector3 = p - (pj[1] as Node3D).global_position
 	m.aviso_todos.rpc("RÁDIO: \"Socorro! Estou cercado ao %s, uns %d m... tem suprimento aqui!\"" % [Horda.lado(rumo), int(rumo.length() / 10.0) * 10])
 	return true

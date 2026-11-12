@@ -105,7 +105,8 @@ func _ready() -> void:
 ## Rodar: godot --headless --main-pack servidor.pck -- dedicado   (com "ws": WebSocket na porta PORTA_WS, para o site)
 func iniciar_servidor() -> Error:
 	var ws: bool = "ws" in OS.get_cmdline_user_args()
-	Rede.servidor_sem_tela = DisplayServer.get_name() == "headless"
+	# DD_COM_TELA=1: ferramenta de medida sem janela, mas montando tudo que a tela monta (tools/picos.gd)
+	Rede.servidor_sem_tela = DisplayServer.get_name() == "headless" and OS.get_environment("DD_COM_TELA") == ""
 	if Rede.servidor_sem_tela:
 		Engine.physics_ticks_per_second = 30  # zumbis e colisões a 30 Hz bastam; cada celular roda o próprio a 60
 		Engine.max_fps = 30
@@ -319,6 +320,8 @@ func _aquece_shaders(j: Jogador) -> void:
 		if g is GeometryInstance3D and (g as GeometryInstance3D).material_override:
 			lista.append((g as GeometryInstance3D).material_override)
 		var malha: Mesh = (g as MeshInstance3D).mesh if g is MeshInstance3D else ((g as MultiMeshInstance3D).multimesh.mesh if g is MultiMeshInstance3D and (g as MultiMeshInstance3D).multimesh else null)
+		if g is CPUParticles3D:
+			malha = (g as CPUParticles3D).mesh  # fumaça e faísca do fogo
 		if malha:
 			for i in malha.get_surface_count():
 				if malha.surface_get_material(i):
@@ -338,7 +341,56 @@ func _aquece_shaders(j: Jogador) -> void:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		raiz.add_child(mi)
 		k += 1
-	get_tree().create_timer(0.3).timeout.connect(raiz.queue_free)
+	# 12/11 (dono: "do nada dá um pico de lag"): o que só aparece depois também compila na hora e trava. Então, ainda
+	# atrás da tela de carregamento: (1) luz de lanterna e de tiro/fogo em cima dos quadradinhos (o primeiro anoitecer
+	# ligava a lanterna e travava); (2) um boneco de cada zumbi/Corvo com cada pele (malha com esqueleto é outro shader e
+	# a textura só sobe para a placa quando aparece: o primeiro zumbi na tela travava); (3) sangue e clarão de tiro.
+	var spot := SpotLight3D.new()
+	spot.position = Vector3(0, 0, -0.05)
+	spot.spot_range = 2.0
+	spot.spot_angle = 70.0
+	spot.light_energy = 0.02
+	raiz.add_child(spot)
+	var omni := OmniLight3D.new()
+	omni.position = Vector3(0, 0, -0.3)
+	omni.omni_range = 1.5
+	omni.light_energy = 0.02
+	raiz.add_child(omni)
+	var mats_z: Dictionary = {}
+	var n_z: int = 0
+	for z: Node in zumbis.get_children():
+		var zz := z as Zumbi
+		if zz == null or zz.modelo == null or n_z >= 24:
+			continue
+		var novo: bool = false
+		for mi: MeshInstance3D in zz.modelo.find_children("*", "MeshInstance3D", true, false):
+			for i in (mi.mesh.get_surface_count() if mi.mesh else 0):
+				var mt: Material = mi.get_active_material(i)
+				if mt and not mats_z.has(mt.get_instance_id()):
+					mats_z[mt.get_instance_id()] = true
+					novo = true
+		if novo:
+			var copia: Node3D = zz.modelo.duplicate()
+			copia.visible = true
+			copia.scale = Vector3.ONE * 0.03
+			copia.position = Vector3((n_z % 12) * 0.05 - 0.3, -0.2 - (n_z / 12) * 0.08, -0.7)
+			raiz.add_child(copia)
+			n_z += 1
+	for par: Array in [[false, BaseMaterial3D.CULL_BACK], [true, BaseMaterial3D.CULL_DISABLED]]:  # rastro/clarão/gás
+		var mq := StandardMaterial3D.new()
+		mq.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mq.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mq.albedo_color = Color(1, 1, 1, 0.02)
+		mq.cull_mode = par[1]
+		var mi2 := MeshInstance3D.new()
+		mi2.mesh = q
+		mi2.material_override = mq
+		mi2.position = Vector3(0.3 if par[0] else 0.32, 0.2, -0.5)
+		raiz.add_child(mi2)
+	Pistola.sangue(get_tree(), j.camera.cam.global_position - j.camera.cam.global_basis.z * 0.9, Vector3.UP)
+	for t: String in Mochila.NOMES:  # ícones da mochila prontos: abrir a mochila pela primeira vez não trava
+		Icones.de(t)
+	get_tree().create_timer(0.5).timeout.connect(raiz.queue_free)
 
 
 ## Resolução dinâmica: o FPS caiu do alvo, a imagem 3D fica um pouco menor (o HUD não muda); melhorou, volta.
@@ -372,7 +424,23 @@ func _resolucao_dinamica(dt: float) -> void:
 	get_tree().root.scaling_3d_scale = float(Config.v.resolucao) * _res_escala
 
 
+## 12/11 anti-lag (dono: "do nada dá um pico de lag"): bando pedido de uma vez (horda de 13, onda da história, emboscada)
+## nascia inteiro no mesmo quadro: ~3 ms por zumbi no PC, mais de 100 ms de trava no celular. Agora entra numa fila e
+## nasce um por quadro; `depois` recebe o zumbi quando ele nasce (dar alvo, guardar na lista da onda).
+var _fila_zumbis: Array = []
+
+
+func zumbi_na_fila(d: Dictionary, depois: Callable = Callable()) -> void:
+	_fila_zumbis.append([d, depois])
+
+
 func _process(dt: float) -> void:
+	Zumbi.tique_sono()
+	if not _fila_zumbis.is_empty():
+		var f: Array = _fila_zumbis.pop_front()
+		var zf: Zumbi = spawner_zumbis.spawn(f[0])
+		if zf and (f[1] as Callable).is_valid():
+			(f[1] as Callable).call(zf)
 	if not Rede.servidor_sem_tela:
 		_resolucao_dinamica(dt)
 	if relay and multiplayer.multiplayer_peer != relay:
@@ -495,7 +563,11 @@ func inicia_raid(caido: int, pos: Vector3, valor: int, abates: int) -> void:
 	var n: int = Grupos.zumbis_raid(valor, abates)
 	for i in n:
 		var ang: float = TAU * float(i) / float(n)
-		spawner_zumbis.spawn({"pos": pos + Vector3(sin(ang), 0, cos(ang)) * randf_range(8.0, 12.0) + Vector3(0, 0.1, 0), "raid": caido})
+		var dr := {"pos": pos + Vector3(sin(ang), 0, cos(ang)) * randf_range(8.0, 12.0) + Vector3(0, 0.1, 0), "raid": caido}
+		if i == 0:
+			spawner_zumbis.spawn(dr)  # o primeiro já: a raid conta os vivos
+		else:
+			zumbi_na_fila(dr)
 	aviso_todos.rpc("Resgate! Matem os %d zumbis" % n)
 
 

@@ -68,6 +68,7 @@ func _process(dt: float) -> void:
 		_ang = atan2(-f.x, -f.z)
 	_metros = lerpf(_metros, METROS * (2.0 if jogador.carro else 1.0), minf(dt * 2.0, 1.0))
 	var p: Vector3 = jogador.global_position - Bairro.ORIGEM
+	_atualiza_cache(dt)
 	_mat.set_shader_parameter("pos", Vector2(p.x, p.z))
 	_mat.set_shader_parameter("ang", _ang)
 	_mat.set_shader_parameter("metros", _metros)
@@ -112,6 +113,52 @@ func _na_borda(q: Vector2) -> Array:
 	return [c + d * t, true]
 
 
+## 12/11 anti-lag: o desenho varria 2.061 gavetas, 179 baús e todos os zumbis A CADA QUADRO (custava ~1/3 da CPU do
+## jogo). Agora o que está perto fica em listas refeitas de tempo em tempo; gaveta e baú não andam: posições guardadas.
+const CACHE_A_CADA: float = 1.0
+const CACHE_ZUMBI: float = 0.25
+var _cache_t: float = 0.0
+var _cache_z_t: float = 0.0
+var _z_perto: Array = []
+var _baus_perto: Array = []
+var _gav_perto: Array = []
+var _gav_nos: Array = []
+var _gav_pos: PackedVector3Array = []
+
+
+func _atualiza_cache(dt: float) -> void:
+	var p: Vector3 = jogador.global_position
+	_cache_z_t -= dt
+	if _cache_z_t <= 0.0:
+		_cache_z_t = CACHE_ZUMBI
+		_z_perto.clear()
+		var m: Node = get_tree().get_first_node_in_group("principal")
+		if m and m.zumbis:
+			var lim: float = (SAQUEADOR_VE + 15.0) * (SAQUEADOR_VE + 15.0)
+			for z: Node in m.zumbis.get_children():
+				if (z as Node3D).global_position.distance_squared_to(p) < lim:
+					_z_perto.append(z)
+	_cache_t -= dt
+	if _cache_t > 0.0:
+		return
+	_cache_t = CACHE_A_CADA
+	var n: int = get_tree().get_node_count_in_group("gavetas")
+	if n != _gav_nos.size():  # mundo mudou (carregou): guarda de novo quem é gaveta de móvel e onde fica
+		_gav_nos.clear()
+		_gav_pos.clear()
+		for g: Node in get_tree().get_nodes_in_group("gavetas"):
+			_gav_nos.append(g)
+			_gav_pos.append((g as Node3D).global_position if (g as Gaveta).movel != "porta_malas" else Vector3.INF)
+	_gav_perto.clear()
+	for k in _gav_pos.size():
+		if _gav_pos[k].distance_squared_to(p) < 900.0:  # 30 m: quem pode entrar nos 15 m até a próxima volta
+			_gav_perto.append(_gav_nos[k])
+	_baus_perto.clear()
+	for b: Node in get_tree().get_nodes_in_group("baus"):
+		if (b as Node3D).global_position.distance_squared_to(p) < 2500.0:
+			_baus_perto.append(b)
+
+
 func _draw() -> void:
 	if not visible or jogador == null:
 		return
@@ -119,7 +166,9 @@ func _draw() -> void:
 	var m: Node = get_tree().get_first_node_in_group("principal")
 	# zumbis perto (pontinhos vermelhos, sem prender na borda)
 	if m and m.zumbis:
-		for z: Node in m.zumbis.get_children():
+		for z: Variant in _z_perto:
+			if not is_instance_valid(z):
+				continue
 			var zz := z as Zumbi
 			if zz == null or zz.vida <= 0:
 				continue
@@ -143,7 +192,9 @@ func _draw() -> void:
 			draw_circle(ql, 7.0, Color(0.15, 0.6, 0.25))
 			draw_string(get_theme_default_font(), ql + Vector2(-4, 5), "$", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
 	# 07/11: baús com loot a até 30 m (quadradinho amarelo; vazio não aparece)
-	for bn: Node in get_tree().get_nodes_in_group("baus"):
+	for bn: Variant in _baus_perto:
+		if not is_instance_valid(bn):
+			continue
 		var bb := bn as Bau
 		if bb == null or bb.conteudo.is_empty() or bb.global_position.distance_to(jogador.global_position) > 30.0:
 			continue
@@ -152,9 +203,11 @@ func _draw() -> void:
 			draw_rect(Rect2(qb - Vector2(3.5, 3.5), Vector2(7, 7)), Color(1.0, 0.82, 0.2))
 			draw_rect(Rect2(qb - Vector2(3.5, 3.5), Vector2(7, 7)), Color(0.1, 0.1, 0.1), false, 1.2)
 	# 07/11: gavetas e armários ainda não revistados a até 15 m (pontinho azul)
-	for gn: Node in get_tree().get_nodes_in_group("gavetas"):
+	for gn: Variant in _gav_perto:
+		if not is_instance_valid(gn):
+			continue
 		var gg := gn as Gaveta
-		if gg == null or gg.aberta or gg.movel == "porta_malas" or gg.global_position.distance_to(jogador.global_position) > 15.0:
+		if gg == null or gg.aberta or gg.global_position.distance_to(jogador.global_position) > 15.0:
 			continue
 		var qg: Vector2 = no_quadro(gg.global_position)
 		if Rect2(Vector2.ZERO, TAM).has_point(qg):

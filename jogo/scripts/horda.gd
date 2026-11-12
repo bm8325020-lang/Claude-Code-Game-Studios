@@ -69,7 +69,10 @@ func solta(m: Node, n: int) -> bool:
 				d.tipo = "zumbi_policial"
 			else:
 				d.pos += Vector3(_rng.randf_range(-4.0, 4.0), 0, _rng.randf_range(-4.0, 4.0))
-			m.spawner_zumbis.spawn(d)
+			if k == 0:
+				m.spawner_zumbis.spawn(d)  # o líder já (a horda existe enquanto tiver alguém vivo)
+			else:
+				m.zumbi_na_fila(d)  # 12/11: o resto um por quadro (13 de uma vez travava)
 		m.aviso_todos.rpc_id(j.get_multiplayer_authority(), "Uma horda vem do %s!" % lado(-rumo))
 		return true
 	return false
