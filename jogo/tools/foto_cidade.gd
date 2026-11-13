@@ -4,21 +4,15 @@
 # Depois da lista, opcional: qualidade (0 Batata .. 3 Ultra) e sombras (0/1), para medir o peso como no celular.
 extends SceneTree
 
-const VISTAS: Array = [  # RAVEN CREEK (tools/mapa/raven_creek.py)
-	[Vector3(28, -30, 1.7), Vector3(0, -142, 9)],          # 0 Town Square e a igreja
-	[Vector3(-80, -36, 1.7), Vector3(120, -40, 3)],        # 1 Main Street no centro
-	[Vector3(34, 60, 1.7), Vector3(30, -100, 4)],          # 2 Center St para o norte
-	[Vector3(-250, -250, 1.7), Vector3(-370, -360, 12)],   # 3 Raven Hill visto de baixo
-	[Vector3(200, -246, 1.7), Vector3(350, -250, 2)],      # 4 rua de casas no bairro norte
-	[Vector3(-300, 34, 1.7), Vector3(-420, 30, 2)],        # 5 rua de casas no bairro oeste
-	[Vector3(122, -100, 1.7), Vector3(122, -142, 6)],      # 6 hospital
-	[Vector3(-160, 4, 1.7), Vector3(-230, 0, 4)],          # 7 Food Mart e estacionamento
-	[Vector3(-320, 393, 1.7), Vector3(-420, 393, 1)],      # 8 cemitério
-	[Vector3(-120, 120, 90), Vector3(30, -60, 0)],         # 9 centro de cima
-	[Vector3(30, -440, 1.7), Vector3(30, -700, 45)],       # 10 a capital destruída ao longe (norte)
-	[Vector3(300, 140, 1.7), Vector3(420, 200, 4)],        # 11 zona industrial
-	[Vector3(30, 220, 1.7), Vector3(30, 290, 2)],          # 12 ponte sobre o Raven Creek
-	[Vector3(-300, -300, 160), Vector3(60, -40, 0)],       # 13 a cidade inteira de cima
+const VISTAS: Array = [  # GALENA (13/11, tools/mapa/senoia.py)
+	[Vector3(50, 10, 1.7), Vector3(200, -95, 4)],          # 0 Main Street (centro de tijolo) para o nordeste
+	[Vector3(-25, 95, 1.7), Vector3(-55, 175, 4)],         # 1 South Main para o sul (delegacia, hospital, mercado)
+	[Vector3(225, 145, 1.7), Vector3(300, 230, 3)],        # 2 ponte sobre o Galena River
+	[Vector3(-230, 40, 1.7), Vector3(-300, -60, 2)],       # 3 rua de casas no oeste
+	[Vector3(-5, -110, 1.7), Vector3(-33, -143, 8)],       # 4 igreja no morro
+	[Vector3(-300, -250, 1.7), Vector3(-390, -330, 10)],   # 5 o morro com mata
+	[Vector3(-80, 200, 90), Vector3(120, 0, 0)],           # 6 centro de cima
+	[Vector3(-300, 350, 220), Vector3(60, -40, 0)],        # 7 a cidade inteira de cima
 ]
 
 

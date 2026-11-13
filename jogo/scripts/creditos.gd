@@ -103,6 +103,10 @@ zr_lb_mulher2 — "Zombie (Type Female 2)" por LokitoBlu (sketchfab.com/3d-model
   (sem esqueleto no original: postos no esqueleto do Mixamo e reduzidos por tools/blender/zumbi_rig_xbot.py)
 zr_mulher  — "Zombie female model" por JonatanSantana (sketchfab.com/3d-models/60e0e94ca09240b0bfc5736fc9fc56dc)
 zr_mulher2 — ".fuse female zombie 1" por livrosparacriancas (sketchfab.com/3d-models/98415df5d3124381a46ccef5c2e02b71)
+zr_detetive — "Zombie Detective" por trevBeat (sketchfab.com/3d-models/7099d659048f4214a00eb984deb66e13)
+Galena, Illinois (EUA): ruas e prédios do OpenStreetMap — © colaboradores do OpenStreetMap, licença ODbL (openstreetmap.org/copyright).
+Texturas ambientCG (CC0). Músicas: "Cold Silence" (eponasoft), "Post Apocalyptic Wastelands" (Juhani Junkala), "Ambient Horror Track 01" (Cleyton Kauffman) — OpenGameArt CC0.
+Latido: "Dog barking mono" por haeldb (OpenGameArt, OGA-BY 3.0).
   (convertidos com tools/blender/zumbi_sketchfab.py)
 
 MÓVEIS

@@ -24,7 +24,7 @@ func _init() -> void:
 		var p2 := Vector2(float(xz[0]), float(xz[1]))
 		var a: Vector3 = Bairro.ORIGEM + Vector3(p2.x, main.bairro.altura(p2), p2.y)
 		main.jogador.global_position = a + Vector3(0, 0.5, 0)
-		cam.global_position = a + Vector3(0, 30, 34)
+		cam.global_position = a + (Vector3(float(OS.get_environment("CAM_X")), float(OS.get_environment("CAM_Y")), float(OS.get_environment("CAM_Z"))) if OS.get_environment("CAM_Y") != "" else Vector3(0, 30, 34))
 		cam.look_at(a)
 		for i in 40: await process_frame
 		var im: Image = root.get_viewport().get_texture().get_image()

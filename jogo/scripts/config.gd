@@ -36,7 +36,7 @@ const QUALIDADE: Array[Dictionary] = [
 	# 07/11 (dono: "zumbis e o render travam"): lod = quantos pixels de erro o Godot aceita para trocar por malha mais
 	# simples (as LODs vêm do import); zumbi = até onde zumbi aparece; sombra_zumbi = zumbi faz sombra
 	{"sombra": 0, "resolucao": 0.6, "msaa": Viewport.MSAA_DISABLED, "longe": 100.0, "detalhe": 12.0, "lod": 8.0, "zumbi": 32.0, "sombra_zumbi": false},
-	{"sombra": 1024, "resolucao": 0.75, "msaa": Viewport.MSAA_DISABLED, "longe": 150.0, "detalhe": 25.0, "lod": 4.0, "zumbi": 45.0, "sombra_zumbi": false},
+	{"sombra": 1024, "resolucao": 0.75, "msaa": Viewport.MSAA_DISABLED, "longe": 120.0, "detalhe": 25.0, "lod": 4.0, "zumbi": 45.0, "sombra_zumbi": false},
 	{"sombra": 2048, "resolucao": 0.9, "msaa": Viewport.MSAA_DISABLED, "longe": 280.0, "detalhe": 40.0, "lod": 2.0, "zumbi": 70.0, "sombra_zumbi": true},
 	{"sombra": 4096, "resolucao": 1.0, "msaa": Viewport.MSAA_2X, "longe": 450.0, "detalhe": 90.0, "lod": 1.0, "zumbi": 90.0, "sombra_zumbi": true},
 ]

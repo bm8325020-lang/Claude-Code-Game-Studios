@@ -211,9 +211,11 @@ def mobilia(tipo, nome, c, semente):
     return itens
 
 
-def casa_us(nome, w, d, semente, garagem=True, quartos=2, varanda=True, queimada=False):
+def casa_us(nome, w, d, semente, garagem=True, quartos=2, varanda=True, queimada=False, planta=""):
     """Térrea americana. Corpo w x d (frente em y = -d/2), garagem de 3,8 x 6,5 encostada à esquerda (fora de w),
-    varanda de 2,2 m na frente (fora de d)."""
+    varanda de 2,2 m na frente (fora de d). 13/11 (dono: "posições de cômodos interessantes"), `planta` junta opções:
+    "aberta" = sala e cozinha num ambiente só (ilha no lugar da parede), "escritorio" = o último quarto vira escritório,
+    "espelha" = tudo espelhado (garagem e quartos do outro lado)."""
     limpa()
     rnd.seed(semente)
     sid, tel, ven = rnd.choice(SIDINGS), rnd.choice(SHINGLES), rnd.choice(SHUTTERS)
@@ -272,7 +274,7 @@ def casa_us(nome, w, d, semente, garagem=True, quartos=2, varanda=True, queimada
     marca_porta(-hw + pf_t, fy)
     # ---- paredes de dentro ----
     intern = {
-        "a_meio": ((-hw, ym), (xa, ym), [((xk + hw), 1.4, 0, PORTA_A)]),                            # sala | cozinha (passagem larga)
+        "a_meio": ((-hw, ym), (xa, ym), [((xa + hw) / 2, (xa + hw) - 0.7, 0, PORTA_A) if "aberta" in planta else ((xk + hw), 1.4, 0, PORTA_A)]),  # sala | cozinha
         "corr_a": ((xa, fy), (xa, by), [((ym - fy) / 2, 1.0, 0, PORTA_A)]),                         # sala | corredor
         "corr_b": ((xb, fy), (xb, by), [((ys[k] + (ys[k - 1] if k else fy)) / 2 - fy, 0.85, 0, PORTA_A) for k in range(len(ys))]),
     }
@@ -296,6 +298,8 @@ def casa_us(nome, w, d, semente, garagem=True, quartos=2, varanda=True, queimada
     if garagem:
         comodos.append(("lavanderia", "lavanderia", -hw + e2, xl - i2, ym + i2, by - e2, "linoleo", "pintura_branca", "batente", 0.1))
     tipos_q = ["quarto"] + ["quarto_crianca"] * (nq - 1)
+    if "escritorio" in planta and nq > 1:
+        tipos_q[-1] = "escritorio"
     yq = [fy] + ys
     qk = 0
     for k in range(len(ys)):
@@ -377,7 +381,33 @@ def casa_us(nome, w, d, semente, garagem=True, quartos=2, varanda=True, queimada
             and o.name.startswith(("rev_", "piso_", "bag_", "forro_luz"))]
     if acab:
         junta(acab, "acabamento")
+    if "aberta" in planta and not queimada:  # ilha da cozinha onde era a parede: balcão de comer em pé
+        caixa("ilha_cozinha-col", ((-hw + xa) / 2, ym + 0.45, 0.47), (min(2.2, (xa + hw) - 1.6), 0.8, 0.94), "madeira")
+        caixa("ilha_tampo", ((-hw + xa) / 2, ym + 0.45, 0.955), (min(2.3, (xa + hw) - 1.5), 0.9, 0.04), "concreto")
+    if "espelha" in planta:
+        espelha()
     exporta(nome)
+
+
+def espelha():
+    """Espelha a casa em x (malhas com as faces viradas de volta; marcadores só mudam de lado)."""
+    import bmesh
+    from mathutils import Matrix
+    M = Matrix.Scale(-1.0, 4, (1.0, 0.0, 0.0))
+    for ob in list(bpy.data.objects):
+        if ob.type == "MESH":
+            if ob.data.users > 1:
+                ob.data = ob.data.copy()
+            ob.data.transform(M @ ob.matrix_world)
+            ob.matrix_world = Matrix.Identity(4)
+            bm = bmesh.new()
+            bm.from_mesh(ob.data)
+            bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
+            bm.to_mesh(ob.data)
+            bm.free()
+        else:
+            ob.location.x = -ob.location.x
+            ob.rotation_euler.z = -ob.rotation_euler.z
 
 
 def _aberturas_em(linhas, p0, p1):
@@ -411,8 +441,13 @@ if __name__ == "__main__":
     TODOS = [("casa_us_%d" % (k + 1), (w, d, s, g, q, v)) for k, (w, d, s, g, q, v) in enumerate([
         (13.0, 10.0, 701, True, 2, True), (14.5, 12.0, 702, True, 3, True), (12.0, 10.0, 703, False, 2, True),
         (15.0, 12.0, 704, True, 3, False), (12.5, 10.0, 705, True, 2, True), (13.5, 11.5, 706, False, 3, True)])]
+    PLANTAS = {"casa_us_7": (14.0, 11.0, 707, True, 3, True, "aberta+escritorio"), "casa_us_8": (13.0, 10.5, 708, True, 2, True, "espelha"),
+               "casa_us_9": (15.0, 12.5, 709, True, 3, True, "aberta+espelha"), "casa_us_10": (12.5, 11.0, 710, False, 3, True, "escritorio+aberta")}
     TODOS += [("casa_us_q1", (13.0, 10.0, 721, True, 2, True)), ("casa_us_q2", (12.0, 10.0, 722, False, 2, True))]
     for nome, (w, d, s, g, q, v) in TODOS:
         if not SO or nome in SO:
             casa_us(nome, w, d, s, g, q, v, queimada=nome.startswith("casa_us_q"))
+    for nome, (w, d, s, g, q, v, pl) in PLANTAS.items():
+        if not SO or nome in SO:
+            casa_us(nome, w, d, s, g, q, v, planta=pl)
     print("CASAS_US_OK")

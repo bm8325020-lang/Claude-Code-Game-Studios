@@ -331,7 +331,11 @@ SOBRADOS = sorted([k for k in MED if k.startswith("sobrado_")], key=lambda k: in
 APTOS = [k for k in MED if k.startswith("apto_")]
 # casa americana: (largura do corpo, fundo, garagem à esquerda, varanda na frente) = tools/blender/casas_us.py
 CASA_US = {"casa_us_1": (13.0, 10.0, True, True), "casa_us_2": (14.5, 12.0, True, True), "casa_us_3": (12.0, 10.0, False, True),
-           "casa_us_4": (15.0, 12.0, True, False), "casa_us_5": (12.5, 10.0, True, True), "casa_us_6": (13.5, 11.5, False, True)}
+           "casa_us_4": (15.0, 12.0, True, False), "casa_us_5": (12.5, 10.0, True, True), "casa_us_6": (13.5, 11.5, False, True),
+           # 13/11: plantas novas (casas_us.py PLANTAS): sala e cozinha juntas, escritório, espelhadas (garagem à direita)
+           "casa_us_7": (14.0, 11.0, True, True), "casa_us_8": (13.0, 10.5, True, True), "casa_us_9": (15.0, 12.5, True, True),
+           "casa_us_10": (12.5, 11.0, False, True)}
+ESPELHADAS = {"casa_us_8", "casa_us_9"}
 CASAS = list(CASA_US)
 QUEIMADAS = ["casa_us_q1", "casa_us_q2"]  # pegaram fogo (ainda ardem no jogo): 7% dos lotes
 CASA_US.update({"casa_us_q1": (13.0, 10.0, True, True), "casa_us_q2": (12.0, 10.0, False, True)})
@@ -352,7 +356,7 @@ def desloc(modelo):
     """Centro do retângulo da casa em relação à origem do modelo (x, z local; +z = frente)."""
     if modelo in CASA_US:
         w, d, g, v = CASA_US[modelo]
-        return -(3.8 if g else 0.0) / 2, (2.6 if v else 0.0) / 2
+        return (1 if modelo in ESPELHADAS else -1) * (3.8 if g else 0.0) / 2, (2.6 if v else 0.0) / 2
     return 0.0, 0.0
 
 
@@ -707,7 +711,7 @@ for pp in predios:
 RE = random.Random(3107)
 CENTRO_C = (120.0, 10.0) if GALENA else (-15.0, 225.0)
 # 1) bairro incendiado: o aglomerado de casas mais longe do centro e da entrada pega fogo (mesmo tamanho -> versão queimada)
-QUEIMA = {"casa_us_1": "casa_us_q1", "casa_us_2": "casa_us_q1", "casa_us_5": "casa_us_q1", "casa_us_3": "casa_us_q2",
+QUEIMA = {"casa_us_7": "casa_us_q1", "casa_us_1": "casa_us_q1", "casa_us_2": "casa_us_q1", "casa_us_5": "casa_us_q1", "casa_us_3": "casa_us_q2",
           "casa_us_4": "casa_us_q2", "casa_us_6": "casa_us_q2"}  # a queimada cabe no lote da original (mesma origem)
 cands = [pp for pp in predios if pp["modelo"] in CASA_US and math.dist(pp["c"], CENTRO_C) > 220 and math.dist(pp["c"], ENTRADA) > 260]
 foco = max(cands, key=lambda pp: sum(1 for o in cands if math.dist(o["c"], pp["c"]) < 70)) if cands else None

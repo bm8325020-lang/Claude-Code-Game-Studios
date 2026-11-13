@@ -22,11 +22,13 @@ const MODELOS_TIPO: Dictionary = {
 	# 06/11 (dono: "o zumbi tá feio, nem parece, nem dá medo"): entraram zr_lb_* (LokitoBlu, Sketchfab CC BY: pele
 	# podre, roupa rasgada, sangue), postos no esqueleto do X Bot por tools/blender/zumbi_rig_xbot.py; saíram
 	# zumbi_mulher, zr_homem (câmera na cabeça) e zr_homem3 (cópia do soldado)
-	"zumbi_policial": ["zumbi_policial", "zr_lb_homem", "zr_lb_homem"],
+	# 13/11 (dono: "zumbis realistas"): saíram zumbi_policial e zumbi_soldado (bonecos do Mixamo); entrou zr_detetive
+	# (Sketchfab CC BY). zr_andarilho e zr_homem_p foram tentados e saíram (ficaram minúsculo/esticado no rig_xbot)
+	"zumbi_policial": ["zr_detetive", "zr_lb_homem", "zr_detetive"],
 	"zumbi_mulher": ["zr_lb_mulher", "zr_lb_mulher2", "zr_mulher", "zr_mulher2"],
-	"zumbi_soldado": ["zumbi_soldado", "zr_lb_homem"],
+	"zumbi_soldado": ["zr_lb_homem", "zr_detetive"],
 	"corvo": [JOGADOR],  # Os Corvos: gente viva (o mesmo modelo do jogador, de roupa preta)
-	"zumbi_rastejante": ["zr_lb_homem", "zr_lb_mulher2", "zumbi_prisioneiro"],
+	"zumbi_rastejante": ["zr_lb_homem", "zr_lb_mulher2", "zr_mulher"],
 }
 const CHEFE: String = "chefe_parasita"
 const ALTURA_XBOT: float = 1.81  # as animações foram feitas para essa altura (posição do quadril)

@@ -6,3 +6,5 @@ zr_lb_mulher2 — "Zombie (Type Female 2)" por LokitoBlu (sketchfab.com/3d-model
 zr_mulher  — "Zombie female model" por JonatanSantana (sketchfab.com/3d-models/60e0e94ca09240b0bfc5736fc9fc56dc)
 zr_mulher2 — ".fuse female zombie 1" por livrosparacriancas (sketchfab.com/3d-models/98415df5d3124381a46ccef5c2e02b71)
   (convertidos com tools/blender/zumbi_sketchfab.py)
+13/11:
+zr_detetive  — "Zombie Detective" por trevBeat (sketchfab.com/3d-models/7099d659048f4214a00eb984deb66e13), tools/blender/zumbi_sketchfab.py

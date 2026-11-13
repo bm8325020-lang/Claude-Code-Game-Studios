@@ -30,6 +30,11 @@ Espera de rede em teste = tempo real (`OS.delay_msec(16)`); `process_frame` cheg
 Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 
 ## Arquivos (scripts/)
+- GALENA (13/11, dono: "mapa completamente diferente"): `tools/mapa/senoia.py` com `CIDADE=galena` (padrão) usa
+  `tools/mapa/osm/galena.json` (Galena, IL; OSM ODbL; baixado do Overpass maps.mail.ru em 3 consultas). Rio do OSM,
+  ponte inventada para o leste, morro com mata no noroeste; na história a cidade segue "Senoia". Casas novas
+  casa_us_7..10 (`casas_us.py` PLANTAS: aberta/escritorio/espelha). Música: `assets/musica` (SomAmbiente dia/noite,
+  menu.gd). Zumbi novo zr_detetive. Fotos: foto_cidade.gd (vistas de Galena), foto_e6.gd -- saida x,z (CAM_X/Y/Z).
 - RAVEN CREEK (05/11, substitui São Jorge; prompt do dono "DEAD DISTRICT MAP MASTER" + compositor de móveis): cidade
   americana 1 x 1 km. Planta: `tools/mapa/raven_creek.py` (grade: Route 9, Main Street, centro com Town Square, igreja,
   POLICE, hospital, Food Mart, posto; bairros de `casa_us_*` com gramado/cerca; 7% `casa_us_q*` queimadas (ardem:
