@@ -4,13 +4,13 @@
 # Depois da lista, opcional: qualidade (0 Batata .. 3 Ultra) e sombras (0/1), para medir o peso como no celular.
 extends SceneTree
 
-const VISTAS: Array = [  # SOUTH LA (13/11, tools/mapa/senoia.py CIDADE=la)
-	[Vector3(8, 120, 1.7), Vector3(0, -40, 4)],            # 0 Vermont Ave para o norte (comércio)
-	[Vector3(-120, -10, 1.7), Vector3(60, -18, 4)],        # 1 Slauson Ave para o leste
-	[Vector3(-200, -236, 1.7), Vector3(-380, -236, 3)],    # 2 rua de casas com palmeiras (noroeste)
-	[Vector3(200, -330, 1.7), Vector3(380, -330, 3)],      # 3 rua de casas (nordeste)
-	[Vector3(-80, 200, 90), Vector3(40, -20, 0)],          # 4 centro de cima
-	[Vector3(-300, 350, 220), Vector3(60, -40, 0)],        # 5 o bairro inteiro de cima
+const VISTAS: Array = [  # FLORESTA (13/11, tools/mapa/senoia.py CIDADE=floresta)
+	[Vector3(-62, 150, 1.7), Vector3(-25, 85, 0)],         # 0 trilha de terra chegando na ponte de madeira do rio
+	[Vector3(60, -190, 1.7), Vector3(120, -260, 6)],       # 1 dentro do pinhal (norte)
+	[Vector3(30, 420, 1.7), Vector3(-20, 360, 2)],         # 2 mata de folhas e o riacho do sul
+	[Vector3(345, 55, 2.5), Vector3(410, 10, 0)],          # 3 o lago
+	[Vector3(-410, 300, 1.7), Vector3(-200, 300, 3)],      # 4 a cidadezinha (uma rua só)
+	[Vector3(395, -130, 1.7), Vector3(250, -60, 0)],       # 5 de cima do morro do leste
 ]
 
 

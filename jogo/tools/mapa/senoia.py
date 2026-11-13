@@ -17,7 +17,7 @@ import sys
 R = random.Random(1947)
 LIM = 488.0
 MED = json.load(open("tools/mapa/medidas.json"))
-LARG = {"primary": 10.0, "secondary": 9.0, "tertiary": 8.0, "residential": 6.5, "service": 4.0, "viela": 3.5}
+LARG = {"primary": 10.0, "secondary": 9.0, "tertiary": 8.0, "residential": 6.5, "service": 4.0, "viela": 3.5, "trilha": 4.0}  # trilha: terra batida da mata (13/11)
 CALCADA = 1.7
 ruas, segs = [], []          # segs: (a, b, meia largura com calçada)
 predios, muros, props, areas, faixas, frestas, bloqueios, marcos, veiculos, postes, longe = ([] for _ in range(11))
@@ -43,7 +43,7 @@ def catmull(pts, passo=5.0):
 def rua(pts, tipo, curva=True):
     p = catmull(pts) if curva else [list(q) for q in pts]
     ruas.append({"p": p, "tipo": tipo})
-    meia = LARG[tipo] / 2 + (0 if tipo in ("service", "viela") else CALCADA)
+    meia = LARG[tipo] / 2 + (0 if tipo in ("service", "viela", "trilha") else CALCADA)
     for a, b in zip(p, p[1:]):
         segs.append((a, b, meia))
     return p
@@ -126,6 +126,12 @@ GALENA = CIDADE == "galena"
 FLORESTA = CIDADE == "floresta"
 OFF = (-300.0, 300.0)
 CORTE = 150.0
+CORTE_Z = 150.0
+RIOS = []    # riachos: (pontos, largura)
+LAGOS = []   # lagos: (centro, raio)
+MORROS = []  # preenchido depois do MORRO de cada cidade
+if FLORESTA:  # 13/11 (dono: "um mapa inteiro de floresta e uma pequena cidade"): a cidade é só a rua principal
+    CORTE, CORTE_Z = 130.0, 55.0
 if FLORESTA:
     CIDADE = "la"
 # LOS ANGELES (13/11, dono: bairro de subúrbio de LA no clima dos mods de zumbi do GTA 5, mas original): ruas e casas
@@ -137,10 +143,18 @@ if LA:
     OSM = json.load(open("tools/mapa/osm/la.json"))["elements"]
     rio = [[-600.0, 2000.0], [600.0, 2000.0]]
     MORRO = {"p": [2000, 2000], "raio": 10.0, "alt": 0.0}
-if FLORESTA:  # rio raso cortando a mata de nordeste a oeste (passa ao norte da cidadezinha) e um morro no noroeste
+if FLORESTA:  # rio largo de nordeste a oeste, riachos, um lago e morros espalhados (os lugares ficam fora deles)
     rio = catmull([(530, -280), (330, -170), (170, -40), (40, 70), (-110, 110), (-300, 105), (-530, 80)], 8.0)
-    RIO_LARG = 12.0
+    RIO_LARG = 14.0
     MORRO = {"p": [-330, -270], "raio": 110.0, "alt": 16.0}
+    MORROS = [MORRO, {"p": [60, -440], "raio": 70.0, "alt": 12.0}, {"p": [430, -110], "raio": 90.0, "alt": 18.0},
+              {"p": [130, 180], "raio": 65.0, "alt": 9.0}, {"p": [-160, 20], "raio": 55.0, "alt": 8.0},
+              {"p": [320, -390], "raio": 75.0, "alt": 14.0}, {"p": [-440, -40], "raio": 60.0, "alt": 10.0}]
+    RIOS = [(catmull([(-280, -150), (-225, -80), (-205, 0), (-165, 70), (-115, 108)], 6.0), 5.0),   # desce do morro do noroeste
+            (catmull([(-40, 490), (-20, 400), (10, 320), (-10, 240), (-40, 170), (-75, 112)], 6.0), 5.0)]  # vem do sul
+    LAGOS = [((400.0, 20.0), 38.0)]
+if not MORROS:
+    MORROS = [MORRO]
 if GALENA:
     OSM_LAT0, OSM_LON0 = 42.4160, -90.4295
     OSM = json.load(open("tools/mapa/osm/galena.json"))["elements"]
@@ -158,7 +172,7 @@ def osm_xy(g):
     if FLORESTA:  # só o pedaço da cidade, levado para OFF; o resto fica fora do mapa (as ruas e prédios são cortados)
         x = (g["lon"] - OSM_LON0) * 111320 * math.cos(math.radians(OSM_LAT0))
         z = -(g["lat"] - OSM_LAT0) * 110540
-        if abs(x) > CORTE or abs(z + 16.0) > CORTE:
+        if abs(x) > CORTE or abs(z + 16.0) > CORTE_Z:
             return (9999.0, 9999.0)
         return (round(x + OFF[0], 2), round(z + 16.0 + OFF[1], 2))
     return (round((g["lon"] - OSM_LON0) * 111320 * math.cos(math.radians(OSM_LAT0)), 2), round(-(g["lat"] - OSM_LAT0) * 110540, 2))
@@ -263,17 +277,21 @@ def acha_lote(modelo, uso, tipos_rua=("tertiary", "secondary", "primary", "resid
 
 
 def perto_rio(p, folga):
-    return any(dist_seg(p, a, b) < RIO_LARG / 2 + folga for a, b in zip(rio, rio[1:]))
+    if any(dist_seg(p, a, b) < RIO_LARG / 2 + folga for a, b in zip(rio, rio[1:])):
+        return True
+    if any(dist_seg(p, a, b) < lg / 2 + folga for pts, lg in RIOS for a, b in zip(pts, pts[1:])):  # riachos (floresta)
+        return True
+    return any(math.dist(p, c) < r + folga for c, r in LAGOS)
 
 
 def no_morro(p, folga=0.0):
-    return math.dist(p, MORRO["p"]) < MORRO["raio"] + folga
+    return any(math.dist(p, m["p"]) < m["raio"] + folga for m in MORROS)
 
 
 def zona(x, z):
     if FLORESTA:
-        if abs(x - OFF[0]) > CORTE + 5 or abs(z - OFF[1]) > CORTE + 5:
-            return "parque"  # a mata (árvores do parque: coníferas)
+        if abs(x - OFF[0]) > CORTE + 5 or abs(z - OFF[1]) > CORTE_Z + 5:
+            return "parque" if z < 60 else "mata"  # norte: pinhal; sul: mata de folhas
         return "centro" if abs(x - OFF[0]) < 45 or abs(z - OFF[1]) < 45 else "casas"
     if LA:  # comércio de frente para a Vermont (x = 0) e a Slauson (z = -16)
         return "centro" if abs(x) < 45 or abs(z + 16) < 45 else "casas"
@@ -327,10 +345,12 @@ VEG = {
 if LA:  # 13/11: palmeiras na rua e no quintal (LA); umas mortas e velhas no meio
     VEG["casas"] = [("palmeira_alta", 5), ("palmeira", 3), ("arvore", 2), ("arvore_morta", 2), ("arvore_velha", 1)]
     VEG["centro"] = [("palmeira_alta", 5), ("palmeira", 2), ("arvore_morta", 1)]
+VEG["mata"] = [("arvore", 5), ("outono_1", 3), ("outono_2", 3), ("outono_3", 3), ("betula", 3), ("arvore_velha", 2), ("pinheiro", 1)]
 SUB = {  # perto do pé da árvore
     "parque": ["pinheirinho", "abeto_baixo", "arbusto", "arbusto_2", "pedras", "pedras_2", "samambaia",
                "samambaia_baixa", "capim_alto"],
     "casas": ["moita", "arbusto", "capim", "arbusto_2"],
+    "mata": ["samambaia", "samambaia_baixa", "arbusto", "arbusto_2", "moita", "capim_alto", "pedras"],
     "centro": ["moita", "capim_seco"],
     "industrial": ["capim_seco", "capim_seco", "moita", "pedras_2"],
 }
@@ -452,7 +472,7 @@ def enche(pts, lado, zona_ok=None):
     tipo_rua = next(r["tipo"] for r in ruas if r["p"] is pts)
     L = comprimento(pts)
     t = R.uniform(1.0, 4.0)
-    meia = LARG[tipo_rua] / 2 + (0 if tipo_rua in ("service", "viela") else CALCADA)
+    meia = LARG[tipo_rua] / 2 + (0 if tipo_rua in ("service", "viela", "trilha") else CALCADA)
     while t < L - 4:
         p, ang_r = ponto_em(pts, t)
         if p is None:
@@ -784,11 +804,11 @@ if FLORESTA:
         return [round(x, 2), round(z, 2)]
     # estradas: da cidadezinha ao meio da mata e de lá para cada lugar (curvas suaves)
     rua([(-488.0, OFF[1]), (-462.0, OFF[1])], "primary", False)
-    rua([(OFF[0] + 150, OFF[1] - 40), (-80, 200), (0, 40), (30, -40)], "service")
-    rua([(30, -40), (120, -150), (210, -230)], "service")             # acampamento militar
-    rua([(30, -40), (180, 30), (330, 120), (360, 160)], "service")      # posto florestal
-    rua([(30, -40), (-60, -150), (-140, -175), (-160, -190)], "service")  # cabana do caçador
-    rua([(-80, 200), (60, 260), (180, 330), (230, 380)], "service")   # serraria
+    rua([(OFF[0] + CORTE + 5, OFF[1]), (-110, 250), (-80, 200), (0, 40), (30, -40)], "trilha")
+    rua([(30, -40), (120, -150), (210, -230)], "trilha")             # acampamento militar
+    rua([(30, -40), (180, 30), (330, 120), (360, 160)], "trilha")      # posto florestal
+    rua([(30, -40), (-60, -150), (-140, -175), (-160, -190)], "trilha")  # cabana do caçador
+    rua([(-80, 200), (60, 260), (180, 330), (230, 380)], "trilha")   # serraria
     # 1) acampamento militar abandonado: tendas, contêineres, torres e holofote
     c = (220.0, -260.0)
     clareira(c, 56.0, 44.0)
@@ -851,15 +871,22 @@ if FLORESTA:
     for gx in range(-484, 485, 9):
         for gz in range(-484, 485, 9):
             q = (gx + RF.uniform(-3.5, 3.5), gz + RF.uniform(-3.5, 3.5))
-            if zona(*q) != "parque" or perto_rua(q, 3.5) or perto_rio(q, 1.5):
+            if zona(*q) not in ("parque", "mata") or perto_rua(q, 3.5) or perto_rio(q, 1.5):
                 continue
             if any(abs(q[0] - o[0]) < o[3] / 2 + 2 and abs(q[1] - o[1]) < o[4] / 2 + 2 for o in ocupado if math.dist(q, o[:2]) < 60):
                 continue
             prop("arvore_mata", q[0], q[1], RF.uniform(0, 6.28))
             arv += 1
+            r = RF.random()  # chão da mata: tronco caído, pedras, árvore morta
+            if r < 0.06:
+                props.append({"m": "veg:toco", "p": p2(q[0] + RF.uniform(-3, 3), q[1] + RF.uniform(-3, 3)), "r": round(RF.uniform(0, 6.28), 3)})
+            elif r < 0.12:
+                props.append({"m": "veg:" + RF.choice(["pedras", "pedras_2"]), "p": p2(q[0] + RF.uniform(-3, 3), q[1] + RF.uniform(-3, 3)), "r": round(RF.uniform(0, 6.28), 3)})
+            elif r < 0.15:
+                props.append({"m": "veg:arvore_morta", "p": p2(q[0] + RF.uniform(-3, 3), q[1] + RF.uniform(-3, 3)), "r": round(RF.uniform(0, 6.28), 3)})
     for k in range(40):  # zumbis soltos andando pela mata
         q = (RF.uniform(-470, 470), RF.uniform(-470, 470))
-        if zona(*q) == "parque" and not perto_rio(q, 2.0):
+        if zona(*q) in ("parque", "mata") and not perto_rio(q, 2.0):
             zumbis.append(p2(*q))
     print("FLORESTA: árvores", arv, "| raids", [r[0] for r in RAIDS_F])
 if not FLORESTA:
@@ -1104,7 +1131,8 @@ if not FLORESTA:
 out = {"origem": "Floresta com a cidadezinha de South LA (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if FLORESTA else "South Los Angeles, CA (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if LA else "Galena, IL (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if GALENA else "Senoia, GA (OpenStreetMap, ODbL; tools/mapa/raven_creek.py CIDADE=senoia)" if SENOIA else "Raven Creek (tools/mapa/raven_creek.py)", "ruas": ruas, "predios": predios, "frestas": frestas, "bloqueios": bloqueios,
        "quarentena": quarentena, "lugares": lugares, "marcos": marcos, "muros": muros, "props": props, "areas": areas, "faixas": faixas, "postes": postes, "veiculos": veiculos,
        "zumbis": zumbis, "longe": longe, "entrada": entrada, "raids_mata": RAIDS_F,
-       "terreno": {"rio": {"p": rio, "larg": RIO_LARG, "fundo": 2.2, "agua": 1.5}, "morros": [MORRO]}}
+       "terreno": {"rio": {"p": rio, "larg": RIO_LARG, "fundo": 2.2, "agua": 1.5}, "morros": MORROS, "rios": [{"p": [[round(a, 2), round(b, 2)] for a, b in pts], "larg": lg, "fundo": 1.6} for pts, lg in RIOS],
+                   "lagos": [{"p": list(c), "raio": r, "fundo": 2.4} for c, r in LAGOS]}}
 json.dump(out, open(sys.argv[1] if len(sys.argv) > 1 else "assets/mapa/cidade.json", "w"))
 cont = {}
 for p in predios:

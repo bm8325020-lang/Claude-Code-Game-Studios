@@ -23,7 +23,7 @@ const RUINAS_GALPAO: Array[String] = ["galpao_r1", "galpao_r2"]
 # 07/11 (E2): queimado e van prontos (Sketchfab CC BY, normaliza.py) no lugar dos feitos no Blender
 const VEICULOS: Array[String] = ["carro_r1", "carro_r1", "mundo:van", "mundo:queimado"]
 const FRESTA_ALT: float = 4.2  # muros da fresta (mais altos que o pulo)
-const LARG_RUA: Dictionary = {"primary": 10.0, "secondary": 9.0, "tertiary": 8.0, "residential": 6.5, "unclassified": 6.0, "service": 4.0}
+const LARG_RUA: Dictionary = {"primary": 10.0, "secondary": 9.0, "tertiary": 8.0, "residential": 6.5, "unclassified": 6.0, "service": 4.0, "trilha": 4.0}
 
 var pontos_zumbi: Array[Vector3] = []
 ## raids (lugares cheios de loot e zumbi): [{"pos", "armado"}] dos zumbis e {"nome", "pos"} de cada lugar
@@ -214,22 +214,32 @@ func _terreno(t: Dictionary) -> void:
 				var d: float = Vector2(xi - meio, zi - meio).distance_to(c) / r
 				if d < 1.0:
 					_alturas[zi * _lado_mapa + xi] += float(m.alt) * (1.0 - smoothstep(0.0, 1.0, d))
-	var rio: Dictionary = t.get("rio", {})
-	var pts: Array = rio.get("p", [])
-	var meia: float = float(rio.get("larg", 0.0)) * 0.5
-	var fundo: float = float(rio.get("fundo", 0.0))
-	for i in range(pts.size() - 1):  # rio: leito fundo no meio, barranco até a margem
-		var a := Vector2(pts[i][0], pts[i][1])
-		var b := Vector2(pts[i + 1][0], pts[i + 1][1])
-		_rio.append([a, b])
-		var lim: float = meia + 3.0
-		for zi in range(maxi(0, int(minf(a.y, b.y) - lim + meio)), mini(_lado_mapa, int(maxf(a.y, b.y) + lim + meio) + 1)):
-			for xi in range(maxi(0, int(minf(a.x, b.x) - lim + meio)), mini(_lado_mapa, int(maxf(a.x, b.x) + lim + meio) + 1)):
-				var p := Vector2(xi - meio, zi - meio)
-				var d: float = p.distance_to(Geometry2D.get_closest_point_to_segment(p, a, b))
-				var h: float = -fundo * (1.0 - smoothstep(meia * 0.45, meia + 2.5, d))
+	var rios: Array = [t.get("rio", {})] + t.get("rios", [])  # 13/11 floresta: o rio e os riachos
+	for rio: Dictionary in rios:
+		var pts: Array = rio.get("p", [])
+		var meia: float = float(rio.get("larg", 0.0)) * 0.5
+		var fundo: float = float(rio.get("fundo", 0.0))
+		for i in range(pts.size() - 1):  # rio: leito fundo no meio, barranco até a margem
+			var a := Vector2(pts[i][0], pts[i][1])
+			var b := Vector2(pts[i + 1][0], pts[i + 1][1])
+			_rio.append([a, b, meia])
+			var lim: float = meia + 3.0
+			for zi in range(maxi(0, int(minf(a.y, b.y) - lim + meio)), mini(_lado_mapa, int(maxf(a.y, b.y) + lim + meio) + 1)):
+				for xi in range(maxi(0, int(minf(a.x, b.x) - lim + meio)), mini(_lado_mapa, int(maxf(a.x, b.x) + lim + meio) + 1)):
+					var p := Vector2(xi - meio, zi - meio)
+					var d: float = p.distance_to(Geometry2D.get_closest_point_to_segment(p, a, b))
+					var h: float = -fundo * (1.0 - smoothstep(meia * 0.45, meia + 2.5, d))
+					var k: int = zi * _lado_mapa + xi
+					_alturas[k] = minf(_alturas[k], h)
+	for lg: Dictionary in t.get("lagos", []):  # lago: bacia redonda
+		var c := Vector2(lg.p[0], lg.p[1])
+		var r: float = float(lg.raio)
+		_lagos.append([c, r])
+		for zi in range(maxi(0, int(c.y + meio - r - 4)), mini(_lado_mapa, int(c.y + meio + r + 4) + 1)):
+			for xi in range(maxi(0, int(c.x + meio - r - 4)), mini(_lado_mapa, int(c.x + meio + r + 4) + 1)):
+				var d: float = Vector2(xi - meio, zi - meio).distance_to(c)
 				var k: int = zi * _lado_mapa + xi
-				_alturas[k] = minf(_alturas[k], h)
+				_alturas[k] = minf(_alturas[k], -float(lg.fundo) * (1.0 - smoothstep(r * 0.55, r + 3.0, d)))
 	var corpo := StaticBody3D.new()
 	corpo.name = "Chao"
 	add_child(corpo)
@@ -241,8 +251,11 @@ func _terreno(t: Dictionary) -> void:
 	cs.shape = hm
 	corpo.add_child(cs)
 	_malha_chao()
-	if not pts.is_empty():
-		_agua(pts, meia, AGUA_Y)
+	for rio: Dictionary in rios:
+		if not (rio.get("p", []) as Array).is_empty():
+			_agua(rio.p, float(rio.larg) * 0.5, AGUA_Y)
+	for lg: Array in _lagos:
+		_lago(lg[0], lg[1] + 1.5, AGUA_Y)
 
 
 ## Altura do chão no ponto (coordenadas do Bairro).
@@ -296,12 +309,7 @@ func _agua(pts: Array, meia: float, y: float) -> void:
 		for k in [0, 1, 2, 0, 2, 3]:
 			st.set_normal(Vector3.UP)
 			st.add_vertex(q[k])
-	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.12, 0.13, 0.09, 0.88)  # água parada e suja
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.roughness = 0.08
-	m.metallic = 0.3
-	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var m := _mat_agua()
 	var mi := MeshInstance3D.new()
 	mi.name = "Agua"
 	mi.mesh = st.commit()
@@ -310,10 +318,45 @@ func _agua(pts: Array, meia: float, y: float) -> void:
 	add_child(mi)
 
 
+var _lagos: Array = []  # [centro, raio]
+
+
+## 13/11: lago redondo (disco de água no nível do rio).
+func _lago(c: Vector2, r: float, y: float) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for k in 32:
+		var a0: float = TAU * k / 32.0
+		var a1: float = TAU * (k + 1) / 32.0
+		for q: Vector2 in [c, c + Vector2.from_angle(a0) * r, c + Vector2.from_angle(a1) * r]:
+			st.set_normal(Vector3.UP)
+			st.add_vertex(Vector3(q.x, y, q.y))
+	var mi := MeshInstance3D.new()
+	mi.name = "Lago"
+	mi.mesh = st.commit()
+	mi.material_override = _mat_agua()
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
+
+
+func _mat_agua() -> Material:
+	if _mats.has("agua"):
+		return _mats["agua"]
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.2, 0.42, 0.55, 0.85) if Estilo.LIGADO else Color(0.12, 0.13, 0.09, 0.88)  # azul de desenho / suja
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.roughness = 0.08
+	m.metallic = 0.3
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_mats["agua"] = m
+	return m
+
+
 ## Ponte onde uma rua cruza o rio: tabuleiro de concreto no nível da rua, guarda-corpo e pilares.
 func _pontes() -> void:
 	var feitas: Array[Vector2] = []
 	var conc := _mat("concreto", 0.4, Color(0.66, 0.64, 0.6))
+	var mad := _mat("madeira", 0.5, Color(0.62, 0.46, 0.3))
 	for r: Array in _ruas:
 		for s: Array in _rio:
 			var x: Variant = Geometry2D.segment_intersects_segment(r[0], r[1], s[0], s[1])
@@ -321,8 +364,10 @@ func _pontes() -> void:
 				continue
 			feitas.append(x)
 			var d: Vector2 = ((r[1] as Vector2) - (r[0] as Vector2)).normalized()
-			var larg: float = float(r[2]) + 3.0
-			var comp: float = 24.0
+			var trilha: bool = r.size() > 3 and r[3] == "trilha"  # 13/11: na mata a ponte é de madeira
+			var larg: float = float(r[2]) + (1.0 if trilha else 3.0)
+			var comp: float = float(s[2]) * 2.0 + 10.0 if s.size() > 2 else 24.0
+			var m_p: Material = mad if trilha else conc
 			var ponte := StaticBody3D.new()
 			ponte.name = "Ponte_%d" % feitas.size()
 			ponte.position = Vector3(x.x, 0, x.y)
@@ -331,13 +376,19 @@ func _pontes() -> void:
 			var tab := StaticBody3D.new()
 			tab.position.y = -0.2
 			ponte.add_child(tab)
-			_caixa(tab, Vector3(larg, 0.5, comp), conc)
+			_caixa(tab, Vector3(larg, 0.3 if trilha else 0.5, comp), m_p)
 			for s2 in [-1.0, 1.0]:
 				var g := StaticBody3D.new()
-				g.position = Vector3(s2 * (larg * 0.5 - 0.15), 0.55, 0)
+				g.position = Vector3(s2 * (larg * 0.5 - 0.1), 0.55, 0)
 				ponte.add_child(g)
-				_caixa(g, Vector3(0.3, 1.0, comp), conc)
-				_peca(ponte, Vector3(s2 * larg * 0.3, -1.6, 0), Vector3(1.0, 2.4, 1.0), conc)  # pilar
+				if trilha:  # corrimão de tábua em postes
+					_caixa(g, Vector3(0.12, 0.12, comp), mad)
+					for kz in range(-int(comp / 2.0), int(comp / 2.0) + 1, 3):
+						_peca(ponte, Vector3(s2 * (larg * 0.5 - 0.1), 0.15, kz), Vector3(0.14, 0.9, 0.14), mad)
+					_peca(ponte, Vector3(s2 * larg * 0.3, -1.6, 0), Vector3(0.35, 2.6, 0.35), mad)  # estaca
+				else:
+					_caixa(g, Vector3(0.3, 1.0, comp), conc)
+					_peca(ponte, Vector3(s2 * larg * 0.3, -1.6, 0), Vector3(1.0, 2.4, 1.0), conc)  # pilar
 
 
 # rua: faixa de asfalto pelo traçado; com calçada dos lados nas ruas de carro; trilha de pedestre só calçada
@@ -357,7 +408,10 @@ func _rua(r: Dictionary) -> void:
 		if pe:
 			_faixa(a, b, 2.0, 0.03, _mat("calcada", 0.3))
 			continue
-		_ruas.append([a, b, larg])
+		_ruas.append([a, b, larg, String(r.tipo)])
+		if r.tipo == "trilha":  # 13/11: trilha da mata: terra batida, sem calçada, sem faixa, sem asfalto
+			_faixa(a, b, larg, 0.03, _mat("terra", 0.25, Color(0.78, 0.66, 0.5)))
+			continue
 		if r.tipo == "viela":  # beco do morro: cimentado, sem calçada
 			_faixa(a, b, larg, 0.05, _mat("concreto", 0.35, Color(0.7, 0.66, 0.6)))
 			continue
