@@ -30,6 +30,13 @@ Espera de rede em teste = tempo real (`OS.delay_msec(16)`); `process_frame` cheg
 Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 
 ## Arquivos (scripts/)
+- FLORESTA (13/11, dono: "não vai ser mais cidade... floresta gigante com raids"): `CIDADE=floresta` (padrão do
+  senoia.py; cidadezinha = pedaço de LA em OFF, mata de ~10 mil árvores, rio, morro, estradas "service", 5 raids em
+  `raids_mata`). Plano do dono: FPS solo, sobreviventes bots (no lugar dos Corvos), rádio com bots, bichos (lobo,
+  javali, urso, cobra RARA, cervo), armadilhas, acampamento/abrigo, estilização por hora do dia; sem covil do urso.
+  Feito: terceira pessoa (`Config.v.terceira`, CameraPrimeira DIST_3P/LADO_3P; mirando volta para a 1ª; `Jogador.mostra_corpo`,
+  `Maos.escondida`), mira que abre com `Pistola.dispersao`, coice lateral, sem zumbi gordo, barras de fome/sede com
+  ícone, horda só depois de 25 min (`Horda.PRIMEIRA`/`_jogado`). Foto: tools/foto_3p.gd -- saida.png x,z.
 - ESTILIZADO (13/11, dono: "quero tudo estilizado", prints de jogo low-poly com grama alta): `estilo.gd` (Estilo.LIGADO):
   gancho `node_added` + `Estilo.tudo(main)` ao nascer troca todo StandardMaterial com textura por cor lisa (média da
   textura em `assets/estilo_cores.json`; regerar com `tools/estilo_cores.gd` ao pôr textura nova), sombra lambert_wrap.

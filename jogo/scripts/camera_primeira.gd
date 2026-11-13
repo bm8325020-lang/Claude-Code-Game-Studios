@@ -13,6 +13,9 @@ const FOV: float = 70.0             # proporções do padrão; o valor de verdad
 const FOV_MIRA: float = 52.0
 const FOV_CORRENDO: float = 76.0
 const BALANCO: float = 0.022        # m que a cabeça sobe e desce andando
+const DIST_3P: float = 2.6           # terceira pessoa: metros atrás da cabeça
+const LADO_3P: float = 0.55          # e para a direita (ombro)
+var _terceira: bool = false
 
 ## Quem a câmera segue (um Jogador).
 var alvo: Jogador
@@ -93,6 +96,20 @@ func _process(dt: float) -> void:
 	var folego: float = (0.0 if alvo.mira_travada else 1.0) * (1.0 if alvo.vida > 30 else 2.5)
 	_inclina = lerpf(_inclina, 0.09 if alvo.espreitando() else 0.0, 1.0 - exp(-6.0 * dt))  # espreitando: inclina a cabeça na parede
 	rotation = Vector3(-(pitch - _recuo) + sin(_resp * 1.4) * 0.004 * folego, yaw + sin(_resp * 0.7) * 0.003 * folego, sin(_resp * 0.9) * 0.002 * folego + _inclina)
+	# 13/11 (dono: "opção de primeira e terceira pessoa"): atrás do ombro direito; mirando volta para a primeira (mira de FPS)
+	var terceira: bool = bool(Config.v.get("terceira", false)) and not alvo.mira_travada and alvo.vida > 0 and alvo.fresta == null
+	if terceira != _terceira:
+		_terceira = terceira
+		alvo.mostra_corpo(terceira)
+		if maos:
+			maos.escondida = terceira
+	if terceira:
+		var piv := Vector3(p.x, _y_suave + _altura + 0.05, p.z)
+		var b := Basis.from_euler(Vector3(-pitch, yaw, 0.0))
+		var quer: Vector3 = piv + b.z * DIST_3P + b.x * LADO_3P + Vector3(0, 0.2, 0)
+		var q := PhysicsRayQueryParameters3D.create(piv, quer, 1 | Porta.CAMADA, [alvo.get_rid()])
+		var h: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
+		global_position = (h.position as Vector3) + (piv - quer).normalized() * 0.25 if not h.is_empty() else quer  # parede no meio: chega perto
 	var base: float = float(Config.v.fov)
 	var fov_alvo: float = base * (FOV_MIRA if alvo.mira_travada else (FOV_CORRENDO if alvo.correndo else FOV)) / FOV
 	if foco:
@@ -134,6 +151,7 @@ func virar(novo_yaw: float, novo_pitch: float = NAN) -> void:
 ## Coice do tiro: a mira sobe `graus` e volta sozinha.
 func coice(graus: float) -> void:
 	_recuo += deg_to_rad(graus)
+	_yaw_alvo += deg_to_rad(graus * randf_range(-0.35, 0.35))  # 13/11 tiro: o coice também puxa um pouco para os lados
 
 
 ## Tremida curta (golpe acertando, explosão...).

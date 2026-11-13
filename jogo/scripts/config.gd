@@ -10,6 +10,7 @@ const PADRAO: Dictionary = {
 	"sens_mira_facao": 0.8,
 	"inverter_y": false,
 	"fov": 70.0,
+	"terceira": false,  # 13/11 (dono): câmera em terceira pessoa (mirando volta para a primeira)
 	"volume": 0.8,
 	"qualidade": 2,             # 0 Batata, 1 Média, 2 Alta, 3 Ultra (ver QUALIDADE)
 	"sombras": true,

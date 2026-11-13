@@ -5,7 +5,7 @@
 class_name Horda
 extends RefCounted
 
-const PRIMEIRA: float = 600.0       # s de jogo até a primeira
+const PRIMEIRA: float = 1500.0      # s de jogo até a primeira (13/11, dono: "tire as hordas do início do jogo": 25 min)
 const INTERVALO: float = 420.0      # s entre uma e outra
 const TAMANHO: int = 8              # membros fora o líder
 const TAMANHO_NOITE: int = 12
@@ -24,6 +24,7 @@ var ativas: Dictionary = {}  # id -> {rumo, fim, t, empurra}
 var _t: float = PRIMEIRA
 var _id: int = 0
 var _noite_antes: bool = false
+var _jogado: float = 0.0
 var _rng := RandomNumberGenerator.new()
 
 
@@ -31,7 +32,8 @@ func passa(m: Node, dt: float) -> void:
 	if m.em_pvp():
 		return
 	var noite: bool = Ciclo.noite_de(m.get_tree()) > 0.5
-	var caiu_noite: bool = noite and not _noite_antes and _t < PRIMEIRA - 60.0  # começar de noite não conta
+	_jogado += dt
+	var caiu_noite: bool = noite and not _noite_antes and _jogado > PRIMEIRA  # 13/11: a noite só chama horda depois da primeira
 	_noite_antes = noite
 	_t -= dt
 	if ativas.is_empty() and (_t <= 0.0 or (caiu_noite and _rng.randf() < NOITE_CHANCE)):

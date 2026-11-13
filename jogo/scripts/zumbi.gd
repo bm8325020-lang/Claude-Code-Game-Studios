@@ -358,7 +358,7 @@ func _ready() -> void:
 		cs.position.y = 0.375
 		altura_cabeca = 0.45
 	# 07/11 (ideia aprovada): zumbi gordo, mesmo em todo aparelho pelo nome; morre explodindo em gás que cega
-	gordo = not chefe and not lider and tocaia == false and TIPOS[tipo].skill in ["agarrao", "bote"] and absi(hash(String(name) + "gordo")) % 12 == 0
+	gordo = false  # 13/11 (dono): "tira o zumbi gordo" (o código do gás ficou, desligado)
 	if gordo:
 		_vida_max = roundi(_vida_max * 1.6)
 		vida = _vida_max

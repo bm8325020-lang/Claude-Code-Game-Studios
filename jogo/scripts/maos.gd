@@ -63,6 +63,8 @@ var _respira: float = 0.0
 var _parede: float = 0.0    # 0 = livre, 1 = parede colada na frente (arma recolhe e baixa)
 
 
+var escondida: bool = false  # 13/11: terceira pessoa (o corpo de verdade aparece; a arma da tela some)
+
 func _ready() -> void:
 	for t: String in OLHOS:
 		_rigs[t] = _carrega(t + "_fp", OLHOS[t])
@@ -124,7 +126,7 @@ func _sem_sombra(n: Node) -> void:
 func _process(dt: float) -> void:
 	if alvo == null:
 		return
-	visible = alvo.vida > 0 and alvo.fresta == null and alvo.carro == null and not luneta()  # na fresta e no carro a arma vai para o coldre
+	visible = alvo.vida > 0 and alvo.fresta == null and alvo.carro == null and not luneta() and not escondida  # na fresta e no carro a arma vai para o coldre
 	if alvo.arma != _arma:
 		_arma = alvo.arma
 		for t: String in _rigs:

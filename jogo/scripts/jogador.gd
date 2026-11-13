@@ -2131,6 +2131,12 @@ func olha_camera() -> bool:
 	return true  # primeira pessoa: o corpo sempre vira junto com o olhar (os outros veem andar de lado/de costas)
 
 
+## 13/11: terceira pessoa mostra o próprio corpo (com a arma na mão); primeira pessoa volta a só fazer sombra.
+func mostra_corpo(sim: bool) -> void:
+	for g: GeometryInstance3D in modelo.find_children("*", "GeometryInstance3D", true, false):
+		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if sim else GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+
+
 # primeira pessoa: o próprio corpo (com as armas e a lanterna da mão) some da tela mas continua fazendo sombra
 func _so_sombra() -> void:
 	for g: GeometryInstance3D in modelo.find_children("*", "GeometryInstance3D", true, false):

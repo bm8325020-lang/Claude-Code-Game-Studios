@@ -169,6 +169,11 @@ func _process(dt: float) -> void:
 			recarregando = false
 
 
+## 13/11 (mira de FPS): graus de desvio do próximo tiro (a mira da tela abre e fecha com isso).
+func dispersao(mirando: bool) -> float:
+	return ((disp_mira if mirando else disp_quadril) + _abertura) * (dono.mult_espalho() if dono else 1.0)
+
+
 ## Pode atirar agora? (tem bala, não está recarregando, já passou a cadência)
 func pronta() -> bool:
 	return balas > 0 and not recarregando and _espera <= 0.0

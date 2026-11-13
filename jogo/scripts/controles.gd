@@ -180,8 +180,8 @@ func _ready() -> void:
 	for i in 4:
 		var barra := _Barra.new()
 		barra.tipo = i
-		barra.position = Vector2(24, 18) if i == 0 else Vector2(24, 34 + i * 22)
-		barra.size = Vector2(290, 24) if i == 0 else Vector2(250, 16)
+		barra.position = Vector2(24, 18) if i == 0 else Vector2(24, 18 + i * 34)  # 13/11: fome/sede maiores, com ícone
+		barra.size = Vector2(290, 24) if i == 0 else Vector2(250, 28)
 		barra.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(barra)
 		_barras.append(barra)
@@ -363,7 +363,8 @@ func _process(dt: float) -> void:
 		_info_t = 0.5
 		if _info_lbl == null:
 			_info_lbl = UiTema.rotulo("", 17, Color(1.0, 0.75, 0.4))
-			_info_lbl.position = Vector2(14, 128)
+			_info_lbl.position = Vector2(400, 52)  # 13/11: ao lado das barras (embaixo delas agora ficam dinheiro e tarefas)
+			_info_lbl.autowrap_mode = TextServer.AUTOWRAP_OFF  # estreito, quebrava letra por letra (texto em pé)
 			add_child(_info_lbl)
 		var seguem: int = 0
 		for z: Node in get_tree().get_nodes_in_group("zumbis"):
@@ -463,7 +464,12 @@ func _process(dt: float) -> void:
 	_aviso_item.visible = _aviso_t > 0.0
 	_aviso_item.modulate.a = clampf(_aviso_t, 0.0, 1.0)
 	var com_pistola: bool = Jogador.e_fogo(jogador.arma)
-	_mira.visible = jogador.mira_travada or com_pistola or (_mira as _Mira).marca_t > 0.0
+	_mira.visible = jogador.mira_travada or com_pistola or (_mira as _Mira).marca_t > 0.0 or bool(Config.v.get("terceira", false))
+	if com_pistola and jogador.fogo():
+		var andando: float = clampf(Vector2(jogador.velocity.x, jogador.velocity.z).length() / 4.0, 0.0, 1.0)
+		(_mira as _Mira).abertura = jogador.fogo().dispersao(jogador.mira_travada) + andando * (0.3 if jogador.mira_travada else 1.5)
+	else:
+		(_mira as _Mira).abertura = 0.0
 	_municao.visible = com_pistola
 	if _btn_modo:
 		_btn_modo.visible = Jogador.e_fogo(jogador.arma) and jogador.fogo().automatica
@@ -710,7 +716,7 @@ func _atualiza_barras() -> void:
 	_barras[2].valor = jogador.sede
 	_barras[3].valor = jogador.infeccao
 	_barras[3].visible = jogador.infeccao > 0.0
-	_saldo.position.y = 122.0 if _barras[3].visible else 100.0
+	_saldo.position.y = 156.0 if _barras[3].visible else 122.0
 	_tarefas.position.y = _saldo.position.y + 30.0
 
 
@@ -1344,6 +1350,11 @@ class _Mira:
 	## tempo restante da marca de acerto (X em volta do centro)
 	var marca_t: float = 0.0
 	var marca_forte: bool = false
+	var abertura: float = 0.0:  # graus de desvio da arma agora
+		set(v):
+			if absf(v - abertura) > 0.05:
+				queue_redraw()
+			abertura = v
 
 	func marca(forte: bool) -> void:
 		marca_t = 0.25
@@ -1359,14 +1370,17 @@ class _Mira:
 		var c: Vector2 = size * 0.5
 		var cor := Color(Config.cor_mira(), 0.9)
 		draw_circle(c, 2.5, cor)
+		# 13/11 (tiro de FPS): as 4 pernas da mira abrem com a dispersão da arma (andar, atirar seguido, sem mirar)
+		var abre: float = 8.0 + abertura * 7.0
 		for d: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
-			draw_line(c + d * 8.0, c + d * 18.0, cor, 2.5)
-		draw_arc(c, 26.0, 0.0, TAU, 32, Color(1, 1, 1, 0.25), 1.5)
-		if marca_t > 0.0:
+			draw_line(c + d * abre, c + d * (abre + 10.0), Color(0, 0, 0, 0.5), 4.5)
+			draw_line(c + d * abre, c + d * (abre + 10.0), cor, 2.5)
+		if marca_t > 0.0:  # acerto: X branco; cabeça ou abate: X vermelho maior
 			var a: float = clampf(marca_t / 0.25, 0.0, 1.0)
 			var mc := Color(0.95, 0.15, 0.1, a) if marca_forte else Color(1, 1, 1, a)
+			var r: float = 24.0 if marca_forte else 19.0
 			for d: Vector2 in [Vector2(1, 1), Vector2(1, -1), Vector2(-1, 1), Vector2(-1, -1)]:
-				draw_line(c + d.normalized() * 10.0, c + d.normalized() * 19.0, mc, 3.0)
+				draw_line(c + d.normalized() * 10.0, c + d.normalized() * r, mc, 3.5 if marca_forte else 3.0)
 
 
 # amigos do grupo: nome em cima da cabeça quando aparece na tela; seta na borda quando está fora dela
@@ -1441,17 +1455,50 @@ class _Barra:
 			var tw: float = f.get_string_size(texto, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
 			draw_string(f, Vector2((size.x - tw) * 0.5, size.y - 5.0), texto, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color(1, 1, 1, 0.95))
 			return
+		# 13/11 (dono: "melhore o lugar que mostra a fome e a sede"): pílula escura com ícone redondo, barra grossa
+		# arredondada e a porcentagem; vermelho piscando com aviso escrito quando está perigoso
 		var h: float = size.y
-		var x0: float = h + 8.0
-		var w: float = size.x - x0 - 46.0  # o resto é a porcentagem
-		var y: float = h * 0.5 - 3.0
-		draw_rect(Rect2(x0, y, w, 6), Color(0, 0, 0, 0.45))
 		var cor: Color = CORES[tipo]
-		draw_string(UiTema.tema().default_font, Vector2(x0 + w + 8.0, h - 1.0), "%d%%" % roundi(valor), HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(cor, 0.9))
-		if _perigo(valor):
-			cor = Color(0.85, 0.2, 0.15)
-			cor.a = 0.55 + 0.45 * absf(sin(Time.get_ticks_msec() * 0.006))
-		draw_rect(Rect2(x0, y, w * clampf(valor / 100.0, 0.0, 1.0), 6), cor)
+		var perigo: bool = _perigo(valor)
+		if perigo:
+			cor = Color(0.9, 0.22, 0.16, 0.6 + 0.4 * absf(sin(Time.get_ticks_msec() * 0.006)))
+		var fundo := StyleBoxFlat.new()
+		fundo.bg_color = Color(0, 0, 0, 0.5)
+		fundo.set_corner_radius_all(int(h * 0.5))
+		draw_style_box(fundo, Rect2(0, 0, size.x, h))
+		var ci := Vector2(h * 0.5, h * 0.5)
+		draw_circle(ci, h * 0.42, Color(cor, 1.0) * Color(0.7, 0.7, 0.7))
+		var br := Color(1, 1, 1, 0.95)
+		match tipo:
+			1:  # garfo e faca
+				for dx: float in [-4.0, -1.5, 1.0]:
+					draw_line(ci + Vector2(dx - 1.5, -7), ci + Vector2(dx - 1.5, -2), br, 1.5)
+				draw_line(ci + Vector2(-2.5, -2), ci + Vector2(-2.5, 8), br, 2.0)
+				draw_line(ci + Vector2(4.5, -7), ci + Vector2(4.5, 8), br, 2.5)
+			2:  # gota
+				draw_circle(ci + Vector2(0, 2.5), 5.0, br)
+				draw_colored_polygon(PackedVector2Array([ci + Vector2(0, -8), ci + Vector2(-4.6, 1), ci + Vector2(4.6, 1)]), br)
+			3:  # infecção: anel com três pontos
+				draw_arc(ci, 6.5, 0.0, TAU, 20, br, 2.0)
+				for k in 3:
+					draw_circle(ci + Vector2.from_angle(TAU * k / 3.0 - PI / 2.0) * 3.2, 1.6, br)
+		var x0: float = h + 6.0
+		var w: float = size.x - x0 - 50.0
+		var trilho := StyleBoxFlat.new()
+		trilho.bg_color = Color(1, 1, 1, 0.12)
+		trilho.set_corner_radius_all(5)
+		draw_style_box(trilho, Rect2(x0, h * 0.5 - 5.0, w, 10))
+		var cheio := StyleBoxFlat.new()
+		cheio.bg_color = cor
+		cheio.set_corner_radius_all(5)
+		var fw: float = w * clampf(valor / 100.0, 0.0, 1.0)
+		if fw > 2.0:
+			draw_style_box(cheio, Rect2(x0, h * 0.5 - 5.0, fw, 10))
+		var f: Font = UiTema.tema().default_font
+		draw_string(f, Vector2(x0 + w + 8.0, h * 0.5 + 6.0), "%d%%" % roundi(valor), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 1, 1, 0.92))
+		if perigo:
+			var aviso: String = ["", "COM FOME", "COM SEDE", "INFECTADO"][tipo]
+			draw_string(f, Vector2(size.x + 10.0, h * 0.5 + 6.0), aviso, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, cor)
 		_icone(Vector2(h * 0.5, h * 0.5), h * 0.45, Color(cor, 0.95))
 
 	# cruz, garfo, gota e risco biológico (três círculos) em traços simples (sem imagem)
