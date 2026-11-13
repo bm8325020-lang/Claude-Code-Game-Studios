@@ -23,6 +23,11 @@ const ESPECIES: Dictionary = {
 	"arvore_velha_lod": ["trees/arvore_velha_lod", "", Color(0.7, 0.68, 0.62), 0.2, 0.0],
 	"arvore_morta_lod": ["trees/arvore_morta_lod", "", Color(0.75, 0.72, 0.68), 0.15, 0.0],
 	"toco_lod": ["trees/arvore_rachada_lod", "", Color(0.8, 0.8, 0.78), 0.0, 0.0],
+	# 13/11 (bairro de Los Angeles): palmeiras
+	"palmeira": ["trees/palmeira", "", Color(0.85, 0.85, 0.72), 0.5, 0.25],
+	"palmeira_lod": ["trees/palmeira_lod", "", Color(0.85, 0.85, 0.72), 0.5, 0.0],
+	"palmeira_alta": ["trees/palmeira_alta", "", Color(0.85, 0.85, 0.72), 0.4, 0.2],
+	"palmeira_alta_lod": ["trees/palmeira_alta_lod", "", Color(0.85, 0.85, 0.72), 0.4, 0.0],
 	# pacote de floresta (poucos triângulos: serve para mata fechada)
 	"conifera_1": ["trees/floresta", "floresta_0", Color(0.85, 0.88, 0.82), 0.4, 0.2],
 	"outono_1": ["trees/floresta", "floresta_1", Color(0.85, 0.82, 0.75), 0.5, 0.2],

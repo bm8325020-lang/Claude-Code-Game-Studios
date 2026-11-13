@@ -4,15 +4,13 @@
 # Depois da lista, opcional: qualidade (0 Batata .. 3 Ultra) e sombras (0/1), para medir o peso como no celular.
 extends SceneTree
 
-const VISTAS: Array = [  # GALENA (13/11, tools/mapa/senoia.py)
-	[Vector3(50, 10, 1.7), Vector3(200, -95, 4)],          # 0 Main Street (centro de tijolo) para o nordeste
-	[Vector3(-25, 95, 1.7), Vector3(-55, 175, 4)],         # 1 South Main para o sul (delegacia, hospital, mercado)
-	[Vector3(225, 145, 1.7), Vector3(300, 230, 3)],        # 2 ponte sobre o Galena River
-	[Vector3(-230, 40, 1.7), Vector3(-300, -60, 2)],       # 3 rua de casas no oeste
-	[Vector3(-5, -110, 1.7), Vector3(-33, -143, 8)],       # 4 igreja no morro
-	[Vector3(-300, -250, 1.7), Vector3(-390, -330, 10)],   # 5 o morro com mata
-	[Vector3(-80, 200, 90), Vector3(120, 0, 0)],           # 6 centro de cima
-	[Vector3(-300, 350, 220), Vector3(60, -40, 0)],        # 7 a cidade inteira de cima
+const VISTAS: Array = [  # SOUTH LA (13/11, tools/mapa/senoia.py CIDADE=la)
+	[Vector3(8, 120, 1.7), Vector3(0, -40, 4)],            # 0 Vermont Ave para o norte (comércio)
+	[Vector3(-120, -10, 1.7), Vector3(60, -18, 4)],        # 1 Slauson Ave para o leste
+	[Vector3(-200, -236, 1.7), Vector3(-380, -236, 3)],    # 2 rua de casas com palmeiras (noroeste)
+	[Vector3(200, -330, 1.7), Vector3(380, -330, 3)],      # 3 rua de casas (nordeste)
+	[Vector3(-80, 200, 90), Vector3(40, -20, 0)],          # 4 centro de cima
+	[Vector3(-300, 350, 220), Vector3(60, -40, 0)],        # 5 o bairro inteiro de cima
 ]
 
 

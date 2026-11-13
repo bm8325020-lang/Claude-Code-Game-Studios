@@ -53,6 +53,11 @@ MODELOS = {
     "capim_seco": ("vegetation/plants/dry_realistic_grass_lods_1.glb", "vegetation/plants", 0.6, False, 500),
     # 07/11 anti-travamento: versão de longe das árvores grandes (Planta: perto a inteira, longe esta)
     "arvore_lod": ("vegetation/trees/realistic_tree.glb", "vegetation/trees", 10.0, False, 500),
+    # 13/11 (bairro de Los Angeles): palmeiras (Sketchfab CC BY)
+    "palmeira": ("vegetation/trees/coconut_palm.glb", "vegetation/trees", 11.0, False, 3000),
+    "palmeira_lod": ("vegetation/trees/coconut_palm.glb", "vegetation/trees", 11.0, False, 500),
+    "palmeira_alta": ("vegetation/trees/palm_tree_tall.glb", "vegetation/trees", 16.0, False),
+    "palmeira_alta_lod": ("vegetation/trees/palm_tree_tall.glb", "vegetation/trees", 16.0, False, 500),
     "betula_lod": ("vegetation/trees/birch_tree.glb", "vegetation/trees", 13.0, False, 400),
     "pinheiro_lod": ("vegetation/trees/pine_tree_01.glb", "vegetation/trees", 14.0, False, 600),
     "arvore_velha_lod": ("vegetation/trees/old_tree.glb", "vegetation/trees", 10.0, False, 400),

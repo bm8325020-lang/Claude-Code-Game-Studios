@@ -30,6 +30,11 @@ Espera de rede em teste = tempo real (`OS.delay_msec(16)`); `process_frame` cheg
 Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 
 ## Arquivos (scripts/)
+- SOUTH LA (13/11, dono: bairro de subúrbio de LA, estilo mods de zumbi do GTA 5 mas original): `CIDADE=la` (padrão
+  de `tools/mapa/senoia.py`) usa `tools/mapa/osm/la.json` (Vermont x Slauson, OSM ODbL). Sem `enche` (o OSM já tem os
+  prédios; 55% das casas e 60% dos aptos somem p/ celular), palmeiras na calçada (veg:palmeira/palmeira_alta,
+  Sketchfab CC BY via normaliza.py), paredes "siding_*" viram reboco pastel (`Bairro.CORES_US`). Modo história
+  desligado: `Tarefas.HISTORIA = false` (só sobrevivência). Galena continua com `CIDADE=galena`.
 - GALENA (13/11, dono: "mapa completamente diferente"): `tools/mapa/senoia.py` com `CIDADE=galena` (padrão) usa
   `tools/mapa/osm/galena.json` (Galena, IL; OSM ODbL; baixado do Overpass maps.mail.ru em 3 consultas). Rio do OSM,
   ponte inventada para o leste, morro com mata no noroeste; na história a cidade segue "Senoia". Casas novas

@@ -54,3 +54,5 @@ Cada modelo: arquivo | nome original | autor | licença | origem | tamanho | fac
 | brutos/props/weathered_water_tower.glb | Weathered Water Tower | Pippa | CC Attribution | https://sketchfab.com/3d-models/weathered-water-tower-bff3a33dff32414e83fa57e650e701ce | 3.2 MB | 4968 | sim | obrigatória |
 | brutos/props/gas_pump.glb | Gas Pump | xrooshka | CC Attribution | https://sketchfab.com/3d-models/gas-pump-4354327e7c52491f9dda58bb2fc0b375 | 1.1 MB | 1092 | sim | obrigatória |
 | brutos/props/mochila/backpack_low_poly_pbr_1_of_2.glb | Backpack - Low Poly PBR [1 of 2] | RETROSPEC | CC Attribution | https://sketchfab.com/3d-models/backpack-low-poly-pbr-1-of-2-0b795895343b44b69191ef9b55b35840 | 3.5 MB | 1115 | sim | obrigatória |
+| brutos/vegetation/trees/coconut_palm.glb | Coconut Palm | evolveduk | CC Attribution | https://sketchfab.com/3d-models/coconut-palm-26e787f2ff2e4c0fb004c3b0210805a3 | 11.8 MB | 7432 | sim | obrigatória |
+| brutos/vegetation/trees/palm_tree_tall.glb | Palm Tree tall | pizzaguyty | CC Attribution | https://sketchfab.com/3d-models/palm-tree-tall-557ea8d4527f47e8bbc657e2764b7cab | 1.5 MB | 1964 | sim | obrigatória |

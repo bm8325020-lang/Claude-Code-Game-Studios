@@ -933,9 +933,10 @@ static func queimada(modelo: String) -> bool:
 
 ## Cores da casa americana (tinta por cima das texturas claras).
 const CORES_US: Dictionary = {
-	"siding_branco": Color(0.92, 0.92, 0.9), "siding_azul": Color(0.64, 0.69, 0.72), "siding_amarelo": Color(0.95, 0.86, 0.6),
-	"siding_cinza": Color(0.66, 0.68, 0.68), "siding_verde": Color(0.64, 0.74, 0.62), "siding_bege": Color(0.88, 0.82, 0.7),
-	"siding_vermelho": Color(0.66, 0.3, 0.26),
+	# 13/11 (bairro de Los Angeles): as paredes "siding_*" viram reboco (estuque) pintado em tons de LA, gastos de sol
+	"siding_branco": Color(0.93, 0.91, 0.86), "siding_azul": Color(0.66, 0.78, 0.82), "siding_amarelo": Color(0.96, 0.86, 0.62),
+	"siding_cinza": Color(0.78, 0.76, 0.72), "siding_verde": Color(0.7, 0.82, 0.7), "siding_bege": Color(0.92, 0.8, 0.66),
+	"siding_vermelho": Color(0.9, 0.66, 0.6),
 	"shingle_cinza": Color(0.62, 0.62, 0.63), "shingle_marrom": Color(0.6, 0.45, 0.36), "shingle_preto": Color(0.36, 0.36, 0.38),
 	"shingle_verde": Color(0.42, 0.52, 0.44),
 	"carpete_bege": Color(0.92, 0.85, 0.74), "carpete_cinza": Color(0.72, 0.72, 0.72), "carpete_azul": Color(0.5, 0.6, 0.75),
@@ -972,7 +973,7 @@ func _mat_ruina(n: String, tinta: Color) -> Material:
 		"telha": return _mat("telhado", 0.5, Color(0.9, 0.55, 0.42), true)
 		# casa americana (RAVEN CREEK, 05/11): texturas de tools/texturas/gera_americanas.py, cor pela tinta
 		"siding_branco", "siding_azul", "siding_amarelo", "siding_cinza", "siding_verde", "siding_bege", "siding_vermelho":
-			return _mat("siding", 0.7, CORES_US[n], true)
+			return _mat("reboco", 0.45, CORES_US[n], true)
 		"shingle_cinza", "shingle_marrom", "shingle_preto", "shingle_verde": return _mat("shingle", 0.7, CORES_US[n], true)
 		"carpete_bege", "carpete_cinza", "carpete_azul", "carpete_vinho": return _mat("carpete", 0.6, CORES_US[n], true)
 		"linoleo": return _mat("linoleo", 0.85, Color(0.95, 0.93, 0.9), true)

@@ -117,7 +117,17 @@ if SENOIA:
 # GALENA (13/11, dono: "quero um mapa completamente diferente... ruas com posicionamentos melhores"): a planta passa a ser
 # Galena, Illinois (centro antigo de tijolo na Main Street em diagonal, o Galena River atravessando a cidade, igrejas nos
 # morros), do OpenStreetMap (tools/mapa/osm/galena.json, ODbL). Na história a cidade continua se chamando Senoia.
-GALENA = os.environ.get("CIDADE", "galena") == "galena"
+CIDADE = os.environ.get("CIDADE", "la")
+GALENA = CIDADE == "galena"
+# LOS ANGELES (13/11, dono: bairro de subúrbio de LA no clima dos mods de zumbi do GTA 5, mas original): ruas e casas
+# reais de South LA em volta do cruzamento da Vermont Avenue com a Slauson Avenue (tools/mapa/osm/la.json, OSM ODbL).
+# Comércio nas duas avenidas, casas baixas de reboco pastel, becos (alley) atrás dos lotes, palmeiras. Sem rio nem morro.
+LA = CIDADE == "la"
+if LA:
+    OSM_LAT0, OSM_LON0 = 33.9890, -118.2915
+    OSM = json.load(open("tools/mapa/osm/la.json"))["elements"]
+    rio = [[-600.0, 2000.0], [600.0, 2000.0]]
+    MORRO = {"p": [2000, 2000], "raio": 10.0, "alt": 0.0}
 if GALENA:
     OSM_LAT0, OSM_LON0 = 42.4160, -90.4295
     OSM = json.load(open("tools/mapa/osm/galena.json"))["elements"]
@@ -185,10 +195,12 @@ def predios_osm():
         elif t in ("commercial", "retail") or (t == "yes" and zona(cx, cz) == "centro"):
             modelo = min(SOBRADOS, key=lambda m: abs(MED[m][0] * MED[m][1] - area_m2))
         elif t == "apartments":
+            if LA and R.random() < 0.6:
+                continue  # 13/11 celular: os prédios baixos de apartamento de LA ocupam metade dos lotes; ficam 40%
             modelo = R.choice(APTOS)
         elif t in ("garage", "shed", "roof"):
             continue
-        elif R.random() < 0.25:
+        elif R.random() < (0.55 if LA else 0.25):  # LA: lotes muito juntos; quase metade virou terreno vazio
             continue  # 06/11 terror: 1 em 4 casas reais do OSM não está mais lá (cidade mais vazia e silenciosa)
         else:
             modelo = min(CASAS, key=lambda m: abs(tam(m)[0] * tam(m)[1] - area_m2) + R.random() * 20)
@@ -240,6 +252,8 @@ def no_morro(p, folga=0.0):
 
 
 def zona(x, z):
+    if LA:  # comércio de frente para a Vermont (x = 0) e a Slauson (z = -16)
+        return "centro" if abs(x) < 45 or abs(z + 16) < 45 else "casas"
     if GALENA:  # centro = a faixa da Main Street (diagonal, do sudoeste ao nordeste)
         if no_morro((x, z), -4):
             return "parque"
@@ -287,6 +301,9 @@ VEG = {
     "centro": [("arvore", 3), ("betula", 2), ("outono_3", 1), ("arvore_morta", 2)],
     "industrial": [("arvore_morta", 3), ("arvore_velha", 2), ("toco", 1), ("outono_2", 1), ("abeto_2", 1)],
 }
+if LA:  # 13/11: palmeiras na rua e no quintal (LA); umas mortas e velhas no meio
+    VEG["casas"] = [("palmeira_alta", 5), ("palmeira", 3), ("arvore", 2), ("arvore_morta", 2), ("arvore_velha", 1)]
+    VEG["centro"] = [("palmeira_alta", 5), ("palmeira", 2), ("arvore_morta", 1)]
 SUB = {  # perto do pé da árvore
     "parque": ["pinheirinho", "abeto_baixo", "arbusto", "arbusto_2", "pedras", "pedras_2", "samambaia",
                "samambaia_baixa", "capim_alto"],
@@ -365,6 +382,10 @@ def desloc(modelo):
 ENTRADA = (480.0, 88.0)
 ENTRADA_DIR = (-0.9967, -0.0812)   # para dentro da cidade (a estrada do leste é quase reta)
 RURAL = 175.0
+if LA:  # chega pela Vermont Avenue, que entra pela borda sul
+    ENTRADA = (0.0, 480.0)
+    ENTRADA_DIR = (0.0, -1.0)
+    RURAL = 40.0
 if GALENA:  # chega pela South Main Street, que entra pela borda sul
     ENTRADA = (-122.0, 480.0)
     ENTRADA_DIR = (0.2, -0.98)
@@ -505,14 +526,30 @@ if SENOIA:
     for modelo, uso in (("delegacia", "centro"), ("hospital", "centro"), ("mercado", "centro"), ("escola", "casas")):
         if not any(pp["modelo"] == modelo for pp in predios):
             print(modelo, acha_lote(modelo, uso))
-for r in list(ruas):
+for r in ([] if LA else list(ruas)):  # LA: o OSM já tem todos os prédios; encher lote só pesava
     if r["tipo"] in ("primary", "secondary", "tertiary"):
         for lado in (1, -1):
             enche(r["p"], lado)
-for r in list(ruas):
+for r in ([] if LA else list(ruas)):
     if r["tipo"] in ("residential", "service"):
         for lado in (1, -1):
             enche(r["p"], lado)
+if LA:  # 13/11: fileira de palmeiras na beira da calçada (a cara de LA), uma a cada ~24 m, falhando aqui e ali
+    for r in ruas:
+        if r["tipo"] not in ("primary", "tertiary", "residential"):
+            continue
+        meia = LARG[r["tipo"]] / 2 + CALCADA + 0.6
+        L_ = comprimento(r["p"])
+        t = RV.uniform(6, 18)
+        while t < L_ - 6:
+            p, ang_r = ponto_em(r["p"], t)
+            for lado in (1, -1):
+                q = (p[0] - math.sin(ang_r) * lado * meia, p[1] + math.cos(ang_r) * lado * meia)
+                if p is not None and RV.random() < 0.7 and abs(q[0]) < LIM - 2 and abs(q[1]) < LIM - 2 and not perto_rua(q, 0.3) \
+                        and not any(math.dist(q, o[:2]) < max(o[3], o[4]) / 2 + 1.0 for o in ocupado if math.dist(q, o[:2]) < 25):
+                    props.append({"m": "veg:" + RV.choice(["palmeira_alta", "palmeira_alta", "palmeira"]), "p": [round(q[0], 2), round(q[1], 2)],
+                                  "r": round(RV.uniform(0, 6.28), 3)})
+            t += RV.uniform(20, 28)
 frestas = [{k: v for k, v in f.items() if k != "_pend"} for f in frestas
            if sum(1 for o in ocupado if math.dist(o[:2], ((f["a"][0] + f["b"][0]) / 2, (f["a"][1] + f["b"][1]) / 2)) < 9) >= 2]
 # mata em Raven Hill (floresta de coníferas: as do pacote têm poucos triângulos)
@@ -681,7 +718,7 @@ for k in range(60):
     off = RV.uniform(8, 26)
     q = (ENTRADA[0] + ENTRADA_DIR[0] * t - ENTRADA_DIR[1] * lado * off, ENTRADA[1] + ENTRADA_DIR[1] * t + ENTRADA_DIR[0] * lado * off)
     if not perto_rua(q, 2.0) and abs(q[0]) < LIM and abs(q[1]) < LIM:
-        props.append({"m": "veg:" + RV.choice(["pinheiro", "conifera_1", "conifera_3", "abeto_1", "outono_1", "betula", "arvore_morta"]),
+        props.append({"m": "veg:" + RV.choice(["palmeira_alta", "palmeira", "arvore_morta", "palmeira_alta"] if LA else ["pinheiro", "conifera_1", "conifera_3", "abeto_1", "outono_1", "betula", "arvore_morta"]),
                       "p": [round(q[0], 2), round(q[1], 2)], "r": round(RV.uniform(0, 6.28), 3)})
         for j in range(RV.randint(1, 3)):
             props.append({"m": "veg:" + RV.choice(["capim_alto", "arbusto", "arbusto_2", "capim_seco"]),
@@ -709,7 +746,7 @@ for pp in predios:
             pp["c"] = [round(sum(v[0] for v in q) / len(q), 2), round(sum(v[1] for v in q) / len(q), 2)]
 # ---------------- 07/11 (E3, regra 1): estrutura nova da cidade (sorteio próprio: o resto da cidade não muda) ----------------
 RE = random.Random(3107)
-CENTRO_C = (120.0, 10.0) if GALENA else (-15.0, 225.0)
+CENTRO_C = (0.0, -16.0) if LA else (120.0, 10.0) if GALENA else (-15.0, 225.0)
 # 1) bairro incendiado: o aglomerado de casas mais longe do centro e da entrada pega fogo (mesmo tamanho -> versão queimada)
 QUEIMA = {"casa_us_7": "casa_us_q1", "casa_us_1": "casa_us_q1", "casa_us_2": "casa_us_q1", "casa_us_5": "casa_us_q1", "casa_us_3": "casa_us_q2",
           "casa_us_4": "casa_us_q2", "casa_us_6": "casa_us_q2"}  # a queimada cabe no lote da original (mesma origem)
@@ -945,7 +982,7 @@ if posto_c:
 print("E6: pátio", patio, "| acampamento", acamp, "| garagem", garagem, "| posto dos Corvos", posto_c)
 print("E3: casas incendiadas", incendio, "| entulho", bomba, "| fila na rodovia", fila, "| vala comum", vala)
 print("casas prontas:", sum(1 for pp in predios if pp["modelo"].startswith("casa_p")))
-out = {"origem": "Galena, IL (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if GALENA else "Senoia, GA (OpenStreetMap, ODbL; tools/mapa/raven_creek.py CIDADE=senoia)" if SENOIA else "Raven Creek (tools/mapa/raven_creek.py)", "ruas": ruas, "predios": predios, "frestas": frestas, "bloqueios": bloqueios,
+out = {"origem": "South Los Angeles, CA (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if LA else "Galena, IL (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if GALENA else "Senoia, GA (OpenStreetMap, ODbL; tools/mapa/raven_creek.py CIDADE=senoia)" if SENOIA else "Raven Creek (tools/mapa/raven_creek.py)", "ruas": ruas, "predios": predios, "frestas": frestas, "bloqueios": bloqueios,
        "quarentena": quarentena, "lugares": lugares, "marcos": marcos, "muros": muros, "props": props, "areas": areas, "faixas": faixas, "postes": postes, "veiculos": veiculos,
        "zumbis": zumbis, "longe": longe, "entrada": entrada,
        "terreno": {"rio": {"p": rio, "larg": RIO_LARG, "fundo": 2.2, "agua": 1.5}, "morros": [MORRO]}}
