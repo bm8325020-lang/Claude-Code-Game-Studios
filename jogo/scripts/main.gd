@@ -1104,7 +1104,7 @@ func _luz() -> void:
 	ciclo.name = "Ciclo"
 	add_child(ciclo)
 	var sol := DirectionalLight3D.new()
-	sol.rotation_degrees = Vector3(-50, -35, 0)
+	sol.rotation_degrees = Vector3(-30, -35, 0)  # 13/11: sol baixo de fim de tarde (sombras compridas)
 	sol.light_energy = 1.2
 	sol.shadow_enabled = true
 	sol.directional_shadow_max_distance = 40.0

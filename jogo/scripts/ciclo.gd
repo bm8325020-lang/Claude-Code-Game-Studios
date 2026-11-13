@@ -27,10 +27,12 @@ var _rng_clima := RandomNumberGenerator.new()
 # 31/10 (dono: "não gosto desse céu, pegada feia"): saiu o poeirão laranja; dia nublado frio, cinza-azulado, e noite azul-escura
 # 07/11 (E1 cara nova, dono: "tirar a cara de morto e genérico"): paleta própria — ferrugem/âmbar das luzes e do
 # horizonte em brasa contra o azul-petróleo das sombras e da noite (nada de cinza neutro)
-const CEU_TOPO: Array[Color] = [Color(0.3, 0.37, 0.41), Color(0.04, 0.09, 0.12)]
-const CEU_HORIZONTE: Array[Color] = [Color(0.54, 0.53, 0.5), Color(0.1, 0.19, 0.21)]
-const SOL_COR: Array[Color] = [Color(1.0, 0.8, 0.58), Color(0.5, 0.72, 0.82)]  # sol âmbar abafado; luar petróleo
-const AMBIENTE_COR: Array[Color] = [Color(0.52, 0.6, 0.64), Color(0.34, 0.5, 0.56)]  # sombra fria (petróleo)
+# 13/11 (dono: "faça o que o GTA 5 faz pra ter realismo"): luz de fim de tarde de LA, sol quente e baixo (sombra
+# comprida) contra sombra azulada, e fumaça/smog amarelado no horizonte em vez da sopa cinza; a noite não mudou
+const CEU_TOPO: Array[Color] = [Color(0.4, 0.48, 0.55), Color(0.04, 0.09, 0.12)]
+const CEU_HORIZONTE: Array[Color] = [Color(0.74, 0.65, 0.52), Color(0.1, 0.19, 0.21)]
+const SOL_COR: Array[Color] = [Color(1.0, 0.76, 0.5), Color(0.5, 0.72, 0.82)]  # sol dourado de fim de tarde; luar petróleo
+const AMBIENTE_COR: Array[Color] = [Color(0.5, 0.58, 0.68), Color(0.34, 0.5, 0.56)]  # sombra azulada
 
 
 func _ready() -> void:
@@ -75,7 +77,7 @@ func _process(dt: float) -> void:
 		_clima.passa(clima, dt)
 		flash = _clima.flash
 	if sol:
-		sol.light_energy = lerpf(0.62, 0.32, n) * float(c[3]) + flash * 2.5  # 06/11 terror: noite escura (a lanterna manda)  # noite de luar: escura, mas dá para jogar (pedido do dono)
+		sol.light_energy = lerpf(0.95, 0.32, n) * float(c[3]) + flash * 2.5  # 06/11 terror: noite escura (a lanterna manda)  # noite de luar: escura, mas dá para jogar (pedido do dono)
 		sol.light_color = SOL_COR[0].lerp(SOL_COR[1], n)
 	if ambiente:
 		var ceu: Color = CEU_HORIZONTE[0].lerp(CEU_HORIZONTE[1], n)
@@ -91,7 +93,8 @@ func _process(dt: float) -> void:
 		ambiente.ambient_light_color = AMBIENTE_COR[0].lerp(AMBIENTE_COR[1], n)
 		ambiente.ambient_light_energy = lerpf(0.4, 0.42, n)  # 06/11: dia escurecido (dono: "muito claro"); a noite segue jogável
 		# 06/11 (dono: "bastante atmosfera"): névoa mais grossa e cerração rente ao chão
-		ambiente.fog_density = lerpf(0.02, 0.028, n) * float(c[2])  # a névoa fecha a visão
+		ambiente.fog_density = lerpf(0.009, 0.028, n) * float(c[2])  # 13/11: de dia o smog deixa ver a rua; de noite fecha
+		ambiente.fog_sun_scatter = lerpf(0.3, 0.0, n)  # o brilho quente na direção do sol
 		ambiente.fog_height = 3.0
 		ambiente.fog_height_density = lerpf(0.06, 0.12, n)
 		var cam := get_viewport().get_camera_3d()
