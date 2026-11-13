@@ -201,6 +201,9 @@ static func capitulo_falado(cap: String) -> String:
 	var nome: String = cap.get_slice(" · ", 1).to_lower()
 	nome = nome.left(1).to_upper() + nome.substr(1)
 	return ("Prólogo. " if num == "0" else "Capítulo %s. " % num) + nome + "."
+## 13/11 (dono: "apague o modo história, agora é só sobrevivência"): false = sem capítulos, sem abertura e sem a Dana no
+## rádio; ficam as tarefas sorteadas (DEPOIS), o rádio dos Corvos, o pedágio e o salvo da mochila.
+const HISTORIA: bool = false
 const DEPOIS: Array = [["abateu", 5, "Mate zumbis (%d/%d)"], ["revistou", 5, "Revistar gavetas ou armários (%d/%d)"],
 	["agua", 2, "Pegue garrafas de água (%d/%d)"], ["comida", 2, "Pegue latas de comida (%d/%d)"]]
 
@@ -418,14 +421,18 @@ func liga(j: Jogador) -> void:
 			_stats = cf.get_value("historia", "stats", _stats)
 			ng = int(cf.get_value("historia", "ng", 0))
 			_tira_mochila(cf)
+			if not HISTORIA:
+				_check = Vector3.INF  # checkpoint de história (e da cidade antiga) não vale mais
 			if _check.is_finite():  # 07/11: voltando ao jogo, começa no último checkpoint da história
 				get_tree().create_timer(1.0).timeout.connect(func() -> void:
 					if _j and is_instance_valid(_j) and _j.vida > 0:
 						_j.global_position = _check + Vector3(0, 0.3, 0)
 						_j.velocity = Vector3.ZERO)
-			if _i > 1 and _i - 1 < ROTEIRO.size():  # voltando ao jogo: "anteriormente..."
+			if HISTORIA and _i > 1 and _i - 1 < ROTEIRO.size():  # voltando ao jogo: "anteriormente..."
 				var antes: String = String(ROTEIRO[_i - 1][6]) if String(ROTEIRO[_i - 1][6]) != "" else String(ROTEIRO[_i - 1][1])
 				get_tree().create_timer(2.5).timeout.connect(func() -> void: legenda("ANTERIORMENTE", antes.replace("%d", "?"), 7.0, false))
+	if not HISTORIA:
+		_i = ROTEIRO.size()
 	_comeca()
 
 
@@ -880,7 +887,7 @@ func _process(dt: float) -> void:
 	if _j.vida > 0 and _j.vida < 30:
 		_radio_ev("vida_baixa")
 	_quieto_t = _quieto_t + 0.4 if _legenda_t <= 0.0 and _fila_radio.is_empty() else 0.0
-	if _quieto_t > LORE_QUIETO and _i > 5 and _lore_i < LORE.size():
+	if HISTORIA and _quieto_t > LORE_QUIETO and _i > 5 and _lore_i < LORE.size():
 		_quieto_t = 0.0
 		legenda("RÁDIO · DANA", String(LORE[_lore_i]), 7.0)
 		_lore_i += 1

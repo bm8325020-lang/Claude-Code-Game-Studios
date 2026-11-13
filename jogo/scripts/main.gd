@@ -1020,7 +1020,7 @@ func _jogador_entrou(n: Node) -> void:
 	var j := n as Jogador
 	if j and j.local:
 		jogador = j
-		if bairro and bairro.entrada_pos != Vector3.INF and not _testando() and not Rede.servidor_sem_tela and not em_pvp():
+		if Tarefas.HISTORIA and bairro and bairro.entrada_pos != Vector3.INF and not _testando() and not Rede.servidor_sem_tela and not em_pvp():
 			var ab := Abertura.new()  # boletim da repórter + tutorial do carro
 			ab.jogador = j
 			add_child(ab)
