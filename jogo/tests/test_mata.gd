@@ -50,11 +50,11 @@ func _init() -> void:
 			continue
 		j.global_position = (alvo[0] as Vector3) + Vector3(1.0, 0.3, 0)
 		await frames(4)
-		var antes: int = j.mochila.conta(tipo) + j.mochila.conta("cogumelo")
-		var c: Array = j.coleta_perto()
-		ok(not c.is_empty() and c[1] == tipo, "coleta_perto acha %s (%s)" % [tipo, str(c.slice(1, 2))])
+		var c: Array = j.coleta_perto()  # a mais perta (a mata é densa: pode ser outra coisa ao lado)
+		ok(not c.is_empty() and b.coleta_em(j.global_position, 2.3).any(func(x: Array) -> bool: return x[1] == tipo), "dá para colher %s aqui (%s)" % [tipo, str(c.slice(1, 2))])
+		var antes: int = j.mochila.conta(String(c[1])) + j.mochila.conta("cogumelo")
 		j._tenta_pegar()
-		ok(j.mochila.conta(tipo) + j.mochila.conta("cogumelo") > antes, "colheu %s" % tipo)
+		ok(j.mochila.conta(String(c[1])) + j.mochila.conta("cogumelo") > antes, "colheu (%s)" % c[1])
 		ok(j.coleta_perto().is_empty() or j.coleta_perto()[2] != c[2], "o mesmo %s não dá de novo na hora" % tipo)
 	# beber do rio
 	var s: Array = b._rio[0]

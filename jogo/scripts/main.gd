@@ -64,6 +64,10 @@ func _ready() -> void:
 		grama.name = "Grama"
 		grama.bairro = bairro
 		add_child(grama)
+	var fauna := Fauna.new()  # 13/11: lobo, javali e raposa na mata
+	fauna.name = "Fauna"
+	fauna.principal = self
+	add_child(fauna)
 	_baus()
 	jogadores = Node3D.new()
 	jogadores.name = "Jogadores"

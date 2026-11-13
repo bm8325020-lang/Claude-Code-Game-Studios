@@ -58,3 +58,5 @@ Cada modelo: arquivo | nome original | autor | licença | origem | tamanho | fac
 | brutos/vegetation/trees/palm_tree_tall.glb | Palm Tree tall | pizzaguyty | CC Attribution | https://sketchfab.com/3d-models/palm-tree-tall-557ea8d4527f47e8bbc657e2764b7cab | 1.5 MB | 1964 | sim | obrigatória |
 
 13/11 natureza (assets/mundo/vegetation/natureza): Quaternius, "Ultimate Nature Pack" e "Ultimate Food Pack" (OpenGameArt, CC0), convertidos por tools/assets/natureza.py.
+
+13/11 bichos (assets/bichos): Quaternius CC0 (OpenGameArt): lobo (Animal Pack Vol.2), raposa (Animals Pack), javali = porco (Farm Animals); tools/assets/bichos.py.

@@ -16,3 +16,5 @@ alarme.wav — feito no próprio projeto (CC0)
 06/11 (terror): grito ("Female Scream 1"), porta_bate ("Door Open, Door Close Set"), explosao_longe ("Muffled Distant Explosion", NenadSimic), chiado ("Frequency Static Sound Effects"), radio ("Zombie news in Radio") — OpenGameArt CC0; cortados/equalizados aqui.
 
 13/11: trovao ("Rain + long thunder", wuxiascrub, CC0), vidro ("Glass break", tinyworlds, CC0), metal ("Metal clang sounds", bart, CC0) — OpenGameArt; cachorro ("Dog barking mono", haeldb, OGA-BY 3.0 — crédito a haeldb, opengameart.org/content/dog-barking-mono).
+
+13/11 floresta (OpenGameArt CC0): grilos ("Crickets ambient noise loopable", wolfgang), coruja ("Bird, cricket, frog and mosquito sounds", aj-0), rio e vento_mata ("Park ambiences", thimras, cortados), lobo_1/lobo_2 ("Wolf monster sound", caveboytup).

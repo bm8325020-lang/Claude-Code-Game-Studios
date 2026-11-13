@@ -31,6 +31,11 @@ var _rng := RandomNumberGenerator.new()
 var _radio: AudioStreamPlayer3D
 var _radio_t: float = 0.0
 var _trovejou: bool = false
+var _rio: AudioStreamPlayer
+var _grilos: AudioStreamPlayer
+var _vento_mata: AudioStreamPlayer
+var _agua_t: float = 0.0
+var _agua_d: float = INF
 
 
 func _ready() -> void:
@@ -44,6 +49,10 @@ func _ready() -> void:
 	_pingos = _toca_sempre("pingos", -80.0)
 	_agua = _toca_sempre("agua", -80.0)
 	_coracao = _toca_sempre("coracao", -80.0)
+	# 13/11 floresta (OpenGameArt CC0): água correndo perto do rio/lago, grilos de noite, vento nas folhas
+	_rio = _toca_sempre("rio", -80.0)
+	_grilos = _toca_sempre("grilos", -80.0)
+	_vento_mata = _toca_sempre("vento_mata", -80.0)
 	# 13/11 (dono: "músicas de fundo"): trilha de dia e de noite (OpenGameArt CC0), trocando devagar com o ciclo
 	_mus_dia = _musica("dia")
 	_mus_noite = _musica("noite")
@@ -132,6 +141,13 @@ func _process(dt: float) -> void:
 	_suave(_passaros, (-17.0 if not dentro else -30.0) if noite < 0.5 and not chuva else -80.0, dt)
 	_suave(_pingos, -16.0 if dentro else -80.0, dt)
 	_suave(_agua, (-14.0 if not dentro else -24.0) if chuva else -80.0, dt)
+	_agua_t -= dt
+	if _agua_t <= 0.0 and principal.bairro:
+		_agua_t = 0.5
+		_agua_d = principal.bairro.dist_agua(j.global_position)
+	_suave(_rio, lerpf(-5.0, -55.0, clampf(_agua_d / 45.0, 0.0, 1.0)) if _agua_d < 45.0 else -80.0, dt)
+	_suave(_grilos, (-15.0 if not dentro else -28.0) if noite > 0.5 and not chuva else -80.0, dt)
+	_suave(_vento_mata, (-17.0 if not dentro else -32.0), dt)
 	_passos(j, dentro)
 	_coracao_bate(j, dt)
 	_sustos(j, dt, noite)
@@ -193,7 +209,9 @@ func _sustos(j: Jogador, dt: float, noite: float) -> void:
 	var s := AudioStreamPlayer3D.new()
 	var r: float = _rng.randf()
 	var nome: String
-	if r < 0.22:
+	if noite > 0.5 and r < 0.2:  # 13/11 floresta: de noite coruja e lobo uivando longe
+		nome = "coruja" if r < 0.12 else "lobo_%d" % _rng.randi_range(1, 2)
+	elif r < 0.22:
 		nome = "sombra_%d" % _rng.randi_range(1, 5)
 	elif r < 0.36:
 		nome = "rangido"

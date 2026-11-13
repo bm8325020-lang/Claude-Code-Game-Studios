@@ -205,7 +205,7 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 		var ponto: Vector3 = hit.position if not hit.is_empty() else origem + d * alcance
 		var pegou: Node3D = null
 		var cabeca: bool = false
-		if not hit.is_empty() and (hit.collider as Node).is_in_group("golpeavel"):
+		if not hit.is_empty() and hit.collider != null and (hit.collider as Node).is_in_group("golpeavel"):  # tronco da mata (só no servidor de física) não tem nó
 			pegou = hit.collider
 			var altura: Variant = pegou.get("altura_cabeca")
 			cabeca = ponto.y - pegou.global_position.y > (float(altura) if altura != null else 1.65)

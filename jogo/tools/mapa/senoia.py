@@ -890,6 +890,42 @@ if FLORESTA:
     for k in range(8):
         zumbis.append(p2(c[0] + RF.uniform(-20, 20), c[1] + RF.uniform(-14, 14)))
     RAIDS_F.append(["SERRARIA", p2(*c)])
+    # 13/11 (mega atualização): construções escondidas na mata, sem trilha (achar andando): cabanas, acampamentos
+    # abandonados e plataformas de caçador, cada uma com baú e uns zumbis
+    def espalha(n, w, d, monta):
+        feitos = 0
+        for tent in range(600):
+            if feitos >= n:
+                break
+            c = (RF.uniform(-440, 440), RF.uniform(-440, 440))
+            if zona(*c) not in ("parque", "mata") or perto_rua(c, max(w, d) / 2 + 3) or perto_rio(c, max(w, d) / 2 + 4) \
+                    or no_morro(c, 3) or not livre(c[0], c[1], 0.0, w, d) or any(math.dist(c, r[1]) < 60 for r in RAIDS_F):
+                continue
+            monta(c)
+            feitos += 1
+        return feitos
+    def cabana(c):
+        clareira(c, 24.0, 22.0)
+        predio(RF.choice(["casa_us_3", "casa_us_10", "casa_us_6"]), c[0], c[1] + 1.0, (0.0, 1.0), "casas", "house")
+        lugares["baus"].append(p2(c[0] + 8.0, c[1] + 9.0))
+        for k in range(2):
+            zumbis.append(p2(c[0] + RF.uniform(-9, 9), c[1] + RF.uniform(6, 10)))
+    def acampamento(c):
+        clareira(c, 16.0, 14.0)
+        props.append({"m": "mundo:tenda", "p": p2(c[0], c[1] - 2.0), "r": round(RF.uniform(0, 6.28), 3)})
+        props.append({"m": "mundo:saco_corpo", "p": p2(c[0] + 4.0, c[1] + 4.0), "r": round(RF.uniform(0, 6.28), 3)})
+        lugares["baus"].append(p2(c[0] - 4.0, c[1] + 3.0))
+        for k in range(3):
+            zumbis.append(p2(c[0] + RF.uniform(-7, 7), c[1] + RF.uniform(-6, 6)))
+    def plataforma(c):
+        clareira(c, 10.0, 10.0)
+        props.append({"m": "mundo:torre_vigia", "p": p2(*c), "r": round(RF.uniform(0, 6.28), 3)})
+        lugares["baus"].append(p2(c[0] + 3.0, c[1] + 2.0))
+        lugares["subidas"].append([round(c[0] + 2.0, 2), round(c[1], 2), round(c[0], 2), round(c[1], 2), 6.0, 1.0, 0.0])
+    n_cab = espalha(10, 24.0, 22.0, cabana)
+    n_acamp = espalha(8, 16.0, 14.0, acampamento)
+    n_plat = espalha(8, 10.0, 10.0, plataforma)
+    print("FLORESTA: cabanas", n_cab, "| acampamentos", n_acamp, "| plataformas", n_plat)
     # a mata: uma árvore a cada ~9 m (com sobra de mato no pé), fora da cidade, das estradas, do rio e das clareiras
     arv = 0
     for gx in range(-484, 485, 5):  # 13/11 (dono: "floresta densa, fechada"): uma árvore a cada ~5 m

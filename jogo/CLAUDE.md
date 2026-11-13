@@ -30,6 +30,13 @@ Espera de rede em teste = tempo real (`OS.delay_msec(16)`); `process_frame` cheg
 Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 
 ## Arquivos (scripts/)
+- MEGA ATUALIZAÇÃO (13/11): bichos `bicho.gd` (Bicho: lobo em bando/caça, javali investe, raposa foge; camada 8 +
+  "golpeavel"; morto larga carne_crua; dorme a > LONGE_DORME) e `fauna.gd` (Fauna, filho do main: até 5/8 bichos a
+  45-75 m, lobo só depois de LOBO_DEPOIS; não roda em teste sem meta "no_teste"). Modelos Quaternius CC0 em
+  assets/bichos (tools/assets/bichos.py). Sons da mata em SomAmbiente (rio por `Bairro.dist_agua`, grilos, vento_mata,
+  coruja/lobo nos sustos de noite). Construções escondidas na mata (senoia.py `espalha`: cabanas, acampamentos,
+  plataformas). Pistola: tronco da mata (corpo sem nó) não quebra o tiro. Testes: test_bicho (6), test_mata (19).
+  Foto: tools/foto_bichos.gd.
 - FLORESTA 2 (13/11): sem LA (vila de cabanas, armazém, xerife na trilha), ~34 mil árvores Quaternius CC0
   (`tools/assets/natureza.py` -> assets/mundo/vegetation/natureza; Vegetacao "*_q*"), troncos de árvore direto no
   PhysicsServer (Planta `_corpos`, fora da malha de navegação), trilhas "trilha" de terra, pontes de madeira, `rios`/

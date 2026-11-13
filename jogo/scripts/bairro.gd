@@ -1772,6 +1772,17 @@ func coleta_em(p: Vector3, raio: float) -> Array:
 	return r
 
 
+## 13/11: metros até a água mais perto (som do rio); INF sem água.
+func dist_agua(p: Vector3) -> float:
+	var l := Vector2(p.x - ORIGEM.x, p.z - ORIGEM.z)
+	var d: float = INF
+	for s: Array in _rio:
+		d = minf(d, l.distance_to(Geometry2D.get_closest_point_to_segment(l, s[0], s[1])) - float(s[2] if s.size() > 2 else 6.0))
+	for lg: Array in _lagos:
+		d = minf(d, l.distance_to(lg[0]) - float(lg[1]))
+	return maxf(d, 0.0)
+
+
 ## Na beira de rio, riacho ou lago (dá para beber)?
 func beira_dagua(p: Vector3) -> bool:
 	var l := Vector2(p.x - ORIGEM.x, p.z - ORIGEM.z)
