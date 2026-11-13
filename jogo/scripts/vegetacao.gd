@@ -48,6 +48,29 @@ const ESPECIES: Dictionary = {
 	"abeto_2": ["trees/floresta", "floresta_17", Color(0.85, 0.88, 0.82), 0.5, 0.15],
 	"abeto_3": ["trees/floresta", "floresta_18", Color(0.85, 0.88, 0.82), 0.4, 0.25],
 	"outono_3": ["trees/floresta", "floresta_19", Color(0.85, 0.82, 0.75), 0.5, 0.15],
+	# 13/11 floresta: Quaternius (Ultimate Nature Pack, CC0) via tools/assets/natureza.py; a cor vem do próprio modelo
+	"pinheiro_q1": ["natureza/pinheiro_q1", "", Color(1.35, 1.35, 1.35), 0.35, 0.3],
+	"pinheiro_q2": ["natureza/pinheiro_q2", "", Color(1.35, 1.35, 1.35), 0.35, 0.3],
+	"pinheiro_q3": ["natureza/pinheiro_q3", "", Color(1.35, 1.35, 1.35), 0.35, 0.3],
+	"comum_q1": ["natureza/comum_q1", "", Color(1.35, 1.35, 1.35), 0.5, 0.35],
+	"comum_q2": ["natureza/comum_q2", "", Color(1.35, 1.35, 1.35), 0.5, 0.35],
+	"comum_q3": ["natureza/comum_q3", "", Color(1.35, 1.35, 1.35), 0.5, 0.35],
+	"betula_q1": ["natureza/betula_q1", "", Color(1.35, 1.35, 1.35), 0.6, 0.25],
+	"betula_q2": ["natureza/betula_q2", "", Color(1.35, 1.35, 1.35), 0.6, 0.25],
+	"outono_q1": ["natureza/outono_q1", "", Color(1.35, 1.35, 1.35), 0.5, 0.35],
+	"outono_q2": ["natureza/outono_q2", "", Color(1.35, 1.35, 1.35), 0.6, 0.25],
+	"salgueiro_q1": ["natureza/salgueiro_q1", "", Color(1.35, 1.35, 1.35), 0.7, 0.35],
+	"arbusto_q1": ["natureza/arbusto_q1", "", Color(1.35, 1.35, 1.35), 0.8, 0.0],
+	"arbusto_q2": ["natureza/arbusto_q2", "", Color(1.35, 1.35, 1.35), 0.8, 0.0],
+	"frutinha_q": ["natureza/frutinha_q", "", Color(1.35, 1.35, 1.35), 0.8, 0.0],
+	"planta_q1": ["natureza/planta_q1", "", Color(1.35, 1.35, 1.35), 1.0, 0.0],
+	"planta_q2": ["natureza/planta_q2", "", Color(1.35, 1.35, 1.35), 1.0, 0.0],
+	"flores_q": ["natureza/flores_q", "", Color(1.35, 1.35, 1.35), 1.0, 0.0],
+	"pedra_q1": ["natureza/pedra_q1", "", Color(1.35, 1.35, 1.35), 0.0, 0.45],
+	"pedra_q2": ["natureza/pedra_q2", "", Color(1.35, 1.35, 1.35), 0.0, 0.7],
+	"pedra_q3": ["natureza/pedra_q3", "", Color(1.35, 1.35, 1.35), 0.0, 0.0],
+	"toco_q": ["natureza/toco_q", "", Color(1.35, 1.35, 1.35), 0.0, 0.35],
+	"tronco_q": ["natureza/tronco_q", "", Color(1.35, 1.35, 1.35), 0.0, 0.0],
 	# chão
 	"capim": ["plants/capim", "", Color(0.75, 0.72, 0.55), 1.0, 0.0],
 	"capim_seco": ["plants/capim_seco", "", Color(0.62, 0.55, 0.4), 1.0, 0.0],
@@ -57,7 +80,8 @@ const ESPECIES: Dictionary = {
 }
 ## o que não precisa de sombra (baixo) e some mais perto
 const RASTEIRAS: Array[String] = ["capim", "capim_seco", "samambaia", "samambaia_baixa", "moita",
-	"capim_alto", "arbusto", "arbusto_2", "pedras", "pedras_2", "abeto_baixo", "pinheirinho"]
+	"capim_alto", "arbusto", "arbusto_2", "pedras", "pedras_2", "abeto_baixo", "pinheirinho",
+	"arbusto_q1", "arbusto_q2", "frutinha_q", "planta_q1", "planta_q2", "flores_q", "pedra_q3", "tronco_q"]
 
 static var _cache: Dictionary = {}  # espécie -> [ [Mesh, Transform3D] ], Shape do tronco ou null
 
@@ -110,7 +134,7 @@ static func _com_vento(origem: Mesh, tinta: Color, balanco: float) -> Mesh:
 			sm.set_shader_parameter("tex", b.albedo_texture)
 			sm.set_shader_parameter("tem_tex", b.albedo_texture != null)
 			sm.set_shader_parameter("cor_base", b.albedo_color)
-			if Estilo.LIGADO:  # 13/11: folha e tronco em cor lisa (só o recorte da folha usa a textura)
+			if Estilo.LIGADO and b.albedo_texture:  # 13/11: folha e tronco em cor lisa (só o recorte da folha usa a textura)
 				var mc: Color = Estilo.cor_de(b.albedo_texture)
 				if mc.v > 0.5:
 					mc *= 0.55  # tronco claro (casca quase branca na média) ficava branco no sol

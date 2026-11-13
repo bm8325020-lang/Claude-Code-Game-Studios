@@ -100,6 +100,9 @@ func _ready() -> void:
 		jogador.largar(_sel)
 		_sel = -1)
 	_dividir = _bot(bots, "DIVIDIR", func() -> void: jogador.mochila.dividir(_sel))
+	_bot(bots, "CRIAR", func() -> void:  # 13/11 floresta: receitas feitas na mão (fogueira, tábuas, armadilha) sem bancada
+		visible = false
+		jogador.bancada_aberta.emit())
 	visibility_changed.connect(func() -> void:
 		_sel = -1
 		if visible:

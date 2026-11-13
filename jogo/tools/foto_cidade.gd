@@ -4,13 +4,13 @@
 # Depois da lista, opcional: qualidade (0 Batata .. 3 Ultra) e sombras (0/1), para medir o peso como no celular.
 extends SceneTree
 
-const VISTAS: Array = [  # FLORESTA (13/11, tools/mapa/senoia.py CIDADE=floresta)
-	[Vector3(-62, 150, 1.7), Vector3(-25, 85, 0)],         # 0 trilha de terra chegando na ponte de madeira do rio
-	[Vector3(60, -190, 1.7), Vector3(120, -260, 6)],       # 1 dentro do pinhal (norte)
-	[Vector3(30, 420, 1.7), Vector3(-20, 360, 2)],         # 2 mata de folhas e o riacho do sul
-	[Vector3(345, 55, 2.5), Vector3(410, 10, 0)],          # 3 o lago
-	[Vector3(-410, 300, 1.7), Vector3(-200, 300, 3)],      # 4 a cidadezinha (uma rua só)
-	[Vector3(395, -130, 1.7), Vector3(250, -60, 0)],       # 5 de cima do morro do leste
+const VISTAS: Array = [  # FLORESTA (13/11): câmera sempre numa trilha (fora dela a mata é fechada demais para foto)
+	[Vector3(-62, 150, 1.7), Vector3(-25, 85, 0)],         # 0 trilha chegando na ponte de madeira do rio
+	[Vector3(150, -175, 1.7), Vector3(210, -230, 3)],      # 1 trilha no pinhal (norte), indo ao acampamento militar
+	[Vector3(100, 285, 1.7), Vector3(180, 330, 3)],        # 2 trilha na mata de folhas (sul), indo à serraria
+	[Vector3(-90, -160, 1.7), Vector3(-160, -190, 2)],     # 3 trilha chegando na cabana do caçador
+	[Vector3(-420, 300, 1.7), Vector3(-200, 300, 3)],      # 4 a vila de cabanas
+	[Vector3(250, 70, 1.7), Vector3(330, 120, 3)],         # 5 trilha do posto florestal
 ]
 
 

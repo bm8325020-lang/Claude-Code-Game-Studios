@@ -278,6 +278,7 @@ func _acoes() -> void:
 const PERTO_A_CADA: float = 0.15
 var _perto_t: float = 0.0
 var _perto: Array = [null, null, null, null, null, null, null, null]
+var _coleta0: Array = []  # 13/11: coisa da mata no alcance
 var _btn_aliados: Button  # 12/11: ordem dos Corvos aliados (só aparece com aliado)
 var _t_antes: bool = false
 
@@ -412,6 +413,7 @@ func _process(dt: float) -> void:
 		var bau0: Bau = jogador.bau_perto() if it0 == null else null
 		var banc0: Bancada = jogador.bancada_perto() if it0 == null and bau0 == null else null
 		var loja0: Lojista = jogador.lojista_perto() if it0 == null and bau0 == null and banc0 == null else null
+		_coleta0 = jogador.coleta_perto() if it0 == null and bau0 == null and banc0 == null and loja0 == null else []
 		var gav0: Gaveta = jogador.gaveta_perto() if it0 == null and bau0 == null and banc0 == null and loja0 == null else null
 		var porta0: Porta = jogador.porta_perto() if it0 == null and bau0 == null and banc0 == null and loja0 == null and gav0 == null else null
 		var carro0: Carro = jogador.carro_perto() if it0 == null and bau0 == null and banc0 == null and loja0 == null and porta0 == null and gav0 == null else null
@@ -434,7 +436,7 @@ func _process(dt: float) -> void:
 	if tecla_t and not _t_antes and _btn_aliados and _btn_aliados.visible:
 		_troca_ordem()
 	_t_antes = tecla_t
-	_dica_pegar.visible = cv != null or it != null or porta != null or bau != null or banc != null or loja != null or carro != null or jogador.carro != null or gav != null
+	_dica_pegar.visible = not _coleta0.is_empty() or cv != null or it != null or porta != null or bau != null or banc != null or loja != null or carro != null or jogador.carro != null or gav != null
 	_saldo.text = "$ %d" % jogador.dinheiro
 	if jogador.carro:
 		_dica_pegar.text = ("SAIR DO CARRO" if toque else "[E] sair do carro")
@@ -444,6 +446,9 @@ func _process(dt: float) -> void:
 		_dica_pegar.text = ("BANCADA" if toque else "[E] usar a bancada")
 	elif loja:
 		_dica_pegar.text = ("LOJA" if toque else "[E] falar com o lojista")
+	elif not _coleta0.is_empty() and gav == null:
+		var acao: String = {"fruta": "COLHER FRUTINHAS", "madeira": "PEGAR LENHA", "pedra": "PEGAR PEDRA", "rio": "BEBER ÁGUA DO RIO"}.get(String(_coleta0[1]), "PEGAR")
+		_dica_pegar.text = acao if toque else "[E] " + acao.to_lower()
 	elif cv:
 		_dica_pegar.text = ("CONTRATAR CORVO ($%d)" if toque else "[E] contratar o Corvo ($%d)") % Jogador.ALIADO_PRECO[mini(jogador.meus_aliados().size(), 2)]
 	elif bau and bau.trava:
@@ -1146,6 +1151,12 @@ func _pegou(tipo: String, qtd: int) -> void:
 		return
 	if tipo.begins_with("modo_"):
 		aviso("Automático" if tipo == "modo_auto" else "Tiro a tiro", Color(0.35, 0.6, 0.9), 1.2)
+		return
+	if tipo in ["bebeu_rio", "veneno", "fogueira_acesa", "assou", "mochila_cheia"]:  # 13/11 floresta
+		var txt: Dictionary = {"bebeu_rio": ["ÁGUA DO RIO: SEDE MATADA (PODE ESTAR SUJA)", Color(0.45, 0.7, 1.0)],
+			"veneno": ["COGUMELO VENENOSO!", Color(1.0, 0.35, 0.3)], "fogueira_acesa": ["FOGUEIRA ACESA: FIQUE PERTO PARA SE CURAR E ASSAR CARNE", Color(1.0, 0.65, 0.3)],
+			"assou": ["CARNE ASSADA", Color(1.0, 0.7, 0.4)], "mochila_cheia": ["MOCHILA CHEIA", Color(1.0, 0.45, 0.3)]}
+		aviso(String(txt[tipo][0]), txt[tipo][1], 2.5)
 		return
 	var nome: String = String(Mochila.NOMES.get(tipo, tipo))
 	_aviso_item.text = ("+%d %s" % [qtd, nome.to_lower()]) if qtd > 1 else nome

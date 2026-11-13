@@ -10,14 +10,14 @@ signal mudou
 const ESPACOS: int = 24
 const BARRA: int = 6
 ## tamanho da pilha por espaço (o que não está aqui não empilha)
-const PILHA: Dictionary = {"colete": 1, "tabuas": 4, "armadilha": 3, "molotov": 3, "sinalizador": 3, "pilha": 6, "bandagem": 10, "municao": 96, "cartucho": 48, "municao_fuzil": 120, "comida": 10, "agua": 10, "antibiotico": 6, "mola": 20, "gatilho": 20, "cano": 20, "cabo": 20,
+const PILHA: Dictionary = {"madeira": 20, "pedra": 20, "fruta": 15, "carne_crua": 8, "carne_assada": 8, "cogumelo": 10, "fogueira": 2, "colete": 1, "tabuas": 4, "armadilha": 3, "molotov": 3, "sinalizador": 3, "pilha": 6, "bandagem": 10, "municao": 96, "cartucho": 48, "municao_fuzil": 120, "comida": 10, "agua": 10, "antibiotico": 6, "mola": 20, "gatilho": 20, "cano": 20, "cabo": 20,
 	"ferrolho": 20, "carregador": 20, "receita_pistola": 10, "receita_smg": 10, "chave": 10, "bomba": 4, "fita": 5, "peca_radio": 3}
 ## quanto dá para carregar no total (07/11, dono: limites dobrados; arma continua 1 de cada)
-const LIMITE: Dictionary = {"colete": 2, "tabuas": 8, "armadilha": 6, "molotov": 4, "sinalizador": 6, "pilha": 12, "bandagem": 20, "silenciador": 1, "livro": 1, "municao": 192, "cartucho": 96, "municao_fuzil": 240, "espingarda": 1, "fuzil": 1, "sniper": 1, "comida": 10, "agua": 10, "antibiotico": 6, "lanterna": 1, "facao": 1, "pistola": 1,
+const LIMITE: Dictionary = {"madeira": 40, "pedra": 40, "fruta": 30, "carne_crua": 16, "carne_assada": 16, "cogumelo": 20, "fogueira": 4, "colete": 2, "tabuas": 8, "armadilha": 6, "molotov": 4, "sinalizador": 6, "pilha": 12, "bandagem": 20, "silenciador": 1, "livro": 1, "municao": 192, "cartucho": 96, "municao_fuzil": 240, "espingarda": 1, "fuzil": 1, "sniper": 1, "comida": 10, "agua": 10, "antibiotico": 6, "lanterna": 1, "facao": 1, "pistola": 1,
 	"faca": 1, "taco": 1, "machado": 1, "mola": 60, "gatilho": 60, "cano": 60, "cabo": 60, "ferrolho": 60, "carregador": 60, "receita_pistola": 10, "smg": 1, "receita_smg": 10, "chave": 10, "taco_pregos": 1, "bomba": 4, "fita": 5, "peca_radio": 3, "diario": 1}
 ## não dá para largar (são a mão do jogador por enquanto)
 const PRESOS: Array[String] = ["facao", "pistola"]
-const NOMES: Dictionary = {"chave": "Chave", "municao": "Munição", "comida": "Lata de comida", "agua": "Garrafa de água", "antibiotico": "Antibiótico",
+const NOMES: Dictionary = {"madeira": "Lenha", "pedra": "Pedra", "fruta": "Frutinhas", "carne_crua": "Carne crua", "carne_assada": "Carne assada", "cogumelo": "Cogumelo", "fogueira": "Kit de fogueira", "chave": "Chave", "municao": "Munição", "comida": "Lata de comida", "agua": "Garrafa de água", "antibiotico": "Antibiótico",
 	"livro": "Livro de habilidades", "lanterna": "Lanterna", "facao": "Facão", "taco_pregos": "Taco com pregos", "pistola": "Pistola 9 mm", "faca": "Faca de açougueiro",
 	"taco": "Taco de beisebol", "machado": "Machado de bombeiro", "mola": "Mola", "gatilho": "Gatilho", "cano": "Cano",
 	"cabo": "Empunhadura", "ferrolho": "Ferrolho", "carregador": "Carregador", "receita_pistola": "Receita: Pistola 9 mm",
@@ -25,6 +25,13 @@ const NOMES: Dictionary = {"chave": "Chave", "municao": "Munição", "comida": "
 	"colete": "Colete à prova de balas", "tabuas": "Tábuas e pregos", "armadilha": "Armadilha de latas", "molotov": "Coquetel molotov", "sinalizador": "Sinalizador", "pilha": "Pilha", "bandagem": "Bandagem", "silenciador": "Silenciador", "fuzil": "Fuzil AK-74", "sniper": "Rifle de precisão Mosin", "cartucho": "Cartuchos 12", "municao_fuzil": "Munição de fuzil", "bomba": "Bomba (C4)", "fita": "Fita da Dra. Okafor",
 	"peca_radio": "Peça de rádio militar", "diario": "Diário da Mia"}
 const TEXTOS: Dictionary = {
+	"madeira": "Lenha da mata (troncos caídos e tocos). Fogueira, tábuas e armadilhas.",
+	"pedra": "Pedra da mata. Fogueira e armadilhas.",
+	"fruta": "Frutinhas do mato. USAR: come (pouca fome, um pouco de sede).",
+	"carne_crua": "Carne crua. Asse perto de uma fogueira acesa. Crua mata a fome mas pode dar infecção.",
+	"carne_assada": "Carne assada na fogueira. USAR: mata bem a fome.",
+	"cogumelo": "Cogumelo do mato. USAR: come; um em cada quatro é venenoso.",
+	"fogueira": "Lenha e pedras. USAR: acende uma fogueira na sua frente (luz, calor, cura devagar e assa carne).",
 	"municao": "Balas 9 mm para a pistola.",
 	"fita": "Fita cassete gravada pela Dra. Ruth Okafor: a prova do que a Halverson Agro fez. Junte as 5.",
 	"peca_radio": "Peça do rádio militar do Sargento Mercer. Com 3, dá para chamar o Exército do alto da torre.",

@@ -13,6 +13,10 @@ const FABRICAR_T: float = 3.0  # s por unidade
 const LISTA: Dictionary = {
 	"pistola": {"pecas": {"mola": 2, "gatilho": 1, "cano": 1, "cabo": 1}, "raridade": SIMPLES, "categoria": "ARMAS"},
 	"smg": {"pecas": {"mola": 3, "gatilho": 1, "cano": 2, "ferrolho": 1, "carregador": 1}, "raridade": MEDIANA, "categoria": "ARMAS"},
+	# 13/11 floresta: feitas na mão (sem bancada), conhecidas desde o começo (Jogador.RECEITAS_MATA)
+	"fogueira": {"pecas": {"madeira": 3, "pedra": 3}, "raridade": SIMPLES, "categoria": "BASE", "mao": true},
+	"tabuas": {"pecas": {"madeira": 4}, "raridade": SIMPLES, "categoria": "BASE", "mao": true},
+	"armadilha": {"pecas": {"madeira": 2, "pedra": 2}, "raridade": SIMPLES, "categoria": "ÚTEIS", "mao": true},
 }
 const CATEGORIAS: Array[String] = ["ARMAS", "ÚTEIS", "SAÚDE", "BASE"]
 

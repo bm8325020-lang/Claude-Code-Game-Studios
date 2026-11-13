@@ -448,6 +448,8 @@ func _physics_process(dt: float) -> void:
 			agua -= 1
 			sede = minf(100.0, sede + ENCHE)
 	_passa_fome(dt)
+	if local:
+		_perto_do_fogo(dt)
 	_jogo_t += dt
 	_seq_t -= dt
 	_abre_bau(dt, mov)
@@ -708,7 +710,7 @@ signal loja_aberta
 
 
 ## Receitas aprendidas (nomes das armas). Por enquanto no aparelho; vão para a conta no prompt 16.
-var receitas: Array[String] = []
+var receitas: Array[String] = ["fogueira", "tabuas", "armadilha"]  # 13/11: as da mata vêm sabidas
 ## Fabricando: segundos que faltam (> 0), qual arma e quantas.
 var fabrica_t: float = 0.0
 var _fabrica_arma: String = ""
@@ -728,8 +730,12 @@ func bancada_perto() -> Bancada:
 
 
 ## Começa a fabricar `n` da arma (precisa saber a receita, estar na bancada e ter as peças).
+static func _na_mao(arma: String) -> bool:
+	return bool(Receitas.LISTA.get(arma, {}).get("mao", false))
+
+
 func comeca_fabricar(arma: String, n: int) -> bool:
-	if not arma in receitas or bancada_perto() == null or n <= 0 or Receitas.quantas(mochila, arma) < n or fabrica_t > 0.0:
+	if not arma in receitas or (bancada_perto() == null and not _na_mao(arma)) or n <= 0 or Receitas.quantas(mochila, arma) < n or fabrica_t > 0.0:
 		return false
 	_fabrica_arma = arma
 	_fabrica_n = n
@@ -740,7 +746,7 @@ func comeca_fabricar(arma: String, n: int) -> bool:
 func _fabrica(dt: float) -> void:
 	if fabrica_t <= 0.0:
 		return
-	if bancada_perto() == null:
+	if bancada_perto() == null and not _na_mao(_fabrica_arma):
 		fabrica_t = 0.0  # saiu da bancada: cancela (as peças não foram gastas)
 		return
 	fabrica_t -= dt
@@ -833,6 +839,11 @@ func _tenta_pegar() -> void:
 	if it == null and bau_perto() == null and corvo_perto() != null:
 		contrata()
 		return
+	if it == null and bau_perto() == null and gaveta_perto() == null:
+		var cl: Array = coleta_perto()
+		if not cl.is_empty():
+			_colhe(cl)
+			return
 	if it == null and bau_perto() == null and gaveta_perto() != null:
 		var g: Gaveta = gaveta_perto()
 		revistou.emit()
@@ -963,6 +974,28 @@ func usar_espaco(i: int) -> void:
 			item_pego.emit("aprendeu", 0)
 		return
 	match String(e.tipo):
+		"fruta", "carne_assada", "carne_crua", "cogumelo":  # 13/11 comida da mata
+			if vida > 0 and fome < 100.0:
+				mochila.tirar(String(e.tipo), 1)
+				fome = minf(100.0, fome + {"fruta": 10.0, "carne_assada": 42.0, "carne_crua": 14.0, "cogumelo": 9.0}[String(e.tipo)])
+				if e.tipo == "fruta":
+					sede = minf(100.0, sede + 4.0)
+				elif e.tipo == "carne_crua" and randf() < 0.5:
+					infecta(10.0)
+				elif e.tipo == "cogumelo" and randf() < 0.25:
+					levar_dano(15, Vector3.ZERO)
+					item_pego.emit("veneno", 0)
+		"fogueira":  # acende na frente
+			if vida > 0 and carro == null:
+				mochila.tirar("fogueira", 1)
+				var f := Fogo.new()
+				f.tamanho = 0.45
+				f.add_to_group("fogueiras")
+				_joga_a_frente(f, 1.8)
+				get_tree().create_timer(FOGUEIRA_DURA).timeout.connect(func() -> void:
+					if is_instance_valid(f):
+						f.queue_free())
+				item_pego.emit("fogueira_acesa", 0)
 		"comida":
 			entrada["comer"] = true
 		"agua":
@@ -1941,6 +1974,62 @@ func _aplica_ordem(o: int) -> void:
 			z.dispensa()
 		else:
 			z.recebe_ordem(o)
+
+
+## 13/11 floresta: coisas da mata no alcance (frutinha, lenha, pedra, água do rio): [pos, tipo, id] ou [].
+## shortcut: colhido fica só neste aparelho (sem passar pelo servidor); serve para o jogo solo da floresta.
+const COLHE_VOLTA: float = 600.0  # s até o arbusto/tronco dar de novo
+const FOGUEIRA_DURA: float = 300.0
+var _colhido: Dictionary = {}
+var _assa_t: float = 0.0
+
+
+func coleta_perto() -> Array:
+	var principal := get_tree().get_first_node_in_group("principal") if is_inside_tree() else null
+	if vida <= 0 or carro != null or principal == null or principal.bairro == null:
+		return []
+	var agora: float = Time.get_ticks_msec() / 1000.0
+	for c: Array in principal.bairro.coleta_em(global_position, 2.3):
+		if agora - float(_colhido.get(c[2], -COLHE_VOLTA)) >= COLHE_VOLTA:
+			return c
+	if sede < 99.0 and principal.bairro.beira_dagua(global_position):
+		return [global_position, "rio", -1]
+	return []
+
+
+func _colhe(c: Array) -> void:
+	_toca("pegar", 0.12)
+	_pegando = 0.5
+	if c[1] == "rio":  # água do rio: mata a sede, mas é água suja
+		sede = minf(100.0, sede + 35.0)
+		if randf() < 0.2:
+			infecta(6.0)
+		item_pego.emit("bebeu_rio", 0)
+		return
+	_colhido[c[2]] = Time.get_ticks_msec() / 1000.0
+	var qtd: int = randi_range(1, 3) if c[1] == "fruta" else randi_range(2, 3)
+	var tipo: String = "cogumelo" if c[1] == "fruta" and randf() < 0.2 else String(c[1])
+	if mochila.adicionar(tipo, qtd) >= 0:
+		item_pego.emit(tipo, qtd)
+	else:
+		item_pego.emit("mochila_cheia", 0)
+
+
+## Perto de uma fogueira acesa: assa a carne crua (uma a cada 6 s) e cura devagar.
+func _perto_do_fogo(dt: float) -> void:
+	_assa_t -= dt
+	if _assa_t > 0.0:
+		return
+	_assa_t = 6.0
+	for f: Node in get_tree().get_nodes_in_group("fogueiras"):
+		if (f as Node3D).global_position.distance_to(global_position) < 3.2:
+			if vida > 0 and vida < vida_max():
+				vida = mini(vida_max(), vida + 3)
+			if mochila.conta("carne_crua") > 0 and mochila.adicionar("carne_assada", 0) >= 0:
+				mochila.tirar("carne_crua", 1)
+				mochila.adicionar("carne_assada", 1)
+				item_pego.emit("assou", 1)
+			return
 
 
 func gaveta_perto() -> Gaveta:

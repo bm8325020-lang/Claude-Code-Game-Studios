@@ -30,6 +30,13 @@ Espera de rede em teste = tempo real (`OS.delay_msec(16)`); `process_frame` cheg
 Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 
 ## Arquivos (scripts/)
+- FLORESTA 2 (13/11): sem LA (vila de cabanas, armazém, xerife na trilha), ~34 mil árvores Quaternius CC0
+  (`tools/assets/natureza.py` -> assets/mundo/vegetation/natureza; Vegetacao "*_q*"), troncos de árvore direto no
+  PhysicsServer (Planta `_corpos`, fora da malha de navegação), trilhas "trilha" de terra, pontes de madeira, `rios`/
+  `lagos`/vários `morros` no terreno. Mecânicas: `Bairro.coleta_em/beira_dagua` (frutinha, lenha, pedra, rio),
+  `Jogador.coleta_perto/_colhe/_perto_do_fogo`, item "fogueira" (Fogo no grupo "fogueiras"), comidas da mata,
+  receitas "mao" (fogueira/tabuas/armadilha, botão CRIAR da mochila). Teste: test_mata (19). Fotos: foto_cidade.gd
+  (câmeras nas trilhas).
 - FLORESTA (13/11, dono: "não vai ser mais cidade... floresta gigante com raids"): `CIDADE=floresta` (padrão do
   senoia.py; cidadezinha = pedaço de LA em OFF, mata de ~10 mil árvores, rio, morro, estradas "service", 5 raids em
   `raids_mata`). Plano do dono: FPS solo, sobreviventes bots (no lugar dos Corvos), rádio com bots, bichos (lobo,

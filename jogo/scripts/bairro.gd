@@ -169,6 +169,7 @@ func _ready() -> void:
 	for f: Dictionary in dados.get("frestas", []):
 		_fresta(Vector2(f.a[0], f.a[1]), Vector2(f.b[0], f.b[1]), float(f.larg))
 	Planta.monta(self, dados)  # muros, árvores e peças de rua, praça, faixas, postes com fiação, carros, capital ao longe
+	_monta_coleta(dados)
 	_borda()
 	_tabuas_telhado()
 	for casa: Node in get_children():  # casa queimada ainda arde por dentro: coluna de fumaça que se vê de longe
@@ -1734,6 +1735,55 @@ func dominavel(casa: String) -> bool:
 
 
 ## Nome da construção (Casa_k / Mansao_k) em que o ponto está dentro, ou "".
+## 13/11 floresta: o que dá para colher na mata (planta da cidade.json): frutinha -> fruta, tronco/toco -> lenha,
+## pedra grande -> pedra. Grade de COLETA_CEL m para achar rápido.
+const COLETA: Dictionary = {"veg:frutinha_q": "fruta", "veg:tronco_q": "madeira", "veg:toco_q": "madeira", "veg:pedra_q1": "pedra", "veg:pedra_q2": "pedra"}
+const COLETA_CEL: float = 8.0
+var _coleta: Dictionary = {}  # Vector2i -> [[pos, tipo, id]]
+
+
+func _monta_coleta(dados: Dictionary) -> void:
+	var id: int = 0
+	for p: Dictionary in dados.get("props", []):
+		var tipo: String = String(COLETA.get(p.m, ""))
+		id += 1
+		if tipo == "":
+			continue
+		var l := Vector2(p.p[0], p.p[1])
+		var pos: Vector3 = ORIGEM + Vector3(l.x, altura(l), l.y)
+		var k := Vector2i(floori(l.x / COLETA_CEL), floori(l.y / COLETA_CEL))
+		if not _coleta.has(k):
+			_coleta[k] = []
+		_coleta[k].append([pos, tipo, id])
+
+
+## Coisas de colher a até `raio` m de `p` (a mais perto primeiro).
+func coleta_em(p: Vector3, raio: float) -> Array:
+	var l := Vector2(p.x - ORIGEM.x, p.z - ORIGEM.z)
+	var k := Vector2i(floori(l.x / COLETA_CEL), floori(l.y / COLETA_CEL))
+	var r: Array = []
+	for dz in [-1, 0, 1]:
+		for dx in [-1, 0, 1]:
+			for c: Array in _coleta.get(k + Vector2i(dx, dz), []):
+				var d: float = Vector2(c[0].x - p.x, c[0].z - p.z).length()
+				if d < raio:
+					r.append(c)
+	r.sort_custom(func(a: Array, b: Array) -> bool: return Vector2(a[0].x - p.x, a[0].z - p.z).length() < Vector2(b[0].x - p.x, b[0].z - p.z).length())
+	return r
+
+
+## Na beira de rio, riacho ou lago (dá para beber)?
+func beira_dagua(p: Vector3) -> bool:
+	var l := Vector2(p.x - ORIGEM.x, p.z - ORIGEM.z)
+	for s: Array in _rio:
+		if l.distance_to(Geometry2D.get_closest_point_to_segment(l, s[0], s[1])) < float(s[2] if s.size() > 2 else 6.0) + 2.5:
+			return true
+	for lg: Array in _lagos:
+		if l.distance_to(lg[0]) < float(lg[1]) + 2.5:
+			return true
+	return false
+
+
 func casa_em(p: Vector3) -> String:
 	var l := Vector2(p.x - ORIGEM.x, p.z - ORIGEM.z)
 	for casa: Node3D in get_tree().get_nodes_in_group("casas"):

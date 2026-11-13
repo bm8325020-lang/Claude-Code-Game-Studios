@@ -348,11 +348,20 @@ if LA and not FLORESTA:  # 13/11: palmeiras na rua e no quintal (LA); umas morta
     VEG["casas"] = [("palmeira_alta", 5), ("palmeira", 3), ("arvore", 2)]
     VEG["centro"] = [("palmeira_alta", 5), ("palmeira", 2)]
 VEG["mata"] = [("arvore", 5), ("outono_1", 3), ("outono_2", 3), ("outono_3", 3), ("betula", 3), ("pinheiro", 1)]
+if FLORESTA:  # 13/11: árvores e plantas da Quaternius (low poly, mesmo estilo em tudo)
+    VEG["parque"] = [("pinheiro_q1", 5), ("pinheiro_q2", 4), ("pinheiro_q3", 4), ("betula_q1", 1)]
+    VEG["mata"] = [("comum_q1", 4), ("comum_q2", 4), ("comum_q3", 3), ("betula_q1", 3), ("betula_q2", 2), ("outono_q1", 2), ("outono_q2", 2), ("pinheiro_q1", 1)]
+    VEG["casas"] = [("comum_q1", 3), ("betula_q1", 2), ("pinheiro_q2", 1)]
 SUB = {  # perto do pé da árvore
     "parque": ["pinheirinho", "abeto_baixo", "arbusto", "arbusto_2", "pedras", "pedras_2", "samambaia",
                "samambaia_baixa", "capim_alto"],
     "casas": ["moita", "arbusto", "capim", "arbusto_2"],
     "mata": ["samambaia", "samambaia_baixa", "arbusto", "arbusto_2", "moita", "capim_alto", "pedras"],
+}
+if FLORESTA:
+    SUB = {"parque": ["arbusto_q1", "arbusto_q2", "planta_q1", "pedra_q3", "frutinha_q"], "mata": ["arbusto_q1", "arbusto_q2", "planta_q1", "planta_q2", "flores_q", "frutinha_q", "pedra_q3"],
+           "casas": ["arbusto_q1", "flores_q"], "centro": ["arbusto_q2"], "industrial": ["pedra_q3"]}
+_SUB_RESTO = {  # (sobra da lista velha; não usado)
     "centro": ["moita", "capim_seco"],
     "industrial": ["capim_seco", "capim_seco", "moita", "pedras_2"],
 }
@@ -886,17 +895,22 @@ if FLORESTA:
     for gx in range(-484, 485, 5):  # 13/11 (dono: "floresta densa, fechada"): uma árvore a cada ~5 m
         for gz in range(-484, 485, 5):
             q = (gx + RF.uniform(-2.2, 2.2), gz + RF.uniform(-2.2, 2.2))
-            if zona(*q) not in ("parque", "mata") or perto_rua(q, 2.5) or perto_rio(q, 1.5):
+            if zona(*q) not in ("parque", "mata") or perto_rua(q, 4.0) or perto_rio(q, 1.5):
                 continue
             if any(abs(q[0] - o[0]) < o[3] / 2 + 2 and abs(q[1] - o[1]) < o[4] / 2 + 2 for o in ocupado if math.dist(q, o[:2]) < 60):
                 continue
-            prop("arvore_mata", q[0], q[1], RF.uniform(0, 6.28))
+            if perto_rio(q, 9.0):  # salgueiro na beira da água
+                props.append({"m": "veg:salgueiro_q1", "p": p2(*q), "r": round(RF.uniform(0, 6.28), 3)})
+            else:
+                prop("arvore_mata", q[0], q[1], RF.uniform(0, 6.28))
             arv += 1
-            r = RF.random()  # chão da mata: tronco caído, pedras, árvore morta
-            if r < 0.06:
-                props.append({"m": "veg:toco", "p": p2(q[0] + RF.uniform(-3, 3), q[1] + RF.uniform(-3, 3)), "r": round(RF.uniform(0, 6.28), 3)})
+            r = RF.random()  # chão da mata: tronco caído, toco, pedras grandes (lenha e pedra para coletar)
+            if r < 0.04:
+                props.append({"m": "veg:tronco_q", "p": p2(q[0] + RF.uniform(-2.5, 2.5), q[1] + RF.uniform(-2.5, 2.5)), "r": round(RF.uniform(0, 6.28), 3)})
+            elif r < 0.06:
+                props.append({"m": "veg:toco_q", "p": p2(q[0] + RF.uniform(-3, 3), q[1] + RF.uniform(-3, 3)), "r": round(RF.uniform(0, 6.28), 3)})
             elif r < 0.12:
-                props.append({"m": "veg:" + RF.choice(["pedras", "pedras_2"]), "p": p2(q[0] + RF.uniform(-3, 3), q[1] + RF.uniform(-3, 3)), "r": round(RF.uniform(0, 6.28), 3)})
+                props.append({"m": "veg:" + RF.choice(["pedra_q1", "pedra_q2"]), "p": p2(q[0] + RF.uniform(-3, 3), q[1] + RF.uniform(-3, 3)), "r": round(RF.uniform(0, 6.28), 3)})
             elif r < 0.0:  # 13/11 (dono): árvore morta/velha branca fora do mapa
                 props.append({"m": "veg:arvore_morta", "p": p2(q[0] + RF.uniform(-3, 3), q[1] + RF.uniform(-3, 3)), "r": round(RF.uniform(0, 6.28), 3)})
     for k in range(40):  # zumbis soltos andando pela mata

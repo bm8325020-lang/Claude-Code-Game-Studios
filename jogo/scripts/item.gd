@@ -57,6 +57,8 @@ func nome() -> String:
 			return "garrafa de água"
 		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador", "receita_pistola", "smg", "receita_smg", "espingarda", "fuzil", "sniper", "cartucho", "municao_fuzil", "bandagem", "silenciador", "pilha", "sinalizador", "molotov", "armadilha", "tabuas", "colete":
 			return Mochila.NOMES[tipo].to_lower() + (" (%d)" % quantidade if quantidade > 1 else "")
+	if Mochila.NOMES.has(tipo):
+		return Mochila.NOMES[tipo].to_lower() + (" (%d)" % quantidade if quantidade > 1 else "")
 	return "lanterna"
 
 
@@ -147,6 +149,8 @@ func _monta_modelo() -> void:
 		_modelo("res://assets/sketchfab/garrafa_agua.glb", 0.24, Vector3(0, 0, 90))  # deitada
 	elif tipo == "antibiotico":
 		_monta_remedio()
+	elif NATUREZA.has(tipo):  # 13/11 floresta: itens da mata (Quaternius CC0, tools/assets/natureza.py)
+		_modelo("res://assets/mundo/vegetation/natureza/%s/%s.gltf" % [NATUREZA[tipo][0], NATUREZA[tipo][0]], NATUREZA[tipo][1], Vector3.ZERO)
 	elif tipo in _PROPRIOS:  # 07/11 (dono): cada item com cara própria (antes caíam no modelo da lanterna)
 		_monta_proprio()
 	elif tipo in ["fita", "peca_radio", "diario"]:  # itens da história: caixinha com cor (brilha um pouco para achar)
@@ -172,6 +176,8 @@ func _monta_modelo() -> void:
 		_modelo("res://assets/sketchfab/lanterna.glb", 0.2, Vector3.ZERO)
 
 
+const NATUREZA: Dictionary = {"madeira": ["item_madeira", 0.35], "pedra": ["item_pedra", 0.2], "fruta": ["item_fruta", 0.12],
+	"carne_crua": ["item_carne_crua", 0.2], "carne_assada": ["item_carne_assada", 0.18], "cogumelo": ["item_cogumelo", 0.12], "fogueira": ["item_madeira", 0.45]}
 const _PROPRIOS: Array[String] = ["colete", "tabuas", "armadilha", "molotov", "sinalizador", "pilha", "bandagem", "municao_fuzil", "silenciador", "livro", "fita", "peca_radio", "diario"]
 
 
