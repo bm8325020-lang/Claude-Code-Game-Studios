@@ -130,8 +130,8 @@ CORTE_Z = 150.0
 RIOS = []    # riachos: (pontos, largura)
 LAGOS = []   # lagos: (centro, raio)
 MORROS = []  # preenchido depois do MORRO de cada cidade
-if FLORESTA:  # 13/11 (dono: "um mapa inteiro de floresta e uma pequena cidade"): a cidade é só a rua principal
-    CORTE, CORTE_Z = 130.0, 55.0
+if FLORESTA:  # 13/11 (dono: "não quero base dessa cidade atual; floresta densa"): sem South LA; vila de cabanas
+    CORTE, CORTE_Z = 130.0, 40.0
 if FLORESTA:
     CIDADE = "la"
 # LOS ANGELES (13/11, dono: bairro de subúrbio de LA no clima dos mods de zumbi do GTA 5, mas original): ruas e casas
@@ -143,6 +143,8 @@ if LA:
     OSM = json.load(open("tools/mapa/osm/la.json"))["elements"]
     rio = [[-600.0, 2000.0], [600.0, 2000.0]]
     MORRO = {"p": [2000, 2000], "raio": 10.0, "alt": 0.0}
+if FLORESTA:
+    OSM = []  # a vila é feita aqui (tools/mapa/senoia.py, bloco FLORESTA), não vem do OpenStreetMap
 if FLORESTA:  # rio largo de nordeste a oeste, riachos, um lago e morros espalhados (os lugares ficam fora deles)
     rio = catmull([(530, -280), (330, -170), (170, -40), (40, 70), (-110, 110), (-300, 105), (-530, 80)], 8.0)
     RIO_LARG = 14.0
@@ -342,7 +344,7 @@ VEG = {
     "centro": [("arvore", 3), ("betula", 2), ("outono_3", 1), ("arvore_morta", 2)],
     "industrial": [("arvore_morta", 3), ("arvore_velha", 2), ("toco", 1), ("outono_2", 1), ("abeto_2", 1)],
 }
-if LA:  # 13/11: palmeiras na rua e no quintal (LA); umas mortas e velhas no meio
+if LA and not FLORESTA:  # 13/11: palmeiras na rua e no quintal (LA); umas mortas e velhas no meio
     VEG["casas"] = [("palmeira_alta", 5), ("palmeira", 3), ("arvore", 2), ("arvore_morta", 2), ("arvore_velha", 1)]
     VEG["centro"] = [("palmeira_alta", 5), ("palmeira", 2), ("arvore_morta", 1)]
 VEG["mata"] = [("arvore", 5), ("outono_1", 3), ("outono_2", 3), ("outono_3", 3), ("betula", 3), ("arvore_velha", 2), ("pinheiro", 1)]
@@ -369,7 +371,7 @@ def prop(m, x, z, r=0.0):
     if m.startswith("arvore_"):
         zn = zona(x, z)
         m = "veg:" + sorteia(VEG[zn])
-        for k in range(RV.randint(2, 4) if zn == "parque" else RV.randint(0, 1)):
+        for k in range((RV.randint(0, 2) if FLORESTA else RV.randint(2, 4)) if zn in ("parque", "mata") else RV.randint(0, 1)):
             a, d = RV.uniform(0, math.tau), RV.uniform(1.2, 4.0)
             q = (x + math.cos(a) * d, z + math.sin(a) * d)
             if not perto_rua(q, 1.5) and not perto_rio(q, 1.0) and abs(q[0]) < LIM and abs(q[1]) < LIM:
@@ -743,7 +745,10 @@ acid = 0
 for tent in range(400):
     if acid >= 26:
         break
-    r = RA.choice([r for r in ruas if r["tipo"] in ("tertiary", "residential", "secondary", "primary")])
+    grandes_r = [r for r in ruas if r["tipo"] in ("tertiary", "residential", "secondary", "primary")]
+    if not grandes_r:
+        break  # floresta: não tem rua de carro (sem acidente de trânsito)
+    r = RA.choice(grandes_r)
     L = comprimento(r["p"])
     if L < 40:
         continue
@@ -803,7 +808,17 @@ if FLORESTA:
     def p2(x, z):
         return [round(x, 2), round(z, 2)]
     # estradas: da cidadezinha ao meio da mata e de lá para cada lugar (curvas suaves)
-    rua([(-488.0, OFF[1]), (-462.0, OFF[1])], "primary", False)
+    rua([(-488.0, OFF[1]), (OFF[0] + CORTE + 5, OFF[1])], "trilha", False)  # a estrada de terra que corta a vila
+    # vila de cabanas dos dois lados da estrada, o armazém e a casa do xerife (lugares de loot)
+    VK = ["casa_us_3", "casa_us_10", "casa_us_6", "casa_us_3", "casa_us_1", "casa_us_10"]
+    for k, x in enumerate(range(int(OFF[0] - 115), int(OFF[0] + 120), 33)):
+        for lado in (-1, 1):
+            if (k + (lado > 0)) % 3 == 2:
+                continue  # lote vazio de vez em quando
+            m = "mercado" if (k == 3 and lado < 0) else "delegacia" if (k == 5 and lado > 0) else VK[(k * 2 + (lado > 0)) % len(VK)]
+            cz = OFF[1] + lado * (17.0 if m in ("mercado", "delegacia") else 13.0)
+            if livre(x, cz, 0.0 if lado < 0 else math.pi, *tam(m)):
+                predio(m, x, cz, (0.0, -lado * 1.0), "casas", "house" if m.startswith("casa") else "commercial")
     rua([(OFF[0] + CORTE + 5, OFF[1]), (-110, 250), (-80, 200), (0, 40), (30, -40)], "trilha")
     rua([(30, -40), (120, -150), (210, -230)], "trilha")             # acampamento militar
     rua([(30, -40), (180, 30), (330, 120), (360, 160)], "trilha")      # posto florestal
@@ -868,10 +883,10 @@ if FLORESTA:
     RAIDS_F.append(["SERRARIA", p2(*c)])
     # a mata: uma árvore a cada ~9 m (com sobra de mato no pé), fora da cidade, das estradas, do rio e das clareiras
     arv = 0
-    for gx in range(-484, 485, 9):
-        for gz in range(-484, 485, 9):
-            q = (gx + RF.uniform(-3.5, 3.5), gz + RF.uniform(-3.5, 3.5))
-            if zona(*q) not in ("parque", "mata") or perto_rua(q, 3.5) or perto_rio(q, 1.5):
+    for gx in range(-484, 485, 5):  # 13/11 (dono: "floresta densa, fechada"): uma árvore a cada ~5 m
+        for gz in range(-484, 485, 5):
+            q = (gx + RF.uniform(-2.2, 2.2), gz + RF.uniform(-2.2, 2.2))
+            if zona(*q) not in ("parque", "mata") or perto_rua(q, 2.5) or perto_rio(q, 1.5):
                 continue
             if any(abs(q[0] - o[0]) < o[3] / 2 + 2 and abs(q[1] - o[1]) < o[4] / 2 + 2 for o in ocupado if math.dist(q, o[:2]) < 60):
                 continue

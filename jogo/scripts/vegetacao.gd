@@ -112,8 +112,8 @@ static func _com_vento(origem: Mesh, tinta: Color, balanco: float) -> Mesh:
 			sm.set_shader_parameter("cor_base", b.albedo_color)
 			if Estilo.LIGADO:  # 13/11: folha e tronco em cor lisa (só o recorte da folha usa a textura)
 				var mc: Color = Estilo.cor_de(b.albedo_texture)
-				if mc.v > 0.6:
-					mc *= 0.62  # tronco claro (casca quase branca na média) ficava branco no sol
+				if mc.v > 0.5:
+					mc *= 0.55  # tronco claro (casca quase branca na média) ficava branco no sol
 				sm.set_shader_parameter("liso", true)
 				sm.set_shader_parameter("cor_lisa", Color(mc.r * b.albedo_color.r, mc.g * b.albedo_color.g, mc.b * b.albedo_color.b))
 			if b.normal_enabled and b.normal_texture:

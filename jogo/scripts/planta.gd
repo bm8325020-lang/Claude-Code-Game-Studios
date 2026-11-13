@@ -238,7 +238,7 @@ static func _lote(b: Bairro, modelo: String, pedacos: Dictionary) -> void:
 	var leves: Array = Vegetacao.malhas(modelo.substr(4) + "_lod") if modelo.begins_with("veg:") and not pequena and not Rede.servidor_sem_tela else []
 	if not leves.is_empty():
 		var perto: float = float(Config.qualidade().detalhe) * 1.5 + SUB * 0.71
-		var fim: float = float(Config.qualidade().longe) * 0.8 + SUB * 0.71
+		var fim: float = float(Config.qualidade().longe) * 0.6 + SUB * 0.71  # 13/11 floresta densa: a névoa da mata esconde além disso
 		var subs: Dictionary = {}
 		for chave: Vector2i in pedacos:
 			for t: Transform3D in pedacos[chave]:
@@ -266,9 +266,22 @@ static func _lote(b: Bairro, modelo: String, pedacos: Dictionary) -> void:
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				mi.visibility_range_end = clampf(float(Config.qualidade().detalhe) * 3.0, 70.0, 220.0) + PEDACO * 0.7
 			elif modelo.begins_with("veg:"):  # árvore: some na névoa (anti-lag 06/11)
-				mi.visibility_range_end = float(Config.qualidade().longe) * 0.8 + PEDACO * 0.7
+				mi.visibility_range_end = float(Config.qualidade().longe) * 0.6 + PEDACO * 0.7
 			b.add_child(mi)
 		if formas.is_empty():
+			continue
+		if modelo.begins_with("veg:"):  # 13/11 floresta densa (30 mil árvores): um corpo por pedaço, troncos direto no servidor de física
+			var rid: RID = PhysicsServer3D.body_create()
+			PhysicsServer3D.body_set_mode(rid, PhysicsServer3D.BODY_MODE_STATIC)
+			PhysicsServer3D.body_set_space(rid, b.get_world_3d().space)
+			PhysicsServer3D.body_set_collision_layer(rid, 1)
+			PhysicsServer3D.body_set_collision_mask(rid, 0)
+			for t: Transform3D in ts:
+				for f: Array in formas:
+					PhysicsServer3D.body_add_shape(rid, (f[0] as Shape3D).get_rid(), t * (f[1] as Transform3D))
+			_corpos.append(rid)
+			if not b.tree_exiting.is_connected(_solta_corpos):
+				b.tree_exiting.connect(_solta_corpos)
 			continue
 		for t: Transform3D in ts:
 			var corpo := StaticBody3D.new()
@@ -282,6 +295,13 @@ static func _lote(b: Bairro, modelo: String, pedacos: Dictionary) -> void:
 
 
 const SUB: float = 50.0
+static var _corpos: Array[RID] = []
+
+
+static func _solta_corpos() -> void:
+	for rid: RID in _corpos:
+		PhysicsServer3D.free_rid(rid)
+	_corpos.clear()
 
 
 ## Uma MultiMesh por malha das cópias `ts`, aparecendo de `ini` a `fim` m (do meio do quadrado).

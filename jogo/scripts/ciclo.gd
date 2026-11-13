@@ -94,7 +94,7 @@ func _process(dt: float) -> void:
 		ambiente.ambient_light_color = AMBIENTE_COR[0].lerp(AMBIENTE_COR[1], n)
 		ambiente.ambient_light_energy = lerpf(0.6, 0.42, n)  # 06/11: dia escurecido (dono: "muito claro"); a noite segue jogável
 		# 06/11 (dono: "bastante atmosfera"): névoa mais grossa e cerração rente ao chão
-		ambiente.fog_density = lerpf(0.003, 0.028, n) * float(c[2])  # 13/11: de dia o smog deixa ver a rua; de noite fecha
+		ambiente.fog_density = lerpf(0.009, 0.03, n) * float(c[2])  # 13/11 floresta fechada: névoa da mata entre as árvores  # 13/11: de dia o smog deixa ver a rua; de noite fecha
 		ambiente.fog_sun_scatter = 0.0  # o brilho quente na direção do sol
 		ambiente.fog_height = 3.0
 		ambiente.fog_height_density = lerpf(0.0, 0.12, n)
