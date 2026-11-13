@@ -30,6 +30,12 @@ Espera de rede em teste = tempo real (`OS.delay_msec(16)`); `process_frame` cheg
 Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 
 ## Arquivos (scripts/)
+- ESTILIZADO (13/11, dono: "quero tudo estilizado", prints de jogo low-poly com grama alta): `estilo.gd` (Estilo.LIGADO):
+  gancho `node_added` + `Estilo.tudo(main)` ao nascer troca todo StandardMaterial com textura por cor lisa (média da
+  textura em `assets/estilo_cores.json`; regerar com `tools/estilo_cores.gd` ao pôr textura nova), sombra lambert_wrap.
+  `grama.gd` (Grama): tufos de folhas em MultiMesh por pedaço de 10 m em volta da câmera (máscara de ruas/prédios numa
+  thread; Batata sem grama). Chão (Enfeites.CHAO) e árvores (Vegetacao `liso`) em cor lisa; céu azul (Ciclo).
+  casa_p (Sketchfab) fora da planta de LA.
 - SOUTH LA (13/11, dono: bairro de subúrbio de LA, estilo mods de zumbi do GTA 5 mas original): `CIDADE=la` (padrão
   de `tools/mapa/senoia.py`) usa `tools/mapa/osm/la.json` (Vermont x Slauson, OSM ODbL). Sem `enche` (o OSM já tem os
   prédios; 55% das casas e 60% dos aptos somem p/ celular), palmeiras na calçada (veg:palmeira/palmeira_alta,

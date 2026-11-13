@@ -735,7 +735,7 @@ for (x, z, b, rot) in ((-480, 640, "building_03", 0.3), (-300, 700, "building_07
 
 # 07/11 (E2b, regra 7: pronto no lugar do feito à mão): 1 em cada 3 casas americanas comuns vira casa pronta do
 # Sketchfab (fechada: só por fora; tools/blender/casa_pronta.py). Troca depois de tudo: o sorteio da cidade não muda.
-PRONTAS = sorted(k for k in MED if k.startswith("casa_p"))
+PRONTAS = [] if LA else sorted(k for k in MED if k.startswith("casa_p"))  # 13/11 estilizado: só casas nossas (mesmo estilo)
 n_casa = 0
 for pp in predios:
     if pp["modelo"] in CASAS and PRONTAS:

@@ -439,12 +439,11 @@ void fragment() {
 	vec2 uv = w.xz * 0.2;
 	float n = texture(ruido, w.xz * 0.004).r;
 	float n2 = texture(ruido, w.xz * 0.021 + 0.37).r;
-	vec3 g = texture(grama, uv).rgb * vec3(0.72, 0.66, 0.5);
-	vec3 t = texture(terra, uv * 0.7).rgb * vec3(0.8, 0.72, 0.62);
-	vec3 c = texture(cascalho, uv * 1.6).rgb * vec3(0.75, 0.72, 0.68);
-	vec3 cor = mix(g, t, smoothstep(0.42, 0.58, n));
-	cor = mix(cor, c, smoothstep(0.62, 0.72, n2) * 0.7);
-	cor *= 0.85 + 0.3 * texture(ruido, w.xz * 0.09).r;  // manchas de sujeira miúdas
+	// 13/11 estilizado: chão em cor lisa (verde da grama, manchas de terra), variando devagar; as texturas não entram
+	vec3 g = mix(vec3(0.19, 0.35, 0.1), vec3(0.25, 0.42, 0.12), texture(ruido, w.xz * 0.012).r);
+	vec3 t = vec3(0.5, 0.4, 0.28);
+	vec3 cor = mix(g, t, smoothstep(0.56, 0.62, n) * 0.85);
+	cor = mix(cor, vec3(0.5, 0.48, 0.45), smoothstep(0.7, 0.75, n2) * 0.6);
 	ALBEDO = cor;
 	ROUGHNESS = 0.95;
 }"""

@@ -51,12 +51,19 @@ func _ready() -> void:
 	Config.carrega()
 	if "dedicado" in OS.get_cmdline_user_args() and DisplayServer.get_name() == "headless":
 		Rede.servidor_sem_tela = true  # antes da cidade: ela pula o que é só enfeite
+	if Estilo.LIGADO and not Rede.servidor_sem_tela and not get_tree().node_added.is_connected(Estilo.entrou):
+		get_tree().node_added.connect(Estilo.entrou)  # 13/11: visual de desenho em tudo que entra na árvore
 	_luz()
 	_chao()
 	_obstaculos()
 	bairro = Bairro.new()
 	bairro.name = "Bairro"
 	add_child(bairro)
+	if Estilo.LIGADO and not Rede.servidor_sem_tela:
+		var grama := Grama.new()  # 13/11: grama de folhinhas em volta da câmera
+		grama.name = "Grama"
+		grama.bairro = bairro
+		add_child(grama)
 	_baus()
 	jogadores = Node3D.new()
 	jogadores.name = "Jogadores"
@@ -436,6 +443,7 @@ func zumbi_na_fila(d: Dictionary, depois: Callable = Callable()) -> void:
 
 func _process(dt: float) -> void:
 	Zumbi.tique_sono()
+	Estilo.passa()
 	if not _fila_zumbis.is_empty():
 		var f: Array = _fila_zumbis.pop_front()
 		var zf: Zumbi = spawner_zumbis.spawn(f[0])
@@ -1032,6 +1040,8 @@ func _jogador_entrou(n: Node) -> void:
 			get_tree().create_timer(0.4).timeout.connect(func() -> void:
 				if is_instance_valid(c):
 					c.queue_free())  # o nosso jogador chegou: pronto para jogar
+			if Estilo.LIGADO:
+				Estilo.tudo(self)  # 13/11: o que ganhou malha/material depois de entrar (ruas juntas, longe)
 		j.nick = nick_local
 		controles.jogador = j
 		if arma_inicial != "":
@@ -1104,7 +1114,7 @@ func _luz() -> void:
 	ciclo.name = "Ciclo"
 	add_child(ciclo)
 	var sol := DirectionalLight3D.new()
-	sol.rotation_degrees = Vector3(-30, -35, 0)  # 13/11: sol baixo de fim de tarde (sombras compridas)
+	sol.rotation_degrees = Vector3(-52, -35, 0)  # 13/11 estilizado: sol alto de dia claro
 	sol.light_energy = 1.2
 	sol.shadow_enabled = true
 	sol.directional_shadow_max_distance = 40.0
@@ -1127,13 +1137,13 @@ func _luz() -> void:
 	env.ambient_light_color = Color(0.7, 0.72, 0.75)
 	env.ambient_light_energy = 0.42
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 0.72  # 06/11: jogo claro demais (dono)
+	env.tonemap_exposure = 0.82  # 13/11 estilizado: cores vivas (era 0.72 no realista)
 	# 31/10: filtro de cor (LUT), brilho (glow) e ajuste de saturação/contraste deixavam a tela toda rosa no celular
 	# (pós-processamento do renderizador de compatibilidade): saíram
 	env.fog_enabled = true
 	env.fog_light_color = Ciclo.CEU_HORIZONTE[0]
 	env.fog_density = 0.012
-	env.fog_sky_affect = 0.35
+	env.fog_sky_affect = 0.12 if Estilo.LIGADO else 0.35
 	amb.environment = env
 	add_child(amb)
 	ciclo.sol = sol

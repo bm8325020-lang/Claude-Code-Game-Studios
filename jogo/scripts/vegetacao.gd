@@ -110,6 +110,12 @@ static func _com_vento(origem: Mesh, tinta: Color, balanco: float) -> Mesh:
 			sm.set_shader_parameter("tex", b.albedo_texture)
 			sm.set_shader_parameter("tem_tex", b.albedo_texture != null)
 			sm.set_shader_parameter("cor_base", b.albedo_color)
+			if Estilo.LIGADO:  # 13/11: folha e tronco em cor lisa (só o recorte da folha usa a textura)
+				var mc: Color = Estilo.cor_de(b.albedo_texture)
+				if mc.v > 0.6:
+					mc *= 0.62  # tronco claro (casca quase branca na média) ficava branco no sol
+				sm.set_shader_parameter("liso", true)
+				sm.set_shader_parameter("cor_lisa", Color(mc.r * b.albedo_color.r, mc.g * b.albedo_color.g, mc.b * b.albedo_color.b))
 			if b.normal_enabled and b.normal_texture:
 				sm.set_shader_parameter("tex_n", b.normal_texture)
 				sm.set_shader_parameter("tem_n", true)
@@ -135,6 +141,8 @@ uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tex_n : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform bool tem_tex = false;
 uniform bool tem_n = false;
+uniform bool liso = false;
+uniform vec3 cor_lisa : source_color = vec3(0.4, 0.6, 0.25);
 uniform vec4 cor : source_color = vec4(1.0);
 uniform vec4 cor_base : source_color = vec4(1.0);
 uniform float corte = 0.0;
@@ -151,8 +159,8 @@ void vertex() {
 void fragment() {
 	vec4 c = tem_tex ? texture(tex, UV) : vec4(1.0);
 	if (corte > 0.0 && c.a < corte) discard;
-	ALBEDO = c.rgb * cor_base.rgb * cor.rgb * COLOR.rgb;
-	if (tem_n) NORMAL_MAP = texture(tex_n, UV).rgb;
+	ALBEDO = (liso ? cor_lisa * (0.85 + 0.3 * UV.y) : c.rgb * cor_base.rgb * cor.rgb) * COLOR.rgb;
+	if (tem_n && !liso) NORMAL_MAP = texture(tex_n, UV).rgb;
 	ROUGHNESS = 0.92;
 	SPECULAR = 0.2;
 }"""
