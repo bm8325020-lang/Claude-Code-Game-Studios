@@ -340,14 +340,14 @@ VEG = {
                ("conifera_6", 3), ("abeto_1", 3), ("abeto_3", 2), ("pinheiro", 2), ("outono_1", 1), ("outono_2", 1),
                ("betula", 1)],
     "casas": [("arvore", 4), ("betula", 3), ("outono_1", 2), ("outono_2", 2), ("outono_3", 2), ("pinheiro", 1),
-              ("abeto_1", 1), ("arvore_morta", 2), ("arvore_velha", 1)],
-    "centro": [("arvore", 3), ("betula", 2), ("outono_3", 1), ("arvore_morta", 2)],
-    "industrial": [("arvore_morta", 3), ("arvore_velha", 2), ("toco", 1), ("outono_2", 1), ("abeto_2", 1)],
+              ("abeto_1", 1)],
+    "centro": [("arvore", 3), ("betula", 2), ("outono_3", 1)],
+    "industrial": [("toco", 1), ("outono_2", 1), ("abeto_2", 1)],
 }
 if LA and not FLORESTA:  # 13/11: palmeiras na rua e no quintal (LA); umas mortas e velhas no meio
-    VEG["casas"] = [("palmeira_alta", 5), ("palmeira", 3), ("arvore", 2), ("arvore_morta", 2), ("arvore_velha", 1)]
-    VEG["centro"] = [("palmeira_alta", 5), ("palmeira", 2), ("arvore_morta", 1)]
-VEG["mata"] = [("arvore", 5), ("outono_1", 3), ("outono_2", 3), ("outono_3", 3), ("betula", 3), ("arvore_velha", 2), ("pinheiro", 1)]
+    VEG["casas"] = [("palmeira_alta", 5), ("palmeira", 3), ("arvore", 2)]
+    VEG["centro"] = [("palmeira_alta", 5), ("palmeira", 2)]
+VEG["mata"] = [("arvore", 5), ("outono_1", 3), ("outono_2", 3), ("outono_3", 3), ("betula", 3), ("pinheiro", 1)]
 SUB = {  # perto do pé da árvore
     "parque": ["pinheirinho", "abeto_baixo", "arbusto", "arbusto_2", "pedras", "pedras_2", "samambaia",
                "samambaia_baixa", "capim_alto"],
@@ -770,7 +770,7 @@ for k in range(60):
     off = RV.uniform(8, 26)
     q = (ENTRADA[0] + ENTRADA_DIR[0] * t - ENTRADA_DIR[1] * lado * off, ENTRADA[1] + ENTRADA_DIR[1] * t + ENTRADA_DIR[0] * lado * off)
     if not perto_rua(q, 2.0) and abs(q[0]) < LIM and abs(q[1]) < LIM:
-        props.append({"m": "veg:" + RV.choice(["palmeira_alta", "palmeira", "arvore_morta", "palmeira_alta"] if LA else ["pinheiro", "conifera_1", "conifera_3", "abeto_1", "outono_1", "betula", "arvore_morta"]),
+        props.append({"m": "veg:" + RV.choice(["pinheiro", "conifera_1", "conifera_3", "abeto_1", "outono_1", "betula"]),
                       "p": [round(q[0], 2), round(q[1], 2)], "r": round(RV.uniform(0, 6.28), 3)})
         for j in range(RV.randint(1, 3)):
             props.append({"m": "veg:" + RV.choice(["capim_alto", "arbusto", "arbusto_2", "capim_seco"]),
@@ -897,7 +897,7 @@ if FLORESTA:
                 props.append({"m": "veg:toco", "p": p2(q[0] + RF.uniform(-3, 3), q[1] + RF.uniform(-3, 3)), "r": round(RF.uniform(0, 6.28), 3)})
             elif r < 0.12:
                 props.append({"m": "veg:" + RF.choice(["pedras", "pedras_2"]), "p": p2(q[0] + RF.uniform(-3, 3), q[1] + RF.uniform(-3, 3)), "r": round(RF.uniform(0, 6.28), 3)})
-            elif r < 0.15:
+            elif r < 0.0:  # 13/11 (dono): árvore morta/velha branca fora do mapa
                 props.append({"m": "veg:arvore_morta", "p": p2(q[0] + RF.uniform(-3, 3), q[1] + RF.uniform(-3, 3)), "r": round(RF.uniform(0, 6.28), 3)})
     for k in range(40):  # zumbis soltos andando pela mata
         q = (RF.uniform(-470, 470), RF.uniform(-470, 470))
