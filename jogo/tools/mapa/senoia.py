@@ -117,8 +117,17 @@ if SENOIA:
 # GALENA (13/11, dono: "quero um mapa completamente diferente... ruas com posicionamentos melhores"): a planta passa a ser
 # Galena, Illinois (centro antigo de tijolo na Main Street em diagonal, o Galena River atravessando a cidade, igrejas nos
 # morros), do OpenStreetMap (tools/mapa/osm/galena.json, ODbL). Na história a cidade continua se chamando Senoia.
-CIDADE = os.environ.get("CIDADE", "la")
+CIDADE = os.environ.get("CIDADE", "floresta")
 GALENA = CIDADE == "galena"
+# FLORESTA (13/11, dono: "não vai ser mais cidade, só uma pequena parte; um bioma de floresta gigante com raids na
+# floresta"): o pedaço de South LA em volta do cruzamento (CORTE m para cada lado) vira a cidadezinha no sudoeste
+# (centro em OFF); o resto do quadrado é mata fechada com estradas de terra, um rio com ponte, um morro e os lugares
+# de raid (acampamento militar, helicóptero caído, cabana do caçador, posto florestal, serraria).
+FLORESTA = CIDADE == "floresta"
+OFF = (-300.0, 300.0)
+CORTE = 150.0
+if FLORESTA:
+    CIDADE = "la"
 # LOS ANGELES (13/11, dono: bairro de subúrbio de LA no clima dos mods de zumbi do GTA 5, mas original): ruas e casas
 # reais de South LA em volta do cruzamento da Vermont Avenue com a Slauson Avenue (tools/mapa/osm/la.json, OSM ODbL).
 # Comércio nas duas avenidas, casas baixas de reboco pastel, becos (alley) atrás dos lotes, palmeiras. Sem rio nem morro.
@@ -128,6 +137,10 @@ if LA:
     OSM = json.load(open("tools/mapa/osm/la.json"))["elements"]
     rio = [[-600.0, 2000.0], [600.0, 2000.0]]
     MORRO = {"p": [2000, 2000], "raio": 10.0, "alt": 0.0}
+if FLORESTA:  # rio raso cortando a mata de nordeste a oeste (passa ao norte da cidadezinha) e um morro no noroeste
+    rio = catmull([(530, -280), (330, -170), (170, -40), (40, 70), (-110, 110), (-300, 105), (-530, 80)], 8.0)
+    RIO_LARG = 12.0
+    MORRO = {"p": [-330, -270], "raio": 110.0, "alt": 16.0}
 if GALENA:
     OSM_LAT0, OSM_LON0 = 42.4160, -90.4295
     OSM = json.load(open("tools/mapa/osm/galena.json"))["elements"]
@@ -142,6 +155,12 @@ if GALENA:
 
 
 def osm_xy(g):
+    if FLORESTA:  # só o pedaço da cidade, levado para OFF; o resto fica fora do mapa (as ruas e prédios são cortados)
+        x = (g["lon"] - OSM_LON0) * 111320 * math.cos(math.radians(OSM_LAT0))
+        z = -(g["lat"] - OSM_LAT0) * 110540
+        if abs(x) > CORTE or abs(z + 16.0) > CORTE:
+            return (9999.0, 9999.0)
+        return (round(x + OFF[0], 2), round(z + 16.0 + OFF[1], 2))
     return (round((g["lon"] - OSM_LON0) * 111320 * math.cos(math.radians(OSM_LAT0)), 2), round(-(g["lat"] - OSM_LAT0) * 110540, 2))
 
 
@@ -252,6 +271,10 @@ def no_morro(p, folga=0.0):
 
 
 def zona(x, z):
+    if FLORESTA:
+        if abs(x - OFF[0]) > CORTE + 5 or abs(z - OFF[1]) > CORTE + 5:
+            return "parque"  # a mata (árvores do parque: coníferas)
+        return "centro" if abs(x - OFF[0]) < 45 or abs(z - OFF[1]) < 45 else "casas"
     if LA:  # comércio de frente para a Vermont (x = 0) e a Slauson (z = -16)
         return "centro" if abs(x) < 45 or abs(z + 16) < 45 else "casas"
     if GALENA:  # centro = a faixa da Main Street (diagonal, do sudoeste ao nordeste)
@@ -382,7 +405,11 @@ def desloc(modelo):
 ENTRADA = (480.0, 88.0)
 ENTRADA_DIR = (-0.9967, -0.0812)   # para dentro da cidade (a estrada do leste é quase reta)
 RURAL = 175.0
-if LA:  # chega pela Vermont Avenue, que entra pela borda sul
+if FLORESTA:  # chega pela estrada do oeste, que vira a avenida da cidadezinha
+    ENTRADA = (-480.0, OFF[1])
+    ENTRADA_DIR = (1.0, 0.0)
+    RURAL = 25.0
+elif LA:  # chega pela Vermont Avenue, que entra pela borda sul
     ENTRADA = (0.0, 480.0)
     ENTRADA_DIR = (0.0, -1.0)
     RURAL = 40.0
@@ -536,7 +563,7 @@ for r in ([] if LA else list(ruas)):
             enche(r["p"], lado)
 if LA:  # 13/11: fileira de palmeiras na beira da calçada (a cara de LA), uma a cada ~24 m, falhando aqui e ali
     for r in ruas:
-        if r["tipo"] not in ("primary", "tertiary", "residential"):
+        if r["tipo"] not in ("primary", "tertiary", "residential") or zona(*r["p"][len(r["p"]) // 2]) == "parque":
             continue
         meia = LARG[r["tipo"]] / 2 + CALCADA + 0.6
         L_ = comprimento(r["p"])
@@ -744,247 +771,339 @@ for pp in predios:
             pp["modelo"] = PRONTAS[(n_casa // 3) % len(PRONTAS)]
             q = pp["p"]
             pp["c"] = [round(sum(v[0] for v in q) / len(q), 2), round(sum(v[1] for v in q) / len(q), 2)]
-# ---------------- 07/11 (E3, regra 1): estrutura nova da cidade (sorteio próprio: o resto da cidade não muda) ----------------
-RE = random.Random(3107)
-CENTRO_C = (0.0, -16.0) if LA else (120.0, 10.0) if GALENA else (-15.0, 225.0)
-# 1) bairro incendiado: o aglomerado de casas mais longe do centro e da entrada pega fogo (mesmo tamanho -> versão queimada)
-QUEIMA = {"casa_us_7": "casa_us_q1", "casa_us_1": "casa_us_q1", "casa_us_2": "casa_us_q1", "casa_us_5": "casa_us_q1", "casa_us_3": "casa_us_q2",
-          "casa_us_4": "casa_us_q2", "casa_us_6": "casa_us_q2"}  # a queimada cabe no lote da original (mesma origem)
-cands = [pp for pp in predios if pp["modelo"] in CASA_US and math.dist(pp["c"], CENTRO_C) > 220 and math.dist(pp["c"], ENTRADA) > 260]
-foco = max(cands, key=lambda pp: sum(1 for o in cands if math.dist(o["c"], pp["c"]) < 70)) if cands else None
-incendio = 0
-if foco:
-    for pp in predios:
-        if pp["modelo"] in QUEIMA and math.dist(pp["c"], foco["c"]) < 95:
-            pp["modelo"] = QUEIMA[pp["modelo"]]
-            incendio += 1
+# ---------------- 13/11 FLORESTA: estradas de terra, lugares de raid e a mata ----------------
+lugares = {"baus": [], "subidas": []}
+quarentena = {"portao": [9999.0, 9999.0], "vao": 0.0, "baus": [], "soldados": []}
+RF = random.Random(1311)
+RAIDS_F = []
+if FLORESTA:
+    def clareira(c, w, d):
+        reserva(c[0], c[1], w, d)
+        area(ret(c[0] - w / 2, c[1] - d / 2, c[0] + w / 2, c[1] + d / 2), "terra")
+    def p2(x, z):
+        return [round(x, 2), round(z, 2)]
+    # estradas: da cidadezinha ao meio da mata e de lá para cada lugar (curvas suaves)
+    rua([(-488.0, OFF[1]), (-462.0, OFF[1])], "primary", False)
+    rua([(OFF[0] + 150, OFF[1] - 40), (-80, 200), (0, 40), (30, -40)], "service")
+    rua([(30, -40), (120, -150), (210, -230)], "service")             # acampamento militar
+    rua([(30, -40), (180, 30), (330, 120), (360, 160)], "service")      # posto florestal
+    rua([(30, -40), (-60, -150), (-140, -175), (-160, -190)], "service")  # cabana do caçador
+    rua([(-80, 200), (60, 260), (180, 330), (230, 380)], "service")   # serraria
+    # 1) acampamento militar abandonado: tendas, contêineres, torres e holofote
+    c = (220.0, -260.0)
+    clareira(c, 56.0, 44.0)
+    for dx, dz in ((-16, -10), (0, -12), (16, -10), (-8, 10)):
+        props.append({"m": "mundo:tenda", "p": p2(c[0] + dx, c[1] + dz), "r": 0.0})
+        lugares["baus"].append(p2(c[0] + dx + 1.5, c[1] + dz + 1.0))
+    for k in range(3):
+        props.append({"m": "mundo:conteiner" if k != 1 else "mundo:conteiner_azul", "p": p2(c[0] + 14, c[1] + 6 + k * 3.0), "r": 0.0})
+    for dx in (-26, 26):
+        props.append({"m": "mundo:torre_vigia", "p": p2(c[0] + dx, c[1] - 20), "r": 0.0})
+    props.append({"m": "mundo:holofote", "p": p2(c[0], c[1] + 20), "r": math.pi})
+    for k in range(-5, 6):
+        props.append({"m": "mundo:sacos_areia", "p": p2(c[0] + k * 3.0, c[1] + 21.0), "r": math.pi / 2})
+    for k in range(10):
+        zumbis.append(p2(c[0] + RF.uniform(-24, 24), c[1] + RF.uniform(-18, 18)))
+    RAIDS_F.append(["ACAMPAMENTO MILITAR", p2(*c)])
+    # 2) helicóptero caído no meio da mata (sem estrada: vai a pé)
+    c = (-20.0, -330.0)
+    clareira(c, 30.0, 30.0)
+    marcos.append({"tipo": "helicoptero", "p": p2(*c), "r": 0.6})
     for k in range(6):
-        zumbis.append([round(foco["c"][0] + RE.uniform(-40, 40), 2), round(foco["c"][1] + RE.uniform(-40, 40), 2)])
-# 2) centro bombardeado: entulho e pilhas de tijolo na rua e nas calçadas, carros queimados
-bomba = 0
-for tent in range(900):
-    if bomba >= 45:
-        break
-    a, d = RE.uniform(0, math.tau), 90.0 * math.sqrt(RE.random())
-    q = (CENTRO_C[0] + math.cos(a) * d, CENTRO_C[1] + math.sin(a) * d)
-    novo = (q[0], q[1], 0.0, 3.0, 3.0)
-    if any(sobrepoe(novo, o) for o in ocupado if math.dist(o[:2], q) < 30):
-        continue
-    bomba += 1
-    props.append({"m": RE.choice(["mundo:entulho", "mundo:entulho", "mundo:tijolos"]), "p": [round(q[0], 2), round(q[1], 2)], "r": round(RE.uniform(0, 6.28), 3)})
-    if bomba % 8 == 0:
-        veiculos.append({"m": "mundo:queimado", "p": [round(q[0] + 3, 2), round(q[1], 2)], "r": round(RE.uniform(0, 6.28), 3)})
-# 3) rodovia de entrada engarrafada: a fila de quem tentou fugir, na pista de saída (a de quem chega fica livre)
-lado_e = (ENTRADA_DIR[1], -ENTRADA_DIR[0])  # -lado do carro de quem chega (Bairro._entrada)
-saida_r = math.pi / 2 - math.atan2(-ENTRADA_DIR[1], -ENTRADA_DIR[0])
-fila = 0
-t = 26.0
-while t < RURAL - 25:
-    q = (ENTRADA[0] + ENTRADA_DIR[0] * t + lado_e[0] * 2.7, ENTRADA[1] + ENTRADA_DIR[1] * t + lado_e[1] * 2.7)
-    veiculos.append({"m": RE.choice(["mundo:carcaca", "mundo:ferrugem", "mundo:van", "mundo:carcaca"]), "p": [round(q[0], 2), round(q[1], 2)],
-                     "r": round(saida_r + RE.uniform(-0.12, 0.12), 3), "cor": [round(RE.uniform(0.1, 0.6), 2), round(RE.uniform(0.1, 0.4), 2), round(RE.uniform(0.1, 0.4), 2)]})
-    fila += 1
-    if fila % 4 == 0:
-        zumbis.append([round(q[0] + lado_e[0] * 3, 2), round(q[1] + lado_e[1] * 3, 2)])
-    t += RE.uniform(6.0, 8.5)
-# 4) vala comum: num terreno vazio longe do centro, fileiras de sacos de corpo com cruz na cabeça
-vala = None
-for gx in range(-420, 421, 12):
-    for gz in range(-420, 421, 12):
-        if math.dist((gx, gz), CENTRO_C) > 160 and not perto_rua((gx, gz), 9.0) and livre(gx, gz, 0.0, 26.0, 16.0):
-            vala = (gx, gz)
+        zumbis.append(p2(c[0] + RF.uniform(-12, 12), c[1] + RF.uniform(-12, 12)))
+    RAIDS_F.append(["HELICÓPTERO CAÍDO", p2(*c)])
+    # 3) cabana do caçador (casinha nossa) com a caminhonete e baús
+    c = (-175.0, -205.0)
+    clareira(c, 30.0, 26.0)
+    predio("casa_us_3", c[0], c[1] + 3, (0.0, 1.0), "casas", "house")
+    veiculos.append({"m": "mundo:ferrugem", "p": p2(c[0] + 10, c[1] + 10), "r": 0.4, "cor": [0.35, 0.22, 0.15]})
+    lugares["baus"].append(p2(c[0] - 9, c[1] + 10))
+    for k in range(5):
+        zumbis.append(p2(c[0] + RF.uniform(-12, 12), c[1] + RF.uniform(-10, 10)))
+    RAIDS_F.append(["CABANA DO CAÇADOR", p2(*c)])
+    # 4) posto florestal: torre de vigia, guarita, tenda e barricada
+    c = (375.0, 175.0)
+    clareira(c, 34.0, 28.0)
+    props.append({"m": "mundo:torre_vigia", "p": p2(c[0] - 8, c[1] - 6), "r": 0.0})
+    props.append({"m": "mundo:guarita", "p": p2(c[0] + 8, c[1] - 6), "r": 0.0})
+    props.append({"m": "mundo:tenda", "p": p2(c[0] + 2, c[1] + 6), "r": math.pi / 2})
+    for k in (-3, -2, -1, 1, 2, 3):
+        props.append({"m": "mundo:barreira" if k % 2 else "mundo:sacos_areia", "p": p2(c[0] + k * 3.2, c[1] + 13.0), "r": 0.0})
+    lugares["baus"] += [p2(c[0] + 4, c[1] + 6), p2(c[0] - 8, c[1] - 2)]
+    lugares["subidas"].append([round(c[0] - 8 + 2.0, 2), round(c[1] - 6, 2), round(c[0] - 8, 2), round(c[1] - 6, 2), 6.0, 1.0, 0.0])
+    for k in range(6):
+        zumbis.append(p2(c[0] + RF.uniform(-14, 14), c[1] + RF.uniform(-12, 12)))
+    RAIDS_F.append(["POSTO FLORESTAL", p2(*c)])
+    # 5) serraria: galpão, toras (entulho), caminhões velhos
+    c = (245.0, 395.0)
+    clareira(c, 48.0, 36.0)
+    predio("galpao_r1", c[0], c[1] + 4, (0.0, -1.0), "industrial", "industrial")
+    for k in range(4):
+        props.append({"m": RF.choice(["mundo:entulho", "mundo:tijolos"]), "p": p2(c[0] - 18 + k * 4.0, c[1] - 14), "r": round(RF.uniform(0, 6.28), 3)})
+    for k in range(3):
+        veiculos.append({"m": RF.choice(["mundo:ferrugem", "mundo:carcaca"]), "p": p2(c[0] + 14 + k * 3.5, c[1] - 12), "r": 1.57, "cor": [0.4, 0.3, 0.2]})
+    lugares["baus"] += [p2(c[0] - 14, c[1] + 12), p2(c[0] + 16, c[1] + 12)]
+    for k in range(8):
+        zumbis.append(p2(c[0] + RF.uniform(-20, 20), c[1] + RF.uniform(-14, 14)))
+    RAIDS_F.append(["SERRARIA", p2(*c)])
+    # a mata: uma árvore a cada ~9 m (com sobra de mato no pé), fora da cidade, das estradas, do rio e das clareiras
+    arv = 0
+    for gx in range(-484, 485, 9):
+        for gz in range(-484, 485, 9):
+            q = (gx + RF.uniform(-3.5, 3.5), gz + RF.uniform(-3.5, 3.5))
+            if zona(*q) != "parque" or perto_rua(q, 3.5) or perto_rio(q, 1.5):
+                continue
+            if any(abs(q[0] - o[0]) < o[3] / 2 + 2 and abs(q[1] - o[1]) < o[4] / 2 + 2 for o in ocupado if math.dist(q, o[:2]) < 60):
+                continue
+            prop("arvore_mata", q[0], q[1], RF.uniform(0, 6.28))
+            arv += 1
+    for k in range(40):  # zumbis soltos andando pela mata
+        q = (RF.uniform(-470, 470), RF.uniform(-470, 470))
+        if zona(*q) == "parque" and not perto_rio(q, 2.0):
+            zumbis.append(p2(*q))
+    print("FLORESTA: árvores", arv, "| raids", [r[0] for r in RAIDS_F])
+if not FLORESTA:
+    # ---------------- 07/11 (E3, regra 1): estrutura nova da cidade (sorteio próprio: o resto da cidade não muda) ----------------
+    RE = random.Random(3107)
+    CENTRO_C = (0.0, -16.0) if LA else (120.0, 10.0) if GALENA else (-15.0, 225.0)
+    # 1) bairro incendiado: o aglomerado de casas mais longe do centro e da entrada pega fogo (mesmo tamanho -> versão queimada)
+    QUEIMA = {"casa_us_7": "casa_us_q1", "casa_us_1": "casa_us_q1", "casa_us_2": "casa_us_q1", "casa_us_5": "casa_us_q1", "casa_us_3": "casa_us_q2",
+              "casa_us_4": "casa_us_q2", "casa_us_6": "casa_us_q2"}  # a queimada cabe no lote da original (mesma origem)
+    cands = [pp for pp in predios if pp["modelo"] in CASA_US and math.dist(pp["c"], CENTRO_C) > 220 and math.dist(pp["c"], ENTRADA) > 260]
+    foco = max(cands, key=lambda pp: sum(1 for o in cands if math.dist(o["c"], pp["c"]) < 70)) if cands else None
+    incendio = 0
+    if foco:
+        for pp in predios:
+            if pp["modelo"] in QUEIMA and math.dist(pp["c"], foco["c"]) < 95:
+                pp["modelo"] = QUEIMA[pp["modelo"]]
+                incendio += 1
+        for k in range(6):
+            zumbis.append([round(foco["c"][0] + RE.uniform(-40, 40), 2), round(foco["c"][1] + RE.uniform(-40, 40), 2)])
+    # 2) centro bombardeado: entulho e pilhas de tijolo na rua e nas calçadas, carros queimados
+    bomba = 0
+    for tent in range(900):
+        if bomba >= 45:
+            break
+        a, d = RE.uniform(0, math.tau), 90.0 * math.sqrt(RE.random())
+        q = (CENTRO_C[0] + math.cos(a) * d, CENTRO_C[1] + math.sin(a) * d)
+        novo = (q[0], q[1], 0.0, 3.0, 3.0)
+        if any(sobrepoe(novo, o) for o in ocupado if math.dist(o[:2], q) < 30):
+            continue
+        bomba += 1
+        props.append({"m": RE.choice(["mundo:entulho", "mundo:entulho", "mundo:tijolos"]), "p": [round(q[0], 2), round(q[1], 2)], "r": round(RE.uniform(0, 6.28), 3)})
+        if bomba % 8 == 0:
+            veiculos.append({"m": "mundo:queimado", "p": [round(q[0] + 3, 2), round(q[1], 2)], "r": round(RE.uniform(0, 6.28), 3)})
+    # 3) rodovia de entrada engarrafada: a fila de quem tentou fugir, na pista de saída (a de quem chega fica livre)
+    lado_e = (ENTRADA_DIR[1], -ENTRADA_DIR[0])  # -lado do carro de quem chega (Bairro._entrada)
+    saida_r = math.pi / 2 - math.atan2(-ENTRADA_DIR[1], -ENTRADA_DIR[0])
+    fila = 0
+    t = 26.0
+    while t < RURAL - 25:
+        q = (ENTRADA[0] + ENTRADA_DIR[0] * t + lado_e[0] * 2.7, ENTRADA[1] + ENTRADA_DIR[1] * t + lado_e[1] * 2.7)
+        veiculos.append({"m": RE.choice(["mundo:carcaca", "mundo:ferrugem", "mundo:van", "mundo:carcaca"]), "p": [round(q[0], 2), round(q[1], 2)],
+                         "r": round(saida_r + RE.uniform(-0.12, 0.12), 3), "cor": [round(RE.uniform(0.1, 0.6), 2), round(RE.uniform(0.1, 0.4), 2), round(RE.uniform(0.1, 0.4), 2)]})
+        fila += 1
+        if fila % 4 == 0:
+            zumbis.append([round(q[0] + lado_e[0] * 3, 2), round(q[1] + lado_e[1] * 3, 2)])
+        t += RE.uniform(6.0, 8.5)
+    # 4) vala comum: num terreno vazio longe do centro, fileiras de sacos de corpo com cruz na cabeça
+    vala = None
+    for gx in range(-420, 421, 12):
+        for gz in range(-420, 421, 12):
+            if math.dist((gx, gz), CENTRO_C) > 160 and not perto_rua((gx, gz), 9.0) and livre(gx, gz, 0.0, 26.0, 16.0):
+                vala = (gx, gz)
+                break
+        if vala:
             break
     if vala:
-        break
-if vala:
-    reserva(vala[0], vala[1], 26.0, 16.0)
-    area(ret(vala[0] - 13, vala[1] - 8, vala[0] + 13, vala[1] + 8), "terra")
-    for fil in range(4):
-        for k in range(7):
-            x = vala[0] - 10.5 + k * 3.5
-            z = vala[1] - 5.0 + fil * 3.4
-            props.append({"m": "mundo:saco_corpo", "p": [round(x + RE.uniform(-0.3, 0.3), 2), round(z, 2)], "r": round(RE.uniform(-0.15, 0.15), 3)})
-            if RE.random() < 0.5:
-                props.append({"m": RE.choice(["tumulo_1", "tumulo_2", "tumulo_3"]), "p": [round(x, 2), round(z - 1.4, 2)], "r": 0.0})
-    for k in range(4):
-        zumbis.append([round(vala[0] + RE.uniform(-12, 12), 2), round(vala[1] + RE.uniform(-7, 7), 2)])
-# 5) (E4) quarentena militar: muro de contêineres cortando a cidade em QZ (hospital e mercado ficam do lado de dentro, ao
-# norte); um portão com checkpoint na rua mais central; tendas, baús militares e soldados do lado de dentro
-QZ = 380.0
-cruza_q = []
-for r in ruas:
-    for a1, b1 in zip(r["p"], r["p"][1:]):
-        if (a1[1] - QZ) * (b1[1] - QZ) < 0:
-            cruza_q.append(a1[0] + (b1[0] - a1[0]) * (QZ - a1[1]) / (b1[1] - a1[1]))
-portao_x = min(cruza_q, key=abs) if cruza_q else 0.0
-quarentena = {"portao": [round(portao_x, 2), QZ], "vao": 14.0, "baus": [], "soldados": []}
-x = -LIM + 4.0
-nq = 0
-while x < LIM - 4.0:
-    if abs(x - portao_x) < 7.0:
-        x = portao_x + 7.0
-        continue
-    m, w = ("mundo:conteiner", 13.2) if nq % 3 != 2 else ("mundo:conteiner_azul", 6.9)
-    novo = (x + w / 2, QZ, 0.0, w, 2.6)
-    if not perto_rio((x + w / 2, QZ), 3.0) and not any(sobrepoe(novo, o, 0.0) for o in ocupado if math.dist(o[:2], novo[:2]) < 30) and abs(x + w - portao_x) > 6.5:
-        props.append({"m": m, "p": [round(x + w / 2, 2), QZ], "r": 0.0})
-        reserva(x + w / 2, QZ, w, 2.6)
-        nq += 1
-        x += w
-    else:
-        x += 1.0
-g = (portao_x, QZ)
-for dx, m, r in ((-5.5, "mundo:guarita", 0.0), (-9.0, "mundo:holofote", 0.0), (9.0, "mundo:holofote", math.pi)):
-    props.append({"m": m, "p": [round(g[0] + dx, 2), round(g[1] - 3.0, 2)], "r": r})
-for dx in (-4.0, 4.0):  # sacos de areia em L dos dois lados do portão, do lado de fora
-    props.append({"m": "mundo:sacos_areia", "p": [round(g[0] + dx, 2), round(g[1] - 6.0, 2)], "r": math.pi / 2})
-for dx in (-12.0, 12.0):
-    props.append({"m": "mundo:torre_vigia", "p": [round(g[0] + dx, 2), round(g[1] + 5.0, 2)], "r": 0.0})
-tendas = 0
-for tent in range(200):
-    if tendas >= 4:
-        break
-    q = (g[0] + RE.uniform(-60, 60), g[1] + RE.uniform(14, 60))
-    if livre(q[0], q[1], 0.0, 10.5, 10.0):
-        reserva(q[0], q[1], 10.5, 10.0)
-        props.append({"m": "mundo:tenda", "p": [round(q[0], 2), round(q[1], 2)], "r": round(RE.choice([0.0, math.pi / 2, math.pi]), 3)})
-        quarentena["baus"].append([round(q[0] + 1.5, 2), round(q[1] + 1.0, 2)])
-        for k in range(2):
-            quarentena["soldados"].append([round(q[0] + RE.uniform(-7, 7), 2), round(q[1] + RE.uniform(-7, 7), 2)])
-        tendas += 1
-print("E4: contêineres", nq, "| portão x", round(portao_x, 1), "| tendas", tendas)
-# 6) (E5) lugares novos: torre de água (sobe e vê longe), ferro-velho cercado, escola barricada, bombas de gasolina
-lugares = {"baus": [], "subidas": []}
-def acha_livre(w, d, alvo, raio, folga_rua=10.0):
-    for rr in range(0, int(raio), 6):
-        for k in range(max(1, rr // 3)):
-            a = math.tau * k / max(1, rr // 3)
-            q = (alvo[0] + math.cos(a) * rr, alvo[1] + math.sin(a) * rr)
-            if livre(q[0], q[1], 0.0, w, d) and perto_rua(q, w / 2 + folga_rua) and not perto_rua(q, max(w, d) / 2 + 1.0):
-                return q
-    return None
-torre = acha_livre(11.0, 11.0, (140.0, 140.0), 160)
-if torre:
-    reserva(torre[0], torre[1], 11.0, 11.0)
-    props.append({"m": "mundo:torre_agua", "p": [round(torre[0], 2), round(torre[1], 2)], "r": 0.0})
-    lugares["subidas"].append([round(torre[0] + 5.6, 2), round(torre[1], 2), round(torre[0], 2), round(torre[1], 2), 22.0, 1.0, 0.0])
-ferro = acha_livre(34.0, 26.0, (-300.0, 330.0), 220, 14.0)
-if ferro:
-    fx, fz = ferro
-    reserva(fx, fz, 34.0, 26.0)
-    area(ret(fx - 17, fz - 13, fx + 17, fz + 13), "terra")
-    for (a1, b1) in (((-17, -13), (17, -13)), ((17, -13), (17, 13)), ((17, 13), (3, 13)), ((-3, 13), (-17, 13)), ((-17, 13), (-17, -13))):
-        muros.append({"a": [round(fx + a1[0], 2), round(fz + a1[1], 2)], "b": [round(fx + b1[0], 2), round(fz + b1[1], 2)], "alt": 2.2, "cor": 0, "grade": True})
-    for k in range(14):
-        q = (fx + RE.uniform(-14, 14), fz + RE.uniform(-10, 9))
-        veiculos.append({"m": RE.choice(["mundo:ferrugem", "mundo:queimado", "mundo:carcaca", "mundo:van"]), "p": [round(q[0], 2), round(q[1], 2)],
-                         "r": round(RE.uniform(0, 6.28), 3), "cor": [round(RE.uniform(0.2, 0.6), 2), round(RE.uniform(0.15, 0.4), 2), round(RE.uniform(0.1, 0.3), 2)]})
-    lugares["baus"] += [[round(fx - 12, 2), round(fz - 9, 2)], [round(fx + 12, 2), round(fz - 9, 2)]]
-    for k in range(4):
-        zumbis.append([round(fx + RE.uniform(-12, 12), 2), round(fz + RE.uniform(-9, 9), 2)])
-for pe in predios:
-    if pe["modelo"] == "escola":  # escola virou refúgio que caiu: barreira e sacos de areia na frente, baú dentro
-        ex, ez = pe["c"]
-        fr = pe["frente"]
-        lado = (-fr[1], fr[0])
-        for k in range(-3, 4):
-            if k == 0:
-                continue  # a passagem que os sobreviventes deixavam
-            q = (ex + fr[0] * 9.0 + lado[0] * k * 2.0, ez + fr[1] * 9.0 + lado[1] * k * 2.0)
-            props.append({"m": "mundo:barreira" if k % 2 else "mundo:sacos_areia", "p": [round(q[0], 2), round(q[1], 2)],
-                          "r": round(math.atan2(lado[0], lado[1]) + (0.0 if k % 2 else math.pi / 2), 3)})
-        lugares["baus"].append([round(ex + fr[0] * 6.5, 2), round(ez + fr[1] * 6.5, 2)])
-        for k in range(5):
-            zumbis.append([round(ex + RE.uniform(-4, 4), 2), round(ez + RE.uniform(-8, 8), 2)])
-pt = (ENTRADA[0] + ENTRADA_DIR[0] * (RURAL + 30) + ENTRADA_DIR[1] * 9, ENTRADA[1] + ENTRADA_DIR[1] * (RURAL + 30) - ENTRADA_DIR[0] * 9)
-for k in range(3):  # bombas de gasolina na beira da estrada (o prédio do posto pronto entra depois: colisão a fazer)
-    props.append({"m": "mundo:bomba_gasolina", "p": [round(pt[0] + ENTRADA_DIR[0] * k * 3.0, 2), round(pt[1] + ENTRADA_DIR[1] * k * 3.0, 2)], "r": round(math.atan2(ENTRADA_DIR[0], ENTRADA_DIR[1]), 3)})
-lugares["baus"].append([round(pt[0] + ENTRADA_DIR[1] * 2.5, 2), round(pt[1] - ENTRADA_DIR[0] * 2.5, 2)])
-print("E5: torre", torre, "| ferro-velho", ferro, "| baús de lugar", len(lugares["baus"]))
-# 7) (E6, 12/11, dono: "quero mudar completamente a cidade... tudo isso e mais") lugares novos com os enfeites prontos,
-# um em cada canto da cidade (sorteio próprio: o resto não muda): pátio de contêineres (labirinto), acampamento de
-# sobreviventes que caiu, garagem de ônibus cercada e posto avançado dos Corvos (gente armada: dá para contratar na trégua)
-R6 = random.Random(1211)
-def acha6(w, d, alvos, raio=240):
-    for alvo in alvos:
-        q = acha_livre(w, d, alvo, raio, 16.0)
-        if q:
-            return q
-    return None
-def p2(x, z):
-    return [round(x, 2), round(z, 2)]
-patio = acha6(44.0, 30.0, [(320.0, 120.0), (330.0, -120.0), (-330.0, 60.0)])
-if patio:
-    px, pz = patio
-    reserva(px, pz, 44.0, 30.0)
-    area(ret(px - 22, pz - 15, px + 22, pz + 15), "terra")
-    for fil in range(4):  # 4 fileiras com corredor de ~4 m; cada uma com a passagem num lugar diferente
-        z = pz - 10.5 + fil * 7.0
-        x = px - 20.0
-        falha = 1 + R6.randrange(2)
-        k = 0
-        while x + 6.9 <= px + 20.0:
-            m, w = ("mundo:conteiner", 13.2) if R6.random() < 0.6 and x + 13.2 <= px + 20.0 else ("mundo:conteiner_azul", 6.9)
-            if k == falha:
-                x += 3.4
-                if x + w > px + 20.0:
-                    break
-            props.append({"m": m, "p": p2(x + w / 2, z), "r": 0.0})
-            x += w + 0.3
-            k += 1
-    props.append({"m": "mundo:torre_vigia", "p": p2(px - 19.5, pz + 13.0), "r": 0.0})
-    props.append({"m": "mundo:holofote", "p": p2(px + 19.5, pz - 13.5), "r": math.pi})
-    lugares["baus"] += [p2(px + 17.0, pz - 7.0), p2(px - 17.0, pz + 7.0)]
-    for k in range(7):
-        zumbis.append(p2(px + R6.uniform(-18, 18), pz - 7.0 + 7.0 * R6.randrange(3)))
-acamp = acha6(32.0, 26.0, [(-260.0, -160.0), (-300.0, 120.0), (120.0, -330.0)])
-if acamp:
-    ax, az = acamp
-    reserva(ax, az, 32.0, 26.0)
-    area(ret(ax - 16, az - 13, ax + 16, az + 13), "terra")
-    for dx in (-8.5, 8.5):
-        props.append({"m": "mundo:tenda", "p": p2(ax + dx, az - 6.0), "r": 0.0})
-        lugares["baus"].append(p2(ax + dx + 1.5, az - 5.0))
-    for k in range(-4, 5):  # barricada da frente com a passagem que arrombaram
-        if k == 0:
+        reserva(vala[0], vala[1], 26.0, 16.0)
+        area(ret(vala[0] - 13, vala[1] - 8, vala[0] + 13, vala[1] + 8), "terra")
+        for fil in range(4):
+            for k in range(7):
+                x = vala[0] - 10.5 + k * 3.5
+                z = vala[1] - 5.0 + fil * 3.4
+                props.append({"m": "mundo:saco_corpo", "p": [round(x + RE.uniform(-0.3, 0.3), 2), round(z, 2)], "r": round(RE.uniform(-0.15, 0.15), 3)})
+                if RE.random() < 0.5:
+                    props.append({"m": RE.choice(["tumulo_1", "tumulo_2", "tumulo_3"]), "p": [round(x, 2), round(z - 1.4, 2)], "r": 0.0})
+        for k in range(4):
+            zumbis.append([round(vala[0] + RE.uniform(-12, 12), 2), round(vala[1] + RE.uniform(-7, 7), 2)])
+    # 5) (E4) quarentena militar: muro de contêineres cortando a cidade em QZ (hospital e mercado ficam do lado de dentro, ao
+    # norte); um portão com checkpoint na rua mais central; tendas, baús militares e soldados do lado de dentro
+    QZ = 380.0
+    cruza_q = []
+    for r in ruas:
+        for a1, b1 in zip(r["p"], r["p"][1:]):
+            if (a1[1] - QZ) * (b1[1] - QZ) < 0:
+                cruza_q.append(a1[0] + (b1[0] - a1[0]) * (QZ - a1[1]) / (b1[1] - a1[1]))
+    portao_x = min(cruza_q, key=abs) if cruza_q else 0.0
+    quarentena = {"portao": [round(portao_x, 2), QZ], "vao": 14.0, "baus": [], "soldados": []}
+    x = -LIM + 4.0
+    nq = 0
+    while x < LIM - 4.0:
+        if abs(x - portao_x) < 7.0:
+            x = portao_x + 7.0
             continue
-        props.append({"m": "mundo:sacos_areia" if k % 2 else "mundo:barreira", "p": p2(ax + k * 3.2, az + 11.5), "r": 0.0 if k % 2 == 0 else math.pi / 2})
-    for k in range(6):  # os que não escaparam
-        props.append({"m": "mundo:saco_corpo", "p": p2(ax - 8.0 + k * 3.2 + R6.uniform(-0.3, 0.3), az + 4.5), "r": round(R6.uniform(-0.2, 0.2), 3)})
-    props.append({"m": "mundo:entulho", "p": p2(ax + 12.0, az + 5.0), "r": round(R6.uniform(0, 6.28), 3)})
-    for k in range(8):
-        zumbis.append(p2(ax + R6.uniform(-14, 14), az + R6.uniform(1.0, 9.0)))
-garagem = acha6(40.0, 24.0, [(140.0, -320.0), (-120.0, -340.0), (340.0, 280.0)])
-if garagem:
-    gx, gz = garagem
-    reserva(gx, gz, 40.0, 24.0)
-    area(ret(gx - 20, gz - 12, gx + 20, gz + 12), "terra")
-    for (a1, b1) in (((-20, -12), (20, -12)), ((20, -12), (20, 12)), ((20, 12), (4, 12)), ((-4, 12), (-20, 12)), ((-20, 12), (-20, -12))):
-        muros.append({"a": p2(gx + a1[0], gz + a1[1]), "b": p2(gx + b1[0], gz + b1[1]), "alt": 2.2, "cor": 0, "grade": True})
-    for k in range(5):  # ônibus lado a lado, um atravessado no fundo
-        veiculos.append({"m": "mundo:onibus", "p": p2(gx - 14.0 + k * 7.0, gz - 2.0 + R6.uniform(-1.0, 1.0)), "r": round(R6.uniform(-0.06, 0.06), 3)})
-    lugares["baus"].append(p2(gx + 17.0, gz - 9.5))
-    for k in range(6):
-        zumbis.append(p2(gx - 17.5 + k * 7.0, gz + R6.uniform(-6, 8)))
-posto_c = acha6(22.0, 18.0, [(-200.0, 300.0), (250.0, 330.0), (-340.0, -60.0)])
-if posto_c:
-    cx6, cz6 = posto_c
-    reserva(cx6, cz6, 22.0, 18.0)
-    area(ret(cx6 - 11, cz6 - 9, cx6 + 11, cz6 + 9), "terra")
-    props.append({"m": "mundo:torre_vigia", "p": p2(cx6 - 7.0, cz6 - 5.0), "r": 0.0})
-    props.append({"m": "mundo:guarita", "p": p2(cx6 + 7.0, cz6 - 5.0), "r": 0.0})
-    props.append({"m": "mundo:holofote", "p": p2(cx6 + 9.0, cz6 + 7.0), "r": math.pi})
-    for k in (-3, -2, -1, 1, 2, 3):
-        props.append({"m": "mundo:sacos_areia", "p": p2(cx6 + k * 3.0, cz6 + 8.0), "r": math.pi / 2})
-    lugares["baus"].append(p2(cx6, cz6 - 6.0))
-    for k in range(3):
-        quarentena["soldados"].append(p2(cx6 - 4.0 + k * 4.0, cz6 + R6.uniform(-1.0, 3.0)))
-print("E6: pátio", patio, "| acampamento", acamp, "| garagem", garagem, "| posto dos Corvos", posto_c)
-print("E3: casas incendiadas", incendio, "| entulho", bomba, "| fila na rodovia", fila, "| vala comum", vala)
-print("casas prontas:", sum(1 for pp in predios if pp["modelo"].startswith("casa_p")))
-out = {"origem": "South Los Angeles, CA (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if LA else "Galena, IL (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if GALENA else "Senoia, GA (OpenStreetMap, ODbL; tools/mapa/raven_creek.py CIDADE=senoia)" if SENOIA else "Raven Creek (tools/mapa/raven_creek.py)", "ruas": ruas, "predios": predios, "frestas": frestas, "bloqueios": bloqueios,
+        m, w = ("mundo:conteiner", 13.2) if nq % 3 != 2 else ("mundo:conteiner_azul", 6.9)
+        novo = (x + w / 2, QZ, 0.0, w, 2.6)
+        if not perto_rio((x + w / 2, QZ), 3.0) and not any(sobrepoe(novo, o, 0.0) for o in ocupado if math.dist(o[:2], novo[:2]) < 30) and abs(x + w - portao_x) > 6.5:
+            props.append({"m": m, "p": [round(x + w / 2, 2), QZ], "r": 0.0})
+            reserva(x + w / 2, QZ, w, 2.6)
+            nq += 1
+            x += w
+        else:
+            x += 1.0
+    g = (portao_x, QZ)
+    for dx, m, r in ((-5.5, "mundo:guarita", 0.0), (-9.0, "mundo:holofote", 0.0), (9.0, "mundo:holofote", math.pi)):
+        props.append({"m": m, "p": [round(g[0] + dx, 2), round(g[1] - 3.0, 2)], "r": r})
+    for dx in (-4.0, 4.0):  # sacos de areia em L dos dois lados do portão, do lado de fora
+        props.append({"m": "mundo:sacos_areia", "p": [round(g[0] + dx, 2), round(g[1] - 6.0, 2)], "r": math.pi / 2})
+    for dx in (-12.0, 12.0):
+        props.append({"m": "mundo:torre_vigia", "p": [round(g[0] + dx, 2), round(g[1] + 5.0, 2)], "r": 0.0})
+    tendas = 0
+    for tent in range(200):
+        if tendas >= 4:
+            break
+        q = (g[0] + RE.uniform(-60, 60), g[1] + RE.uniform(14, 60))
+        if livre(q[0], q[1], 0.0, 10.5, 10.0):
+            reserva(q[0], q[1], 10.5, 10.0)
+            props.append({"m": "mundo:tenda", "p": [round(q[0], 2), round(q[1], 2)], "r": round(RE.choice([0.0, math.pi / 2, math.pi]), 3)})
+            quarentena["baus"].append([round(q[0] + 1.5, 2), round(q[1] + 1.0, 2)])
+            for k in range(2):
+                quarentena["soldados"].append([round(q[0] + RE.uniform(-7, 7), 2), round(q[1] + RE.uniform(-7, 7), 2)])
+            tendas += 1
+    print("E4: contêineres", nq, "| portão x", round(portao_x, 1), "| tendas", tendas)
+    # 6) (E5) lugares novos: torre de água (sobe e vê longe), ferro-velho cercado, escola barricada, bombas de gasolina
+    lugares = {"baus": [], "subidas": []}
+    def acha_livre(w, d, alvo, raio, folga_rua=10.0):
+        for rr in range(0, int(raio), 6):
+            for k in range(max(1, rr // 3)):
+                a = math.tau * k / max(1, rr // 3)
+                q = (alvo[0] + math.cos(a) * rr, alvo[1] + math.sin(a) * rr)
+                if livre(q[0], q[1], 0.0, w, d) and perto_rua(q, w / 2 + folga_rua) and not perto_rua(q, max(w, d) / 2 + 1.0):
+                    return q
+        return None
+    torre = acha_livre(11.0, 11.0, (140.0, 140.0), 160)
+    if torre:
+        reserva(torre[0], torre[1], 11.0, 11.0)
+        props.append({"m": "mundo:torre_agua", "p": [round(torre[0], 2), round(torre[1], 2)], "r": 0.0})
+        lugares["subidas"].append([round(torre[0] + 5.6, 2), round(torre[1], 2), round(torre[0], 2), round(torre[1], 2), 22.0, 1.0, 0.0])
+    ferro = acha_livre(34.0, 26.0, (-300.0, 330.0), 220, 14.0)
+    if ferro:
+        fx, fz = ferro
+        reserva(fx, fz, 34.0, 26.0)
+        area(ret(fx - 17, fz - 13, fx + 17, fz + 13), "terra")
+        for (a1, b1) in (((-17, -13), (17, -13)), ((17, -13), (17, 13)), ((17, 13), (3, 13)), ((-3, 13), (-17, 13)), ((-17, 13), (-17, -13))):
+            muros.append({"a": [round(fx + a1[0], 2), round(fz + a1[1], 2)], "b": [round(fx + b1[0], 2), round(fz + b1[1], 2)], "alt": 2.2, "cor": 0, "grade": True})
+        for k in range(14):
+            q = (fx + RE.uniform(-14, 14), fz + RE.uniform(-10, 9))
+            veiculos.append({"m": RE.choice(["mundo:ferrugem", "mundo:queimado", "mundo:carcaca", "mundo:van"]), "p": [round(q[0], 2), round(q[1], 2)],
+                             "r": round(RE.uniform(0, 6.28), 3), "cor": [round(RE.uniform(0.2, 0.6), 2), round(RE.uniform(0.15, 0.4), 2), round(RE.uniform(0.1, 0.3), 2)]})
+        lugares["baus"] += [[round(fx - 12, 2), round(fz - 9, 2)], [round(fx + 12, 2), round(fz - 9, 2)]]
+        for k in range(4):
+            zumbis.append([round(fx + RE.uniform(-12, 12), 2), round(fz + RE.uniform(-9, 9), 2)])
+    for pe in predios:
+        if pe["modelo"] == "escola":  # escola virou refúgio que caiu: barreira e sacos de areia na frente, baú dentro
+            ex, ez = pe["c"]
+            fr = pe["frente"]
+            lado = (-fr[1], fr[0])
+            for k in range(-3, 4):
+                if k == 0:
+                    continue  # a passagem que os sobreviventes deixavam
+                q = (ex + fr[0] * 9.0 + lado[0] * k * 2.0, ez + fr[1] * 9.0 + lado[1] * k * 2.0)
+                props.append({"m": "mundo:barreira" if k % 2 else "mundo:sacos_areia", "p": [round(q[0], 2), round(q[1], 2)],
+                              "r": round(math.atan2(lado[0], lado[1]) + (0.0 if k % 2 else math.pi / 2), 3)})
+            lugares["baus"].append([round(ex + fr[0] * 6.5, 2), round(ez + fr[1] * 6.5, 2)])
+            for k in range(5):
+                zumbis.append([round(ex + RE.uniform(-4, 4), 2), round(ez + RE.uniform(-8, 8), 2)])
+    pt = (ENTRADA[0] + ENTRADA_DIR[0] * (RURAL + 30) + ENTRADA_DIR[1] * 9, ENTRADA[1] + ENTRADA_DIR[1] * (RURAL + 30) - ENTRADA_DIR[0] * 9)
+    for k in range(3):  # bombas de gasolina na beira da estrada (o prédio do posto pronto entra depois: colisão a fazer)
+        props.append({"m": "mundo:bomba_gasolina", "p": [round(pt[0] + ENTRADA_DIR[0] * k * 3.0, 2), round(pt[1] + ENTRADA_DIR[1] * k * 3.0, 2)], "r": round(math.atan2(ENTRADA_DIR[0], ENTRADA_DIR[1]), 3)})
+    lugares["baus"].append([round(pt[0] + ENTRADA_DIR[1] * 2.5, 2), round(pt[1] - ENTRADA_DIR[0] * 2.5, 2)])
+    print("E5: torre", torre, "| ferro-velho", ferro, "| baús de lugar", len(lugares["baus"]))
+    # 7) (E6, 12/11, dono: "quero mudar completamente a cidade... tudo isso e mais") lugares novos com os enfeites prontos,
+    # um em cada canto da cidade (sorteio próprio: o resto não muda): pátio de contêineres (labirinto), acampamento de
+    # sobreviventes que caiu, garagem de ônibus cercada e posto avançado dos Corvos (gente armada: dá para contratar na trégua)
+    R6 = random.Random(1211)
+    def acha6(w, d, alvos, raio=240):
+        for alvo in alvos:
+            q = acha_livre(w, d, alvo, raio, 16.0)
+            if q:
+                return q
+        return None
+    def p2(x, z):
+        return [round(x, 2), round(z, 2)]
+    patio = acha6(44.0, 30.0, [(320.0, 120.0), (330.0, -120.0), (-330.0, 60.0)])
+    if patio:
+        px, pz = patio
+        reserva(px, pz, 44.0, 30.0)
+        area(ret(px - 22, pz - 15, px + 22, pz + 15), "terra")
+        for fil in range(4):  # 4 fileiras com corredor de ~4 m; cada uma com a passagem num lugar diferente
+            z = pz - 10.5 + fil * 7.0
+            x = px - 20.0
+            falha = 1 + R6.randrange(2)
+            k = 0
+            while x + 6.9 <= px + 20.0:
+                m, w = ("mundo:conteiner", 13.2) if R6.random() < 0.6 and x + 13.2 <= px + 20.0 else ("mundo:conteiner_azul", 6.9)
+                if k == falha:
+                    x += 3.4
+                    if x + w > px + 20.0:
+                        break
+                props.append({"m": m, "p": p2(x + w / 2, z), "r": 0.0})
+                x += w + 0.3
+                k += 1
+        props.append({"m": "mundo:torre_vigia", "p": p2(px - 19.5, pz + 13.0), "r": 0.0})
+        props.append({"m": "mundo:holofote", "p": p2(px + 19.5, pz - 13.5), "r": math.pi})
+        lugares["baus"] += [p2(px + 17.0, pz - 7.0), p2(px - 17.0, pz + 7.0)]
+        for k in range(7):
+            zumbis.append(p2(px + R6.uniform(-18, 18), pz - 7.0 + 7.0 * R6.randrange(3)))
+    acamp = acha6(32.0, 26.0, [(-260.0, -160.0), (-300.0, 120.0), (120.0, -330.0)])
+    if acamp:
+        ax, az = acamp
+        reserva(ax, az, 32.0, 26.0)
+        area(ret(ax - 16, az - 13, ax + 16, az + 13), "terra")
+        for dx in (-8.5, 8.5):
+            props.append({"m": "mundo:tenda", "p": p2(ax + dx, az - 6.0), "r": 0.0})
+            lugares["baus"].append(p2(ax + dx + 1.5, az - 5.0))
+        for k in range(-4, 5):  # barricada da frente com a passagem que arrombaram
+            if k == 0:
+                continue
+            props.append({"m": "mundo:sacos_areia" if k % 2 else "mundo:barreira", "p": p2(ax + k * 3.2, az + 11.5), "r": 0.0 if k % 2 == 0 else math.pi / 2})
+        for k in range(6):  # os que não escaparam
+            props.append({"m": "mundo:saco_corpo", "p": p2(ax - 8.0 + k * 3.2 + R6.uniform(-0.3, 0.3), az + 4.5), "r": round(R6.uniform(-0.2, 0.2), 3)})
+        props.append({"m": "mundo:entulho", "p": p2(ax + 12.0, az + 5.0), "r": round(R6.uniform(0, 6.28), 3)})
+        for k in range(8):
+            zumbis.append(p2(ax + R6.uniform(-14, 14), az + R6.uniform(1.0, 9.0)))
+    garagem = acha6(40.0, 24.0, [(140.0, -320.0), (-120.0, -340.0), (340.0, 280.0)])
+    if garagem:
+        gx, gz = garagem
+        reserva(gx, gz, 40.0, 24.0)
+        area(ret(gx - 20, gz - 12, gx + 20, gz + 12), "terra")
+        for (a1, b1) in (((-20, -12), (20, -12)), ((20, -12), (20, 12)), ((20, 12), (4, 12)), ((-4, 12), (-20, 12)), ((-20, 12), (-20, -12))):
+            muros.append({"a": p2(gx + a1[0], gz + a1[1]), "b": p2(gx + b1[0], gz + b1[1]), "alt": 2.2, "cor": 0, "grade": True})
+        for k in range(5):  # ônibus lado a lado, um atravessado no fundo
+            veiculos.append({"m": "mundo:onibus", "p": p2(gx - 14.0 + k * 7.0, gz - 2.0 + R6.uniform(-1.0, 1.0)), "r": round(R6.uniform(-0.06, 0.06), 3)})
+        lugares["baus"].append(p2(gx + 17.0, gz - 9.5))
+        for k in range(6):
+            zumbis.append(p2(gx - 17.5 + k * 7.0, gz + R6.uniform(-6, 8)))
+    posto_c = acha6(22.0, 18.0, [(-200.0, 300.0), (250.0, 330.0), (-340.0, -60.0)])
+    if posto_c:
+        cx6, cz6 = posto_c
+        reserva(cx6, cz6, 22.0, 18.0)
+        area(ret(cx6 - 11, cz6 - 9, cx6 + 11, cz6 + 9), "terra")
+        props.append({"m": "mundo:torre_vigia", "p": p2(cx6 - 7.0, cz6 - 5.0), "r": 0.0})
+        props.append({"m": "mundo:guarita", "p": p2(cx6 + 7.0, cz6 - 5.0), "r": 0.0})
+        props.append({"m": "mundo:holofote", "p": p2(cx6 + 9.0, cz6 + 7.0), "r": math.pi})
+        for k in (-3, -2, -1, 1, 2, 3):
+            props.append({"m": "mundo:sacos_areia", "p": p2(cx6 + k * 3.0, cz6 + 8.0), "r": math.pi / 2})
+        lugares["baus"].append(p2(cx6, cz6 - 6.0))
+        for k in range(3):
+            quarentena["soldados"].append(p2(cx6 - 4.0 + k * 4.0, cz6 + R6.uniform(-1.0, 3.0)))
+    print("E6: pátio", patio, "| acampamento", acamp, "| garagem", garagem, "| posto dos Corvos", posto_c)
+    print("E3: casas incendiadas", incendio, "| entulho", bomba, "| fila na rodovia", fila, "| vala comum", vala)
+    print("casas prontas:", sum(1 for pp in predios if pp["modelo"].startswith("casa_p")))
+out = {"origem": "Floresta com a cidadezinha de South LA (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if FLORESTA else "South Los Angeles, CA (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if LA else "Galena, IL (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if GALENA else "Senoia, GA (OpenStreetMap, ODbL; tools/mapa/raven_creek.py CIDADE=senoia)" if SENOIA else "Raven Creek (tools/mapa/raven_creek.py)", "ruas": ruas, "predios": predios, "frestas": frestas, "bloqueios": bloqueios,
        "quarentena": quarentena, "lugares": lugares, "marcos": marcos, "muros": muros, "props": props, "areas": areas, "faixas": faixas, "postes": postes, "veiculos": veiculos,
-       "zumbis": zumbis, "longe": longe, "entrada": entrada,
+       "zumbis": zumbis, "longe": longe, "entrada": entrada, "raids_mata": RAIDS_F,
        "terreno": {"rio": {"p": rio, "larg": RIO_LARG, "fundo": 2.2, "agua": 1.5}, "morros": [MORRO]}}
 json.dump(out, open(sys.argv[1] if len(sys.argv) > 1 else "assets/mapa/cidade.json", "w"))
 cont = {}
