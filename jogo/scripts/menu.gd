@@ -27,6 +27,13 @@ func _ready() -> void:
 	capa.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	capa.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	raiz.add_child(capa)
+	var mus := AudioStreamPlayer.new()  # 13/11: música do menu ("Cold Silence", OpenGameArt CC0)
+	var ms: AudioStreamOggVorbis = (load("res://assets/musica/menu.ogg") as AudioStreamOggVorbis).duplicate()
+	ms.loop = true
+	mus.stream = ms
+	mus.volume_db = -12.0
+	add_child(mus)
+	mus.play()
 	var fundo := ColorRect.new()
 	fundo.color = Color(UiTema.FUNDO, 0.55)
 	fundo.set_anchors_preset(Control.PRESET_FULL_RECT)

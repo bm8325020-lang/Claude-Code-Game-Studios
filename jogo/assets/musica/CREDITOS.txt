@@ -1,0 +1,4 @@
+Músicas (OpenGameArt, CC0), convertidas para mono 48 kbps:
+menu.ogg  — "Cold Silence", eponasoft (opengameart.org/content/cold-silence)
+dia.ogg   — "Post Apocalyptic Wastelands", Juhani Junkala / SubspaceAudio (opengameart.org/content/horror-atmosphere)
+noite.ogg — "Ambient Horror Track 01", Cleyton Kauffman (opengameart.org/content/ambient-horror-track-01)

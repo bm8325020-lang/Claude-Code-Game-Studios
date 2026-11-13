@@ -114,6 +114,21 @@ if SENOIA:
     rio = [[-600.0, 2000.0], [600.0, 2000.0]]  # Senoia não tem riacho no quadrado: o rio fica fora do mapa
     MORRO = {"p": [2000, 2000], "raio": 10.0, "alt": 0.0}
     OSM = json.load(open("tools/mapa/osm/senoia.json"))["elements"]
+# GALENA (13/11, dono: "quero um mapa completamente diferente... ruas com posicionamentos melhores"): a planta passa a ser
+# Galena, Illinois (centro antigo de tijolo na Main Street em diagonal, o Galena River atravessando a cidade, igrejas nos
+# morros), do OpenStreetMap (tools/mapa/osm/galena.json, ODbL). Na história a cidade continua se chamando Senoia.
+GALENA = os.environ.get("CIDADE", "galena") == "galena"
+if GALENA:
+    OSM_LAT0, OSM_LON0 = 42.4160, -90.4295
+    OSM = json.load(open("tools/mapa/osm/galena.json"))["elements"]
+    RIO_LARG = 22.0
+    rio = []
+    for e in OSM:
+        if e.get("tags", {}).get("waterway") == "river":
+            rio = [[round((g["lon"] - OSM_LON0) * 111320 * math.cos(math.radians(OSM_LAT0)), 2), round(-(g["lat"] - OSM_LAT0) * 110540, 2)]
+                   for g in e["geometry"]]
+    rio = [q for q in rio if abs(q[0]) < LIM + 120 and abs(q[1]) < LIM + 120]
+    MORRO = {"p": [-390, -330], "raio": 90.0, "alt": 12.0}  # o morro (bluff) do noroeste, com mata
 
 
 def osm_xy(g):
@@ -146,6 +161,10 @@ def predios_osm():
         t = e.get("tags", {}).get("building")
         if not t or "geometry" not in e:
             continue
+        if e["tags"].get("amenity") == "place_of_worship":
+            t = "church"
+        if GALENA and no_morro(osm_xy(e["geometry"][0]), 4.0):
+            continue  # o morro é mata
         pts = [osm_xy(g) for g in e["geometry"]]
         cx, cz = sum(q[0] for q in pts) / len(pts), sum(q[1] for q in pts) / len(pts)
         if abs(cx) > LIM - 10 or abs(cz) > LIM - 10:
@@ -221,6 +240,10 @@ def no_morro(p, folga=0.0):
 
 
 def zona(x, z):
+    if GALENA:  # centro = a faixa da Main Street (diagonal, do sudoeste ao nordeste)
+        if no_morro((x, z), -4):
+            return "parque"
+        return "centro" if dist_seg((x, z), (-60.0, 180.0), (310.0, -155.0)) < 75 else "casas"
     if SENOIA:
         return "centro" if (-90 < x < 60 and 110 < z < 340) else "casas"
     if no_morro((x, z), -4):
@@ -234,6 +257,8 @@ def zona(x, z):
 
 # ---------------- ruas (grade americana) ----------------
 ruas_osm()
+if GALENA:  # ponte inventada: o OSM não tem rua cruzando o rio dentro do quadrado (o leste ficava ilhado)
+    rua([(184.0, 105.0), (262.0, 190.0), (338.0, 279.0)], "tertiary", False)
 
 
 # ---------------- lugares marcados (reservam o chão) ----------------
@@ -336,6 +361,10 @@ def desloc(modelo):
 ENTRADA = (480.0, 88.0)
 ENTRADA_DIR = (-0.9967, -0.0812)   # para dentro da cidade (a estrada do leste é quase reta)
 RURAL = 175.0
+if GALENA:  # chega pela South Main Street, que entra pela borda sul
+    ENTRADA = (-122.0, 480.0)
+    ENTRADA_DIR = (0.2, -0.98)
+    RURAL = 60.0
 
 
 def livre(cx, cz, ang, w, d):
@@ -676,7 +705,7 @@ for pp in predios:
             pp["c"] = [round(sum(v[0] for v in q) / len(q), 2), round(sum(v[1] for v in q) / len(q), 2)]
 # ---------------- 07/11 (E3, regra 1): estrutura nova da cidade (sorteio próprio: o resto da cidade não muda) ----------------
 RE = random.Random(3107)
-CENTRO_C = (-15.0, 225.0)
+CENTRO_C = (120.0, 10.0) if GALENA else (-15.0, 225.0)
 # 1) bairro incendiado: o aglomerado de casas mais longe do centro e da entrada pega fogo (mesmo tamanho -> versão queimada)
 QUEIMA = {"casa_us_1": "casa_us_q1", "casa_us_2": "casa_us_q1", "casa_us_5": "casa_us_q1", "casa_us_3": "casa_us_q2",
           "casa_us_4": "casa_us_q2", "casa_us_6": "casa_us_q2"}  # a queimada cabe no lote da original (mesma origem)
@@ -756,7 +785,7 @@ while x < LIM - 4.0:
         continue
     m, w = ("mundo:conteiner", 13.2) if nq % 3 != 2 else ("mundo:conteiner_azul", 6.9)
     novo = (x + w / 2, QZ, 0.0, w, 2.6)
-    if not any(sobrepoe(novo, o, 0.0) for o in ocupado if math.dist(o[:2], novo[:2]) < 30) and abs(x + w - portao_x) > 6.5:
+    if not perto_rio((x + w / 2, QZ), 3.0) and not any(sobrepoe(novo, o, 0.0) for o in ocupado if math.dist(o[:2], novo[:2]) < 30) and abs(x + w - portao_x) > 6.5:
         props.append({"m": m, "p": [round(x + w / 2, 2), QZ], "r": 0.0})
         reserva(x + w / 2, QZ, w, 2.6)
         nq += 1
@@ -912,7 +941,7 @@ if posto_c:
 print("E6: pátio", patio, "| acampamento", acamp, "| garagem", garagem, "| posto dos Corvos", posto_c)
 print("E3: casas incendiadas", incendio, "| entulho", bomba, "| fila na rodovia", fila, "| vala comum", vala)
 print("casas prontas:", sum(1 for pp in predios if pp["modelo"].startswith("casa_p")))
-out = {"origem": "Senoia, GA (OpenStreetMap, ODbL; tools/mapa/raven_creek.py CIDADE=senoia)" if SENOIA else "Raven Creek (tools/mapa/raven_creek.py)", "ruas": ruas, "predios": predios, "frestas": frestas, "bloqueios": bloqueios,
+out = {"origem": "Galena, IL (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if GALENA else "Senoia, GA (OpenStreetMap, ODbL; tools/mapa/raven_creek.py CIDADE=senoia)" if SENOIA else "Raven Creek (tools/mapa/raven_creek.py)", "ruas": ruas, "predios": predios, "frestas": frestas, "bloqueios": bloqueios,
        "quarentena": quarentena, "lugares": lugares, "marcos": marcos, "muros": muros, "props": props, "areas": areas, "faixas": faixas, "postes": postes, "veiculos": veiculos,
        "zumbis": zumbis, "longe": longe, "entrada": entrada,
        "terreno": {"rio": {"p": rio, "larg": RIO_LARG, "fundo": 2.2, "agua": 1.5}, "morros": [MORRO]}}

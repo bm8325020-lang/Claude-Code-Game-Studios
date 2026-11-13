@@ -30,6 +30,7 @@ var _eco: int = -1
 var _rng := RandomNumberGenerator.new()
 var _radio: AudioStreamPlayer3D
 var _radio_t: float = 0.0
+var _trovejou: bool = false
 
 
 func _ready() -> void:
@@ -43,6 +44,9 @@ func _ready() -> void:
 	_pingos = _toca_sempre("pingos", -80.0)
 	_agua = _toca_sempre("agua", -80.0)
 	_coracao = _toca_sempre("coracao", -80.0)
+	# 13/11 (dono: "músicas de fundo"): trilha de dia e de noite (OpenGameArt CC0), trocando devagar com o ciclo
+	_mus_dia = _musica("dia")
+	_mus_noite = _musica("noite")
 	_passo = AudioStreamPlayer.new()
 	add_child(_passo)
 	# eco: reverb no bus principal, ligado só dentro das casas
@@ -83,10 +87,42 @@ func _toca_sempre(nome: String, db: float) -> AudioStreamPlayer:
 	return p
 
 
+var _mus_dia: AudioStreamPlayer
+var _mus_noite: AudioStreamPlayer
+const MUSICA_DB: float = -17.0
+
+
+func _musica(nome: String) -> AudioStreamPlayer:
+	var p := AudioStreamPlayer.new()
+	var s: AudioStreamOggVorbis = (load("res://assets/musica/%s.ogg" % nome) as AudioStreamOggVorbis).duplicate()
+	s.loop = true
+	p.stream = s
+	p.volume_db = -80.0
+	add_child(p)
+	p.play()
+	return p
+
+
 func _process(dt: float) -> void:
 	var j: Jogador = principal.jogador if principal else null
 	var ciclo: Ciclo = principal.ciclo if principal else null
 	var noite: float = ciclo.noite() if ciclo else 0.0
+	_suave(_mus_dia, MUSICA_DB if noite < 0.5 else -80.0, dt * 0.15)
+	_suave(_mus_noite, MUSICA_DB + 2.0 if noite >= 0.5 else -80.0, dt * 0.15)
+	if ciclo and ciclo.get_node_or_null("Clima"):
+		var cl: Node = ciclo.get_node("Clima")
+		if cl.flash > 0.95 and not _trovejou:  # relâmpago: o trovão chega um pouco depois
+			_trovejou = true
+			get_tree().create_timer(_rng.randf_range(0.6, 2.0)).timeout.connect(func() -> void:
+				var t := AudioStreamPlayer.new()
+				t.stream = som("trovao")
+				t.volume_db = -4.0
+				t.pitch_scale = _rng.randf_range(0.8, 1.05)
+				add_child(t)
+				t.finished.connect(t.queue_free)
+				t.play())
+		elif cl.flash < 0.5:
+			_trovejou = false
 	_vento.volume_db = lerpf(-15.0, -9.0, noite)
 	if j == null or not is_instance_valid(j) or not j.is_inside_tree():
 		return
@@ -165,10 +201,16 @@ func _sustos(j: Jogador, dt: float, noite: float) -> void:
 		nome = "gemido_%d" % _rng.randi_range(0, 5)
 	elif r < 0.7 + noite * 0.08:  # 06/11 terror: grito de gente ao longe (mais de noite)
 		nome = "grito"
-	elif r < 0.82:
+	elif r < 0.76:
 		nome = "porta_bate"
-	elif r < 0.88:
+	elif r < 0.8:
 		nome = "explosao_longe"
+	elif r < 0.85:  # 13/11: cachorro latindo, vidro quebrando e metal batendo ao longe
+		nome = "cachorro"
+	elif r < 0.9:
+		nome = "vidro"
+	elif r < 0.94:
+		nome = "metal"
 	else:
 		nome = ""  # tiro distante
 	if nome == "":
