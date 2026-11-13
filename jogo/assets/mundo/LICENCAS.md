@@ -60,3 +60,13 @@ Cada modelo: arquivo | nome original | autor | licença | origem | tamanho | fac
 13/11 natureza (assets/mundo/vegetation/natureza): Quaternius, "Ultimate Nature Pack" e "Ultimate Food Pack" (OpenGameArt, CC0), convertidos por tools/assets/natureza.py.
 
 13/11 bichos (assets/bichos): Quaternius CC0 (OpenGameArt): lobo (Animal Pack Vol.2), raposa (Animals Pack), javali = porco (Farm Animals); tools/assets/bichos.py.
+| brutos/vegetation/trees/stylised_redwood_trees_pack_with_lod_groups.glb | Stylised Redwood Trees Pack (with LOD groups) | Parelaxel | CC Attribution | https://sketchfab.com/3d-models/stylised-redwood-trees-pack-with-lod-groups-80dec2fffb174051a5a88a404b760895 | 2.9 MB | 22052 | sim | obrigatória |
+| brutos/vegetation/trees/stylized_pine.glb | Stylized Pine | BiscuitEater | CC Attribution | https://sketchfab.com/3d-models/stylized-pine-8a654cc7f8394416b8148f3de488453e | 2.7 MB | 3494 | sim | obrigatória |
+| brutos/vegetation/trees/small_stylised_bush.glb | Small Stylised Bush | Parelaxel | CC Attribution | https://sketchfab.com/3d-models/small-stylised-bush-a83fd7049a784ca6bc0095e7323451d0 | 0.2 MB | 976 | sim | obrigatória |
+| brutos/bichos/stylized_wolf.glb | Stylized Wolf | ESO | CC Attribution | https://sketchfab.com/3d-models/stylized-wolf-2b369cacbd3a4d19b39353f6cf60b8a9 | 1.6 MB | 7928 | sim | obrigatória |
+| brutos/bichos/elk_animated_stylized.glb | Elk Animated Stylized | WildMesh 3D | CC Attribution | https://sketchfab.com/3d-models/elk-animated-stylized-26e54fa5c1d74edba61f5c5a97c95798 | 6.4 MB | 7886 | sim | obrigatória |
+| brutos/bichos/realistic_animated_bear_3d_model.glb | Realistic Animated Bear 3D Model | WildMesh 3D | CC Attribution | https://sketchfab.com/3d-models/realistic-animated-bear-3d-model-bffc3c87d2d148ff8533e1cc8a11c9f1 | 14.0 MB | 7508 | sim | obrigatória |
+| brutos/bichos/stilized_wolf.glb | Stilized Wolf | Andrés Gómez | CC Attribution | https://sketchfab.com/3d-models/stilized-wolf-5f5f61a33c09477dba1b85b6a73e7b73 | 3.0 MB | 13622 | sim | obrigatória |
+| brutos/bichos/wolf_animated.glb | wolf animated | Paleo Modelist | CC Attribution | https://sketchfab.com/3d-models/wolf-animated-79bd16a8c36a45c78ccd13b84b7ca99c | 2.2 MB | 3884 | sim | obrigatória |
+
+13/11 modelos prontos (Sketchfab CC BY): sequoias "Stylised Redwood Trees Pack" e "Small Stylised Bush" (parelaxel), "Stylized Pine" (div.andromeda), lobo "Stylized Wolf" (ESOOOO), alce "Elk Animated Stylized" e urso "Realistic Animated Bear" (WildMesh_3D). Árvores: tools/assets/natureza2.py; bichos em assets/bichos.

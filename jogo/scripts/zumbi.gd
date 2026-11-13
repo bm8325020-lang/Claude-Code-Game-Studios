@@ -417,8 +417,8 @@ func _ready() -> void:
 			_suja(-1, Color(0.22, 0.22, 0.25))  # roupa preta dos Corvos, sem cabeça torta nem sujeira
 			Anims.poe_mochila(modelo)
 			var nome := Label3D.new()
-			nome.text = "ALIADO" if dono_peer != 0 else "CORVO"
-			nome.modulate = Color(0.35, 0.9, 0.45) if dono_peer != 0 else Color(0.8, 0.15, 0.1)
+			nome.text = _rotulo()
+			nome.modulate = _cor_rotulo()
 			nome.font_size = 40
 			nome.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 			nome.position.y = 2.15
@@ -551,8 +551,21 @@ func _marca_aliado(peer: int) -> void:
 	else:
 		remove_from_group("aliados")
 	if _fala_lbl:
-		_fala_lbl.text = "ALIADO" if peer != 0 else "CORVO"
-		_fala_lbl.modulate = Color(0.35, 0.9, 0.45) if peer != 0 else Color(0.8, 0.15, 0.1)
+		_fala_lbl.text = _rotulo()
+		_fala_lbl.modulate = _cor_rotulo()
+
+
+## 13/11 (dono: "não vai ser corvos mais, agora vão ser sobreviventes"): gente viva na floresta. SOBREVIVENTE (amigável:
+## não te ataca, atira nos zumbis perto do acampamento, dá para chamar para o grupo) ou SAQUEADOR (hostil, o antigo Corvo).
+var amigavel: bool = false
+
+
+func _rotulo() -> String:
+	return "ALIADO" if dono_peer != 0 else ("SOBREVIVENTE" if amigavel else "SAQUEADOR")
+
+
+func _cor_rotulo() -> Color:
+	return Color(0.35, 0.9, 0.45) if dono_peer != 0 else (Color(0.95, 0.85, 0.4) if amigavel else Color(0.8, 0.15, 0.1))
 
 
 func _ve_zumbi(z: Zumbi) -> bool:
@@ -1117,7 +1130,7 @@ func _vira_para(d: Vector3, dt: float) -> void:
 
 # o jogador vivo mais perto que dá para ver (ou que está bem perto)
 func _escolhe_alvo() -> void:
-	if dono != null:
+	if dono != null or amigavel:
 		alvo = null  # aliado nunca caça jogador
 		return
 	if humano() and alvo and is_instance_valid(alvo) and alvo.tem_tregua():
@@ -1548,6 +1561,11 @@ func resultado_mordida(escapou: bool) -> void:
 func levar_golpe(dano: int, dir: Vector3, quem: Node) -> void:
 	if vida <= 0 or (dono_peer != 0 and quem is Jogador):  # bala do jogador não fere aliado
 		return
+	if amigavel and quem is Jogador:  # atirou num sobrevivente: ele vira inimigo
+		amigavel = false
+		if _fala_lbl:
+			_fala_lbl.text = _rotulo()
+			_fala_lbl.modulate = _cor_rotulo()
 	if humano() and quem is Jogador and (quem as Jogador).tem_tregua():
 		(quem as Jogador).tregua_dia = -1  # bateu num Corvo: acabou a trégua
 		(quem as Jogador).item_pego.emit("tregua_quebrada", 0)

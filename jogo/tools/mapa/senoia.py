@@ -348,10 +348,10 @@ if LA and not FLORESTA:  # 13/11: palmeiras na rua e no quintal (LA); umas morta
     VEG["casas"] = [("palmeira_alta", 5), ("palmeira", 3), ("arvore", 2)]
     VEG["centro"] = [("palmeira_alta", 5), ("palmeira", 2)]
 VEG["mata"] = [("arvore", 5), ("outono_1", 3), ("outono_2", 3), ("outono_3", 3), ("betula", 3), ("pinheiro", 1)]
-if FLORESTA:  # 13/11: árvores e plantas da Quaternius (low poly, mesmo estilo em tudo)
-    VEG["parque"] = [("pinheiro_q1", 5), ("pinheiro_q2", 4), ("pinheiro_q3", 4), ("betula_q1", 1)]
-    VEG["mata"] = [("comum_q1", 4), ("comum_q2", 4), ("comum_q3", 3), ("betula_q1", 3), ("betula_q2", 2), ("outono_q1", 2), ("outono_q2", 2), ("pinheiro_q1", 1)]
-    VEG["casas"] = [("comum_q1", 3), ("betula_q1", 2), ("pinheiro_q2", 1)]
+if FLORESTA:  # 13/11 (dono: "modelos prontos de verdade"): sequoias e pinheiro pintados à mão (Sketchfab CC BY)
+    VEG["parque"] = [("sequoia_g1", 2), ("sequoia_g2", 2), ("sequoia_g3", 2), ("sequoia_m1", 3), ("sequoia_m2", 3), ("sequoia_m3", 3), ("pinho_e", 4)]
+    VEG["mata"] = [("sequoia_m1", 3), ("sequoia_m2", 3), ("sequoia_m3", 3), ("sequoia_g1", 1), ("pinho_e", 5)]
+    VEG["casas"] = [("pinho_e", 3), ("sequoia_m1", 1)]
 SUB = {  # perto do pé da árvore
     "parque": ["pinheirinho", "abeto_baixo", "arbusto", "arbusto_2", "pedras", "pedras_2", "samambaia",
                "samambaia_baixa", "capim_alto"],
@@ -359,8 +359,8 @@ SUB = {  # perto do pé da árvore
     "mata": ["samambaia", "samambaia_baixa", "arbusto", "arbusto_2", "moita", "capim_alto", "pedras"],
 }
 if FLORESTA:
-    SUB = {"parque": ["arbusto_q1", "arbusto_q2", "planta_q1", "pedra_q3", "frutinha_q"], "mata": ["arbusto_q1", "arbusto_q2", "planta_q1", "planta_q2", "flores_q", "frutinha_q", "pedra_q3"],
-           "casas": ["arbusto_q1", "flores_q"], "centro": ["arbusto_q2"], "industrial": ["pedra_q3"]}
+    SUB = {"parque": ["moita_e", "moita_e", "planta_q1", "pedra_q3", "frutinha_q"], "mata": ["moita_e", "moita_e", "planta_q1", "planta_q2", "flores_q", "frutinha_q", "pedra_q3"],
+           "casas": ["moita_e", "flores_q"], "centro": ["moita_e"], "industrial": ["pedra_q3"]}
 _SUB_RESTO = {  # (sobra da lista velha; não usado)
     "centro": ["moita", "capim_seco"],
     "industrial": ["capim_seco", "capim_seco", "moita", "pedras_2"],
@@ -807,7 +807,8 @@ for pp in predios:
             pp["c"] = [round(sum(v[0] for v in q) / len(q), 2), round(sum(v[1] for v in q) / len(q), 2)]
 # ---------------- 13/11 FLORESTA: estradas de terra, lugares de raid e a mata ----------------
 lugares = {"baus": [], "subidas": []}
-quarentena = {"portao": [9999.0, 9999.0], "vao": 0.0, "baus": [], "soldados": []}
+quarentena = {"baus": [], "soldados": []}  # floresta: sem muro de quarentena; "soldados" = saqueadores
+AMIGOS = []  # 13/11: sobreviventes amigáveis
 RF = random.Random(1311)
 RAIDS_F = []
 if FLORESTA:
@@ -818,6 +819,7 @@ if FLORESTA:
         return [round(x, 2), round(z, 2)]
     # estradas: da cidadezinha ao meio da mata e de lá para cada lugar (curvas suaves)
     rua([(-488.0, OFF[1]), (OFF[0] + CORTE + 5, OFF[1])], "trilha", False)  # a estrada de terra que corta a vila
+    AMIGOS.extend([p2(OFF[0] - 10.0, OFF[1] + 4.0), p2(OFF[0] + 6.0, OFF[1] - 4.0), p2(OFF[0] + 30.0, OFF[1] + 3.0)])  # gente na vila
     # vila de cabanas dos dois lados da estrada, o armazém e a casa do xerife (lugares de loot)
     VK = ["casa_us_3", "casa_us_10", "casa_us_6", "casa_us_3", "casa_us_1", "casa_us_10"]
     for k, x in enumerate(range(int(OFF[0] - 115), int(OFF[0] + 120), 33)):
@@ -878,6 +880,8 @@ if FLORESTA:
     for k in range(6):
         zumbis.append(p2(c[0] + RF.uniform(-14, 14), c[1] + RF.uniform(-12, 12)))
     RAIDS_F.append(["POSTO FLORESTAL", p2(*c)])
+    for k in range(3):  # o posto florestal foi tomado por saqueadores
+        quarentena["soldados"].append(p2(c[0] + RF.uniform(-8, 8), c[1] + RF.uniform(-6, 6)))
     # 5) serraria: galpão, toras (entulho), caminhões velhos
     c = (245.0, 395.0)
     clareira(c, 48.0, 36.0)
@@ -912,6 +916,8 @@ if FLORESTA:
             zumbis.append(p2(c[0] + RF.uniform(-9, 9), c[1] + RF.uniform(6, 10)))
     def acampamento(c):
         clareira(c, 16.0, 14.0)
+        if len(AMIGOS) < 8:  # os primeiros acampamentos ainda têm gente viva (amigável)
+            AMIGOS.extend([p2(c[0] + 2.0, c[1] + 1.0), p2(c[0] - 2.0, c[1] - 4.0)])
         props.append({"m": "mundo:tenda", "p": p2(c[0], c[1] - 2.0), "r": round(RF.uniform(0, 6.28), 3)})
         props.append({"m": "mundo:saco_corpo", "p": p2(c[0] + 4.0, c[1] + 4.0), "r": round(RF.uniform(0, 6.28), 3)})
         lugares["baus"].append(p2(c[0] - 4.0, c[1] + 3.0))
@@ -928,15 +934,15 @@ if FLORESTA:
     print("FLORESTA: cabanas", n_cab, "| acampamentos", n_acamp, "| plataformas", n_plat)
     # a mata: uma árvore a cada ~9 m (com sobra de mato no pé), fora da cidade, das estradas, do rio e das clareiras
     arv = 0
-    for gx in range(-484, 485, 5):  # 13/11 (dono: "floresta densa, fechada"): uma árvore a cada ~5 m
-        for gz in range(-484, 485, 5):
-            q = (gx + RF.uniform(-2.2, 2.2), gz + RF.uniform(-2.2, 2.2))
+    for gx in range(-484, 485, 7):  # 13/11: densa, mas as sequoias têm tronco de 2 m: uma a cada ~7 m
+        for gz in range(-484, 485, 7):
+            q = (gx + RF.uniform(-2.8, 2.8), gz + RF.uniform(-2.8, 2.8))
             if zona(*q) not in ("parque", "mata") or perto_rua(q, 4.0) or perto_rio(q, 1.5):
                 continue
             if any(abs(q[0] - o[0]) < o[3] / 2 + 2 and abs(q[1] - o[1]) < o[4] / 2 + 2 for o in ocupado if math.dist(q, o[:2]) < 60):
                 continue
             if perto_rio(q, 9.0):  # salgueiro na beira da água
-                props.append({"m": "veg:salgueiro_q1", "p": p2(*q), "r": round(RF.uniform(0, 6.28), 3)})
+                props.append({"m": "veg:pinho_e", "p": p2(*q), "r": round(RF.uniform(0, 6.28), 3)})
             else:
                 prop("arvore_mata", q[0], q[1], RF.uniform(0, 6.28))
             arv += 1
@@ -1195,7 +1201,7 @@ if not FLORESTA:
     print("casas prontas:", sum(1 for pp in predios if pp["modelo"].startswith("casa_p")))
 out = {"origem": "Floresta com a cidadezinha de South LA (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if FLORESTA else "South Los Angeles, CA (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if LA else "Galena, IL (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if GALENA else "Senoia, GA (OpenStreetMap, ODbL; tools/mapa/raven_creek.py CIDADE=senoia)" if SENOIA else "Raven Creek (tools/mapa/raven_creek.py)", "ruas": ruas, "predios": predios, "frestas": frestas, "bloqueios": bloqueios,
        "quarentena": quarentena, "lugares": lugares, "marcos": marcos, "muros": muros, "props": props, "areas": areas, "faixas": faixas, "postes": postes, "veiculos": veiculos,
-       "zumbis": zumbis, "longe": longe, "entrada": entrada, "raids_mata": RAIDS_F,
+       "zumbis": zumbis, "longe": longe, "entrada": entrada, "raids_mata": RAIDS_F, "amigos": AMIGOS,
        "terreno": {"rio": {"p": rio, "larg": RIO_LARG, "fundo": 2.2, "agua": 1.5}, "morros": MORROS, "rios": [{"p": [[round(a, 2), round(b, 2)] for a, b in pts], "larg": lg, "fundo": 1.6} for pts, lg in RIOS],
                    "lagos": [{"p": list(c), "raio": r, "fundo": 2.4} for c, r in LAGOS]}}
 json.dump(out, open(sys.argv[1] if len(sys.argv) > 1 else "assets/mapa/cidade.json", "w"))

@@ -30,6 +30,13 @@ Espera de rede em teste = tempo real (`OS.delay_msec(16)`); `process_frame` cheg
 Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 
 ## Arquivos (scripts/)
+- MODELOS PRONTOS + SOBREVIVENTES (13/11): árvores pintadas Sketchfab CC BY (sequoias g/m, pinho_e, moita_e;
+  `tools/assets/natureza2.py`; Vegetacao.PINTADAS não ficam lisas). Bichos Sketchfab: lobo_e (só Idle, galope no código),
+  cervo (alce WildMesh, foge), urso (WildMesh, raro); `Bicho.ANIMS`/"escala"/"parado"; meta "sem_estilo" (Estilo pula).
+  Corvos -> `Zumbi.amigavel` (SOBREVIVENTE amarelo: não ataca, atira em zumbi, chama para o grupo sem trégua via
+  `corvo_perto`) ou SAQUEADOR (hostil; posto florestal). Planta: "amigos" (vila + acampamentos), "raids_mata" no Bairro.
+  Rádio (Tarefas, sem história): tocar abre `_menu_radio` (oi/loot/perigo/ajuda/repetir -> `_pergunta`, marca no mapa),
+  bots chamam sozinhos (`_bots_chamam`). Fotos: foto_bichos.gd, RADIO=1 foto_3p.gd.
 - MEGA ATUALIZAÇÃO (13/11): bichos `bicho.gd` (Bicho: lobo em bando/caça, javali investe, raposa foge; camada 8 +
   "golpeavel"; morto larga carne_crua; dorme a > LONGE_DORME) e `fauna.gd` (Fauna, filho do main: até 5/8 bichos a
   45-75 m, lobo só depois de LOBO_DEPOIS; não roda em teste sem meta "no_teste"). Modelos Quaternius CC0 em

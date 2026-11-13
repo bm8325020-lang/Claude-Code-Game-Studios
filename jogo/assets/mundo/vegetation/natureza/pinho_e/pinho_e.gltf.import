@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bwtx8sggj473w"
-path="res://.godot/imported/javali.glb-36d9733c33a62c3476cfb7a7be7d3c79.scn"
+uid="uid://kc05qt6s4sdi"
+path="res://.godot/imported/pinho_e.gltf-14ebcd7d6c3742a687d9401096433361.scn"
 
 [deps]
 
-source_file="res://assets/bichos/javali.glb"
-dest_files=["res://.godot/imported/javali.glb-36d9733c33a62c3476cfb7a7be7d3c79.scn"]
+source_file="res://assets/mundo/vegetation/natureza/pinho_e/pinho_e.gltf"
+dest_files=["res://.godot/imported/pinho_e.gltf-14ebcd7d6c3742a687d9401096433361.scn"]
 
 [params]
 

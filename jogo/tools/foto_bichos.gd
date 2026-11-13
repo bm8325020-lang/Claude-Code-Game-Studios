@@ -1,4 +1,4 @@
-# Foto dos bichos da floresta (lobo, javali, raposa) perto do jogador, numa trilha (13/11).
+# Foto dos bichos da floresta (lobo, urso, cervo) perto do jogador, numa trilha (13/11).
 #   xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 -s res://tools/foto_bichos.gd -- saida.png
 extends SceneTree
 
@@ -21,9 +21,9 @@ func _init() -> void:
 	cam.look_at(p + Vector3(0, 0.5, 0))
 	for k in 3:
 		var b := Bicho.new()
-		b.tipo = ["lobo", "javali", "raposa"][k]
+		b.tipo = ["lobo", "urso", "cervo"][k]
 		main.add_child(b)
-		b.global_position = p + Vector3(0.77, 0, 0.63) * ((k - 1) * 1.8) + Vector3(0, 0.1, 0)
+		b.global_position = p + Vector3(0.77, 0, 0.63) * ((k - 1) * 2.6) + Vector3(0, 0.1, 0)
 		b.set_physics_process(false)
 		b.modelo.rotation.y = 0.6
 	for i in 40: await process_frame

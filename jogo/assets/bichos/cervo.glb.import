@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://byke7dlgpqovq"
-path="res://.godot/imported/raposa.glb-fa060d8fc7a6d20795733f859a0c20af.scn"
+uid="uid://27lty8gjdp57"
+path="res://.godot/imported/cervo.glb-a360b9f608ac983f4b84040649a526f5.scn"
 
 [deps]
 
-source_file="res://assets/bichos/raposa.glb"
-dest_files=["res://.godot/imported/raposa.glb-fa060d8fc7a6d20795733f859a0c20af.scn"]
+source_file="res://assets/bichos/cervo.glb"
+dest_files=["res://.godot/imported/cervo.glb-a360b9f608ac983f4b84040649a526f5.scn"]
 
 [params]
 

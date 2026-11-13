@@ -314,8 +314,12 @@ func _ready() -> void:
 	_radio.position = Vector2(12, 300)
 	_radio.gui_input.connect(func(e: InputEvent) -> void:
 		if (e is InputEventScreenTouch or e is InputEventMouseButton) and e.pressed:
-			repete())
+			if HISTORIA:
+				repete()
+			else:
+				_menu_radio.visible = not _menu_radio.visible)  # 13/11: sobrevivência: o rádio abre a conversa
 	add_child(_radio)
+	_monta_menu_radio()
 	_bip = AudioStreamPlayer.new()
 	_bip.stream = load("res://assets/sons/radio_bip.wav")
 	_bip.volume_db = -4.0
@@ -827,7 +831,130 @@ func novo_jogo_mais() -> void:
 		c.aviso("NOVO JOGO+ %d: SENOIA ESTÁ MAIS PERIGOSA" % ng, Color(1.0, 0.4, 0.3), 4.0)
 
 
+## 13/11 (dono: "o rádio vai ser pra conversar com outros sobreviventes, bots"): tocar no rádio abre perguntas; quem
+## responde é um dos sobreviventes da floresta (bots). Eles também chamam sozinhos de tempos em tempos (horda, lobo à noite).
+const BOTS: Array[String] = ["MARCOS · acampamento do rio", "JÚLIA · torre de vigia", "VELHO TOM · vila", "RITA · serraria velha"]
+const PAPO: Array[String] = [
+	"Ainda tô vivo, se é o que quer saber. A floresta é mais segura que a cidade... menos à noite.",
+	"Ouviu os lobos ontem? Eles andam em bando. Se ouvir uivo perto, sobe em alguma coisa.",
+	"Fogueira à noite esquenta e assa carne, mas a luz chama os mortos. Escolhe bem o lugar.",
+	"Tem saqueador no posto florestal. Gente armada. Não vai lá sozinho.",
+	"Água do rio mata a sede, mas já vi gente passar mal. Se tiver garrafa limpa, melhor.",
+	"Cervo é carne boa. Chega agachado pelo mato que ele demora a perceber.",
+	"Se achar outro sobrevivente amigo, chama pro grupo. Sozinho ninguém dura muito aqui.",
+]
+const RUMOS: Array[String] = ["norte", "nordeste", "leste", "sudeste", "sul", "sudoeste", "oeste", "noroeste"]
+var _menu_radio: VBoxContainer
+var _bots_t: float = 150.0
+
+
+func _monta_menu_radio() -> void:
+	_menu_radio = VBoxContainer.new()
+	_menu_radio.top_level = true
+	_menu_radio.position = Vector2(150, 230)
+	_menu_radio.visible = false
+	add_child(_menu_radio)
+	for par: Array in [["ALGUÉM NA ESCUTA?", "oi"], ["ONDE TEM COISA BOA?", "loot"], ["TEM PERIGO PERTO?", "perigo"],
+			["PRECISO DE AJUDA", "ajuda"], ["REPETIR", "repete"]]:
+		var b := UiTema.botao(String(par[0]))
+		b.custom_minimum_size = Vector2(280, 48)
+		b.add_theme_font_size_override("font_size", 18)
+		b.pressed.connect(func() -> void:
+			_menu_radio.visible = false
+			if par[1] == "repete":
+				repete()
+			else:
+				_pergunta(String(par[1])))
+		_menu_radio.add_child(b)
+
+
+func _rumo_de(d: Vector3) -> String:
+	var a: float = fposmod(atan2(d.x, -d.z), TAU)  # 0 = norte (-z), sentido horário
+	return RUMOS[int(roundf(a / (TAU / 8.0))) % 8]
+
+
+func _pergunta(k: String) -> void:
+	var principal := get_tree().get_first_node_in_group("principal")
+	if _j == null or principal == null:
+		return
+	var quem: String = BOTS[randi() % BOTS.size()]
+	var txt: String = ""
+	var p: Vector3 = _j.global_position
+	match k:
+		"oi":
+			txt = PAPO[randi() % PAPO.size()]
+		"loot":
+			var melhor: Array = []
+			var dm: float = INF
+			for r: Array in (principal.bairro.raids_mata if principal.bairro else []):
+				var q: Vector3 = Bairro.ORIGEM + Vector3(r[1][0], 0, r[1][1])
+				var d: float = Vector2(q.x - p.x, q.z - p.z).length()
+				if d > 50.0 and d < dm:
+					dm = d
+					melhor = [r[0], q]
+			if melhor.is_empty():
+				txt = "Você já tá em cima do melhor lugar que eu conheço. Revira tudo aí."
+			else:
+				_alvo = melhor[1]
+				Minimapa.destino = melhor[1]
+				txt = "Tem coisa boa no %s, uns %d metros pro %s. Marquei no seu mapa. Vai armado." % [String(melhor[0]).to_lower(), roundi(dm / 10.0) * 10, _rumo_de(melhor[1] - p)]
+		"perigo":
+			var zs: int = 0
+			for z: Node in get_tree().get_nodes_in_group("zumbis"):
+				var zz := z as Zumbi
+				if zz.vida > 0 and not zz.amigavel and zz.dono == null and zz.global_position.distance_to(p) < 60.0:
+					zs += 1
+			var feras: Array = []
+			for b: Node in get_tree().get_nodes_in_group("bichos"):
+				var bb := b as Bicho
+				if bb and not bb._morto and bb.tipo != "cervo" and bb.global_position.distance_to(p) < 90.0 and not bb.tipo in feras:
+					feras.append(bb.tipo)
+			var partes: Array = []
+			if zs > 0:
+				partes.append("uns %d mortos aí perto" % zs)
+			if "lobo" in feras:
+				partes.append("lobo rondando")
+			if "urso" in feras:
+				partes.append("um urso, e urso não perdoa")
+			if principal.horda and not principal.horda.ativas.is_empty():
+				partes.append("uma horda andando pela mata")
+			txt = ("Daqui da torre eu vejo " + ", ".join(partes) + ". Cuidado.") if not partes.is_empty() else "Tá tranquilo por aí, pelo menos por agora."
+		"ajuda":
+			var amigo: Node3D = null
+			var da: float = 400.0
+			for z: Node in get_tree().get_nodes_in_group("zumbis"):
+				var zz := z as Zumbi
+				if zz.vida > 0 and zz.amigavel and zz.dono == null and zz.global_position.distance_to(p) < da:
+					da = zz.global_position.distance_to(p)
+					amigo = zz
+			if amigo:
+				_alvo = amigo.global_position
+				Minimapa.destino = amigo.global_position
+				quem = "SOBREVIVENTE · acampamento"
+				txt = "Aqui! Tem gente nossa a uns %d metros pro %s. Marquei no mapa. Vem que a gente te ajuda." % [roundi(da / 10.0) * 10, _rumo_de(amigo.global_position - p)]
+			else:
+				txt = "Não tem ninguém nosso perto de você. Acende uma fogueira, se cura e aguenta firme."
+	legenda("RÁDIO · " + quem, txt, 8.0)
+
+
+## Bots chamando sozinhos (horda perto, lobo à noite, papo).
+func _bots_chamam(dt: float) -> void:
+	_bots_t -= dt
+	if _bots_t > 0.0 or _j == null:
+		return
+	_bots_t = randf_range(200.0, 360.0)
+	var principal := get_tree().get_first_node_in_group("principal")
+	if principal and principal.horda and not principal.horda.ativas.is_empty():
+		legenda("RÁDIO · " + BOTS[1], "Atenção, quem estiver na escuta: tem uma horda atravessando a mata. Sai da trilha e se esconde.", 8.0)
+	elif Ciclo.noite_de(get_tree()) > 0.5 and randf() < 0.5:
+		legenda("RÁDIO · " + BOTS[0], "Escureceu. Os lobos saem agora. Fica perto do fogo ou sobe numa torre.", 7.0)
+	else:
+		legenda("RÁDIO · " + BOTS[randi() % BOTS.size()], PAPO[randi() % PAPO.size()], 7.0)
+
+
 func _process(dt: float) -> void:
+	if not HISTORIA:
+		_bots_chamam(dt)
 	_t -= dt
 	if _legenda_t > 0.0:
 		_legenda_t -= dt

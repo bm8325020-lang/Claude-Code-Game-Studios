@@ -19,6 +19,9 @@ func _init() -> void:
 		var xz: PackedStringArray = args[1].split(",")
 		var l := Vector2(float(xz[0]), float(xz[1]))
 		j.global_position = Bairro.ORIGEM + Vector3(l.x, main.bairro.altura(l) + 0.5, l.y)
+	if OS.get_environment("RADIO") != "" and main.controles._tarefas._menu_radio:
+		main.controles._tarefas._menu_radio.visible = true  # foto com a conversa do rádio aberta
+		main.controles._tarefas._pergunta("loot")
 	var imgs: Array[Image] = []
 	for terceira: bool in [true, false]:
 		Config.v.terceira = terceira

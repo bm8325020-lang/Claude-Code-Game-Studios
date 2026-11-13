@@ -1918,11 +1918,12 @@ func meus_aliados() -> Array:
 
 
 func corvo_perto() -> Zumbi:
-	if vida <= 0 or carro != null or not tem_tregua():
+	if vida <= 0 or carro != null:
 		return null
 	for n: Node in get_tree().get_nodes_in_group("zumbis"):
 		var z := n as Zumbi
-		if z and z.vida > 0 and z.dono_peer == 0 and not z.lider and z.humano() and z.global_position.distance_to(global_position) < 3.5:
+		if z and z.vida > 0 and z.dono_peer == 0 and not z.lider and z.humano() and (z.amigavel or tem_tregua()) \
+				and z.global_position.distance_to(global_position) < 3.5:
 			return z
 	return null
 

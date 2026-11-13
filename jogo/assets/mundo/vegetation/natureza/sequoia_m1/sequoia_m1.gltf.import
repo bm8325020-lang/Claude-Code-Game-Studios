@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bhb65bjlejkoj"
-path="res://.godot/imported/lobo.glb-978c2288fa0bfdb6ef0f5e095dbf3301.scn"
+uid="uid://djey43p04ssuq"
+path="res://.godot/imported/sequoia_m1.gltf-b6ea41d94e7136e273b356e114fa3433.scn"
 
 [deps]
 
-source_file="res://assets/bichos/lobo.glb"
-dest_files=["res://.godot/imported/lobo.glb-978c2288fa0bfdb6ef0f5e095dbf3301.scn"]
+source_file="res://assets/mundo/vegetation/natureza/sequoia_m1/sequoia_m1.gltf"
+dest_files=["res://.godot/imported/sequoia_m1.gltf-b6ea41d94e7136e273b356e114fa3433.scn"]
 
 [params]
 

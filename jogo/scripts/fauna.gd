@@ -44,9 +44,9 @@ func _process(dt: float) -> void:
 		return
 	var j: Jogador = jogs[_rng.randi() % jogs.size()]
 	var r: float = _rng.randf()
-	var tipo: String = "raposa" if r < 0.35 else ("javali" if r < 0.6 else "lobo")
-	if tipo == "lobo" and _jogo < LOBO_DEPOIS:
-		tipo = "raposa"
+	var tipo: String = "cervo" if r < 0.45 else ("urso" if r < 0.55 else "lobo")  # urso é raro
+	if tipo != "cervo" and _jogo < LOBO_DEPOIS:
+		tipo = "cervo"
 	var p: Vector3 = _ponto(j.global_position)
 	if not p.is_finite():
 		return

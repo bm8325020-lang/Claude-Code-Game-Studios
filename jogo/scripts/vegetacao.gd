@@ -48,6 +48,16 @@ const ESPECIES: Dictionary = {
 	"abeto_2": ["trees/floresta", "floresta_17", Color(0.85, 0.88, 0.82), 0.5, 0.15],
 	"abeto_3": ["trees/floresta", "floresta_18", Color(0.85, 0.88, 0.82), 0.4, 0.25],
 	"outono_3": ["trees/floresta", "floresta_19", Color(0.85, 0.82, 0.75), 0.5, 0.15],
+	# 13/11 (dono: "modelos prontos de verdade"): pintados à mão do Sketchfab (CC BY), tools/assets/natureza2.py; ficam
+	# com a textura (PINTADAS: o Estilo não deixa em cor lisa)
+	"sequoia_g1": ["natureza/sequoia_g1", "", Color(1, 1, 1), 0.15, 1.1],
+	"sequoia_g2": ["natureza/sequoia_g2", "", Color(1, 1, 1), 0.15, 1.1],
+	"sequoia_g3": ["natureza/sequoia_g3", "", Color(1, 1, 1), 0.15, 1.1],
+	"sequoia_m1": ["natureza/sequoia_m1", "", Color(1, 1, 1), 0.2, 0.8],
+	"sequoia_m2": ["natureza/sequoia_m2", "", Color(1, 1, 1), 0.2, 0.8],
+	"sequoia_m3": ["natureza/sequoia_m3", "", Color(1, 1, 1), 0.2, 0.8],
+	"pinho_e": ["natureza/pinho_e", "", Color(1, 1, 1), 0.35, 0.3],
+	"moita_e": ["natureza/moita_e", "", Color(1, 1, 1), 0.8, 0.0],
 	# 13/11 floresta: Quaternius (Ultimate Nature Pack, CC0) via tools/assets/natureza.py; a cor vem do próprio modelo
 	"pinheiro_q1": ["natureza/pinheiro_q1", "", Color(1.35, 1.35, 1.35), 0.35, 0.3],
 	"pinheiro_q2": ["natureza/pinheiro_q2", "", Color(1.35, 1.35, 1.35), 0.35, 0.3],
@@ -78,10 +88,11 @@ const ESPECIES: Dictionary = {
 	"samambaia_baixa": ["plants/samambaia_capim", "", Color(0.6, 0.62, 0.45), 0.8, 0.0],
 	"moita": ["plants/moita", "", Color(0.75, 0.72, 0.6), 0.8, 0.0],
 }
+const PINTADAS: Array[String] = ["sequoia_g1", "sequoia_g2", "sequoia_g3", "sequoia_m1", "sequoia_m2", "sequoia_m3", "pinho_e", "moita_e"]
 ## o que não precisa de sombra (baixo) e some mais perto
 const RASTEIRAS: Array[String] = ["capim", "capim_seco", "samambaia", "samambaia_baixa", "moita",
 	"capim_alto", "arbusto", "arbusto_2", "pedras", "pedras_2", "abeto_baixo", "pinheirinho",
-	"arbusto_q1", "arbusto_q2", "frutinha_q", "planta_q1", "planta_q2", "flores_q", "pedra_q3", "tronco_q"]
+	"moita_e", "arbusto_q1", "arbusto_q2", "frutinha_q", "planta_q1", "planta_q2", "flores_q", "pedra_q3", "tronco_q"]
 
 static var _cache: Dictionary = {}  # espécie -> [ [Mesh, Transform3D] ], Shape do tronco ou null
 
@@ -101,7 +112,7 @@ static func malhas(especie: String) -> Array:
 			var t: Transform3D = Planta._rel(mi, cena)
 			if e[1] != "":
 				t.origin = Vector3.ZERO  # o pacote vem com as plantas lado a lado
-			lista.append([_com_vento(mi.mesh, e[2], e[3]), t])
+			lista.append([_com_vento(mi.mesh, e[2], e[3], especie in PINTADAS), t])
 		cena.free()
 	var tronco: Shape3D = null
 	if not e.is_empty() and float(e[4]) > 0.0:
@@ -119,7 +130,7 @@ static func tronco(especie: String) -> Shape3D:
 	return _cache[especie][1]
 
 
-static func _com_vento(origem: Mesh, tinta: Color, balanco: float) -> Mesh:
+static func _com_vento(origem: Mesh, tinta: Color, balanco: float, pintada: bool = false) -> Mesh:
 	var mesh: Mesh = origem.duplicate()
 	var alt: float = maxf(origem.get_aabb().end.y, 0.5)
 	for s in mesh.get_surface_count():
@@ -134,7 +145,7 @@ static func _com_vento(origem: Mesh, tinta: Color, balanco: float) -> Mesh:
 			sm.set_shader_parameter("tex", b.albedo_texture)
 			sm.set_shader_parameter("tem_tex", b.albedo_texture != null)
 			sm.set_shader_parameter("cor_base", b.albedo_color)
-			if Estilo.LIGADO and b.albedo_texture:  # 13/11: folha e tronco em cor lisa (só o recorte da folha usa a textura)
+			if Estilo.LIGADO and b.albedo_texture and not pintada:  # 13/11: folha e tronco em cor lisa (só o recorte da folha usa a textura)
 				var mc: Color = Estilo.cor_de(b.albedo_texture)
 				if mc.v > 0.5:
 					mc *= 0.55  # tronco claro (casca quase branca na média) ficava branco no sol

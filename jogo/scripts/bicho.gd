@@ -1,15 +1,21 @@
 # Bichos da floresta (13/11, dono: "inimigos: zumbis, sobreviventes e a própria floresta... animais"): lobo (anda em
-# bando, cerca e morde; vê mais de noite), javali (investe em linha reta quando você chega perto) e raposa (foge; caça).
-# Modelos Quaternius CC0 (assets/bichos, tools/assets/bichos.py). Camada 8 + grupo "golpeavel": tiro e golpe acertam
+# bando, cerca e morde; vê mais de noite), urso (raro, aguenta muito tiro, ataca quem chega perto) e cervo (alce: foge;
+# é a caça). 13/11 (dono: "modelos prontos de verdade"): Sketchfab CC BY (lobo ESOOOO, alce e urso WildMesh_3D animados;
+# créditos em assets/mundo/LICENCAS.md). O lobo só tem animação parada: o galope é feito no código. Camada 8 + grupo "golpeavel": tiro e golpe acertam
 # como num zumbi. Morto larga carne crua (assa na fogueira).
 # shortcut: bichos só existem no anfitrião/solo (Fauna não sincroniza pela rede); para o jogo com amigos, sincronizar.
 class_name Bicho
 extends CharacterBody3D
 
 const TIPOS: Dictionary = {
-	"lobo": {"vida": 60, "andar": 1.6, "correr": 6.0, "dano": 9, "alcance": 1.7, "ve": 26.0, "altura": 0.95, "carne": 2, "jeito": "caca"},
-	"javali": {"vida": 95, "andar": 1.1, "correr": 7.5, "dano": 17, "alcance": 1.5, "ve": 12.0, "altura": 0.85, "carne": 3, "jeito": "investe"},
-	"raposa": {"vida": 25, "andar": 1.4, "correr": 6.8, "dano": 0, "alcance": 0.0, "ve": 15.0, "altura": 0.5, "carne": 1, "jeito": "foge"},
+	"lobo": {"arq": "lobo_e", "vida": 60, "andar": 1.6, "correr": 6.0, "dano": 9, "alcance": 1.7, "ve": 26.0, "altura": 0.95, "raio": 0.32, "carne": 2, "jeito": "caca"},
+	"urso": {"arq": "urso", "vida": 320, "andar": 1.3, "correr": 6.3, "dano": 26, "alcance": 2.3, "ve": 16.0, "altura": 1.5, "raio": 0.6, "carne": 6, "jeito": "caca", "escala": 1.0},
+	"cervo": {"arq": "cervo", "vida": 70, "andar": 1.4, "correr": 8.0, "dano": 0, "alcance": 0.0, "ve": 22.0, "altura": 2.3, "raio": 0.4, "carne": 4, "jeito": "foge", "escala": 1.15, "parado": "WalkSlow"},
+}
+## animações por estado (a primeira que existir no modelo; senão a que tiver o nome parecido)
+const ANIMS: Dictionary = {
+	"parado": ["Stand_Idle_01", "Food_Eating", "Idle", "IDLE"], "anda": ["Walk", "WalkSlow", "Trot"], "corre": ["Run", "Trot", "Walk"],
+	"ataca": ["Attack_StandAngry_01_High", "Attack_Run_01_AttackF", "Attack"], "morre": ["Death_Stand_R01", "Death"],
 }
 const GRAVIDADE: float = 18.0
 const ATAQUE_CADA: float = 1.3
@@ -42,28 +48,27 @@ func _ready() -> void:
 	add_to_group("bichos")
 	var cs := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
-	cap.radius = 0.32 if tipo != "raposa" else 0.2
-	cap.height = maxf(float(t.altura), cap.radius * 2.0 + 0.05)
+	cap.radius = float(t.raio)
+	cap.height = maxf(minf(float(t.altura), 1.6), cap.radius * 2.0 + 0.05)
 	cs.shape = cap
 	cs.position.y = cap.height * 0.5
 	add_child(cs)
-	modelo = (load("res://assets/bichos/%s.glb" % tipo) as PackedScene).instantiate()
+	modelo = (load("res://assets/bichos/%s.glb" % t.arq) as PackedScene).instantiate()
+	for g: Node in modelo.find_children("*", "GeometryInstance3D", true, false):
+		g.set_meta("sem_estilo", true)  # pelo pintado: o Estilo não deixa em cor lisa
+		if String(g.name).begins_with("Icosphere"):
+			g.free()  # esfera do fundo do Sketchfab (antes de medir a altura)
 	add_child(modelo)
 	var caixa := AABB()
 	for mi: MeshInstance3D in modelo.find_children("*", "MeshInstance3D", true, false):
 		var c: AABB = mi.global_transform * mi.get_aabb() if mi.is_inside_tree() else mi.get_aabb()
 		caixa = c if caixa.size == Vector3.ZERO else caixa.merge(c)
-	if caixa.size.y > 0.01:
+	if t.has("escala"):  # urso e alce já vêm em metros (a caixa da malha com esqueleto engana)
+		modelo.scale = Vector3.ONE * float(t.escala)
+	elif caixa.size.y > 0.01:
 		modelo.scale = Vector3.ONE * (float(t.altura) / caixa.size.y)
-	var pelo: Dictionary = {"javali": Color(0.28, 0.2, 0.14), "lobo": Color(0.42, 0.42, 0.45), "raposa": Color(0.85, 0.42, 0.16)}
-	if pelo.has(tipo):  # cor do pelo (o porco da fazenda vira javali escuro; lobo cinza; raposa laranja)
-		for mi: MeshInstance3D in modelo.find_children("*", "MeshInstance3D", true, false):
-			var m := StandardMaterial3D.new()
-			m.albedo_color = pelo[tipo]
-			m.roughness = 1.0
-			mi.material_override = m
 	_anim = modelo.find_children("*", "AnimationPlayer", true, false).front() if not modelo.find_children("*", "AnimationPlayer", true, false).is_empty() else null
-	_toca("Idle")
+	_toca("parado")
 	_som = AudioStreamPlayer3D.new()
 	_som.unit_size = 8.0
 	_som.max_distance = 60.0
@@ -71,19 +76,41 @@ func _ready() -> void:
 	_pensa_t = randf() * 0.5
 
 
-func _toca(qual: String) -> void:
+var _clipe: String = ""
+var _galope: float = 0.0
+var _ataca_t: float = 0.0
+
+
+func _toca(estado: String) -> void:
 	if _anim == null:
 		return
-	for n: String in _anim.get_animation_list():
-		if n.containsn(qual):
-			if _anim.current_animation != n:
-				_anim.play(n)
-				_anim.get_animation(n).loop_mode = Animation.LOOP_LINEAR
-			return
-	if not _anim.is_playing() and not _anim.get_animation_list().is_empty():  # raposa: só uma animação
-		var n0: String = _anim.get_animation_list()[0]
-		_anim.play(n0)
-		_anim.get_animation(n0).loop_mode = Animation.LOOP_LINEAR
+	var lista: PackedStringArray = _anim.get_animation_list()
+	var achou: String = ""
+	var quais: Array = ANIMS.get(estado, [estado])
+	if estado == "parado" and TIPOS[tipo].has("parado"):  # alce não tem animação parado em pé: anda bem devagar no lugar
+		quais = [TIPOS[tipo].parado]
+	for quer: String in quais:
+		for n: String in lista:
+			if n == quer or n.ends_with("|" + quer):
+				achou = n
+				break
+		if achou != "":
+			break
+	if achou == "":
+		for quer: String in quais:
+			for n: String in lista:
+				if n.containsn(quer):
+					achou = n
+					break
+			if achou != "":
+				break
+	if achou == "" and not lista.is_empty():
+		achou = lista[0]
+	if achou != "" and achou != _clipe:
+		_clipe = achou
+		_anim.play(achou, 0.2)
+		if estado != "morre":
+			_anim.get_animation(achou).loop_mode = Animation.LOOP_LINEAR
 
 
 func _mais_perto() -> Jogador:
@@ -159,11 +186,11 @@ func _physics_process(dt: float) -> void:
 			quer = d.normalized()
 			vel = float(t.correr)
 		if float(t.dano) > 0.0 and d.length() < float(t.alcance) and _ataque_t <= 0.0:
-			_ataque_t = ATAQUE_CADA * (1.6 if tipo == "javali" else 1.0)
-			_alvo.levar_dano(int(t.dano), d.normalized() * (0.9 if tipo == "javali" else 0.3))
+			_ataque_t = ATAQUE_CADA * (1.4 if tipo == "urso" else 1.0)
+			_alvo.levar_dano(int(t.dano), d.normalized() * (0.9 if tipo == "urso" else 0.3))
+			_ataca_t = 0.7
 			_rosna()
-			if tipo == "javali":
-				_investe_t = 0.0
+
 	elif _destino != Vector3.INF:
 		quer = _destino - global_position
 		quer.y = 0.0
@@ -183,9 +210,14 @@ func _physics_process(dt: float) -> void:
 		_desvio = randf_range(0.8, 1.4) * (1.0 if randf() < 0.5 else -1.0)  # bateu num tronco: contorna
 	else:
 		_desvio = move_toward(_desvio, 0.0, dt * 0.8)
-	_toca("Walk" if anda > 0.3 else "Idle")
+	_ataca_t -= dt
+	_toca("ataca" if _ataca_t > 0.0 else ("corre" if anda > 3.0 else ("anda" if anda > 0.3 else "parado")))
 	if _anim:
-		_anim.speed_scale = clampf(anda / maxf(float(t.andar), 0.5), 0.6, 3.0) if anda > 0.3 else 1.0
+		_anim.speed_scale = clampf(anda / (float(t.correr) * 0.8 if anda > 3.0 else maxf(float(t.andar), 0.5)), 0.7, 2.0) if anda > 0.3 else (0.15 if t.has("parado") else 1.0)
+	if tipo == "lobo":  # o modelo do lobo só tem animação parada: galope no código (sobe e desce, balança)
+		_galope += dt * anda * 2.2
+		modelo.position.y = absf(sin(_galope)) * 0.09 * minf(anda / 3.0, 1.0)
+		modelo.rotation.x = sin(_galope * 2.0) * 0.08 * minf(anda / 3.0, 1.0)
 
 
 func _uiva() -> void:
@@ -196,9 +228,9 @@ func _uiva() -> void:
 
 
 func _rosna() -> void:
-	if _som and not Rede.servidor_sem_tela and tipo != "raposa":
+	if _som and not Rede.servidor_sem_tela and tipo != "cervo":
 		_som.stream = load("res://assets/sons/amb/lobo_%d.ogg" % randi_range(1, 2)) if tipo == "lobo" else load("res://assets/sons/amb/rosnado_%d.ogg" % randi_range(1, 16))
-		_som.pitch_scale = randf_range(1.1, 1.3) if tipo == "lobo" else randf_range(0.5, 0.65)
+		_som.pitch_scale = randf_range(1.1, 1.3) if tipo == "lobo" else randf_range(0.45, 0.55)
 		_som.play()
 
 
@@ -223,10 +255,12 @@ func _morre() -> void:
 	_morto = true
 	remove_from_group("golpeavel")
 	collision_layer = 0
-	if _anim:
-		_anim.stop()
-	var tw := create_tween()
-	tw.tween_property(modelo, "rotation:z", PI * 0.5, 0.35)
+	_toca("morre")
+	if _clipe == "" or not _clipe.containsn("Death"):  # sem animação de morrer (lobo): tomba de lado
+		if _anim:
+			_anim.stop()
+		var tw := create_tween()
+		tw.tween_property(modelo, "rotation:z", PI * 0.5, 0.35)
 	var principal := get_tree().get_first_node_in_group("principal")
 	if principal and multiplayer.is_server():
 		principal.solta_item("carne_crua", int(TIPOS[tipo].carne), global_position + Vector3(0, 0.3, 0), 240.0)

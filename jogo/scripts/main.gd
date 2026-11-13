@@ -973,6 +973,8 @@ func _poe_zumbis() -> void:
 		var dz := {"pos": r.pos, "armado": r.armado, "de_raid": true}
 		if String(r.get("tipo", "")) != "":
 			dz.tipo = r.tipo
+		if r.get("amigo", false):
+			dz.amigo = true
 		spawner_zumbis.spawn(dz)
 	for p: Vector3 in PONTOS_ZUMBI:
 		spawner_zumbis.spawn({"pos": p})
@@ -995,6 +997,7 @@ func _cria_zumbi(dados: Dictionary) -> Node:
 	z.armado = bool(dados.get("armado", false))
 	z.de_raid = bool(dados.get("de_raid", false))
 	z.tipo_pedido = String(dados.get("tipo", ""))
+	z.amigavel = bool(dados.get("amigo", false))
 	z.horda = int(dados.get("horda", 0))
 	z.lider = bool(dados.get("lider", false))
 	return z

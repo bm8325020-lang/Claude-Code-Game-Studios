@@ -1,5 +1,5 @@
 # Bichos da floresta (13/11): lobo vê, persegue e morde; tiro/golpe machuca e mata; morto larga carne crua;
-# raposa foge de quem chega perto; Fauna solta bichos em volta (fora dos testes só com a meta "no_teste").
+# cervo foge de quem chega perto; Fauna solta bichos em volta (fora dos testes só com a meta "no_teste").
 #   godot --headless --path . --fixed-fps 60 -s res://tests/test_bicho.gd
 extends SceneTree
 
@@ -56,12 +56,12 @@ func _init() -> void:
 	await frames(5)
 	ok(lobo._morto and main.soltos.get_child_count() > itens0, "lobo morto larga carne crua")
 	var rap := Bicho.new()
-	rap.tipo = "raposa"
+	rap.tipo = "cervo"
 	main.add_child(rap)
 	rap.global_position = j.global_position + Vector3(6, 0.3, 0)
 	var d0: float = rap.global_position.distance_to(j.global_position)
 	await frames(120)
-	ok(rap.global_position.distance_to(j.global_position) > d0 + 3.0, "a raposa fugiu (%.1f -> %.1f m)" % [d0, rap.global_position.distance_to(j.global_position)])
+	ok(rap.global_position.distance_to(j.global_position) > d0 + 3.0, "o cervo fugiu (%.1f -> %.1f m)" % [d0, rap.global_position.distance_to(j.global_position)])
 	rap.queue_free()
 	var f: Fauna = main.get_node("Fauna")
 	f.set_meta("no_teste", true)

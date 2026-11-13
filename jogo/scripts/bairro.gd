@@ -43,6 +43,7 @@ var _n_frestas: int = 0
 ## terreno (31/10): altura do chão por metro (rio raso e morro); 0 no resto
 var _alturas: PackedFloat32Array
 var _lado_mapa: int = 0
+var raids_mata: Array = []  # 13/11: [nome, [x, z]] dos lugares de raid da floresta (o rádio indica)
 var _rio: Array = []  # [[a, b]] pedaços do rio
 const AGUA_Y: float = -0.9  # nível da água do rio (abaixo disso: dentro d'água)
 var _infos: Dictionary = {}  # ruína -> tamanho no chão
@@ -134,6 +135,9 @@ func _ready() -> void:
 		add_child(bq)
 	for q: Array in qt.get("soldados", []):  # dono 07/11: dentro tem gente tipo Os Corvos (saqueadores armados)
 		pontos_raid.append({"pos": ORIGEM + Vector3(q[0], altura(Vector2(q[0], q[1])) + 0.1, q[1]), "armado": true, "tipo": "corvo"})
+	for q: Array in dados.get("amigos", []):  # 13/11: sobreviventes amigáveis (vila e acampamentos da mata)
+		pontos_raid.append({"pos": ORIGEM + Vector3(q[0], altura(Vector2(q[0], q[1])) + 0.1, q[1]), "armado": true, "tipo": "corvo", "amigo": true})
+	raids_mata = dados.get("raids_mata", [])
 	if qt.has("portao"):
 		marcos_pos["quarentena"] = ORIGEM + Vector3(qt.portao[0], 0.0, qt.portao[1])
 		# portão do checkpoint (dono 07/11: "faça um portãozinho pra entrar"): 4 folhas de grade de metal no vão do muro;

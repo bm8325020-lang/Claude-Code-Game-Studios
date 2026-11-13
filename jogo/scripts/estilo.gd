@@ -103,13 +103,13 @@ static func converte(g: Node) -> void:
 
 ## main: chamado em todo nó que entra na árvore.
 static func entrou(n: Node) -> void:
-	if n is GeometryInstance3D:
+	if n is GeometryInstance3D and not n.has_meta("sem_estilo"):
 		fila.append(n)
 
 
 ## Tudo embaixo de `raiz` (o mundo pronto: pega o que ganhou malha ou material depois de entrar na árvore).
 static func tudo(raiz: Node) -> void:
-	fila.append_array(raiz.find_children("*", "GeometryInstance3D", true, false))
+	fila.append_array(raiz.find_children("*", "GeometryInstance3D", true, false).filter(func(n: Node) -> bool: return not n.has_meta("sem_estilo")))
 
 
 ## main._process: converte o que entrou desde o último quadro.

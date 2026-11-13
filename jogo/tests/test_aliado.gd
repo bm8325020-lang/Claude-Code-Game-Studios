@@ -39,6 +39,8 @@ func _init() -> void:
 	for z in main.zumbis.get_children():
 		z.free()
 	j.vida = 1000000
+	j.global_position = chao(Bairro.ORIGEM + Vector3(-60, 0, 170))  # na trilha da mata (fora dela as árvores tapam o tiro)
+	await frames(5)
 	var c: Zumbi = main.spawner_zumbis.spawn({"pos": chao(j.global_position + Vector3(2.5, 0, 0)), "armado": true, "tipo": "corvo"})
 	await frames(5)
 	ok(c.humano(), "nasceu um Corvo")
@@ -58,7 +60,7 @@ func _init() -> void:
 	c.levar_golpe(50, Vector3.FORWARD, j)
 	ok(c.vida == v0, "golpe do dono não fere o aliado")
 	# segue
-	j.global_position = chao(j.global_position + Vector3(0, 0, 14))
+	j.global_position = chao(j.global_position + Vector3(-5, 0, 13))  # segue a trilha
 	await frames(300)
 	ok(c.global_position.distance_to(j.global_position) < 6.5 and c.alvo == null, "seguiu o dono (%.1f m) e não o caça" % c.global_position.distance_to(j.global_position))
 	# zumbi à vista: atira, não troca soco
@@ -79,7 +81,7 @@ func _init() -> void:
 	# parado
 	j.ordena(Zumbi.Ordem.PARADO)
 	var posto: Vector3 = c.global_position
-	j.global_position = chao(j.global_position + Vector3(0, 0, -14))
+	j.global_position = chao(j.global_position + Vector3(5, 0, -13))
 	await frames(240)
 	ok(c.global_position.distance_to(posto) < 1.5, "PARADO: ficou no lugar (andou %.1f m)" % c.global_position.distance_to(posto))
 	j.ordena(Zumbi.Ordem.SEGUIR)

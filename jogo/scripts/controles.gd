@@ -131,7 +131,7 @@ func _ready() -> void:
 		_monta_toque()
 	if _btn_aliados == null:  # texto, não ícone: a ordem atual tem que dar para ler
 		_btn_aliados = Button.new()
-		_btn_aliados.text = "CORVOS: SEGUIR"
+		_btn_aliados.text = "ALIADOS: SEGUIR"
 		_btn_aliados.focus_mode = Control.FOCUS_NONE
 		_btn_aliados.add_theme_font_size_override("font_size", 18)
 		_btn_aliados.anchor_top = 0.5
@@ -450,7 +450,7 @@ func _process(dt: float) -> void:
 		var acao: String = {"fruta": "COLHER FRUTINHAS", "madeira": "PEGAR LENHA", "pedra": "PEGAR PEDRA", "rio": "BEBER ÁGUA DO RIO"}.get(String(_coleta0[1]), "PEGAR")
 		_dica_pegar.text = acao if toque else "[E] " + acao.to_lower()
 	elif cv:
-		_dica_pegar.text = ("CONTRATAR CORVO ($%d)" if toque else "[E] contratar o Corvo ($%d)") % Jogador.ALIADO_PRECO[mini(jogador.meus_aliados().size(), 2)]
+		_dica_pegar.text = ("CHAMAR PARA O GRUPO ($%d)" if toque else "[E] chamar o sobrevivente para o grupo ($%d)") % Jogador.ALIADO_PRECO[mini(jogador.meus_aliados().size(), 2)]
 	elif bau and bau.trava:
 		_dica_pegar.text = ("DESTRANCAR (CHAVE)" if toque else "[E] destrancar com a chave") if jogador.mochila.tem("chave") else "TRANCADO: PRECISA DE CHAVE"
 	elif bau:
@@ -828,13 +828,13 @@ func _monta_pausa() -> void:
 		j.reset_physics_interpolation()
 		pausa(false))
 	col.add_child(desprende)
-	var dispensa := UiTema.botao("DISPENSAR CORVOS ALIADOS")
+	var dispensa := UiTema.botao("DISPENSAR ALIADOS")
 	dispensa.pressed.connect(func() -> void:
 		if jogador == null or jogador.meus_aliados().is_empty():
-			aviso("VOCÊ NÃO TEM CORVOS ALIADOS", UiTema.TEXTO, 2.0)
+			aviso("VOCÊ NÃO TEM ALIADOS", UiTema.TEXTO, 2.0)
 			return
 		jogador.ordena(-1)
-		aviso("OS CORVOS FORAM EMBORA", UiTema.TEXTO, 2.5)
+		aviso("OS ALIADOS FORAM EMBORA", UiTema.TEXTO, 2.5)
 		pausa(false))
 	col.add_child(dispensa)
 	var cfg := UiTema.botao("CONFIGURAÇÕES")
@@ -1062,10 +1062,10 @@ func _pegou(tipo: String, qtd: int) -> void:
 		Input.vibrate_handheld(60)
 		return
 	if tipo == "tregua_paga":
-		aviso("TRÉGUA ATÉ AMANHECER. CHEGUE PERTO DE UM CORVO PARA CONTRATAR", Color(0.35, 0.9, 0.45), 5.0)
+		aviso("TRÉGUA COM OS SAQUEADORES ATÉ AMANHECER", Color(0.35, 0.9, 0.45), 5.0)
 		return
 	if tipo == "aliado_novo":
-		aviso("CORVO CONTRATADO (%d DE %d). ELE TE SEGUE E TE PROTEGE" % [qtd, Zumbi.ALIADOS_MAX], Color(0.35, 0.9, 0.45), 3.5)
+		aviso("SOBREVIVENTE NO GRUPO (%d DE %d). ELE TE SEGUE E TE PROTEGE" % [qtd, Zumbi.ALIADOS_MAX], Color(0.35, 0.9, 0.45), 3.5)
 		return
 	if tipo == "aliado_caro":
 		aviso("ELE QUER $%d. VOCÊ NÃO TEM" % qtd, Color(1.0, 0.5, 0.3), 2.5)
@@ -1074,7 +1074,7 @@ func _pegou(tipo: String, qtd: int) -> void:
 		aviso("VOCÊ JÁ TEM %d CORVOS. É O LIMITE" % Zumbi.ALIADOS_MAX, Color(1.0, 0.5, 0.3), 2.5)
 		return
 	if tipo == "aliado_morreu":
-		aviso("UM CORVO SEU MORREU", Color(1.0, 0.3, 0.25), 3.0)
+		aviso("UM SOBREVIVENTE DO SEU GRUPO MORREU", Color(1.0, 0.3, 0.25), 3.0)
 		Input.vibrate_handheld(120)
 		return
 	if tipo == "tregua_quebrada":
@@ -1307,8 +1307,8 @@ func _troca_ordem() -> void:
 		return
 	var o: int = (jogador.ordem_aliados + 1) % 3
 	jogador.ordena(o)
-	_btn_aliados.text = "CORVOS: " + ["SEGUIR", "PARADO", "ATACAR"][o]
-	aviso(["CORVOS: SIGAM-ME", "CORVOS: FIQUEM AQUI", "CORVOS: ATAQUEM"][o], Color(0.35, 0.9, 0.45), 1.5)
+	_btn_aliados.text = "ALIADOS: " + ["SEGUIR", "PARADO", "ATACAR"][o]
+	aviso(["ALIADOS: SIGAM-ME", "ALIADOS: FIQUEM AQUI", "ALIADOS: ATAQUEM"][o], Color(0.35, 0.9, 0.45), 1.5)
 
 
 func _circulo(diam: float, cor: Color) -> Panel:
