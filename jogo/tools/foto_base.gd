@@ -53,7 +53,7 @@ func _init() -> void:
 	await process_frame
 	main.ciclo.set_process(false)
 	await _foto(imgs)
-	j.global_position = c + Vector3(0, 0.5, 0)
+	j.global_position = c - fr * 2.0 + Vector3(0, 0.5, 0)  # do lado da fogueira (não em cima)
 	await _foto(imgs)
 	var out := Image.create(1280, 720, false, imgs[0].get_format())
 	for k in 4:

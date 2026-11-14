@@ -576,6 +576,12 @@ func _comeca() -> void:
 			legenda("RÁDIO · DANA", String(_cfg.radio), 6.0)
 		if String(r[2]) == "peca_radio" and _j:
 			_feito = _j.mochila.conta("peca_radio")
+	elif not HISTORIA:  # 14/11 (dono: "não gosto de missão"): sobrevivência sem tarefas na tela
+		_atual = []
+		_alvo = Vector3.INF
+		for n: CanvasItem in [_fundo, _titulo, _linha]:  # o rádio mora aqui também: some só o quadro da tarefa
+			n.visible = false
+		return
 	else:
 		_atual = DEPOIS[randi() % DEPOIS.size()]
 		_titulo.text = "TAREFAS"
