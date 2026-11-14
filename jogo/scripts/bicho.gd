@@ -3,7 +3,9 @@
 # é a caça). 13/11 (dono: "modelos prontos de verdade"): Sketchfab CC BY (lobo ESOOOO, alce e urso WildMesh_3D animados;
 # créditos em assets/mundo/LICENCAS.md). O lobo só tem animação parada: o galope é feito no código. Camada 8 + grupo "golpeavel": tiro e golpe acertam
 # como num zumbi. Morto larga carne crua (assa na fogueira).
-# shortcut: bichos só existem no anfitrião/solo (Fauna não sincroniza pela rede); para o jogo com amigos, sincronizar.
+# 14/11 (dono: "pra que um jogo que só eu vejo os animais?"): pela rede. O servidor (quem criou a sala) pensa e move;
+# todos recebem posição, giro e estado pelo sincronizador (main.spawner_bichos cria em todos); golpe de cliente vai para
+# o servidor (_pede_golpe); som de uivo/rosnado toca em todos (rpc).
 class_name Bicho
 extends CharacterBody3D
 
@@ -36,6 +38,9 @@ var _investe_t: float = 0.0
 var _desvio: float = 0.0
 var _morto: bool = false
 var _som: AudioStreamPlayer3D
+var pos_rede: Vector3 = Vector3.ZERO
+var rot_rede: float = 0.0
+var estado_rede: String = "parado"
 
 
 func _ready() -> void:
@@ -74,6 +79,40 @@ func _ready() -> void:
 	_som.max_distance = 60.0
 	add_child(_som)
 	_pensa_t = randf() * 0.5
+	pos_rede = global_position
+	var cfg := SceneReplicationConfig.new()
+	for p: String in [".:pos_rede", ".:rot_rede"]:
+		cfg.add_property(NodePath(p))
+		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
+	cfg.add_property(NodePath(".:estado_rede"))
+	cfg.property_set_replication_mode(NodePath(".:estado_rede"), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+	var sync := MultiplayerSynchronizer.new()
+	sync.name = "Sincronia"
+	sync.root_path = NodePath("..")
+	sync.replication_interval = 1.0 / 15.0
+	sync.replication_config = cfg
+	add_child(sync)
+
+
+## Cliente: só segue o que o servidor manda (suave), toca a animação e o galope do lobo.
+func _segue_rede(dt: float) -> void:
+	var antes: Vector3 = global_position
+	global_position = global_position.lerp(pos_rede, 1.0 - exp(-12.0 * dt))
+	if global_position.distance_to(pos_rede) > 6.0:
+		global_position = pos_rede
+	modelo.rotation.y = lerp_angle(modelo.rotation.y, rot_rede, 1.0 - exp(-12.0 * dt))
+	if estado_rede == "morre":
+		if not _morto:
+			_morto = true
+			remove_from_group("golpeavel")
+			collision_layer = 0
+			_morre_visual()
+		return
+	_toca(estado_rede)
+	if tipo == "lobo":
+		var anda: float = Vector2(global_position.x - antes.x, global_position.z - antes.z).length() / maxf(dt, 0.001)
+		_galope += dt * anda * 2.2
+		modelo.position.y = absf(sin(_galope)) * 0.09 * minf(anda / 3.0, 1.0)
 
 
 var _clipe: String = ""
@@ -127,6 +166,9 @@ func _mais_perto() -> Jogador:
 
 
 func _physics_process(dt: float) -> void:
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		_segue_rede(dt)
+		return
 	if _morto:
 		return
 	if not is_on_floor():
@@ -211,7 +253,10 @@ func _physics_process(dt: float) -> void:
 	else:
 		_desvio = move_toward(_desvio, 0.0, dt * 0.8)
 	_ataca_t -= dt
-	_toca("ataca" if _ataca_t > 0.0 else ("corre" if anda > 3.0 else ("anda" if anda > 0.3 else "parado")))
+	estado_rede = "ataca" if _ataca_t > 0.0 else ("corre" if anda > 3.0 else ("anda" if anda > 0.3 else "parado"))
+	pos_rede = global_position
+	rot_rede = modelo.rotation.y
+	_toca(estado_rede)
 	if _anim:
 		_anim.speed_scale = clampf(anda / (float(t.correr) * 0.8 if anda > 3.0 else maxf(float(t.andar), 0.5)), 0.7, 2.0) if anda > 0.3 else (0.15 if t.has("parado") else 1.0)
 	if tipo == "lobo":  # o modelo do lobo só tem animação parada: galope no código (sobe e desce, balança)
@@ -221,13 +266,23 @@ func _physics_process(dt: float) -> void:
 
 
 func _uiva() -> void:
+	_som_uiva.rpc()
+
+
+func _rosna() -> void:
+	_som_rosna.rpc()
+
+
+@rpc("authority", "call_local", "unreliable")
+func _som_uiva() -> void:
 	if _som and not Rede.servidor_sem_tela:
 		_som.stream = load("res://assets/sons/amb/lobo_%d.ogg" % randi_range(1, 2))
 		_som.pitch_scale = randf_range(0.8, 1.0)
 		_som.play()
 
 
-func _rosna() -> void:
+@rpc("authority", "call_local", "unreliable")
+func _som_rosna() -> void:
 	if _som and not Rede.servidor_sem_tela and tipo != "cervo":
 		_som.stream = load("res://assets/sons/amb/lobo_%d.ogg" % randi_range(1, 2)) if tipo == "lobo" else load("res://assets/sons/amb/rosnado_%d.ogg" % randi_range(1, 16))
 		_som.pitch_scale = randf_range(1.1, 1.3) if tipo == "lobo" else randf_range(0.45, 0.55)
@@ -237,6 +292,9 @@ func _rosna() -> void:
 ## Tiro e golpe (o mesmo do zumbi).
 func levar_golpe(dano: int, dir: Vector3, quem: Node) -> void:
 	if _morto:
+		return
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		_pede_golpe.rpc_id(1, clampi(dano, 0, 200), dir)  # quem decide vida e morte é o servidor
 		return
 	vida -= dano
 	velocity += Vector3(dir.x, 0, dir.z).normalized() * 2.5
@@ -251,17 +309,33 @@ func levar_golpe(dano: int, dir: Vector3, quem: Node) -> void:
 		_morre()
 
 
+## Golpe/tiro de quem não é o servidor.
+## shortcut: o servidor confia no dano que o cliente manda (até 200); conferir arma/alcance num servidor de verdade.
+@rpc("any_peer", "call_remote", "reliable")
+func _pede_golpe(dano: int, dir: Vector3) -> void:
+	if not multiplayer.is_server() or _morto:
+		return
+	var principal := get_tree().get_first_node_in_group("principal")
+	var quem: Node = principal.jogadores.get_node_or_null(str(multiplayer.get_remote_sender_id())) if principal else null
+	levar_golpe(clampi(dano, 0, 200), dir, quem)
+
+
 func _morre() -> void:
 	_morto = true
 	remove_from_group("golpeavel")
 	collision_layer = 0
+	estado_rede = "morre"
+	_morre_visual()
+	var principal := get_tree().get_first_node_in_group("principal")
+	if principal and multiplayer.is_server():
+		principal.solta_item("carne_crua", int(TIPOS[tipo].carne), global_position + Vector3(0, 0.3, 0), 240.0)
+	get_tree().create_timer(20.0).timeout.connect(queue_free)
+
+
+func _morre_visual() -> void:
 	_toca("morre")
 	if _clipe == "" or not _clipe.containsn("Death"):  # sem animação de morrer (lobo): tomba de lado
 		if _anim:
 			_anim.stop()
 		var tw := create_tween()
 		tw.tween_property(modelo, "rotation:z", PI * 0.5, 0.35)
-	var principal := get_tree().get_first_node_in_group("principal")
-	if principal and multiplayer.is_server():
-		principal.solta_item("carne_crua", int(TIPOS[tipo].carne), global_position + Vector3(0, 0.3, 0), 240.0)
-	get_tree().create_timer(20.0).timeout.connect(queue_free)

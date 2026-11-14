@@ -51,12 +51,8 @@ func _process(dt: float) -> void:
 	if not p.is_finite():
 		return
 	var n: int = _rng.randi_range(2, 3 if noite < 0.5 else 4) if tipo == "lobo" else 1
-	for k in n:
-		var b := Bicho.new()
-		b.tipo = tipo
-		b.name = "Bicho_%s_%d" % [tipo, _rng.randi()]
-		principal.add_child(b)
-		b.global_position = p + Vector3(_rng.randf_range(-3, 3), 0.5, _rng.randf_range(-3, 3))
+	for k in n:  # pelo spawner: aparece em todos os aparelhos da sala
+		principal.spawner_bichos.spawn({"tipo": tipo, "pos": p + Vector3(_rng.randf_range(-3, 3), 0.5, _rng.randf_range(-3, 3))})
 
 
 ## Ponto da mata a 45-75 m de `de` (fora de trilha, água e prédio); INF se não achou.

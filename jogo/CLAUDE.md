@@ -30,6 +30,10 @@ Espera de rede em teste = tempo real (`OS.delay_msec(16)`); `process_frame` cheg
 Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 
 ## Arquivos (scripts/)
+- BICHOS NA REDE (14/11, dono: "pra que um jogo que só eu vejo os animais?"): `main.spawner_bichos` (nó "Bichos") cria
+  em todos; Bicho sincroniza pos_rede/rot_rede/estado_rede ("Sincronia", 15/s), cliente só segue (`_segue_rede`);
+  golpe de cliente -> `_pede_golpe` (servidor); uivo/rosnado por rpc. Rede.VERSAO 52. Teste de 2 processos:
+  test_bicho_rede.gd (servidor em segundo plano, esperar ~25 s antes do cliente: a floresta demora a carregar).
 - MODELOS PRONTOS + SOBREVIVENTES (13/11): árvores pintadas Sketchfab CC BY (sequoias g/m, pinho_e, moita_e;
   `tools/assets/natureza2.py`; Vegetacao.PINTADAS não ficam lisas). Bichos Sketchfab: lobo_e (só Idle, galope no código),
   cervo (alce WildMesh, foge), urso (WildMesh, raro); `Bicho.ANIMS`/"escala"/"parado"; meta "sem_estilo" (Estilo pula).

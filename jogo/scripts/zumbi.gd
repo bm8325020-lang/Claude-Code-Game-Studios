@@ -1676,7 +1676,7 @@ func _gas_fx(p: Vector3) -> void:
 	tw.parallel().tween_property(m, "albedo_color:a", 0.0, 3.5)
 	tw.tween_callback(nuvem.queue_free)
 	var principal := get_tree().get_first_node_in_group("principal")
-	var j: Jogador = principal.jogador if principal else null
+	var j: Jogador = principal.jogador if principal and is_instance_valid(principal.jogador) else null
 	if j and j.global_position.distance_to(p) < GAS_RAIO and principal.controles:
 		principal.controles.cega(4.0)
 ## 06/11 (dono): Corvo também atira nos zumbis (sem jogador por perto): para, mira e atira no mais perto que vê.

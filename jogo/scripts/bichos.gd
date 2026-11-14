@@ -124,7 +124,7 @@ func _monta_poeira() -> CPUParticles3D:
 
 
 func _process(dt: float) -> void:
-	var j: Jogador = principal.jogador if principal else null
+	var j: Jogador = principal.jogador if principal and is_instance_valid(principal.jogador) else null  # jogador trocado (rede): já liberado
 	if j == null or not is_instance_valid(j) or not j.is_inside_tree():
 		return
 	_t += dt

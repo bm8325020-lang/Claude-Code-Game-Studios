@@ -94,6 +94,18 @@ func _ready() -> void:
 	add_child(spawner_zumbis)
 	spawner_zumbis.spawn_path = spawner_zumbis.get_path_to(zumbis)
 	spawner_zumbis.spawn_function = _cria_zumbi
+	bichos_no = Node3D.new()  # 14/11: bichos da floresta pela rede (o servidor cria, todos veem)
+	bichos_no.name = "Bichos"
+	add_child(bichos_no)
+	spawner_bichos = MultiplayerSpawner.new()
+	spawner_bichos.name = "SpawnerBichos"
+	add_child(spawner_bichos)
+	spawner_bichos.spawn_path = spawner_bichos.get_path_to(bichos_no)
+	spawner_bichos.spawn_function = func(d: Dictionary) -> Node:
+		var b := Bicho.new()
+		b.tipo = String(d.tipo)
+		b.position = d.pos
+		return b
 	rede = Rede.new()
 	rede.name = "Rede"
 	add_child(rede)
@@ -984,6 +996,10 @@ func _poe_zumbis() -> void:
 		spawner_zumbis.spawn({"pos": r[0], "rota": r})
 	for p: Vector3 in PONTOS_CHEFE:
 		spawner_zumbis.spawn({"pos": p, "chefe": true})
+
+
+var bichos_no: Node3D
+var spawner_bichos: MultiplayerSpawner
 
 
 func _cria_zumbi(dados: Dictionary) -> Node:

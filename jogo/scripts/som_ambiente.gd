@@ -113,7 +113,7 @@ func _musica(nome: String) -> AudioStreamPlayer:
 
 
 func _process(dt: float) -> void:
-	var j: Jogador = principal.jogador if principal else null
+	var j: Jogador = principal.jogador if principal and is_instance_valid(principal.jogador) else null  # jogador trocado (rede): já liberado
 	var ciclo: Ciclo = principal.ciclo if principal else null
 	var noite: float = ciclo.noite() if ciclo else 0.0
 	_suave(_mus_dia, MUSICA_DB if noite < 0.5 else -80.0, dt * 0.15)

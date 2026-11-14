@@ -152,7 +152,7 @@ func _mudou_motorista(antes: int) -> void:
 	vel = 0.0
 	velocity = Vector3.ZERO
 	var principal := get_tree().get_first_node_in_group("principal") if is_inside_tree() else null
-	var j: Jogador = principal.jogador if principal else null
+	var j: Jogador = principal.jogador if principal and is_instance_valid(principal.jogador) else null
 	if j == null or not is_instance_valid(j):
 		return
 	if _dirijo() and j.carro == null:

@@ -69,7 +69,7 @@ func _process(dt: float) -> void:
 			if _anim.current_animation != c and _anim.has_animation(c):
 				_anim.play(c, 0.2)
 	var principal := get_tree().get_first_node_in_group("principal")
-	var j: Jogador = principal.jogador if principal else null
+	var j: Jogador = principal.jogador if principal and is_instance_valid(principal.jogador) else null
 	if j == null or falou:
 		return
 	if _i < 0:
