@@ -180,7 +180,7 @@ func _monta_modelo() -> void:
 
 const NATUREZA: Dictionary = {"madeira": ["item_madeira", 0.35], "pedra": ["item_pedra", 0.2], "fruta": ["item_fruta", 0.12],
 	"carne_crua": ["item_carne_crua", 0.2], "carne_assada": ["item_carne_assada", 0.18], "cogumelo": ["item_cogumelo", 0.12], "fogueira": ["item_madeira", 0.45]}
-const _PROPRIOS: Array[String] = ["colete", "tabuas", "armadilha", "molotov", "sinalizador", "pilha", "bandagem", "municao_fuzil", "silenciador", "mira", "pente_ext", "bilhete", "livro", "fita", "peca_radio", "diario"]
+const _PROPRIOS: Array[String] = ["colete", "tabuas", "armadilha", "molotov", "sinalizador", "pilha", "bandagem", "municao_fuzil", "silenciador", "mira", "pente_ext", "bilhete", "cartao_verde", "cartao_azul", "cartao_amarelo", "filtro_uv", "livro", "fita", "peca_radio", "diario"]
 
 
 func _mat(cor: Color, rug: float = 0.7, metal: float = 0.0, brilho: float = 0.0) -> StandardMaterial3D:
@@ -252,6 +252,11 @@ func _monta_proprio() -> void:
 			_bloco(Vector3(0, 0.045, 0.046), Vector3(0.045, 0.03, 0.002), _mat(Color(0.3, 0.6, 1.0), 0.2, 0.0, 0.6))
 		"pente_ext":  # 14/11: pente comprido
 			_bloco(Vector3(0, 0.015, 0), Vector3(0.04, 0.03, 0.2), _mat(Color(0.12, 0.12, 0.13), 0.5, 0.5))
+		"cartao_verde", "cartao_azul", "cartao_amarelo":  # 14/11: crachá de acesso da cor, brilhando para achar
+			_bloco(Vector3(0, 0.004, 0), Vector3(0.09, 0.008, 0.055), _mat(Estacao.CORES[tipo.trim_prefix("cartao_")], 0.4, 0.0, 0.8))
+			_bloco(Vector3(0.0, 0.009, 0.012), Vector3(0.05, 0.002, 0.012), _mat(Color(0.1, 0.1, 0.1)))
+		"filtro_uv":  # 14/11: lente roxa
+			_cilindro(Vector3(0, 0.02, 0), 0.045, 0.03, _mat(Color(0.5, 0.2, 0.9), 0.2, 0.0, 0.9), false)
 		"bilhete":  # 14/11: folha amassada, clara, brilhando um pouco para achar
 			_bloco(Vector3(0, 0.004, 0), Vector3(0.15, 0.008, 0.2), _mat(Color(0.93, 0.9, 0.8), 1.0, 0.0, 0.4))
 		"livro":  # capa vermelha e páginas brancas

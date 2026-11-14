@@ -315,7 +315,7 @@ func _monta_sincronia() -> void:
 	for p: String in [".:pos_rede", ".:rot_rede", ".:nick"]:  # nick sempre: só na mudança às vezes se perdia ao entrar
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
-	for p: String in [".:clipe_rede", ".:agachado", ".:correndo", ".:arma", ".:cima_rede", ".:vida", ".:tem_lanterna", ".:mira_travada", ".:no_carro"]:
+	for p: String in [".:clipe_rede", ".:agachado", ".:correndo", ".:arma", ".:cima_rede", ".:vida", ".:tem_lanterna", ".:mira_travada", ".:no_carro", ".:escondido", ".:lanterna_acesa"]:
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	var sync := MultiplayerSynchronizer.new()
@@ -377,6 +377,11 @@ func _monta_arma() -> void:
 
 
 func _physics_process(dt: float) -> void:
+	if escondido:  # 14/11: no esconderijo não anda nem cai
+		velocity = Vector3.ZERO
+		if vida <= 0 and is_multiplayer_authority():
+			sai_do_esconderijo()
+		return
 	_passa_segura(dt)
 	if sangrando and vida > 0 and is_multiplayer_authority():
 		_sangra_t += dt
@@ -467,6 +472,9 @@ func _physics_process(dt: float) -> void:
 	if entrada.get("pular", false):
 		_buffer = BUFFER_PULO
 		entrada["pular"] = false
+	if entrada.get("uv", false):
+		entrada["uv"] = false
+		alterna_uv()
 	if entrada.get("esquiva", false):
 		_esquiva_pede = true
 		entrada["esquiva"] = false
@@ -840,6 +848,9 @@ func _abre_bau(dt: float, mov: Vector2) -> void:
 
 # USAR: pega o item perto; senão abre o baú perto; senão abre/fecha a porta perto
 func _tenta_pegar() -> void:
+	if escondido:
+		sai_do_esconderijo()
+		return
 	var it: Item = item_perto()
 	if it == null and bau_perto() != null and bau_perto().trava:
 		var cf: Bau = bau_perto()
@@ -881,8 +892,28 @@ func _tenta_pegar() -> void:
 	if it == null and lojista_perto() != null:
 		loja_aberta.emit()
 		return
+	if it == null and _bunker_perto():  # 14/11: porta do bunker (saída)
+		var bk: Bunker = _bunker_perto()
+		var falta: Array = Bunker.CARTOES.filter(func(c: String) -> bool: return not mochila.tem("cartao_" + c))
+		if not falta.is_empty():
+			item_pego.emit("bunker_falta:" + ",".join(falta), 0)
+		elif bk.contagem < 0.0 and not bk.aberto:
+			if multiplayer.is_server():
+				bk.comeca()
+			else:
+				_pede_bunker.rpc_id(1, get_path_to(bk))
+		return
+	if it == null and Esconderijo.perto(get_tree(), global_position):  # 14/11: armário, beliche, maca, freezer
+		esconde(Esconderijo.perto(get_tree(), global_position))
+		return
 	if it == null:
 		var p: Porta = porta_perto()
+		if p and p.cartao != "" and not mochila.tem("cartao_" + p.cartao):
+			item_pego.emit("cartao_falta:" + p.cartao, 0)  # 14/11: porta de cartão
+			return
+		if p and p.cartao != "":
+			item_pego.emit("cartao_usou:" + p.cartao, 0)
+			Zumbi.barulho(get_tree(), global_position, 12.0) if multiplayer.is_server() else _pede_barulho.rpc_id(1, 12.0)
 		if p:
 			if multiplayer.is_server():
 				p.alterna_por(self)
@@ -917,6 +948,159 @@ func _pede_porta(caminho: NodePath) -> void:
 		var p := get_node_or_null(caminho) as Porta
 		if p:
 			p.alterna_por(self)
+
+
+# --- Estação Halverson (14/11, ESTACAO.md) -------------------------------------------------------------------------
+## escondido no armário/beliche/maca/freezer (vai pela rede: os outros não veem o corpo; o Paciente Zero não acha)
+var escondido: bool = false:
+	set(v):
+		escondido = v
+		if modelo:
+			modelo.visible = not v
+## lanterna acesa (vai pela rede: o Paciente Zero vê de longe quem anda de luz acesa no escuro)
+var lanterna_acesa: bool = false
+var _esconderijo: Esconderijo
+var _camadas: Vector2i
+
+
+func _bunker_perto() -> Bunker:
+	for b: Node3D in get_tree().get_nodes_in_group("bunker"):
+		if b.global_position.distance_to(global_position) < Bunker.ALCANCE and vida > 0:
+			return b
+	return null
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _pede_bunker(caminho: NodePath) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority():
+		var b := get_node_or_null(caminho) as Bunker
+		if b and b.global_position.distance_to(global_position) < Bunker.ALCANCE + 1.0:
+			b.comeca()
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _pede_barulho(raio: float) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority():
+		Zumbi.barulho(get_tree(), global_position, clampf(raio, 0.0, 30.0))
+
+
+func esconde(e: Esconderijo) -> void:
+	if escondido or vida <= 0 or carro != null:
+		return
+	for o: Node in get_tree().get_nodes_in_group("esconderijos"):
+		if o != e:
+			(o as Esconderijo).usos = 0  # usar outro zera a conta dos outros
+	e.usos += 1
+	_esconderijo = e
+	_camadas = Vector2i(collision_layer, collision_mask)
+	collision_layer = 0
+	collision_mask = 0
+	global_position = e.global_position
+	velocity = Vector3.ZERO
+	escondido = true
+	item_pego.emit("escondeu", e.usos)
+	if multiplayer.is_server():
+		_avisa_esconder()
+	else:
+		_avisa_esconder.rpc_id(1)
+
+
+## Servidor: o Paciente Zero estava vendo? Então ele viu entrar. Na 3ª vez seguida no mesmo lugar ele vem checar.
+@rpc("any_peer", "call_remote", "reliable")
+func _avisa_esconder() -> void:
+	if multiplayer.has_multiplayer_peer() and multiplayer.get_remote_sender_id() not in [0, get_multiplayer_authority()]:
+		return
+	var pz := get_tree().get_first_node_in_group("paciente_zero") as PacienteZero
+	if pz == null:
+		return
+	pz.viu_esconder(self)
+	if _esconderijo and _esconderijo.usos > Esconderijo.VEZES:
+		pz.ouve(global_position, 999.0)
+
+
+func sai_do_esconderijo() -> void:
+	if not escondido:
+		return
+	escondido = false
+	collision_layer = _camadas.x
+	collision_mask = _camadas.y
+	if _esconderijo and is_instance_valid(_esconderijo):
+		global_position = _esconderijo.ponto_saida() + Vector3(0, 0.1, 0)
+	_esconderijo = null
+	Zumbi.barulho(get_tree(), global_position, 5.0) if multiplayer.is_server() else _pede_barulho.rpc_id(1, 5.0)
+
+
+## Servidor (Paciente Zero): tira do esconderijo e pega.
+func arranca_do_esconderijo() -> void:
+	if is_multiplayer_authority():
+		_arrancado()
+	else:
+		_arrancado.rpc_id(get_multiplayer_authority())
+
+
+@rpc("authority", "call_remote", "reliable")
+func _arrancado() -> void:
+	sai_do_esconderijo()
+	item_pego.emit("arrancado", 0)
+	_recebe_dano(999, Vector3.ZERO)
+
+
+## Lanterna UV (filtro na mochila): botão alterna. Na cara do Paciente Zero queima; gasta 3x; esquenta e falha.
+const UV_MIRA: float = 0.6      # s seguidos na cabeça para queimar
+const UV_GRAUS: float = 8.0
+const UV_ALCANCE: float = 10.0
+const LUZ_ALCANCE: float = 14.0
+const UV_CUSTO: float = 15.0    # % de pilha por queima
+const UV_FALHA: float = 2.0     # s sem luz quando esquenta
+var uv: bool = false
+var _uv_mira: float = 0.0
+var _uv_falha: float = 0.0
+var _queimas: Array[float] = []
+
+
+func alterna_uv() -> void:
+	if mochila.tem("filtro_uv"):
+		uv = not uv
+		item_pego.emit("uv_liga" if uv else "uv_desliga", 0)
+	else:
+		item_pego.emit("uv_falta", 0)
+
+
+func _passa_uv(dt: float) -> void:
+	_uv_falha -= dt
+	if not lanterna_acesa or camera == null:
+		_uv_mira = 0.0
+		return
+	var pz := get_tree().get_first_node_in_group("paciente_zero") as PacienteZero
+	if pz == null:
+		return
+	var cabeca: Vector3 = pz.global_position + Vector3(0, pz.altura_cabeca, 0)
+	var de: Vector3 = camera.cam.global_position
+	var d: Vector3 = cabeca - de
+	var mira: bool = d.length() < (UV_ALCANCE if uv else LUZ_ALCANCE) and rad_to_deg((-camera.cam.global_basis.z).angle_to(d)) < UV_GRAUS
+	if mira:
+		var q := PhysicsRayQueryParameters3D.create(de, cabeca, 1)
+		mira = get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+	if not mira:
+		_uv_mira = 0.0
+		return
+	if not uv:
+		pz.irrita()
+		return
+	_uv_mira += dt
+	if _uv_mira < UV_MIRA:
+		return
+	_uv_mira = 0.0
+	pz.pede_queima()
+	carga = maxf(carga - UV_CUSTO, 0.0)
+	var agora: float = Time.get_ticks_msec() / 1000.0
+	_queimas = _queimas.filter(func(t: float) -> bool: return agora - t < 40.0)
+	_queimas.append(agora)
+	item_pego.emit("uv_queimou", 0)
+	if _queimas.size() >= 3:
+		_queimas.clear()
+		_uv_falha = UV_FALHA
+		item_pego.emit("lanterna_falhou", 0)
 
 
 ## Servidor: entrega o item (no aparelho do dono do jogador).
@@ -1618,7 +1802,7 @@ func _chuta() -> bool:
 
 ## O que não se perde ao morrer: armas (brancas e de fogo), munição e silenciador.
 static func fica_na_morte(t: String) -> bool:
-	return Armas.e_branca(t) or Pistola.FOGO.has(t) or t in ["pistola", "municao", "cartucho", "municao_fuzil", "silenciador", "mira", "pente_ext"]
+	return Armas.e_branca(t) or Pistola.FOGO.has(t) or t in ["pistola", "municao", "cartucho", "municao_fuzil", "silenciador", "mira", "pente_ext", "cartao_verde", "cartao_azul", "cartao_amarelo", "filtro_uv"]
 
 
 ## O que vai para o saco: tudo menos o facão, juntando o mesmo tipo; `pentes` = munição -> balas nos pentes.
@@ -2409,9 +2593,17 @@ var _avisou_pilha: bool = false
 func _atualiza_lanterna() -> void:
 	_lanterna_mao.visible = tem_lanterna
 	var c := get_tree().get_first_node_in_group("ciclo") as Ciclo
-	var forca: float = clampf(c.noite() * 1.5 - 0.2, 0.0, 1.0) if c and tem_lanterna and vida > 0 and carga > 0.0 else 0.0
+	var escuro: float = c.noite() * 1.5 - 0.2 if c else 0.0
+	if Estacao.atual and Estacao.atual.dentro(global_position) and not Estacao.atual.seguro(global_position):
+		escuro = 1.0  # 14/11: dentro da estação é sempre escuro
+	var forca: float = clampf(escuro, 0.0, 1.0) if tem_lanterna and vida > 0 and carga > 0.0 and _uv_falha <= 0.0 else 0.0
+	if is_multiplayer_authority():
+		lanterna_acesa = forca > 0.0
+		_passa_uv(get_process_delta_time())
+	_lanterna.light_color = Color(0.55, 0.25, 1.0) if uv else Color(1.0, 0.93, 0.8)
+	_lanterna.spot_range = UV_ALCANCE + 4.0 if uv else 38.0
 	if forca > 0.0 and is_multiplayer_authority():
-		carga = maxf(carga - PILHA_GASTO * get_process_delta_time(), 0.0)
+		carga = maxf(carga - PILHA_GASTO * (3.0 if uv else 1.0) * get_process_delta_time(), 0.0)
 		if carga < 15.0 and not _avisou_pilha:
 			_avisou_pilha = true
 			item_pego.emit("pilha_fraca", 0)

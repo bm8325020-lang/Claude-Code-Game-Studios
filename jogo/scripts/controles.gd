@@ -263,7 +263,7 @@ func _ready() -> void:
 func _acoes() -> void:
 	var mapa: Dictionary = {"frente": [KEY_W, KEY_UP], "tras": [KEY_S, KEY_DOWN], "esq": [KEY_A, KEY_LEFT],
 		"dir": [KEY_D, KEY_RIGHT], "pular": [KEY_SPACE], "correr": [KEY_SHIFT], "agachar": [KEY_CTRL, KEY_C],
-		"andar": [KEY_ALT], "pegar": [KEY_E], "dominar": [KEY_H], "deitar": [KEY_J], "comer": [KEY_F], "beber": [KEY_G], "trocar": [KEY_Q], "recarregar": [KEY_R], "mochila": [KEY_TAB], "modo": [KEY_B], "esquiva": [KEY_V],
+		"andar": [KEY_ALT], "pegar": [KEY_E], "dominar": [KEY_H], "deitar": [KEY_J], "comer": [KEY_F], "beber": [KEY_G], "trocar": [KEY_Q], "recarregar": [KEY_R], "mochila": [KEY_TAB], "modo": [KEY_B], "esquiva": [KEY_V], "uv": [KEY_U],
 		"espaco_1": [KEY_1], "espaco_2": [KEY_2], "espaco_3": [KEY_3], "espaco_4": [KEY_4], "espaco_5": [KEY_5], "espaco_6": [KEY_6]}
 	for acao: String in mapa:
 		if InputMap.has_action(acao):
@@ -327,6 +327,8 @@ func _process(dt: float) -> void:
 			e["pular"] = true
 		if Input.is_action_just_pressed("esquiva"):
 			e["esquiva"] = true
+		if Input.is_action_just_pressed("uv"):
+			e["uv"] = true
 		if Input.is_action_just_pressed("agachar"):
 			e["agachar"] = true
 		if Input.is_action_just_pressed("trocar"):
@@ -493,6 +495,10 @@ func _process(dt: float) -> void:
 	if _btn_atacar:
 		_btn_atacar.icone = "tiro" if com_pistola else "corte"
 		_btn_recarregar.visible = com_pistola and not jogador.fogo().recarregando and jogador.fogo().balas < jogador.fogo().pente and jogador.fogo().reserva > 0
+	if _btn_uv:
+		_btn_uv.visible = toque and jogador.mochila.tem("filtro_uv")
+		_btn_uv.modulate = Color(0.75, 0.5, 1.0) if jogador.uv else Color.WHITE
+	_escuro_esconde.visible = jogador.escondido
 
 
 func _input(ev: InputEvent) -> void:
@@ -1063,6 +1069,25 @@ func _pegou(tipo: String, qtd: int) -> void:
 	if tipo == "chute":
 		Input.vibrate_handheld(60)
 		return
+	if tipo.begins_with("cartao_falta:"):  # 14/11 (Estação Halverson)
+		aviso("PRECISA DO CARTÃO %s" % tipo.trim_prefix("cartao_falta:").to_upper(), Color(1.0, 0.45, 0.3), 2.5)
+		return
+	if tipo.begins_with("cartao_usou:"):
+		aviso("CARTÃO %s: PORTA DESTRANCADA" % tipo.trim_prefix("cartao_usou:").to_upper(), Estacao.CORES.get(tipo.trim_prefix("cartao_usou:"), Color.WHITE), 2.5)
+		return
+	if tipo.begins_with("bunker_falta:"):
+		aviso("O BUNKER PEDE OS CARTÕES: %s" % tipo.trim_prefix("bunker_falta:").to_upper().replace(",", ", "), Color(1.0, 0.45, 0.3), 3.0)
+		return
+	if tipo in ["escondeu", "arrancado", "uv_liga", "uv_desliga", "uv_falta", "uv_queimou", "lanterna_falhou"]:
+		var txt: Dictionary = {"escondeu": ["ESCONDIDO. USAR PARA SAIR", Color(0.7, 0.75, 0.8)] if qtd <= Esconderijo.VEZES else ["DE NOVO AQUI? ELE VAI DESCONFIAR...", Color(1.0, 0.5, 0.3)],
+			"arrancado": ["ELE TE VIU ENTRAR", Color(1.0, 0.3, 0.25)], "uv_liga": ["LUZ UV", Color(0.7, 0.45, 1.0)],
+			"uv_desliga": ["LUZ BRANCA", Color(1.0, 0.95, 0.85)], "uv_falta": ["PRECISA DO FILTRO UV (LABORATÓRIO)", Color(1.0, 0.5, 0.3)],
+			"uv_queimou": ["QUEIMOU! ELE RECUA", Color(0.75, 0.5, 1.0)], "lanterna_falhou": ["A LANTERNA ESQUENTOU!", Color(1.0, 0.35, 0.25)]}
+		aviso(String(txt[tipo][0]), txt[tipo][1], 2.0)
+		return
+	if tipo == "fugiu":
+		_fim_fuga()
+		return
 	if tipo == "bilhete":  # 14/11 (item 5): bilhete do acampamento destruído
 		_tarefas.legenda("BILHETE", "Dia 23. Os lobos pegaram o Caio de noite, a fogueira chamou eles. Vou pela trilha até a vila, lá ainda tem gente. Se achar isto: monta abrigo antes de escurecer e não fica sozinho.", 10.0, false)
 		return
@@ -1276,6 +1301,10 @@ func _monta_toque() -> void:
 	var pular := _botao("pular", Vector2(-128, -350), 92.0)
 	pular.name = "Pular"
 	pular.button_down.connect(func() -> void: jogador.entrada["pular"] = true)
+	_btn_uv = _botao("uv", Vector2(-380, -470), 80.0)  # 14/11 (Estação): lanterna UV (com o filtro na mochila)
+	_btn_uv.name = "UV"
+	_btn_uv.button_down.connect(func() -> void: jogador.entrada["uv"] = true)
+	_btn_uv.visible = false
 	var esquiva := _botao("esquiva", Vector2(-250, -440), 80.0)  # 14/11 (item 4): esquiva com fôlego
 	esquiva.name = "Esquiva"
 	esquiva.button_down.connect(func() -> void: jogador.entrada["esquiva"] = true)
@@ -1673,6 +1702,11 @@ class _Icone:
 				for k in 2:
 					var y: float = c.y - r * 0.15 + k * r * 0.7
 					draw_polyline(PackedVector2Array([Vector2(c.x - r, y), Vector2(c.x, y - r * 0.8), Vector2(c.x + r, y)]), b, g)
+			"uv":  # lanterna com raios
+				draw_circle(c, r * 0.45, b)
+				for k in 8:
+					var a: float = TAU * k / 8.0
+					draw_line(c + Vector2.from_angle(a) * r * 0.65, c + Vector2.from_angle(a) * r * 1.2, b, g)
 			"esquiva":  # duas setas para o lado
 				for k in 2:
 					var x: float = c.x - r * 0.5 + k * r * 0.7
@@ -1862,3 +1896,42 @@ void fragment() {
 	float cruz = (abs(p.x) < 0.0012 || abs(p.y) < 0.0012) && d < 0.44 ? 0.85 : 0.0;
 	COLOR = vec4(0.0, 0.0, 0.0, max(fora, cruz));
 }"""
+
+
+# --- Estação Halverson (14/11) ---
+var _btn_uv: Control
+var _escuro_esconde: ColorRect:
+	get:
+		if _escuro_esconde_no == null:
+			_escuro_esconde_no = ColorRect.new()  # dentro do armário: escuro, só a fresta de luz
+			_escuro_esconde_no.color = Color(0, 0, 0, 0.82)
+			_escuro_esconde_no.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_escuro_esconde_no.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			_escuro_esconde_no.visible = false
+			add_child(_escuro_esconde_no)
+			move_child(_escuro_esconde_no, 0)
+		return _escuro_esconde_no
+var _escuro_esconde_no: ColorRect
+
+
+func _fim_fuga() -> void:
+	var v := ColorRect.new()
+	v.color = Color(0, 0, 0, 0.0)
+	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(v)
+	var col := VBoxContainer.new()
+	col.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_child(col)
+	var t := UiTema.titulo("VOCÊ FUGIU", 72, Color(0.45, 1.0, 0.55))
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(t)
+	var minutos: int = int(jogador._jogo_t / 60.0) if jogador else 0
+	var s := UiTema.rotulo("Desceu no túnel do bunker em %d min. A Estação Halverson ficou para trás." % minutos, 26, UiTema.TEXTO)
+	s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(s)
+	var b := UiTema.botao("CONTINUAR")
+	b.pressed.connect(v.queue_free)
+	col.add_child(b)
+	create_tween().tween_property(v, "color:a", 0.9, 1.5)
+

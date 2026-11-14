@@ -16,6 +16,9 @@ const ALTURA: float = 2.15
 var largura: float = LARGURA
 ## Portão blindado (quarentena, 07/11): não abre com USAR nem quebra com soco; só a bomba arromba (Bomba).
 var blindada: bool = false
+## 14/11 (Estação Halverson): porta trancada por cartão ("verde", "azul", "amarelo"); "" = sem tranca. Quem tem o
+## cartão destranca para todos (vai pela sincronia); trancada não abre nem quebra.
+var cartao: String = ""
 ## Cor da folha (madeira; o portão da quarentena é grade de metal escura).
 var cor: Color = Color(0.36, 0.25, 0.16)
 
@@ -74,7 +77,7 @@ func _ready() -> void:
 	mac.position = Vector3(largura - 0.12, 1.0, 0.06)
 	_folha.add_child(mac)
 	var cfg := SceneReplicationConfig.new()
-	for p: String in [".:aberta", ".:vida"]:
+	for p: String in [".:aberta", ".:vida", ".:cartao"]:
 		cfg.add_property(NodePath(p))
 		cfg.property_set_replication_mode(NodePath(p), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	var sync := MultiplayerSynchronizer.new()
@@ -165,6 +168,8 @@ static func perto(arvore: SceneTree, pos: Vector3) -> Porta:
 func alterna_por(j: Jogador) -> void:
 	if arrombada() or j.vida <= 0 or blindada:
 		return
+	if cartao != "":
+		cartao = ""  # shortcut: o servidor confia que o cliente tem o cartão (Jogador confere antes de pedir)
 	if barricada:  # quem está dentro arranca as tábuas para sair
 		_tira_tabuas.rpc() if multiplayer.has_multiplayer_peer() else _tira_tabuas()
 	var d: Vector3 = centro() - j.global_position
@@ -175,7 +180,7 @@ func alterna_por(j: Jogador) -> void:
 
 ## Servidor: soco de zumbi na porta fechada.
 func leva_soco(dano: int) -> void:
-	if aberta or arrombada() or blindada:
+	if aberta or arrombada() or blindada or cartao != "":
 		return
 	if barricada:
 		dano = maxi(1, dano / 4)  # 07/11: tábuas pregadas: o zumbi demora 4x mais

@@ -1100,6 +1100,8 @@ static func ouve_de(j: Jogador, base: float) -> float:
 static func barulho(arvore: SceneTree, ponto: Vector3, raio: float) -> void:
 	for n: Node in arvore.get_nodes_in_group("zumbis"):
 		(n as Zumbi).ouve(ponto, raio)
+	for n: Node in arvore.get_nodes_in_group("paciente_zero"):  # 14/11: ele ouve tudo que os zumbis ouvem
+		(n as Zumbi).ouve(ponto, raio)
 
 
 func ouve(ponto: Vector3, raio: float) -> void:

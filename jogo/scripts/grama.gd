@@ -67,6 +67,8 @@ func _process(dt: float) -> void:
 			for n: Node in bairro.get_children():
 				if n.has_meta("poly"):
 					polys.append(PackedVector2Array(n.get_meta("poly")))
+				elif n.has_meta("sem_grama"):  # 14/11: chão da Estação (não é casa para o resto do Bairro)
+					polys.append(PackedVector2Array(n.get_meta("sem_grama")))
 			var ruas: Array = bairro._ruas.duplicate()
 			_tarefa = WorkerThreadPool.add_task(_mascara_de.bind(ruas, polys))
 		elif WorkerThreadPool.is_task_completed(_tarefa):

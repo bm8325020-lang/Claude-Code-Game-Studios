@@ -811,6 +811,7 @@ quarentena = {"baus": [], "soldados": []}  # floresta: sem muro de quarentena; "
 AMIGOS = []  # 13/11: sobreviventes amigáveis
 RF = random.Random(1311)
 RAIDS_F = []
+ESTACAO = {"p": None, "r": 0.0}  # 14/11: a Estação Halverson (só na floresta)
 if FLORESTA:
     def clareira(c, w, d):
         reserva(c[0], c[1], w, d)
@@ -819,17 +820,11 @@ if FLORESTA:
         return [round(x, 2), round(z, 2)]
     # estradas: da cidadezinha ao meio da mata e de lá para cada lugar (curvas suaves)
     rua([(-488.0, OFF[1]), (OFF[0] + CORTE + 5, OFF[1])], "trilha", False)  # a estrada de terra que corta a vila
-    AMIGOS.extend([p2(OFF[0] - 10.0, OFF[1] + 4.0), p2(OFF[0] + 6.0, OFF[1] - 4.0), p2(OFF[0] + 30.0, OFF[1] + 3.0)])  # gente na vila
-    # vila de cabanas dos dois lados da estrada, o armazém e a casa do xerife (lugares de loot)
-    VK = ["casa_us_3", "casa_us_10", "casa_us_6", "casa_us_3", "casa_us_1", "casa_us_10"]
-    for k, x in enumerate(range(int(OFF[0] - 115), int(OFF[0] + 120), 33)):
-        for lado in (-1, 1):
-            if (k + (lado > 0)) % 3 == 2:
-                continue  # lote vazio de vez em quando
-            m = "mercado" if (k == 3 and lado < 0) else "delegacia" if (k == 5 and lado > 0) else VK[(k * 2 + (lado > 0)) % len(VK)]
-            cz = OFF[1] + lado * (17.0 if m in ("mercado", "delegacia") else 13.0)
-            if livre(x, cz, 0.0 if lado < 0 else math.pi, *tam(m)):
-                predio(m, x, cz, (0.0, -lado * 1.0), "casas", "house" if m.startswith("casa") else "commercial")
+    # 14/11 (ESTACAO.md): no lugar da vila, a Estação de Pesquisa Halverson (prédio montado no jogo: scripts/estacao.gd),
+    # numa clareira de terra ao norte da estrada, com a entrada virada para ela; um sobrevivente na porta.
+    ESTACAO["p"] = p2(OFF[0], OFF[1] - 22.0)
+    clareira((OFF[0], OFF[1] - 22.0), 48.0, 36.0)
+    AMIGOS.extend([p2(OFF[0] - 14.0, OFF[1] - 4.0)])
     rua([(OFF[0] + CORTE + 5, OFF[1]), (-110, 250), (-80, 200), (0, 40), (30, -40)], "trilha")
     rua([(30, -40), (120, -150), (210, -230)], "trilha")             # acampamento militar
     rua([(30, -40), (180, 30), (330, 120), (360, 160)], "trilha")      # posto florestal
@@ -1228,6 +1223,7 @@ out = {"origem": "Floresta com a cidadezinha de South LA (OpenStreetMap, ODbL; t
        "quarentena": quarentena, "lugares": lugares, "marcos": marcos, "muros": muros, "props": props, "areas": areas, "faixas": faixas, "postes": postes, "veiculos": veiculos,
        "zumbis": zumbis, "longe": longe, "entrada": entrada, "raids_mata": RAIDS_F, "amigos": AMIGOS,
        "inicio": ponto_inicio(ruas, OFF, RAIDS_F, AMIGOS) if FLORESTA else None,
+       "estacao": ESTACAO if ESTACAO["p"] else None,
        "terreno": {"rio": {"p": rio, "larg": RIO_LARG, "fundo": 2.2, "agua": 1.5}, "morros": MORROS, "rios": [{"p": [[round(a, 2), round(b, 2)] for a, b in pts], "larg": lg, "fundo": 1.6} for pts, lg in RIOS],
                    "lagos": [{"p": list(c), "raio": r, "fundo": 2.4} for c, r in LAGOS]}}
 json.dump(out, open(sys.argv[1] if len(sys.argv) > 1 else "assets/mapa/cidade.json", "w"))

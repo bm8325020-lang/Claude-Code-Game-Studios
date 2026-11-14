@@ -30,6 +30,19 @@ Espera de rede em teste = tempo real (`OS.delay_msec(16)`); `process_frame` cheg
 Ao mudar o que vai pela rede (RPC/sincronia): subir `Rede.VERSAO`.
 
 ## Arquivos (scripts/)
+- ESTAÇÃO HALVERSON (14/11, virada do jogo; plano completo em `ESTACAO.md`, etapa 1 feita): a vila virou a
+  `estacao.gd` (Estacao.atual; Bairro `_estacao` lê "estacao" do cidade.json; senoia.py ESTACAO na clareira de OFF;
+  paredes/chão numa malha por cor, colisão em caixas -> malha de navegação; teto sem colisão; meta "sem_grama" p/ Grama;
+  `dentro`/`seguro` (portaria acesa)). Portas de cartão `Porta.cartao` ("verde"/"azul"; sincronizado; Jogador confere
+  `cartao_<cor>` na mochila antes de pedir). Itens cartao_verde/azul/amarelo, filtro_uv. `paciente_zero.gd`
+  (PacienteZero extends Zumbi, chefe=true (parasita), fora do grupo "zumbis", ouve Zumbi.barulho; estados
+  PATRULHA/INVESTIGA/CACA/PERSEGUE/RECUA/BUSCA; `luz_em` escuro/claro; `ve`; `queima` (UV), `irrita`; nasce pelo
+  spawner_zumbis com "pz"; main spawna no laboratório). `esconderijo.gd` (Jogador `esconde`/`sai_do_esconderijo`/
+  `escondido` sincronizado; visto entrando = `arranca_do_esconderijo`). Lanterna: acesa dentro da estação, `uv` (botão
+  UV / U), `_passa_uv` (8°, 10 m, 0,6 s, 15% de pilha, 3 em 40 s falha 2 s), `lanterna_acesa` sincronizado. `bunker.gd`
+  (3 cartões -> 90 s de alarme, `furia`, abre -> "fugiu" -> `Controles._fim_fuga`). Hordas desligadas. Rede.VERSAO 54.
+  Teste: test_estacao (24). Foto: tools/foto_estacao.gd. test_portas falha desde antes (jogador trava no vão da casinha
+  da pista; não é da estação).
 - BICHOS NA REDE (14/11, dono: "pra que um jogo que só eu vejo os animais?"): `main.spawner_bichos` (nó "Bichos") cria
   em todos; Bicho sincroniza pos_rede/rot_rede/estado_rede ("Sincronia", 15/s), cliente só segue (`_segue_rede`);
   golpe de cliente -> `_pede_golpe` (servidor); uivo/rosnado por rpc. Rede.VERSAO 52. Teste de 2 processos:

@@ -5,7 +5,7 @@
 class_name Horda
 extends RefCounted
 
-const PRIMEIRA: float = 1500.0      # s de jogo até a primeira (13/11, dono: "tire as hordas do início do jogo": 25 min)
+const PRIMEIRA: float = 1.0e9  # 14/11 (ESTACAO.md): hordas desligadas; era 1500      # s de jogo até a primeira (13/11, dono: "tire as hordas do início do jogo": 25 min)
 const INTERVALO: float = 420.0      # s entre uma e outra
 const TAMANHO: int = 8              # membros fora o líder
 const TAMANHO_NOITE: int = 12

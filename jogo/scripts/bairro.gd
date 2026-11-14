@@ -195,6 +195,7 @@ func _ready() -> void:
 	_mais_carros_e_achados()
 	_entrada(dados)
 	_inicio(dados)
+	_estacao(dados)
 	_gavetas_e_cofres()
 	var enfeites := Enfeites.new()
 	enfeites.name = "Enfeites"
@@ -1903,6 +1904,23 @@ func _inicio(dados: Dictionary) -> void:
 	var saco := BoxMesh.new()
 	saco.size = Vector3(0.7, 0.12, 1.8)
 	poe.call(saco, Vector3(0.0, 0.06, -1.5), Vector3(0, -0.3, 0), cor.call(Color(0.35, 0.18, 0.15)))  # saco de dormir sujo
+
+
+## 14/11 (ESTACAO.md): a Estação de Pesquisa Halverson, no lugar da vila.
+func _estacao(dados: Dictionary) -> void:
+	var e: Variant = dados.get("estacao")
+	if not e is Dictionary:
+		return
+	var p := Vector2(e.p[0], e.p[1])
+	var est := Estacao.new()
+	est.name = "Estacao"
+	est.position = Vector3(p.x, altura(p), p.y)
+	est.rotation.y = float(e.get("r", 0.0))
+	var canto := PackedVector2Array()
+	for c: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+		canto.append(p + (c * Vector2(Estacao.LARG, Estacao.FUNDO) * 0.5 + c * 0.5).rotated(-est.rotation.y))
+	est.set_meta("sem_grama", canto)
+	add_child(est)
 
 
 func _entrada(dados: Dictionary) -> void:

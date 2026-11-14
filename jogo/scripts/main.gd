@@ -486,6 +486,9 @@ func _process(dt: float) -> void:
 	if not _base_lida and bairro and (not multiplayer.has_multiplayer_peer() or multiplayer.is_server()):
 		_base_lida = true
 		_carrega_base()
+		if Estacao.atual and not _testando() and get_tree().get_nodes_in_group("paciente_zero").is_empty():
+			# 14/11 (ESTACAO.md): o Paciente Zero começa no laboratório
+			spawner_zumbis.spawn({"pos": Estacao.atual.to_global(Vector3(2.0, 0.2, -8.0)), "pz": true})
 	if relay and multiplayer.multiplayer_peer != relay:
 		relay.poll()  # na tela de salas (ainda não é a conexão do jogo)
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
@@ -1028,7 +1031,7 @@ var spawner_bichos: MultiplayerSpawner
 
 
 func _cria_zumbi(dados: Dictionary) -> Node:
-	var z := Zumbi.new()
+	var z: Zumbi = PacienteZero.new() if dados.get("pz", false) else Zumbi.new()  # 14/11: o Paciente Zero vem pelo mesmo spawner
 	z.position = dados.pos
 	z.casa = dados.pos
 	z.tocaia = bool(dados.get("tocaia", false))
