@@ -81,6 +81,9 @@ func _process(dt: float) -> void:
 	if sol:
 		sol.light_energy = lerpf(0.85, 0.32, n) * float(c[3]) + flash * 2.5  # 06/11 terror: noite escura (a lanterna manda)  # noite de luar: escura, mas dá para jogar (pedido do dono)
 		sol.light_color = SOL_COR[0].lerp(SOL_COR[1], n)
+		if clima == "lua_cheia":  # 14/11: luar forte e azul (dá para ver longe; os lobos também)
+			sol.light_energy += 0.35 * n
+			sol.light_color = sol.light_color.lerp(Color(0.6, 0.75, 1.0), n * 0.6)
 	if ambiente:
 		var ceu: Color = CEU_HORIZONTE[0].lerp(CEU_HORIZONTE[1], n)
 		ambiente.background_color = ceu

@@ -148,5 +148,24 @@ func _init() -> void:
 	ok(Vector2(j.global_position.x - de.x, j.global_position.z - de.z).length() > 1.2, "esquiva tira do lugar (%.1f m)" % Vector2(j.global_position.x - de.x, j.global_position.z - de.z).length())
 	ok(j.folego <= 100.0 - Jogador.ESQUIVA_FOLEGO + 5.0, "esquiva gasta fôlego")
 
+	# 6) eventos: avião com a caixa e saqueadores correndo; lua cheia; fogo novo
+	j.global_position = b.inicio_pos + Vector3(0, 0.3, 0)
+	await frames(5)
+	var fila: int = main._fila_zumbis.size() + main.zumbis.get_child_count()
+	var largou: bool = false
+	for k in 5:
+		largou = largou or main.suprimento.solta(main)
+	ok(largou, "suprimento cai na mata")
+	await frames(2)
+	ok(main.get_children().any(func(n: Node) -> bool: return n is Aviao), "avião passa por cima")
+	ok(main._fila_zumbis.size() + main.zumbis.get_child_count() >= fila + Suprimento.SAQUEADORES, "saqueadores correm para a caixa")
+	ok(Clima.TIPOS.has("lua_cheia"), "lua cheia existe")
+	var fg := Fogo.new()
+	fg.lenha = true
+	main.add_child(fg)
+	await frames(2)
+	ok(fg.find_children("*", "CPUParticles3D", false, false).size() >= 3, "fogo com chamas, fumaça e faíscas")
+	ok(fg.find_children("*", "MeshInstance3D", false, false).size() >= 5, "fogueira com lenha e brasa")
+
 	print("test_base: %d checks, %d falhas" % [checks, falhas])
 	quit(1 if falhas > 0 else 0)

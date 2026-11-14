@@ -43,6 +43,7 @@ func _init() -> void:
 		main._poe_peca("estacas", c + lado * 9.0 + fr * (-5.0 + k * 3.4), ang, "FotoBase")
 	var fogo := Fogo.new()
 	fogo.tamanho = 0.45
+	fogo.lenha = true
 	main.add_child(fogo)
 	fogo.global_position = c + Vector3(0, b.altura(Vector2(c.x - Bairro.ORIGEM.x, c.z - Bairro.ORIGEM.z)) - c.y + Bairro.ORIGEM.y + 0.05, 0)
 	j.global_position = c - lado * 12.0 + fr * 6.0 + Vector3(0, 0.5, 0)

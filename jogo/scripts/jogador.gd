@@ -1026,6 +1026,7 @@ func usar_espaco(i: int) -> void:
 				mochila.tirar("fogueira", 1)
 				var f := Fogo.new()
 				f.tamanho = 0.45
+				f.lenha = true
 				f.add_to_group("fogueiras")
 				_joga_a_frente(f, 1.8)
 				get_tree().create_timer(FOGUEIRA_DURA).timeout.connect(func() -> void:

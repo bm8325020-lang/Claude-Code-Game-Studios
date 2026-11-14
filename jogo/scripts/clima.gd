@@ -12,7 +12,9 @@ const TIPOS: Dictionary = {
 	"neblina": [0.14, "", 4.0, 0.8],
 	"nevasca": [0.12, "neve", 3.0, 0.8],
 	# 07/11 (ideia aprovada): raro; névoa vermelha e os mortos mais fortes à noite (Ciclo.forca_noite)
-	"neblina_vermelha": [0.06, "", 2.6, 0.6],
+	"neblina_vermelha": [0.08, "", 2.6, 0.6],
+	# 14/11 (dono: item 6): lua cheia: noite clara e azulada, e os lobos caçam em bando (Fauna)
+	"lua_cheia": [0.1, "", 0.7, 1.0],
 }
 var _chuva: CPUParticles3D
 var _neve: CPUParticles3D

@@ -1815,3 +1815,14 @@ func _carrega_base() -> void:
 		if e is Dictionary and e.get("pos") is Vector3:
 			_poe_peca(String(e.get("tipo", "")), e.pos, float(e.get("rot", 0.0)), String(e.get("dono", "")), e.get("bau", []))
 
+
+## 14/11 (item 6): avião de carga cruza o céu por cima de `alvo` (todos os aparelhos; só aparência e som).
+@rpc("authority", "call_local", "reliable")
+func aviao_passa(alvo: Vector3, rumo: Vector3) -> void:
+	if Rede.servidor_sem_tela:
+		return
+	var a := Aviao.new()
+	a.alvo = alvo
+	a.rumo = rumo
+	add_child(a)
+

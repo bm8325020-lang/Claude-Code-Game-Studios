@@ -40,7 +40,7 @@ func _process(dt: float) -> void:
 		elif d < Bicho.LONGE_DORME and not b.is_physics_processing() and not b._morto:
 			b.set_physics_process(true)
 	var noite: float = Ciclo.noite_de(principal.get_tree())
-	if bichos.size() >= (MAX_NOITE if noite > 0.5 else MAX_DIA):
+	if bichos.size() >= (MAX_NOITE + 6 if noite > 0.5 and principal.ciclo and principal.ciclo.clima == "lua_cheia" else MAX_NOITE if noite > 0.5 else MAX_DIA):
 		return
 	var j: Jogador = jogs[_rng.randi() % jogs.size()]
 	var r: float = _rng.randf()
@@ -50,7 +50,12 @@ func _process(dt: float) -> void:
 	var p: Vector3 = _ponto(j.global_position)
 	if not p.is_finite():
 		return
+	var lua: bool = noite > 0.5 and principal.ciclo and principal.ciclo.clima == "lua_cheia" and _jogo >= LOBO_DEPOIS
+	if lua and _rng.randf() < 0.7:
+		tipo = "lobo"  # 14/11 (item 6): lua cheia: lobos em bando
 	var n: int = _rng.randi_range(2, 3 if noite < 0.5 else 4) if tipo == "lobo" else 1
+	if lua and tipo == "lobo":
+		n = _rng.randi_range(4, 6)
 	for k in n:  # pelo spawner: aparece em todos os aparelhos da sala
 		principal.spawner_bichos.spawn({"tipo": tipo, "pos": p + Vector3(_rng.randf_range(-3, 3), 0.5, _rng.randf_range(-3, 3))})
 

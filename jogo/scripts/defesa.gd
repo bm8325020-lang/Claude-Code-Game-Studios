@@ -44,6 +44,7 @@ func passa(m: Node, dt: float) -> void:
 		return
 	var n: bool = Ciclo.noite_de(m.get_tree()) > 0.5
 	if n and not _noite:
+		_anuncia(m)
 		cai_noite(m)
 	elif not n and _noite:
 		amanhece(m)
@@ -53,6 +54,15 @@ func passa(m: Node, dt: float) -> void:
 		if _chama_t <= 0.0:
 			_chama_t = CHAMA_CADA
 			Zumbi.barulho(m.get_tree(), centro, CHAMA)
+
+
+## 14/11 (item 6): noite diferente avisa pelo rádio quando cai.
+func _anuncia(m: Node) -> void:
+	var clima: String = m.ciclo.clima if m.ciclo else ""
+	if clima == "neblina_vermelha":
+		m.aviso_todos.rpc("RÁDIO: \"Neblina vermelha subindo... hoje eles estão mais rápidos. Não sai sozinho.\"")
+	elif clima == "lua_cheia":
+		m.aviso_todos.rpc("RÁDIO: \"Lua cheia. Os lobos caçam em bando hoje... fica perto do fogo.\"")
 
 
 func _vivos_perto(m: Node, p: Vector3) -> bool:

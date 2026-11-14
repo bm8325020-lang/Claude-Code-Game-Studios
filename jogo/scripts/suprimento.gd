@@ -11,6 +11,7 @@ const INTERVALO: float = 600.0    # s entre uma e outra
 const LONGE_MIN: float = 90.0     # m do jogador escolhido
 const LONGE_MAX: float = 170.0
 const CHAMA: float = 70.0         # m: zumbis que ouvem a queda e vão ver
+const SAQUEADORES: int = 3        # 14/11: correm para a caixa (quem chegar antes leva)
 
 var _t: float = PRIMEIRA
 ## 07/11 (E6, rádio com chamados): pedido de socorro pelo rádio. Às vezes é verdade (sobrevivente cercado: zumbis em
@@ -54,6 +55,8 @@ func chamado(m: Node, armadilha: int = -1) -> bool:
 			m.zumbi_na_fila({"pos": q, "armado": true, "tipo": "corvo", "de_raid": true})
 		else:
 			m.zumbi_na_fila({"pos": q, "horda": Zumbi.DO_MORTO})  # não renascem
+	if not corvos:  # 14/11 (item 6): o sobrevivente que pediu socorro está lá de verdade (salvo, dá para chamar pro grupo)
+		m.zumbi_na_fila({"pos": p + Vector3(1.2, 0.1, 0.8), "amigo": true, "armado": true, "tipo": "corvo"})
 	var rumo: Vector3 = p - (pj[1] as Node3D).global_position
 	m.aviso_todos.rpc("RÁDIO: \"Socorro! Estou cercado ao %s, uns %d m... tem suprimento aqui!\"" % [Horda.lado(rumo), int(rumo.length() / 10.0) * 10])
 	return true
@@ -102,7 +105,15 @@ func solta(m: Node) -> bool:
 			m.soltos.add_child(m._cria_item_solto(d))
 		Zumbi.barulho(m.get_tree(), p, CHAMA)
 		var rumo: Vector3 = p - j.global_position
-		m.aviso_todos.rpc("Suprimento caindo ao %s, uns %d m!" % [Horda.lado(rumo), int(rumo.length() / 10.0) * 10])
+		# 14/11 (dono: item 6): o avião passa por cima e os saqueadores também viram: corrida até a caixa
+		m.aviao_passa.rpc(p, Vector3(cos(_rng.randf() * TAU), 0, sin(_rng.randf() * TAU)))
+		var a: float = _rng.randf() * TAU
+		for k in SAQUEADORES:
+			var q: Vector3 = p + Vector3(cos(a + k * 0.3), 0, sin(a + k * 0.3)) * 55.0
+			var nq: Vector3 = NavigationServer3D.map_get_closest_point(mapa, q)
+			m.zumbi_na_fila({"pos": (nq if nq != Vector3.ZERO else q) + Vector3(0, 0.1, 0), "armado": true, "tipo": "corvo", "de_raid": true},
+				func(z: Zumbi) -> void: z.ouve(p, 200.0))
+		m.aviso_todos.rpc("Um avião largou suprimento ao %s, uns %d m! Os saqueadores também viram." % [Horda.lado(rumo), int(rumo.length() / 10.0) * 10])
 		return true
 	return false
 
