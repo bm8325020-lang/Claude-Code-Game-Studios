@@ -1160,7 +1160,7 @@ func _luz() -> void:
 	env.ambient_light_color = Color(0.7, 0.72, 0.75)
 	env.ambient_light_energy = 0.42
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 0.82  # 13/11 estilizado: cores vivas (era 0.72 no realista)
+	env.tonemap_exposure = 0.72  # 14/11 mais escuro (terror); 13/11 estilizado era 0.82: cores vivas (era 0.72 no realista)
 	# 31/10: filtro de cor (LUT), brilho (glow) e ajuste de saturação/contraste deixavam a tela toda rosa no celular
 	# (pós-processamento do renderizador de compatibilidade): saíram
 	env.fog_enabled = true
