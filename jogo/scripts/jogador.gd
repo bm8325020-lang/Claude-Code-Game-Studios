@@ -467,6 +467,9 @@ func _physics_process(dt: float) -> void:
 	if entrada.get("pular", false):
 		_buffer = BUFFER_PULO
 		entrada["pular"] = false
+	if entrada.get("esquiva", false):
+		_esquiva_pede = true
+		entrada["esquiva"] = false
 	if entrada.get("mirar", false):
 		mira_travada = not mira_travada
 		entrada["mirar"] = false
@@ -545,7 +548,21 @@ func _physics_process(dt: float) -> void:
 
 	var plano := Vector3(velocity.x, 0, velocity.z)
 	var acel: float = (ACEL_CHAO if desejada.length() > plano.length() else FREIO) if is_on_floor() else ACEL_AR
-	plano = plano.move_toward(desejada, acel * dt)
+	_esquiva_t -= dt
+	if _esquiva_pede:
+		_esquiva_pede = false
+		if folego >= ESQUIVA_FOLEGO and is_on_floor() and vida > 0 and _esquiva_t < -ESQUIVA_ESPERA and carro == null:
+			var fr: Vector3 = -camera.cam.global_basis.z if camera else modelo.global_basis.z
+			fr.y = 0.0
+			var d: Vector3 = dir.normalized() if forca > 0.08 else -fr.normalized()  # sem direção: pula para trás
+			plano = d * ESQUIVA_VEL
+			_esquiva_t = ESQUIVA_T
+			folego -= ESQUIVA_FOLEGO
+			_toca("pulo_inicio", 0.05)
+			if camera:
+				camera.tremer(0.15)
+	if _esquiva_t <= 0.0:
+		plano = plano.move_toward(desejada, acel * dt)
 	velocity.x = plano.x
 	velocity.z = plano.z
 
@@ -710,7 +727,7 @@ signal loja_aberta
 
 
 ## Receitas aprendidas (nomes das armas). Por enquanto no aparelho; vão para a conta no prompt 16.
-var receitas: Array[String] = ["fogueira", "tabuas", "armadilha"]  # 13/11: as da mata vêm sabidas
+var receitas: Array[String] = ["fogueira", "tabuas", "armadilha", "barraca", "estacas", "horta", "bau_base", "torre", "cabana"]  # 13/11: as da mata vêm sabidas (14/11: e as da base)
 ## Fabricando: segundos que faltam (> 0), qual arma e quantas.
 var fabrica_t: float = 0.0
 var _fabrica_arma: String = ""
@@ -903,20 +920,39 @@ func _pede_porta(caminho: NodePath) -> void:
 
 
 ## Servidor: entrega o item (no aparelho do dono do jogador).
-func ganhar(tipo: String, qtd: int) -> void:
+## `rar`: raridade da arma (Loot.RAR_*; -1 = sorteia comum).
+func ganhar(tipo: String, qtd: int, rar: int = -1) -> void:
 	if is_multiplayer_authority():
-		_recebe(tipo, qtd)
+		_recebe(tipo, qtd, rar)
 	else:
-		_rede_ganha.rpc_id(get_multiplayer_authority(), tipo, qtd)
+		_rede_ganha.rpc_id(get_multiplayer_authority(), tipo, qtd, rar)
 
 
 @rpc("any_peer", "call_remote", "reliable")
-func _rede_ganha(tipo: String, qtd: int) -> void:
+func _rede_ganha(tipo: String, qtd: int, rar: int) -> void:
 	if multiplayer.get_remote_sender_id() == 1:
-		_recebe(tipo, qtd)
+		_recebe(tipo, qtd, rar)
 
 
-func _recebe(tipo: String, qtd: int) -> void:
+## 14/11 (item 3): raridade de cada arma que você tem (tipo -> Loot.RAR_*); sem entrada = comum.
+var raridades: Dictionary = {}
+
+
+func raridade_de(t: String) -> int:
+	return clampi(int(raridades.get(t, 0)), 0, 3)
+
+
+func _recebe(tipo: String, qtd: int, rar: int = -1) -> void:
+	if Loot.e_arma(tipo):  # arma: guarda a raridade; a mesma arma melhor troca a sua (a pior some)
+		var r: int = clampi(rar, 0, 3) if rar >= 0 else Loot.rola_raridade(null)
+		if mochila.tem(tipo):
+			if r > raridade_de(tipo):
+				raridades[tipo] = r
+				item_pego.emit("arma_melhor:" + tipo, r)
+			else:
+				_larga_no_chao(tipo, qtd, r)
+			return
+		raridades[tipo] = r
 	if tipo == "vazio":
 		item_pego.emit(tipo, 0)
 		return
@@ -946,7 +982,7 @@ func _recebe(tipo: String, qtd: int) -> void:
 		return
 	var coube: int = mochila.adicionar(tipo, qtd)
 	if coube < qtd:
-		_larga_no_chao(tipo, qtd - coube)  # o que não coube volta para o chão
+		_larga_no_chao(tipo, qtd - coube, raridade_de(tipo))  # o que não coube volta para o chão
 	if coube > 0:
 		item_pego.emit(tipo, coube)
 
@@ -955,7 +991,7 @@ func _recebe(tipo: String, qtd: int) -> void:
 func largar(i: int) -> void:
 	var e: Dictionary = mochila.tirar_espaco(i)
 	if not e.is_empty():
-		_larga_no_chao(e.tipo, e.qtd)
+		_larga_no_chao(e.tipo, e.qtd, raridade_de(String(e.tipo)) if Loot.e_arma(String(e.tipo)) else -1)
 
 
 ## Barra rápida: arma vai para a mão; comida e água são consumidas.
@@ -996,6 +1032,20 @@ func usar_espaco(i: int) -> void:
 					if is_instance_valid(f):
 						f.queue_free())
 				item_pego.emit("fogueira_acesa", 0)
+		"barraca", "estacas", "horta", "bau_base", "torre", "cabana":  # 14/11 (item 2): monta a peça da base na frente
+			if vida > 0 and carro == null and is_on_floor():
+				var principal := get_tree().get_first_node_in_group("principal")
+				if String(e.tipo) == "cabana" and get_tree().get_nodes_in_group("base_barraca").is_empty():
+					item_pego.emit("base_falta_barraca", 0)  # fogueira -> barraca -> cabana
+				elif principal:
+					mochila.tirar(String(e.tipo), 1)
+					var fr: Vector3 = -camera.cam.global_basis.z if camera else modelo.global_basis.z
+					fr.y = 0.0
+					var dist: float = 3.5 if String(e.tipo) in ["cabana", "torre"] else 2.2
+					principal.coloca_peca(String(e.tipo), global_position + fr.normalized() * dist, atan2(fr.x, fr.z), nick)
+					item_pego.emit("base_montou", 0)
+		"bilhete":  # 14/11 (item 5): o bilhete do acampamento destruído
+			item_pego.emit("bilhete", 0)
 		"comida":
 			entrada["comer"] = true
 		"agua":
@@ -1054,22 +1104,22 @@ func usar_espaco(i: int) -> void:
 			item_pego.emit("livro", 0)
 
 
-func _larga_no_chao(tipo: String, qtd: int) -> void:
+func _larga_no_chao(tipo: String, qtd: int, rar: int = -1) -> void:
 	var frente: Vector3 = -camera.cam.global_basis.z if camera else modelo.global_basis.z
 	frente.y = 0.0
 	var pos: Vector3 = global_position + frente.normalized() * 0.9
 	if not multiplayer.has_multiplayer_peer() or multiplayer.is_server():
-		get_tree().get_first_node_in_group("principal").solta_item(tipo, qtd, pos)
+		get_tree().get_first_node_in_group("principal").solta_item(tipo, qtd, pos, Item.SOME, rar)
 	else:
-		_pede_largar.rpc_id(1, tipo, qtd, pos)
+		_pede_largar.rpc_id(1, tipo, qtd, pos, rar)
 
 
 @rpc("any_peer", "call_remote", "reliable")
-func _pede_largar(tipo: String, qtd: int, pos: Vector3) -> void:
+func _pede_largar(tipo: String, qtd: int, pos: Vector3, rar: int) -> void:
 	# roda no servidor: só o dono pede, e só perto de onde ele está
 	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == get_multiplayer_authority() \
 			and pos.distance_to(global_position) < 2.5 and qtd > 0 and qtd <= 96 and Mochila.NOMES.has(tipo):
-		get_tree().get_first_node_in_group("principal").solta_item(tipo, qtd, pos)
+		get_tree().get_first_node_in_group("principal").solta_item(tipo, qtd, pos, Item.SOME, clampi(rar, -1, 3))
 
 
 ## Avisa o HUD que pegou algo.
@@ -1308,8 +1358,8 @@ func _rede_dano(dano: int, dir: Vector3) -> void:
 
 
 func _recebe_dano(dano: int, dir: Vector3) -> void:
-	if vida <= 0:
-		return
+	if vida <= 0 or _esquiva_t > 0.0:
+		return  # 14/11: no meio da esquiva o golpe passa
 	var principal := get_tree().get_first_node_in_group("principal")
 	if _jogo_t < NOVATO_T and not (principal and principal.em_pvp()):  # no PvP o servidor conta a morte pelo dano cheio
 		dano = ceili(dano * NOVATO_DANO)  # primeiros minutos da partida: os zumbis batem menos
@@ -1526,6 +1576,15 @@ func _joga_a_frente(no: Node3D, dist: float) -> void:
 	no.global_position = h.position if not h.is_empty() else alvo
 
 
+## 14/11 (item 4): esquiva — tranco rápido para onde anda (parado: para trás), gasta fôlego; no meio dela não leva dano.
+const ESQUIVA_FOLEGO: float = 25.0
+const ESQUIVA_VEL: float = 10.0
+const ESQUIVA_T: float = 0.25
+const ESQUIVA_ESPERA: float = 0.5
+var _esquiva_t: float = -1.0
+var _esquiva_pede: bool = false
+
+
 ## 07/11: chute — com zumbi a até CHUTE_DIST m na frente e fôlego, empurra ele longe (sai do cerco) e tira um pouco.
 const CHUTE_DIST: float = 1.7
 const CHUTE_FOLEGO: float = 20.0
@@ -1558,7 +1617,7 @@ func _chuta() -> bool:
 
 ## O que não se perde ao morrer: armas (brancas e de fogo), munição e silenciador.
 static func fica_na_morte(t: String) -> bool:
-	return Armas.e_branca(t) or Pistola.FOGO.has(t) or t in ["pistola", "municao", "cartucho", "municao_fuzil", "silenciador"]
+	return Armas.e_branca(t) or Pistola.FOGO.has(t) or t in ["pistola", "municao", "cartucho", "municao_fuzil", "silenciador", "mira", "pente_ext"]
 
 
 ## O que vai para o saco: tudo menos o facão, juntando o mesmo tipo; `pentes` = munição -> balas nos pentes.
@@ -1993,6 +2052,9 @@ func coleta_perto() -> Array:
 	for c: Array in principal.bairro.coleta_em(global_position, 2.3):
 		if agora - float(_colhido.get(c[2], -COLHE_VOLTA)) >= COLHE_VOLTA:
 			return c
+	for h: Peca in get_tree().get_nodes_in_group("base_horta"):  # 14/11: horta da base
+		if h.horta_pronta() and h.global_position.distance_to(global_position) < 2.3:
+			return [h.global_position, "horta", -2, h]
 	if sede < 99.0 and principal.bairro.beira_dagua(global_position):
 		return [global_position, "rio", -1]
 	return []
@@ -2006,6 +2068,11 @@ func _colhe(c: Array) -> void:
 		if randf() < 0.2:
 			infecta(6.0)
 		item_pego.emit("bebeu_rio", 0)
+		return
+	if c[1] == "horta":
+		(c[3] as Peca).colhida_t = Time.get_ticks_msec() / 1000.0  # shortcut: cada aparelho conta a sua horta; ir para o servidor se virar farra
+		if mochila.adicionar("fruta", 4) >= 0:
+			item_pego.emit("fruta", 4)
 		return
 	_colhido[c[2]] = Time.get_ticks_msec() / 1000.0
 	var qtd: int = randi_range(1, 3) if c[1] == "fruta" else randi_range(2, 3)
@@ -2196,11 +2263,14 @@ func _atira() -> void:
 		Zumbi.barulho(get_tree(), global_position, f.barulho_atual())
 	if camera:
 		camera.coice(f.coice)
+		camera.tremer(clampf(f.coice * 0.07, 0.06, 0.4))  # 14/11 (item 4): o tiro sacode a tela
 	if res.acertou is Zumbi:
 		var z: Zumbi = res.acertou
 		# no servidor a vida já caiu; no cliente o dano ainda vai chegar: prevê se matou
 		var morreu: bool = z.vida <= 0 if multiplayer.is_server() else z.vida - f.dano * (2 if res.cabeca else 1) <= 0
 		_confirma_acerto(res.cabeca or morreu, res.cabeca)
+		if res.cabeca and morreu and not z.humano():
+			z.estoura_cabeca.rpc() if multiplayer.has_multiplayer_peer() else z.estoura_cabeca()
 	elif res.acertou is Jogador:
 		_confirma_acerto(res.cabeca, res.cabeca)
 	if multiplayer.has_multiplayer_peer() and multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
@@ -2488,7 +2558,7 @@ func _atualiza_golpe(dt: float) -> void:
 func _acerta(g: Dictionary) -> void:
 	var a: Dictionary = Armas.BRANCAS.get(arma, Armas.BRANCAS.facao)
 	g = g.duplicate()
-	g.dano = roundi(float(a.dano[clampi(_golpe, 0, 2)]) * mult_forca())
+	g.dano = roundi(float(a.dano[clampi(_golpe, 0, 2)]) * mult_forca() * Loot.RAR_DANO[raridade_de(arma)])
 	g.alcance = float(a.alcance)
 	var frente: Vector3 = modelo.global_transform.basis.z
 	frente.y = 0.0

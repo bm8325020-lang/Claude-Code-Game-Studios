@@ -22,6 +22,8 @@ var _saco_t: float = SOME_SACO
 ## baú da facção (prompt 13): começa vazio, não reenche, só membros da facção dona da casa (`faccao`) abrem
 var de_faccao: bool = false
 var faccao: String = ""
+## 14/11: baú da base (Peca "bau_base"): como o da facção, mas qualquer um abre e guarda
+var da_base: bool = false
 ## cofre (31/10): armário de metal trancado com loot raro; abre com uma "chave" (que some). A chave fica numa gaveta
 ## (`gaveta_chave`) de outra casa; o bilhete do cofre diz onde. Esvaziou e encheu de novo: tranca e a chave volta.
 var trava: bool = false
@@ -31,7 +33,11 @@ var gaveta_chave: Gaveta
 var conteudo: Array = []:
 	set(v):
 		conteudo = v
-		set_process(true)  # anti-travamento: só roda enquanto a tampa mexe ou vai reencher (desliga sozinho)
+		set_process(true)
+		if da_base and is_inside_tree():  # 14/11: baú da base vai junto no save
+			var principal := get_tree().get_first_node_in_group("principal")
+			if principal:
+				principal.base_mudou()  # anti-travamento: só roda enquanto a tampa mexe ou vai reencher (desliga sozinho)
 var _vazio_t: float = 0.0
 var _tampa: Node3D
 var _rng := RandomNumberGenerator.new()
@@ -63,7 +69,7 @@ func _manda() -> bool:
 
 ## Pode abrir? Baú da facção: só quem é da facção dona.
 func pode(j: Jogador) -> bool:
-	if not de_faccao:
+	if not de_faccao or da_base:
 		return true
 	var principal := get_tree().get_first_node_in_group("principal")
 	return j != null and faccao != "" and principal != null and principal.faccao_de(j.nick) == faccao
@@ -94,7 +100,7 @@ func pega_por(j: Jogador, i: int) -> void:
 		var n: int = idx[k]
 		if n < 0 or n >= novo.size():
 			continue
-		j.ganhar(String(novo[n].tipo), int(novo[n].qtd))
+		j.ganhar(String(novo[n].tipo), int(novo[n].qtd), int(novo[n].get("rar", -1)))
 		novo.remove_at(n)
 	conteudo = novo  # reatribui: a sincronia só manda quando a propriedade muda
 	if conteudo.is_empty() and not de_faccao:

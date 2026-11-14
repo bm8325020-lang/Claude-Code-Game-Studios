@@ -1199,9 +1199,35 @@ if not FLORESTA:
     print("E6: pátio", patio, "| acampamento", acamp, "| garagem", garagem, "| posto dos Corvos", posto_c)
     print("E3: casas incendiadas", incendio, "| entulho", bomba, "| fila na rodovia", fila, "| vala comum", vala)
     print("casas prontas:", sum(1 for pp in predios if pp["modelo"].startswith("casa_p")))
+# 14/11 (dono: item 5, começo sem missão): acampamento destruído onde o jogador acorda. Ponto numa trilha no meio da
+# mata (200-360 m da vila, longe da borda), o mais longe possível das raids e dos amigos. Sem sortear nada: não muda o resto do mapa.
+def ponto_inicio(ruas, vila, raids, amigos):
+    melhor, nota = None, -1.0
+    for r in ruas:
+        if r.get("tipo") != "trilha":
+            continue
+        ps = r["p"]
+        for (ax, az), (bx, bz) in zip(ps, ps[1:]):
+            n = max(1, int(math.hypot(bx - ax, bz - az) / 10.0))
+            for k in range(n):
+                x, z = ax + (bx - ax) * k / n, az + (bz - az) * k / n
+                dv = math.hypot(x - vila[0], z - vila[1])
+                if not 200.0 <= dv <= 360.0 or max(abs(x), abs(z)) > 380.0:
+                    continue
+                dr = min([math.hypot(x - q[1][0], z - q[1][1]) for q in raids] + [999.0])
+                da = min([math.hypot(x - q[0], z - q[1]) for q in amigos] + [999.0])
+                if dr < 130.0 or da < 60.0:
+                    continue
+                if dr > nota:
+                    d = math.hypot(bx - ax, bz - az) or 1.0
+                    melhor, nota = {"p": [round(x, 1), round(z, 1)], "dir": [round((bx - ax) / d, 3), round((bz - az) / d, 3)]}, dr
+    return melhor
+
+
 out = {"origem": "Floresta com a cidadezinha de South LA (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if FLORESTA else "South Los Angeles, CA (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if LA else "Galena, IL (OpenStreetMap, ODbL; tools/mapa/senoia.py)" if GALENA else "Senoia, GA (OpenStreetMap, ODbL; tools/mapa/raven_creek.py CIDADE=senoia)" if SENOIA else "Raven Creek (tools/mapa/raven_creek.py)", "ruas": ruas, "predios": predios, "frestas": frestas, "bloqueios": bloqueios,
        "quarentena": quarentena, "lugares": lugares, "marcos": marcos, "muros": muros, "props": props, "areas": areas, "faixas": faixas, "postes": postes, "veiculos": veiculos,
        "zumbis": zumbis, "longe": longe, "entrada": entrada, "raids_mata": RAIDS_F, "amigos": AMIGOS,
+       "inicio": ponto_inicio(ruas, OFF, RAIDS_F, AMIGOS) if FLORESTA else None,
        "terreno": {"rio": {"p": rio, "larg": RIO_LARG, "fundo": 2.2, "agua": 1.5}, "morros": MORROS, "rios": [{"p": [[round(a, 2), round(b, 2)] for a, b in pts], "larg": lg, "fundo": 1.6} for pts, lg in RIOS],
                    "lagos": [{"p": list(c), "raio": r, "fundo": 2.4} for c, r in LAGOS]}}
 json.dump(out, open(sys.argv[1] if len(sys.argv) > 1 else "assets/mapa/cidade.json", "w"))

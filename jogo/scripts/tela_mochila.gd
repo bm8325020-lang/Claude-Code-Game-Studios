@@ -10,6 +10,7 @@ var jogador: Jogador
 var _espacos: Array[Espaco] = []
 var _sel: int = -1
 var _nome: Label
+var _cor_nome: Color
 var _qtd: Label
 var _icone: TextureRect
 var _texto: Label
@@ -77,6 +78,7 @@ func _ready() -> void:
 	var topo := HBoxContainer.new()
 	col.add_child(topo)
 	_nome = UiTema.titulo("", 36)
+	_cor_nome = _nome.get_theme_color("font_color")
 	_nome.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	topo.add_child(_nome)
 	_qtd = UiTema.titulo("", 24, UiTema.APAGADO)
@@ -150,6 +152,12 @@ func _atualiza() -> void:
 		_espacos[i].mostra(jogador.mochila.espacos[i], i == _sel)
 	var e: Variant = jogador.mochila.espacos[_sel] if _sel >= 0 else null
 	_nome.text = String(Mochila.NOMES.get(e.tipo, e.tipo)).to_upper() if e else "TOQUE NUM ITEM"
+	if e and Loot.e_arma(String(e.tipo)) and jogador:  # 14/11: arma mostra a raridade na cor dela
+		var r: int = jogador.raridade_de(String(e.tipo))
+		_nome.text += "  " + Loot.RAR_NOMES[r]
+		_nome.add_theme_color_override("font_color", Loot.CORES[r])
+	else:
+		_nome.add_theme_color_override("font_color", _cor_nome)
 	_qtd.text = "X%d" % e.qtd if e else ""
 	_icone.texture = Icones.de(e.tipo) if e else null
 	_texto.text = String(Mochila.TEXTOS.get(e.tipo, "")) if e else "Toque num item para ver. Com um item escolhido, toque em outro espaço para mover."

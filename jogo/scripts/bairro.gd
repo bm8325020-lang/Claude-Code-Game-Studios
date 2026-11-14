@@ -194,6 +194,7 @@ func _ready() -> void:
 	_classifica()
 	_mais_carros_e_achados()
 	_entrada(dados)
+	_inicio(dados)
 	_gavetas_e_cofres()
 	var enfeites := Enfeites.new()
 	enfeites.name = "Enfeites"
@@ -1834,6 +1835,74 @@ const ACHADOS: int = 160  # 07/11 (dono: "espalha mais loot, parece que ando em 
 ## o carro dele parado no acostamento. Vazio (Vector3.INF) se o mapa não tem.
 var entrada_pos: Vector3 = Vector3.INF
 var entrada_dir: Vector3 = Vector3.FORWARD
+
+
+## 14/11 (dono: item 5, começo sem missão): acampamento destruído na beira de uma trilha no meio da mata, onde quem
+## chega acorda. Ninguém diz o que fazer: barraca caída, fogueira apagada, um bilhete e uma pilha; a trilha leva à vila.
+var inicio_pos: Vector3 = Vector3.INF
+var inicio_dir: Vector3 = Vector3.FORWARD
+
+
+func _inicio(dados: Dictionary) -> void:
+	var e: Variant = dados.get("inicio")
+	if not e is Dictionary:
+		return
+	var p := Vector2(e.p[0], e.p[1])
+	var d := Vector2(e.dir[0], e.dir[1]).normalized()
+	var lado := Vector2(-d.y, d.x)
+	inicio_pos = ORIGEM + Vector3(p.x, altura(p) + 0.1, p.y)
+	inicio_dir = Vector3(lado.x, 0, lado.y)  # acorda olhando para o acampamento
+	var c: Vector2 = p + lado * 3.0
+	var no := Node3D.new()
+	no.name = "Inicio"
+	no.position = Vector3(c.x, altura(c), c.y)
+	no.rotation.y = atan2(lado.x, lado.y)
+	add_child(no)
+	var bilhete := Item.new()  # o bilhete do último que ficou aqui (Mochila.TEXTOS / Controles: "bilhete")
+	bilhete.name = "Bilhete"
+	bilhete.tipo = "bilhete"
+	bilhete.quantidade = 1
+	bilhete.position = Vector3(-0.6, 0.03, -0.9)
+	no.add_child(bilhete)
+	var pilha := Item.new()
+	pilha.name = "Pilha"
+	pilha.tipo = "pilha"
+	pilha.quantidade = 1
+	pilha.position = Vector3(1.4, 0.03, 0.6)
+	no.add_child(pilha)
+	if Rede.servidor_sem_tela:
+		return
+	var cor := func(c2: Color) -> StandardMaterial3D:
+		var m := StandardMaterial3D.new()
+		m.albedo_color = c2
+		m.roughness = 1.0
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		return m
+	var poe := func(me: Mesh, pos: Vector3, rot: Vector3, m: Material) -> void:
+		var mi := MeshInstance3D.new()
+		mi.mesh = me
+		mi.material_override = m
+		mi.position = pos
+		mi.rotation = rot
+		no.add_child(mi)
+	var lona := PrismMesh.new()  # barraca caída, meio rasgada para o lado
+	lona.size = Vector3(2.2, 0.9, 2.4)
+	poe.call(lona, Vector3(1.6, 0.35, -0.4), Vector3(0, 0.4, 0.55), cor.call(Color(0.3, 0.34, 0.24)))
+	var pedra := BoxMesh.new()
+	pedra.size = Vector3(0.22, 0.14, 0.2)
+	for k in 8:  # roda de pedras da fogueira apagada
+		var a: float = TAU * k / 8.0
+		poe.call(pedra, Vector3(-1.2 + cos(a) * 0.45, 0.07, 0.3 + sin(a) * 0.45), Vector3(0, a, 0), cor.call(Color(0.42, 0.42, 0.4)))
+	var lenha := BoxMesh.new()
+	lenha.size = Vector3(0.7, 0.1, 0.1)
+	for k in 3:  # lenha queimada no meio
+		poe.call(lenha, Vector3(-1.2, 0.06 + k * 0.03, 0.3), Vector3(0, k * 1.05, 0), cor.call(Color(0.1, 0.09, 0.08)))
+	var caixa := BoxMesh.new()
+	caixa.size = Vector3(0.6, 0.4, 0.45)
+	poe.call(caixa, Vector3(0.2, 0.2, 1.4), Vector3(0.3, 0.6, 0.15), cor.call(Color(0.4, 0.3, 0.2)))
+	var saco := BoxMesh.new()
+	saco.size = Vector3(0.7, 0.12, 1.8)
+	poe.call(saco, Vector3(0.0, 0.06, -1.5), Vector3(0, -0.3, 0), cor.call(Color(0.35, 0.18, 0.15)))  # saco de dormir sujo
 
 
 func _entrada(dados: Dictionary) -> void:

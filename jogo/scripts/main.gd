@@ -33,6 +33,14 @@ var grupos := Grupos.new()  # servidor: quem está com quem
 var horda := Horda.new()  # servidor: horda andarilha (mods de zumbi do GTA V)
 var populacao := Populacao.new()  # servidor: zumbis em volta de quem está na cidade (GTAZ: orçamento + fila)
 var suprimento := Suprimento.new()  # servidor: caixa que cai do céu (Simple Zombies, Crate Drop)
+var defesa := Defesa.new()  # 14/11 (item 1): servidor: noite de defesa da base
+## 14/11 (item 2): peças da base (Peca) pelo spawner; o servidor salva em BASE_ARQ
+var base_no: Node3D
+var spawner_base: MultiplayerSpawner
+const BASE_ARQ := "user://base_floresta.cfg"
+const BASE_MAX: int = 60
+var _base_lida: bool = false
+var _base_salvar: bool = false
 var faccoes := Faccoes.new()  # servidor: facções e domínios em andamento
 var _faccoes_cli: Dictionary = {"f": {}, "t": {}}  # todos: cópia que o servidor manda
 var _faccao_tick: float = 0.0
@@ -106,6 +114,14 @@ func _ready() -> void:
 		b.tipo = String(d.tipo)
 		b.position = d.pos
 		return b
+	base_no = Node3D.new()
+	base_no.name = "Base"
+	add_child(base_no)
+	spawner_base = MultiplayerSpawner.new()
+	spawner_base.name = "SpawnerBase"
+	add_child(spawner_base)
+	spawner_base.spawn_path = spawner_base.get_path_to(base_no)
+	spawner_base.spawn_function = _cria_peca
 	rede = Rede.new()
 	rede.name = "Rede"
 	add_child(rede)
@@ -467,6 +483,9 @@ func _process(dt: float) -> void:
 			(f[1] as Callable).call(zf)
 	if not Rede.servidor_sem_tela:
 		_resolucao_dinamica(dt)
+	if not _base_lida and bairro and (not multiplayer.has_multiplayer_peer() or multiplayer.is_server()):
+		_base_lida = true
+		_carrega_base()
 	if relay and multiplayer.multiplayer_peer != relay:
 		relay.poll()  # na tela de salas (ainda não é a conexão do jogo)
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
@@ -475,6 +494,7 @@ func _process(dt: float) -> void:
 		horda.passa(self, dt)
 		populacao.passa(self, dt)
 		suprimento.passa(self, dt)
+		defesa.passa(self, dt)
 		_passa_raids(dt)
 		_passa_dominio(dt)
 		_passa_salas(dt)
@@ -840,6 +860,10 @@ func faccao_de(nick: String) -> String:
 
 ## Lugar sorteado para nascer/renascer (prompt 11). Quem tem casa de facção renasce nela (prompt 13).
 func ponto_nascer(nick: String = "", chance: float = Bairro.CHANCE_BOM) -> Vector3:
+	for g: String in ["base_cabana", "base_barraca"]:  # 14/11 (item 2): quem tem abrigo na base renasce nele
+		for p: Peca in get_tree().get_nodes_in_group(g):
+			if p.dono == nick and nick != "":
+				return p.global_position + (Vector3(0, 0.4, 0) if g == "base_cabana" else p.global_basis.z * 1.6 + Vector3(0, 0.2, 0))
 	var f: String = faccao_de(nick) if nick != "" else ""
 	if f != "" and String(_faccoes_cli.f[f].casa) != "":
 		return bairro.frente_da(_faccoes_cli.f[f].casa)  # quem tem casa de facção renasce nela
@@ -854,8 +878,8 @@ func aviso_todos(texto: String) -> void:
 
 
 ## Servidor (ou sozinho): põe no chão um item largado/que não coube na mochila.
-func solta_item(tipo: String, qtd: int, pos: Vector3, some: float = Item.SOME) -> void:
-	var d := {"tipo": tipo, "qtd": qtd, "pos": pos, "some": some}
+func solta_item(tipo: String, qtd: int, pos: Vector3, some: float = Item.SOME, rar: int = -1) -> void:
+	var d := {"tipo": tipo, "qtd": qtd, "pos": pos, "some": some, "rar": rar}
 	if multiplayer.has_multiplayer_peer():
 		spawner_itens.spawn(d)
 	else:
@@ -875,6 +899,7 @@ func _cria_item_solto(d: Dictionary) -> Node:
 	it.quantidade = int(d.qtd)
 	it.solto = true
 	it._some_t = float(d.get("some", Item.SOME))
+	it.raridade = int(d.get("rar", -1))
 	it.position = d.pos
 	return it
 
@@ -1028,6 +1053,9 @@ func _testando() -> bool:
 
 
 func _ponto_inicial(i: int) -> Vector3:
+	if nascer_no_bairro and bairro and bairro.inicio_pos.is_finite() and not _testando():
+		# 14/11 (item 5): todo mundo acorda no acampamento destruído, um ao lado do outro na trilha
+		return bairro.inicio_pos + Vector3(-bairro.inicio_dir.z, 0, bairro.inicio_dir.x) * 1.5 * i
 	if nascer_no_bairro and bairro and bairro.entrada_pos != Vector3.INF and not _testando():
 		# quem chega vem pela estrada do leste, ao lado do carro (HISTORIA.md); os outros um pouco atrás
 		return bairro.entrada_pos - bairro.entrada_dir * 2.5 * i + Vector3(-bairro.entrada_dir.z, 0, bairro.entrada_dir.x) * 0.6
@@ -1067,6 +1095,10 @@ func _jogador_entrou(n: Node) -> void:
 				Estilo.tudo(self)  # 13/11: o que ganhou malha/material depois de entrar (ruas juntas, longe)
 		j.nick = nick_local
 		controles.jogador = j
+		if bairro and bairro.inicio_pos.is_finite() and j.global_position.distance_to(bairro.inicio_pos) < 12.0:
+			j.carga = 30.0  # 14/11 (item 5): acorda com a lanterna fraca
+			if j.camera:
+				j.camera.virar(atan2(-bairro.inicio_dir.x, -bairro.inicio_dir.z), 0.0)
 		if arma_inicial != "":
 			j.entrada["arma"] = arma_inicial
 		if abrir_pvp:
@@ -1698,3 +1730,88 @@ func mostra_carregando() -> void:
 	if _carregando == null or not is_instance_valid(_carregando):
 		_carregando = Carregando.new()
 		add_child(_carregando)
+
+
+# --- base (14/11, item 2) ---
+func _cria_peca(d: Dictionary) -> Node:
+	var p := Peca.new()
+	p.tipo = String(d.tipo)
+	p.dono = String(d.get("dono", ""))
+	p.position = d.pos
+	p.rotation.y = float(d.get("rot", 0.0))
+	p.name = "Peca_%d" % int(d.get("id", 0))
+	return p
+
+
+## Jogador (qualquer aparelho): monta a peça `tipo` em `pos` virada para `rot`. O servidor confere e põe.
+func coloca_peca(tipo: String, pos: Vector3, rot: float, dono: String) -> void:
+	if not multiplayer.has_multiplayer_peer() or multiplayer.is_server():
+		_poe_peca(tipo, pos, rot, dono)
+	else:
+		_pede_peca.rpc_id(1, tipo, pos, rot)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _pede_peca(tipo: String, pos: Vector3, rot: float) -> void:
+	var j: Jogador = jogadores.get_node_or_null(str(multiplayer.get_remote_sender_id())) if multiplayer.is_server() else null
+	if j and j.vida > 0 and j.global_position.distance_to(pos) < 6.0:
+		_poe_peca(tipo, pos, rot, j.nick)
+
+
+var _peca_id: int = 0
+
+
+func _poe_peca(tipo: String, pos: Vector3, rot: float, dono: String, bau: Array = []) -> Peca:
+	if not tipo in Peca.TIPOS or base_no.get_child_count() >= BASE_MAX or not pos.is_finite():
+		return null
+	var q := PhysicsRayQueryParameters3D.create(pos + Vector3(0, 4, 0), pos - Vector3(0, 8, 0), 1)
+	var h: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
+	_peca_id += 1
+	var d := {"tipo": tipo, "pos": h.position if not h.is_empty() else pos, "rot": rot, "dono": dono, "id": _peca_id}
+	var p: Peca
+	if multiplayer.has_multiplayer_peer():
+		p = spawner_base.spawn(d)
+	else:
+		p = _cria_peca(d)
+		base_no.add_child(p)
+	if p and p.bau and not bau.is_empty():
+		p.bau.conteudo = bau
+	base_mudou()
+	return p
+
+
+## Servidor: a base mudou (peça nova, cerca quebrada, baú mexido): salva no fim do quadro.
+func base_mudou() -> void:
+	if (multiplayer.has_multiplayer_peer() and not multiplayer.is_server()) or _base_salvar or not _base_lida:
+		return
+	_base_salvar = true
+	_salva_base.call_deferred()
+
+
+func _salva_base() -> void:
+	_base_salvar = false
+	if _testando():
+		return
+	var pecas: Array = []
+	for p: Peca in base_no.get_children():
+		if p.is_queued_for_deletion():
+			continue
+		pecas.append({"tipo": p.tipo, "pos": p.global_position, "rot": p.rotation.y, "dono": p.dono,
+			"bau": p.bau.conteudo if p.bau else []})
+	var cf := ConfigFile.new()
+	cf.set_value("b", "pecas", pecas)
+	cf.set_value("b", "noites", defesa.noites)
+	cf.save(BASE_ARQ)
+
+
+func _carrega_base() -> void:
+	if _testando():
+		return
+	var cf := ConfigFile.new()
+	if cf.load(BASE_ARQ) != OK:
+		return
+	defesa.noites = int(cf.get_value("b", "noites", 0))
+	for e: Variant in cf.get_value("b", "pecas", []):
+		if e is Dictionary and e.get("pos") is Vector3:
+			_poe_peca(String(e.get("tipo", "")), e.pos, float(e.get("rot", 0.0)), String(e.get("dono", "")), e.get("bau", []))
+

@@ -845,7 +845,8 @@ const PAPO: Array[String] = [
 ]
 const RUMOS: Array[String] = ["norte", "nordeste", "leste", "sudeste", "sul", "sudoeste", "oeste", "noroeste"]
 var _menu_radio: VBoxContainer
-var _bots_t: float = 150.0
+var _bots_t: float = 9.0  # 14/11 (item 5): o primeiro chiado vem logo que você acorda
+var _acordou: bool = true
 
 
 func _monta_menu_radio() -> void:
@@ -944,6 +945,13 @@ func _bots_chamam(dt: float) -> void:
 		return
 	_bots_t = randf_range(200.0, 360.0)
 	var principal := get_tree().get_first_node_in_group("principal")
+	if _acordou:
+		_acordou = false
+		if principal and principal.bairro and principal.bairro.inicio_pos.is_finite() and _j.global_position.distance_to(principal.bairro.inicio_pos) < 40.0:
+			legenda("RÁDIO · ...", "...chhh... alguém na escuta?... chhh... se tá na mata, segue a trilha... a vila fica no fim dela... chhh... monta abrigo antes de escurecer...", 9.0)
+			return
+		_bots_t = randf_range(60.0, 120.0)
+		return
 	if principal and principal.horda and not principal.horda.ativas.is_empty():
 		legenda("RÁDIO · " + BOTS[1], "Atenção, quem estiver na escuta: tem uma horda atravessando a mata. Sai da trilha e se esconde.", 8.0)
 	elif Ciclo.noite_de(get_tree()) > 0.5 and randf() < 0.5:

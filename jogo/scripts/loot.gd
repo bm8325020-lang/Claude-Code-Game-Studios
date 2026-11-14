@@ -6,7 +6,14 @@ extends RefCounted
 const COMUM: int = 0
 const INCOMUM: int = 1
 const RARO: int = 2
-const CORES: Array[Color] = [Color(0.85, 0.84, 0.8), Color(0.45, 0.75, 0.4), Color(0.4, 0.6, 0.95)]
+const LENDARIO: int = 3
+const CORES: Array[Color] = [Color(0.85, 0.84, 0.8), Color(0.45, 0.75, 0.4), Color(0.4, 0.6, 0.95), Color(1.0, 0.72, 0.2)]
+## 14/11 (dono: item 3 "loot que importa"): cada arma que sai tem raridade própria; mais rara = mais dano e menos espalho.
+const RAR_NOMES: Array[String] = ["COMUM", "INCOMUM", "RARA", "LENDÁRIA"]
+const RAR_DANO: Array[float] = [1.0, 1.12, 1.25, 1.45]
+const RAR_ESPALHO: Array[float] = [1.0, 0.9, 0.78, 0.62]
+const RAR_PESOS: Array[float] = [62.0, 28.0, 9.0, 1.0]
+const RAR_PESOS_RAID: Array[float] = [25.0, 40.0, 26.0, 9.0]  # raid difícil dá as melhores
 
 ## [tipo, peso, mínimo, máximo, raridade]
 const TABELA: Array = [
@@ -41,7 +48,9 @@ const TABELA: Array = [
 	["fuzil", 0.6, 1, 1, RARO],
 	["sniper", 0.4, 1, 1, RARO],
 	["receita_smg", 1, 1, 1, RARO],
-	["bomba", 0.5, 1, 1, RARO],  # 07/11: abre a quarentena (Porta.blindada)
+	["bomba", 0.5, 1, 1, RARO],
+	["mira", 1.5, 1, 1, RARO],  # 14/11: acessórios (na mochila valem para toda arma de fogo)
+	["pente_ext", 1.5, 1, 1, RARO],  # 07/11: abre a quarentena (Porta.blindada)
 ]
 ## peças de arma (para fabricar, prompt 6)
 const PECAS: Array[String] = ["mola", "gatilho", "cano", "cabo", "ferrolho", "carregador"]
@@ -84,6 +93,21 @@ const ITENS_MIN: int = 2
 const ITENS_MAX: int = 4
 
 
+static func e_arma(tipo: String) -> bool:
+	return tipo != "punhos" and (Armas.e_branca(tipo) or Pistola.FOGO.has(tipo))
+
+
+## Raridade de uma arma achada (rng nulo = randf). `raid`: tabela das raids.
+static func rola_raridade(rng: RandomNumberGenerator, raid: bool = false) -> int:
+	var p: Array[float] = RAR_PESOS_RAID if raid else RAR_PESOS
+	var x: float = (rng.randf() if rng else randf()) * (p[0] + p[1] + p[2] + p[3])
+	for r in 4:
+		x -= p[r]
+		if x <= 0.0:
+			return r
+	return COMUM
+
+
 static func raridade(tipo: String) -> int:
 	var r: int = COMUM
 	for l: Array in TABELA + DROP_ZUMBI:
@@ -94,9 +118,12 @@ static func raridade(tipo: String) -> int:
 
 ## Sorteia o conteúdo de um baú: lista de {"tipo", "qtd"} (tipos repetidos se juntam).
 static func sorteia(rng: RandomNumberGenerator, facil: bool = false, raid: bool = false) -> Array:
-	if raid:  # baú de raid: mais coisas e as raras bem mais prováveis
-		return _rola(TABELA, rng, rng.randi_range(ITENS_MIN + 2, ITENS_MAX + 3), {}, RAID_RARO)
-	return _rola(TABELA, rng, rng.randi_range(ITENS_MIN, ITENS_MAX), FACIL if facil else {}, 1.0)
+	var out: Array = _rola(TABELA, rng, rng.randi_range(ITENS_MIN + 2, ITENS_MAX + 3), {}, RAID_RARO) if raid \
+		else _rola(TABELA, rng, rng.randi_range(ITENS_MIN, ITENS_MAX), FACIL if facil else {}, 1.0)
+	for e: Dictionary in out:  # baú de raid: mais coisas, as raras bem mais prováveis e armas melhores
+		if e_arma(String(e.tipo)):
+			e["rar"] = rola_raridade(rng, raid)
+	return out
 
 
 ## Um achado de gaveta/móvel no `lugar` (Loot.LUGAR; sem lugar = baú fácil).

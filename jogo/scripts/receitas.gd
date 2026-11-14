@@ -17,6 +17,14 @@ const LISTA: Dictionary = {
 	"fogueira": {"pecas": {"madeira": 3, "pedra": 3}, "raridade": SIMPLES, "categoria": "BASE", "mao": true},
 	"tabuas": {"pecas": {"madeira": 4}, "raridade": SIMPLES, "categoria": "BASE", "mao": true},
 	"armadilha": {"pecas": {"madeira": 2, "pedra": 2}, "raridade": SIMPLES, "categoria": "ÚTEIS", "mao": true},
+	# 14/11 (dono: item 2 "base que cresce"): fogueira -> barraca -> cabana, e em volta cerca, torre, baú e horta.
+	# Os níveis de cima pedem peças que só saem de raid/zumbi (cano, ferrolho, mola): o mapa todo vira motivo.
+	"barraca": {"pecas": {"madeira": 6, "tabuas": 1}, "raridade": SIMPLES, "categoria": "BASE", "mao": true},
+	"estacas": {"pecas": {"madeira": 6}, "raridade": SIMPLES, "categoria": "BASE", "mao": true},
+	"horta": {"pecas": {"madeira": 2, "pedra": 2, "fruta": 4}, "raridade": SIMPLES, "categoria": "BASE", "mao": true},
+	"bau_base": {"pecas": {"tabuas": 3, "mola": 1}, "raridade": SIMPLES, "categoria": "BASE", "mao": true},
+	"torre": {"pecas": {"madeira": 10, "tabuas": 4, "cano": 1}, "raridade": SIMPLES, "categoria": "BASE", "mao": true},
+	"cabana": {"pecas": {"tabuas": 8, "pedra": 10, "cano": 2, "ferrolho": 1}, "raridade": SIMPLES, "categoria": "BASE", "mao": true},
 }
 const CATEGORIAS: Array[String] = ["ARMAS", "ÚTEIS", "SAÚDE", "BASE"]
 

@@ -20,6 +20,8 @@ var ativo: bool = true:
 var _volta_t: float = 0.0
 ## Largado por alguém (não faz parte do mapa): some ao ser pego ou depois de SOME segundos.
 var solto: bool = false
+## 14/11: raridade da arma largada (-1 = sorteia ao pegar)
+var raridade: int = -1
 const SOME: float = 600.0
 var _some_t: float = SOME
 
@@ -55,7 +57,7 @@ func nome() -> String:
 			return "antibiótico" + (" (%d)" % quantidade if quantidade > 1 else "")
 		"agua":
 			return "garrafa de água"
-		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador", "receita_pistola", "smg", "receita_smg", "espingarda", "fuzil", "sniper", "cartucho", "municao_fuzil", "bandagem", "silenciador", "pilha", "sinalizador", "molotov", "armadilha", "tabuas", "colete":
+		"facao", "pistola", "faca", "taco", "machado", "mola", "gatilho", "cano", "cabo", "ferrolho", "carregador", "receita_pistola", "smg", "receita_smg", "espingarda", "fuzil", "sniper", "cartucho", "municao_fuzil", "bandagem", "silenciador", "mira", "pente_ext", "pilha", "sinalizador", "molotov", "armadilha", "tabuas", "colete":
 			return Mochila.NOMES[tipo].to_lower() + (" (%d)" % quantidade if quantidade > 1 else "")
 	if Mochila.NOMES.has(tipo):
 		return Mochila.NOMES[tipo].to_lower() + (" (%d)" % quantidade if quantidade > 1 else "")
@@ -85,7 +87,7 @@ func pegar_por(j: Jogador) -> bool:
 		return false  # mochila cheia disso
 	ativo = false
 	_volta_t = VOLTA
-	j.ganhar(tipo, quantidade)
+	j.ganhar(tipo, quantidade, raridade)
 	if solto:
 		queue_free()  # o spawner tira dos outros aparelhos
 	return true
@@ -178,7 +180,7 @@ func _monta_modelo() -> void:
 
 const NATUREZA: Dictionary = {"madeira": ["item_madeira", 0.35], "pedra": ["item_pedra", 0.2], "fruta": ["item_fruta", 0.12],
 	"carne_crua": ["item_carne_crua", 0.2], "carne_assada": ["item_carne_assada", 0.18], "cogumelo": ["item_cogumelo", 0.12], "fogueira": ["item_madeira", 0.45]}
-const _PROPRIOS: Array[String] = ["colete", "tabuas", "armadilha", "molotov", "sinalizador", "pilha", "bandagem", "municao_fuzil", "silenciador", "livro", "fita", "peca_radio", "diario"]
+const _PROPRIOS: Array[String] = ["colete", "tabuas", "armadilha", "molotov", "sinalizador", "pilha", "bandagem", "municao_fuzil", "silenciador", "mira", "pente_ext", "bilhete", "livro", "fita", "peca_radio", "diario"]
 
 
 func _mat(cor: Color, rug: float = 0.7, metal: float = 0.0, brilho: float = 0.0) -> StandardMaterial3D:
@@ -245,6 +247,13 @@ func _monta_proprio() -> void:
 		"silenciador":  # tubo preto fosco com rosca prateada
 			_cilindro(Vector3(0, 0.02, 0), 0.02, 0.17, _mat(Color(0.08, 0.08, 0.09), 0.6, 0.3), true)
 			_cilindro(Vector3(0.09, 0.02, 0), 0.012, 0.02, _mat(Color(0.7, 0.7, 0.72), 0.3, 0.9), true)
+		"mira":  # 14/11: caixinha preta com vidro azul
+			_bloco(Vector3(0, 0.03, 0), Vector3(0.06, 0.05, 0.09), _mat(Color(0.08, 0.08, 0.09), 0.6, 0.3))
+			_bloco(Vector3(0, 0.045, 0.046), Vector3(0.045, 0.03, 0.002), _mat(Color(0.3, 0.6, 1.0), 0.2, 0.0, 0.6))
+		"pente_ext":  # 14/11: pente comprido
+			_bloco(Vector3(0, 0.015, 0), Vector3(0.04, 0.03, 0.2), _mat(Color(0.12, 0.12, 0.13), 0.5, 0.5))
+		"bilhete":  # 14/11: folha amassada, clara, brilhando um pouco para achar
+			_bloco(Vector3(0, 0.004, 0), Vector3(0.15, 0.008, 0.2), _mat(Color(0.93, 0.9, 0.8), 1.0, 0.0, 0.4))
 		"livro":  # capa vermelha e páginas brancas
 			_bloco(Vector3(0, 0.02, 0), Vector3(0.16, 0.04, 0.22), _mat(Color(0.55, 0.12, 0.1), 0.8))
 			_bloco(Vector3(0.005, 0.02, 0), Vector3(0.155, 0.032, 0.21), _mat(Color(0.92, 0.9, 0.82), 1.0))

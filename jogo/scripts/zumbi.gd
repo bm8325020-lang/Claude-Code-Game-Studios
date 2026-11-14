@@ -1586,7 +1586,7 @@ func _pede_golpe(dano: int, dir: Vector3) -> void:
 		var quem: Node = principal.jogadores.get_node_or_null(str(multiplayer.get_remote_sender_id())) if principal else null
 		if quem is Jogador:
 			_ultimo = quem
-		_aplica(clampi(dano, 0, 100), dir)
+		_aplica(clampi(dano, 0, 320), dir)  # 14/11: arma lendária + cabeça passa de 100
 
 
 func _aplica(dano: int, dir: Vector3) -> void:
@@ -1811,6 +1811,45 @@ func _deita() -> void:
 	_toca("deitado", 0.0)
 
 
+## 14/11 (item 4, dono: "perna derruba, cabeça explode"): tiro abaixo do joelho derruba quase sempre.
+const PERNA_CHANCE: float = 0.8
+
+
+func tiro_na_perna() -> void:
+	if not _manda():
+		_pede_perna.rpc_id(1)
+		return
+	if vida <= 0 or chefe or _deitado or TIPOS[tipo].skill in ["baixo", "blindado"] or randf() > PERNA_CHANCE:
+		return
+	if pensa == multiplayer.get_unique_id() or not multiplayer.has_multiplayer_peer():
+		_derruba()
+	else:
+		_derruba.rpc_id(pensa)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _pede_perna() -> void:
+	if multiplayer.is_server():
+		tiro_na_perna()
+
+
+## Tiro na cabeça que matou: a cabeça estoura (some) e espirra sangue; em todos os aparelhos.
+var _sem_cabeca: bool = false
+
+
+@rpc("any_peer", "call_local", "unreliable")
+func estoura_cabeca() -> void:
+	if _sem_cabeca or Rede.servidor_sem_tela:
+		return
+	_sem_cabeca = true
+	var p: Vector3 = global_position + Vector3(0, altura_cabeca + 0.1, 0)
+	if _sk and _cabeca >= 0:
+		p = _sk.global_transform * _sk.get_bone_global_pose(_cabeca).origin
+		_sk.set_bone_pose_scale(_cabeca, Vector3.ONE * 0.01)
+	for k in 4:
+		Pistola.sangue(get_tree(), p, Vector3(randf_range(-1, 1), randf_range(0.2, 1.0), randf_range(-1, 1)).normalized())
+
+
 ## Golpe forte: cai de costas e fica um instante no chão (roda em quem pensa o zumbi).
 @rpc("authority", "call_local", "reliable")
 func _derruba() -> void:
@@ -1908,6 +1947,8 @@ func _process(dt: float) -> void:
 	if _espasmo > 0.0:
 		q = q * Quaternion(_eixo, sin(_espasmo * 45.0) * _espasmo * 1.2)
 	_sk.set_bone_pose_rotation(_cabeca, (_sk.get_bone_pose_rotation(_cabeca) * q).normalized())
+	if _sem_cabeca:
+		_sk.set_bone_pose_scale(_cabeca, Vector3.ONE * 0.01)
 
 
 func _comendo() -> bool:

@@ -263,7 +263,7 @@ func _ready() -> void:
 func _acoes() -> void:
 	var mapa: Dictionary = {"frente": [KEY_W, KEY_UP], "tras": [KEY_S, KEY_DOWN], "esq": [KEY_A, KEY_LEFT],
 		"dir": [KEY_D, KEY_RIGHT], "pular": [KEY_SPACE], "correr": [KEY_SHIFT], "agachar": [KEY_CTRL, KEY_C],
-		"andar": [KEY_ALT], "pegar": [KEY_E], "dominar": [KEY_H], "deitar": [KEY_J], "comer": [KEY_F], "beber": [KEY_G], "trocar": [KEY_Q], "recarregar": [KEY_R], "mochila": [KEY_TAB], "modo": [KEY_B],
+		"andar": [KEY_ALT], "pegar": [KEY_E], "dominar": [KEY_H], "deitar": [KEY_J], "comer": [KEY_F], "beber": [KEY_G], "trocar": [KEY_Q], "recarregar": [KEY_R], "mochila": [KEY_TAB], "modo": [KEY_B], "esquiva": [KEY_V],
 		"espaco_1": [KEY_1], "espaco_2": [KEY_2], "espaco_3": [KEY_3], "espaco_4": [KEY_4], "espaco_5": [KEY_5], "espaco_6": [KEY_6]}
 	for acao: String in mapa:
 		if InputMap.has_action(acao):
@@ -325,6 +325,8 @@ func _process(dt: float) -> void:
 		e["andar"] = Input.is_action_pressed("andar")
 		if Input.is_action_just_pressed("pular"):
 			e["pular"] = true
+		if Input.is_action_just_pressed("esquiva"):
+			e["esquiva"] = true
 		if Input.is_action_just_pressed("agachar"):
 			e["agachar"] = true
 		if Input.is_action_just_pressed("trocar"):
@@ -447,7 +449,7 @@ func _process(dt: float) -> void:
 	elif loja:
 		_dica_pegar.text = ("LOJA" if toque else "[E] falar com o lojista")
 	elif not _coleta0.is_empty() and gav == null:
-		var acao: String = {"fruta": "COLHER FRUTINHAS", "madeira": "PEGAR LENHA", "pedra": "PEGAR PEDRA", "rio": "BEBER ÁGUA DO RIO"}.get(String(_coleta0[1]), "PEGAR")
+		var acao: String = {"fruta": "COLHER FRUTINHAS", "madeira": "PEGAR LENHA", "pedra": "PEGAR PEDRA", "rio": "BEBER ÁGUA DO RIO", "horta": "COLHER DA HORTA"}.get(String(_coleta0[1]), "PEGAR")
 		_dica_pegar.text = acao if toque else "[E] " + acao.to_lower()
 	elif cv:
 		_dica_pegar.text = ("CHAMAR PARA O GRUPO ($%d)" if toque else "[E] chamar o sobrevivente para o grupo ($%d)") % Jogador.ALIADO_PRECO[mini(jogador.meus_aliados().size(), 2)]
@@ -1061,6 +1063,15 @@ func _pegou(tipo: String, qtd: int) -> void:
 	if tipo == "chute":
 		Input.vibrate_handheld(60)
 		return
+	if tipo == "bilhete":  # 14/11 (item 5): bilhete do acampamento destruído
+		_tarefas.legenda("BILHETE", "Dia 23. Os lobos pegaram o Caio de noite, a fogueira chamou eles. Vou pela trilha até a vila, lá ainda tem gente. Se achar isto: monta abrigo antes de escurecer e não fica sozinho.", 10.0, false)
+		return
+	if tipo == "base_montou":
+		aviso("MONTADO. DE NOITE ELES VÊM ATRÁS DA SUA BASE", Color(1.0, 0.7, 0.35), 3.0)
+		return
+	if tipo == "base_falta_barraca":
+		aviso("PRIMEIRO MONTE UMA BARRACA", Color(1.0, 0.5, 0.3), 2.5)
+		return
 	if tipo == "tregua_paga":
 		aviso("TRÉGUA COM OS SAQUEADORES ATÉ AMANHECER", Color(0.35, 0.9, 0.45), 5.0)
 		return
@@ -1158,6 +1169,14 @@ func _pegou(tipo: String, qtd: int) -> void:
 			"assou": ["CARNE ASSADA", Color(1.0, 0.7, 0.4)], "mochila_cheia": ["MOCHILA CHEIA", Color(1.0, 0.45, 0.3)]}
 		aviso(String(txt[tipo][0]), txt[tipo][1], 2.5)
 		return
+	if tipo.begins_with("arma_melhor:"):  # 14/11 (item 3): achou a mesma arma, mais rara
+		var t: String = tipo.trim_prefix("arma_melhor:")
+		aviso("%s MELHOROU: %s" % [String(Mochila.NOMES.get(t, t)).to_upper(), Loot.RAR_NOMES[clampi(qtd, 0, 3)]], Loot.CORES[clampi(qtd, 0, 3)], 3.0)
+		return
+	if Loot.e_arma(tipo) and jogador:
+		var r: int = jogador.raridade_de(tipo)
+		aviso("%s  %s" % [String(Mochila.NOMES.get(tipo, tipo)).to_upper(), Loot.RAR_NOMES[r]], Loot.CORES[r], 2.5)
+		return
 	var nome: String = String(Mochila.NOMES.get(tipo, tipo))
 	_aviso_item.text = ("+%d %s" % [qtd, nome.to_lower()]) if qtd > 1 else nome
 	_aviso_t = 1.6
@@ -1183,7 +1202,7 @@ func _levou_dano(dano: int) -> void:
 
 
 func _em_botao(p: Vector2) -> bool:
-	for b: Control in [_btn_agachar, _btn_mira, _btn_atacar, _btn_recarregar, _btn_pegar, get_node_or_null("Pular") as Control,
+	for b: Control in [_btn_agachar, _btn_mira, _btn_atacar, _btn_recarregar, _btn_pegar, get_node_or_null("Pular") as Control, get_node_or_null("Esquiva") as Control,
 			get_node_or_null("Pausa") as Control, get_node_or_null("Mochila") as Control, get_node_or_null("Trocar") as Control, _btn_modo, _btn_dominar, _btn_deitar, _mini] + _barra:
 		if b and b.is_visible_in_tree() and b.get_global_rect().grow(10).has_point(p):
 			return true
@@ -1257,6 +1276,9 @@ func _monta_toque() -> void:
 	var pular := _botao("pular", Vector2(-128, -350), 92.0)
 	pular.name = "Pular"
 	pular.button_down.connect(func() -> void: jogador.entrada["pular"] = true)
+	var esquiva := _botao("esquiva", Vector2(-250, -440), 80.0)  # 14/11 (item 4): esquiva com fôlego
+	esquiva.name = "Esquiva"
+	esquiva.button_down.connect(func() -> void: jogador.entrada["esquiva"] = true)
 	_btn_agachar = _botao("agachar", Vector2(-300, -300), 80.0)
 	_btn_agachar.button_down.connect(func() -> void: jogador.entrada["agachar"] = true)
 	_btn_recarregar = _botao("recarga", Vector2(-410, -250), 72.0)
@@ -1551,11 +1573,11 @@ func _modo_carro(no_carro: bool) -> void:
 	if no_carro == _no_carro_antes and not no_carro:
 		return
 	for b: Variant in [_btn_atacar, _btn_mira, _btn_agachar, _btn_recarregar, _btn_modo, _btn_deitar, _btn_dominar,
-			get_node_or_null("Pular"), get_node_or_null("Trocar")]:
+			get_node_or_null("Pular"), get_node_or_null("Esquiva"), get_node_or_null("Trocar")]:
 		if b and is_instance_valid(b):
 			if no_carro:
 				(b as Control).visible = false
-			elif not _no_carro_antes == no_carro and b in [_btn_atacar, _btn_mira, _btn_agachar, get_node_or_null("Pular"), get_node_or_null("Trocar")]:
+			elif not _no_carro_antes == no_carro and b in [_btn_atacar, _btn_mira, _btn_agachar, get_node_or_null("Pular"), get_node_or_null("Esquiva"), get_node_or_null("Trocar")]:
 				(b as Control).visible = true  # desceu do carro: os de sempre voltam (os de contexto se acertam sozinhos)
 	if not no_carro:
 		_pad_toques.clear()
@@ -1651,6 +1673,10 @@ class _Icone:
 				for k in 2:
 					var y: float = c.y - r * 0.15 + k * r * 0.7
 					draw_polyline(PackedVector2Array([Vector2(c.x - r, y), Vector2(c.x, y - r * 0.8), Vector2(c.x + r, y)]), b, g)
+			"esquiva":  # duas setas para o lado
+				for k in 2:
+					var x: float = c.x - r * 0.5 + k * r * 0.7
+					draw_polyline(PackedVector2Array([Vector2(x, c.y - r * 0.8), Vector2(x + r * 0.6, c.y), Vector2(x, c.y + r * 0.8)]), b, g)
 			"agachar":
 				draw_polyline(PackedVector2Array([Vector2(c.x - r, c.y - r * 0.5), Vector2(c.x, c.y + r * 0.3), Vector2(c.x + r, c.y - r * 0.5)]), b, g)
 				draw_line(Vector2(c.x - r, c.y + r * 0.9), Vector2(c.x + r, c.y + r * 0.9), b, g)

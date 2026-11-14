@@ -86,6 +86,7 @@ var _luz: OmniLight3D
 func _ready() -> void:
 	for k: String in FOGO.get(tipo, {}):
 		set(k, FOGO[tipo][k])
+	_pente_base = pente
 	balas = pente
 	modo_auto = automatica
 	_monta_modelo()
@@ -156,7 +157,20 @@ func _monta_smg() -> void:
 	add_child(cano)
 
 
+## 14/11 (item 3): pente estendido na mochila = +50%; mira e raridade = menos espalho.
+var _pente_base: int = PENTE
+
+
+func _mult_acessorios() -> float:
+	if dono == null:
+		return 1.0
+	return (0.6 if dono.mochila.tem("mira") else 1.0) * Loot.RAR_ESPALHO[dono.raridade_de(tipo)]
+
+
 func _process(dt: float) -> void:
+	if dono:
+		pente = _pente_base + (_pente_base / 2 if dono.mochila.tem("pente_ext") else 0)
+		balas = mini(balas, pente)
 	_espera -= dt
 	_abertura = move_toward(_abertura, 0.0, dt * 4.0)
 	_luz.light_energy = move_toward(_luz.light_energy, 0.0, dt * 60.0)
@@ -171,7 +185,7 @@ func _process(dt: float) -> void:
 
 ## 13/11 (mira de FPS): graus de desvio do próximo tiro (a mira da tela abre e fecha com isso).
 func dispersao(mirando: bool) -> float:
-	return ((disp_mira if mirando else disp_quadril) + _abertura) * (dono.mult_espalho() if dono else 1.0)
+	return ((disp_mira if mirando else disp_quadril) + _abertura) * (dono.mult_espalho() if dono else 1.0) * _mult_acessorios()
 
 
 ## Pode atirar agora? (tem bala, não está recarregando, já passou a cadência)
@@ -191,7 +205,7 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 	balas -= 1
 	_espera = cadencia
 	# dispersão: um pequeno desvio aleatório dentro de um cone (cresce a cada tiro seguido)
-	var graus: float = ((disp_mira if mirando else disp_quadril) + _abertura) * (dono.mult_espalho() if dono else 1.0)
+	var graus: float = dispersao(mirando)
 	_abertura = minf(_abertura + disp_tiro, 4.0 if not automatica else 6.0)
 	var pvp: bool = dono != null and dono.is_inside_tree() and dono.get_tree().get_first_node_in_group("principal") != null \
 		and dono.get_tree().get_first_node_in_group("principal").em_pvp()
@@ -211,6 +225,8 @@ func atirar(origem: Vector3, dir: Vector3, mirando: bool) -> Dictionary:
 			cabeca = ponto.y - pegou.global_position.y > (float(altura) if altura != null else 1.65)
 			var alt: float = 99.0 if pegou.get("_deitado") else ponto.y - pegou.global_position.y  # deitado não tem "perna"
 			pegou.call("levar_golpe", dano_em(origem.distance_to(ponto), alt, cabeca), d, dono)
+			if pegou is Zumbi and not cabeca and alt < PERNA:
+				(pegou as Zumbi).tiro_na_perna()  # 14/11 (item 4): perna derruba
 		if not hit.is_empty() and hit.collider is Carro:
 			(hit.collider as Carro).dispara_alarme()  # tiro em carro: alarme chama a horda (Dying Light/L4D)
 			(hit.collider as Carro).leva_tiro(ponto)  # na altura da janela o vidro estoura
@@ -234,13 +250,13 @@ const QUEDA_MIN: float = 0.5
 func dano_em(dist: float, altura: float, cabeca: bool) -> int:
 	var queda: float = lerpf(1.0, QUEDA_MIN, clampf((dist / alcance - 0.5) * 2.0, 0.0, 1.0))
 	var parte: float = 2.0 if cabeca else (0.7 if altura < PERNA else 1.0)
-	return maxi(1, roundi(dano * parte * queda * (dono.mult_fogo() if dono else 1.0)))
+	return maxi(1, roundi(dano * parte * queda * (dono.mult_fogo() * Loot.RAR_DANO[dono.raridade_de(tipo)] if dono else 1.0)))
 
 
 ## O máximo que um tiro desta arma pode tirar (o servidor corta o que passar disso no PvP).
 static func dano_maximo(t: String) -> int:
 	var f: Dictionary = FOGO.get(t, {})
-	return roundi(float(f.get("dano", DANO)) * 2.0 * 1.5) * int(f.get("chumbos", 1))
+	return roundi(float(f.get("dano", DANO)) * 2.0 * 2.2) * int(f.get("chumbos", 1))  # 14/11: cabe a arma lendária
 
 
 func recarregar() -> void:

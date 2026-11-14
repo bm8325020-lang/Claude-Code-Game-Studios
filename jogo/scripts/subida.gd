@@ -8,11 +8,12 @@ const ESPERA: float = 1.0
 var baixo: Vector3  # global
 var cima: Vector3   # global (em cima do teto da torre)
 var lado: Vector3 = Vector3.RIGHT  # para onde fica a escada (a área de descer fica na beira desse lado)
+var beira: float = 3.2  # m do meio de cima até a área de descer (14/11: torre de vigia da base = 1)
 
 
 func _ready() -> void:
 	_area(baixo + Vector3(0, 0.8, 0), Vector3(1.4, 1.6, 1.4)).body_entered.connect(_vai.bind(true))
-	_area(cima + lado * 3.2 + Vector3(0, 0.8, 0), Vector3(1.2, 1.6, 1.2)).body_entered.connect(_vai.bind(false))
+	_area(cima + lado * beira + Vector3(0, 0.8, 0), Vector3(1.2, 1.6, 1.2)).body_entered.connect(_vai.bind(false))
 	if Rede.servidor_sem_tela:
 		return
 	var esc := MeshInstance3D.new()  # escada encostada (só aparência)
